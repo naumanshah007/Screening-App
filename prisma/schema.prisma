@@ -1,0 +1,522 @@
+// Cervical Screening Clinical Decision Support System
+// NZ Cervical Screening Clinical Practice Guidelines - Full Schema
+// Implements all models from Enhancement Analysis Report
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  GP
+  COORDINATOR
+  ADMIN
+  COLPOSCOPIST
+}
+
+enum PatientStatus {
+  ACTIVE
+  ARCHIVED
+  DECEASED
+}
+
+enum ScreeningType {
+  CYTOLOGY
+  HPV
+}
+
+enum TZType {
+  TYPE1
+  TYPE2
+  TYPE3
+}
+
+enum SampleType {
+  LBC
+  SWAB
+}
+
+enum HPVResult {
+  NOT_DETECTED
+  HPV_16_18
+  HPV_OTHER
+  INADEQUATE
+}
+
+enum CytologyResult {
+  NEGATIVE
+  ASC_US
+  LSIL
+  ASC_H
+  HSIL
+  SCC
+  AG1
+  AG2
+  AG3
+  AG4
+  AG5
+  AC1
+  AC2
+  AC3
+  AC4
+  UNSATISFACTORY
+}
+
+enum HistologyResult {
+  NORMAL
+  CIN1
+  CIN2
+  CIN3
+  AIS
+  SCC
+  ADENOCARCINOMA
+  UNSATISFACTORY
+}
+
+enum ColposcopicImpression {
+  NORMAL
+  LSIL
+  HSIL
+  INVASION
+  UNSATISFACTORY
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETE
+  AWAITING_RESULT
+  RECALLED
+  REFERRED
+  DISCHARGED
+}
+
+enum PathwayFigure {
+  FIGURE_1
+  FIGURE_2
+  FIGURE_3
+  FIGURE_4
+  FIGURE_5
+  FIGURE_6
+  FIGURE_7
+  FIGURE_8
+  FIGURE_9
+  FIGURE_10
+  TABLE_1
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ReferralPriority {
+  P1
+  P2
+  P3
+  P4
+}
+
+enum ReferralStatus {
+  PENDING
+  APPROVED
+  AWAITING_APPOINTMENT
+  COMPLETE
+  REJECTED
+  ESCALATED
+}
+
+enum ReferralType {
+  COLPOSCOPY
+  GYNAECOLOGY
+  MDM
+  SPECIALIST
+}
+
+enum RecallStatus {
+  PENDING
+  SENT
+  RESPONDED
+  OVERDUE
+  CANCELLED
+}
+
+enum WizardStatus {
+  IN_PROGRESS
+  COMPLETE
+  ABANDONED
+}
+
+// ─── Auth / User Models ───────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(GP)
+  twoFASecret   String?
+  twoFAEnabled  Boolean   @default(false)
+  failedAttempts Int      @default(0)
+  lockedUntil   DateTime?
+  lastLoginAt   DateTime?
+  gpPracticeId  String?
+  gpPractice    GPPractice? @relation(fields: [gpPracticeId], references: [id])
+  accounts      Account[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  createdSessions ScreeningSession[]
+  reviewedRules   ClinicalRuleSet[] @relation("RuleReviewer")
+  publishedRules  ClinicalRuleSet[] @relation("RulePublisher")
+  pathwayHistory  PathwayStateHistory[]
+  colposcopyFindings ColposcopyFinding[]
+  wizardSessions  WizardSession[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+  @@id([identifier, token])
+}
+
+// ─── Practice Model ────────────────────────────────────────────────────────────
+
+model GPPractice {
+  id          String   @id @default(cuid())
+  name        String
+  address     String?
+  dhbRegion   String?
+  hpiNumber   String?  @unique
+  users       User[]
+  patients    Patient[]
+  recalls     Recall[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Patient Model ─────────────────────────────────────────────────────────────
+
+model Patient {
+  id                       String        @id @default(cuid())
+  nhi                      String        @unique
+  firstName                String
+  lastName                 String
+  dateOfBirth              DateTime
+  email                    String?
+  phone                    String?
+  address                  String?
+  gpPracticeId             String?
+  gpPractice               GPPractice?   @relation(fields: [gpPracticeId], references: [id])
+  status                   PatientStatus @default(ACTIVE)
+
+  // Phase 1 critical fix: Module A routing detection
+  isFirstTimeHPVTransition Boolean       @default(false)
+  previousScreeningType    ScreeningType?
+  lastCytologyDate         DateTime?
+
+  // Flags
+  isPostHysterectomy       Boolean       @default(false)
+  hysterectomyDate         DateTime?
+  hysterectomyType         String?       // TOTAL, SUBTOTAL
+
+  screeningSessions        ScreeningSession[]
+  medicalHistory           MedicalHistory?
+  recalls                  Recall[]
+  wizardSessions           WizardSession[]
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  @@index([nhi])
+  @@index([status])
+}
+
+// ─── Medical History ──────────────────────────────────────────────────────────
+
+model MedicalHistory {
+  id                          String   @id @default(cuid())
+  patientId                   String   @unique
+  patient                     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  previousHighGradeLesion     Boolean  @default(false)
+  previousTreatment           String?
+  treatmentDate               DateTime?
+  immunocompromised           Boolean  @default(false)
+  hiv                         Boolean  @default(false)
+  // Phase 1 critical fix: AG2 routing
+  atypicalEndometrialHistory  Boolean  @default(false)
+  otherRelevantHistory        String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+// ─── Screening Session ─────────────────────────────────────────────────────────
+
+model ScreeningSession {
+  id             String        @id @default(cuid())
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  createdById    String
+  createdBy      User          @relation(fields: [createdById], references: [id])
+  status         SessionStatus @default(IN_PROGRESS)
+  activeModule   PathwayFigure?
+  activeModuleVersion String?  // Track which rule version used
+
+  // Phase 1 critical fix: Consecutive counter tracking (Test of Cure)
+  consecutiveNegativeCoTestCount Int @default(0)
+  consecutiveLowGradeCount       Int @default(0)
+
+  // Phase 1 critical fix: Unsatisfactory cytology counter
+  unsatisfactoryCytologyCount    Int @default(0)
+
+  // Risk classification
+  currentRiskLevel  RiskLevel?
+  nextScreeningDue  DateTime?
+  recommendation    String?
+  recommendationCode String?
+
+  testResults       TestResult[]
+  colposcopyFindings ColposcopyFinding[]
+  referrals         Referral[]
+  pathwayHistory    PathwayStateHistory[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([patientId, status, createdAt])
+}
+
+// ─── Test Result ──────────────────────────────────────────────────────────────
+
+model TestResult {
+  id                  String          @id @default(cuid())
+  screeningSessionId  String
+  screeningSession    ScreeningSession @relation(fields: [screeningSessionId], references: [id])
+  testDate            DateTime
+  labId               String?
+  specimenId          String?
+
+  // Phase 1 critical fix: Sample type (Figure 3 branching)
+  sampleType          SampleType?
+
+  // HPV result
+  hpvResult           HPVResult?
+  hpv16_18            Boolean?
+  hpvOther            Boolean?
+
+  // Cytology result (structured vocabulary)
+  cytologyResult      CytologyResult?
+  cytologyAdequacy    String?
+
+  // Histology result
+  histologyResult     HistologyResult?
+
+  // Phase 1 critical fix: TZ type for Figure 4/5/7 exceptions
+  tzType              TZType?
+
+  pathwayHistory      PathwayStateHistory[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ─── Colposcopy Finding (New Model) ───────────────────────────────────────────
+
+model ColposcopyFinding {
+  id                  String                @id @default(cuid())
+  screeningSessionId  String
+  screeningSession    ScreeningSession      @relation(fields: [screeningSessionId], references: [id])
+  clinicianId         String
+  clinician           User                  @relation(fields: [clinicianId], references: [id])
+  colposcopyDate      DateTime
+
+  // Phase 1 critical fix: TZ type stored
+  tzType              TZType?
+  visibleLesion       Boolean               @default(false)
+  colposcopicImpression ColposcopicImpression?
+  acetowhiteChange    Boolean               @default(false)
+  iodineNegative      Boolean               @default(false)
+  atypicalVessels     Boolean               @default(false)
+  biopsyTaken         Boolean               @default(false)
+  biopsyResult        HistologyResult?
+  biopsySite          String?
+  mdmReviewRequired   Boolean               @default(false)
+  mdmOutcome          String?
+  notes               String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+}
+
+// ─── Pathway State History (New Model - State Machine) ────────────────────────
+
+model PathwayStateHistory {
+  id                  String           @id @default(cuid())
+  screeningSessionId  String
+  screeningSession    ScreeningSession @relation(fields: [screeningSessionId], references: [id])
+  fromState           String?
+  toState             String
+  transitionReason    String?
+  triggeredByResultId String?
+  triggeredByResult   TestResult?      @relation(fields: [triggeredByResultId], references: [id])
+  createdByUserId     String
+  createdBy           User             @relation(fields: [createdByUserId], references: [id])
+  pathwayFigure       PathwayFigure?
+  riskLevel           RiskLevel?
+  createdAt           DateTime         @default(now())
+}
+
+// ─── Referral ─────────────────────────────────────────────────────────────────
+
+model Referral {
+  id                  String          @id @default(cuid())
+  screeningSessionId  String
+  screeningSession    ScreeningSession @relation(fields: [screeningSessionId], references: [id])
+  type                ReferralType
+  priority            ReferralPriority @default(P3)
+  status              ReferralStatus  @default(PENDING)
+  reason              String?
+  clinicalNotes       String?
+
+  // Phase 1: Timeliness tracking
+  timelinessDays      Int?
+  targetDays          Int?            // P1=20, P2=42, P3=84, P4=168
+  escalationSentAt    DateTime?
+  appointmentDate     DateTime?
+  letterSentAt        DateTime?
+  responseReceivedAt  DateTime?
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([priority, status, createdAt])
+}
+
+// ─── Recall ──────────────────────────────────────────────────────────────────
+
+model Recall {
+  id          String       @id @default(cuid())
+  patientId   String
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  practiceId  String?
+  practice    GPPractice?  @relation(fields: [practiceId], references: [id])
+  status      RecallStatus @default(PENDING)
+  dueDate     DateTime
+  sentAt      DateTime?
+  respondedAt DateTime?
+  reason      String?
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([dueDate, status])
+}
+
+// ─── Clinical Rule Set (Consolidated Engine) ──────────────────────────────────
+
+model ClinicalRuleSet {
+  id              String       @id @default(cuid())
+  version         String       @unique
+  name            String
+  description     String?
+  rulesJson       String       // JSON schema for all figures 1-10 + Table 1
+  schemaVersion   String       @default("1.0")
+  isActive        Boolean      @default(false)
+  publishedAt     DateTime?
+  publishedById   String?
+  publishedBy     User?        @relation("RulePublisher", fields: [publishedById], references: [id])
+  reviewedById    String?
+  reviewedBy      User?        @relation("RuleReviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  changeNotes     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+// ─── Wizard Session ───────────────────────────────────────────────────────────
+
+model WizardSession {
+  id                 String         @id @default(cuid())
+  patientId          String
+  patient            Patient        @relation(fields: [patientId], references: [id])
+  createdById        String
+  createdBy          User           @relation(fields: [createdById], references: [id])
+  status             WizardStatus   @default(IN_PROGRESS)
+  determinedFigure   PathwayFigure?
+  decisionJson       String?        // JSON blob of final ClinicalDecision
+  screeningSessionId String?        @unique
+  answers            WizardAnswer[]
+  startedAt          DateTime       @default(now())
+  completedAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([patientId, status])
+  @@index([createdById])
+}
+
+model WizardAnswer {
+  id              String        @id @default(cuid())
+  wizardSessionId String
+  wizardSession   WizardSession @relation(fields: [wizardSessionId], references: [id], onDelete: Cascade)
+  stepId          String
+  questionText    String
+  answerValue     String
+  answerLabel     String
+  isAutoFilled    Boolean       @default(false)
+  stepNumber      Int
+  createdAt       DateTime      @default(now())
+
+  @@unique([wizardSessionId, stepId])
+  @@index([wizardSessionId])
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  entity      String
+  entityId    String?
+  oldValue    String?
+  newValue    String?
+  ipAddress   String?
+  userAgent   String?
+  exportEvent Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([entity, action])
+  @@index([userId, createdAt])
+  @@index([entityId])
+}
