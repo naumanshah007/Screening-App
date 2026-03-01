@@ -80,17 +80,17 @@ export function getPriorityLabel(priority?: string): string {
 
 export function getFigureLabel(figure?: string): string {
   switch (figure) {
-    case "FIGURE_1":  return "Figure 1 - HPV Transition (cytology-negative)";
-    case "FIGURE_2":  return "Figure 2 - HPV Transition (previously abnormal)";
-    case "FIGURE_3":  return "Figure 3 - Primary HPV Screening";
-    case "FIGURE_4":  return "Figure 4 - Colposcopy & Histology (low-grade)";
-    case "FIGURE_5":  return "Figure 5 - High-grade Lesion Management";
-    case "FIGURE_6":  return "Figure 6 - Test of Cure";
-    case "FIGURE_7":  return "Figure 7 - Post-abnormal Management";
-    case "FIGURE_8":  return "Figure 8 - Post-hysterectomy";
-    case "FIGURE_9":  return "Figure 9 - Extended Post-abnormal Management";
-    case "FIGURE_10": return "Figure 10 - Post-hysterectomy Follow-up";
-    case "TABLE_1":   return "Table 1 - Routine Case Management";
+    case "FIGURE_1":  return "Cytology Transition";
+    case "FIGURE_2":  return "Ongoing HPV Recall";
+    case "FIGURE_3":  return "Primary HPV Screening";
+    case "FIGURE_4":  return "Low-Grade Colposcopy";
+    case "FIGURE_5":  return "High-Grade Colposcopy";
+    case "FIGURE_6":  return "Post-Treatment Review";
+    case "FIGURE_7":  return "Glandular Abnormality";
+    case "FIGURE_8":  return "Post-Hysterectomy";
+    case "FIGURE_9":  return "Pregnancy Protocol";
+    case "FIGURE_10": return "Abnormal Bleeding";
+    case "TABLE_1":   return "Routine Case Management";
     default:          return figure ?? "Unknown";
   }
 }

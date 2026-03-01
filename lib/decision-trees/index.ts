@@ -34,15 +34,15 @@ export interface FigureDef {
   edges: FlowEdge[];
 }
 
-// ─── Figure 1: HPV Transition ─────────────────────────────────────────────────
+// ─── Cytology Transition ──────────────────────────────────────────────────────
 
 const FIGURE_1: FigureDef = {
   id: 'FIGURE_1',
-  title: 'Figure 1 — HPV Transition',
-  subtitle: 'First HPV Screen after Cytology',
+  title: 'Cytology Transition',
+  subtitle: 'First HPV screen after cytology-based screening',
   viewBox: '0 0 860 560',
   nodes: [
-    { id: 'start',  type: 'start',    label: 'HPV Transition Pathway', sublabel: 'First HPV Screen',        x: 430, y: 44  },
+    { id: 'start',  type: 'start',    label: 'Cytology Transition', sublabel: 'First HPV Screen',        x: 430, y: 44  },
     { id: 'hpv',    type: 'decision', label: 'HPV Result?',             x: 430, y: 160, width: 200, height: 90 },
     { id: 'neg',    type: 'outcome',  label: '5-Year Routine Recall',   sublabel: 'F1-NEG-5Y',               risk: 'LOW',    x: 100, y: 320, codes: ['F1-NEG-5Y'] },
     { id: 'inad',   type: 'outcome',  label: 'Repeat HPV — 3 Months',  sublabel: 'F1-INAD-3M',              risk: 'MEDIUM', x: 310, y: 320, codes: ['F1-INAD-3M'] },
@@ -62,15 +62,15 @@ const FIGURE_1: FigureDef = {
   ],
 };
 
-// ─── Figure 2: Module B — Ongoing Recall ─────────────────────────────────────
+// ─── Ongoing HPV Recall ───────────────────────────────────────────────────────
 
 const FIGURE_2: FigureDef = {
   id: 'FIGURE_2',
-  title: 'Figure 2 — Module B',
-  subtitle: 'Prior Normal / Previous Screening',
+  title: 'Ongoing HPV Recall',
+  subtitle: 'Routine follow-up after prior HPV screen',
   viewBox: '0 0 760 480',
   nodes: [
-    { id: 'start', type: 'start',    label: 'Module B — Ongoing Recall',  sublabel: 'Prior screening with outcome', x: 380, y: 44  },
+    { id: 'start', type: 'start',    label: 'Ongoing HPV Recall',  sublabel: 'Prior screening with outcome', x: 380, y: 44  },
     { id: 'hpv',   type: 'decision', label: 'HPV Result?',                 x: 380, y: 160, width: 200, height: 90 },
     { id: 'neg5y', type: 'outcome',  label: '5-Year Routine Recall',       sublabel: 'F2-NEG-5Y',   risk: 'LOW',    x: 130, y: 320, codes: ['F2-NEG-5Y', 'F2-CONSEC-NEG-5Y'] },
     { id: 'inad',  type: 'outcome',  label: 'Repeat HPV — 6 Weeks',       sublabel: 'F2-INAD-6W',  risk: 'MEDIUM', x: 330, y: 320, codes: ['F2-INAD-6W', 'F2-2ND-INAD-COLP'] },
@@ -90,15 +90,15 @@ const FIGURE_2: FigureDef = {
   ],
 };
 
-// ─── Figure 3: Primary HPV Screening ─────────────────────────────────────────
+// ─── Primary HPV Screening ────────────────────────────────────────────────────
 
 const FIGURE_3: FigureDef = {
   id: 'FIGURE_3',
-  title: 'Figure 3 — Primary HPV Screening',
-  subtitle: 'Standard recall pathway',
+  title: 'Primary HPV Screening',
+  subtitle: 'Standard first-contact screening pathway',
   viewBox: '0 0 1000 620',
   nodes: [
-    { id: 'start',   type: 'start',    label: 'Primary HPV Screening',       sublabel: 'Standard recall pathway',      x: 500, y: 44  },
+    { id: 'start',   type: 'start',    label: 'Primary HPV Screening',       sublabel: 'Standard first-contact screening',      x: 500, y: 44  },
     { id: 'hpv',     type: 'decision', label: 'HPV Result?',                  x: 500, y: 160, width: 220, height: 90 },
     { id: 'neg5y',   type: 'outcome',  label: '5-Year Routine Recall',        sublabel: 'F3-NEG-5Y',    risk: 'LOW',    x: 100, y: 320, codes: ['F3-NEG-5Y', 'F3-IC-3Y'] },
     { id: 'inad',    type: 'outcome',  label: 'Repeat HPV — 6 Weeks',        sublabel: 'F3-INAD-6W',   risk: 'MEDIUM', x: 280, y: 320, codes: ['F3-INAD-6W', 'F3-2ND-INAD-COLP'] },
@@ -122,15 +122,15 @@ const FIGURE_3: FigureDef = {
   ],
 };
 
-// ─── Figure 4: Colposcopy — Low Grade Referral ────────────────────────────────
+// ─── Low-Grade Colposcopy ─────────────────────────────────────────────────────
 
 const FIGURE_4: FigureDef = {
   id: 'FIGURE_4',
-  title: 'Figure 4 — Colposcopy (Low Grade)',
-  subtitle: 'Low-grade / initial assessment',
+  title: 'Low-Grade Colposcopy',
+  subtitle: 'Colposcopy referral for low-grade findings',
   viewBox: '0 0 860 560',
   nodes: [
-    { id: 'start', type: 'start',    label: 'Colposcopy Referral',         sublabel: 'Low-grade / initial assessment', x: 430, y: 44  },
+    { id: 'start', type: 'start',    label: 'Low-Grade Colposcopy',         sublabel: 'Low-grade / initial assessment', x: 430, y: 44  },
     { id: 'colp',  type: 'decision', label: 'Colposcopic Impression?',      x: 430, y: 160, width: 220, height: 90 },
     { id: 'norm',  type: 'outcome',  label: 'Repeat Co-test — 12 Months',  sublabel: 'F4-NORM-12M',    risk: 'LOW',    x: 100, y: 320, codes: ['F4-NORM-12M', 'F4-NORM-COLP-12M'] },
     { id: 'lsil',  type: 'process',  label: 'Biopsy? (Low-grade)',          x: 300, y: 320 },
@@ -150,15 +150,15 @@ const FIGURE_4: FigureDef = {
   ],
 };
 
-// ─── Figure 5: Colposcopy — High Grade / AIS / Glandular ─────────────────────
+// ─── High-Grade Colposcopy ────────────────────────────────────────────────────
 
 const FIGURE_5: FigureDef = {
   id: 'FIGURE_5',
-  title: 'Figure 5 — Colposcopy (High Grade)',
-  subtitle: 'AIS / glandular abnormality',
+  title: 'High-Grade Colposcopy',
+  subtitle: 'Colposcopy for HSIL, AIS & glandular changes',
   viewBox: '0 0 860 500',
   nodes: [
-    { id: 'start', type: 'start',    label: 'Colposcopy — High Grade',     sublabel: 'AIS / glandular abnormality',  x: 430, y: 44  },
+    { id: 'start', type: 'start',    label: 'High-Grade Colposcopy',     sublabel: 'HSIL, AIS & glandular changes',  x: 430, y: 44  },
     { id: 'colp',  type: 'decision', label: 'Colposcopic Impression?',      x: 430, y: 160, width: 220, height: 90 },
     { id: 'hsil',  type: 'outcome',  label: 'Excision / Treatment',        sublabel: 'F5-HSIL-EXC',  risk: 'HIGH',   x: 150, y: 320, codes: ['F5-HSIL-EXC', 'F5-CIN3-TREAT'] },
     { id: 'ais',   type: 'outcome',  label: 'Cone Biopsy + MDM',           sublabel: 'F5-AIS-CONE',  risk: 'HIGH',   x: 350, y: 320, codes: ['F5-AIS-CONE', 'F5-AIS-MDM'] },
@@ -174,15 +174,15 @@ const FIGURE_5: FigureDef = {
   ],
 };
 
-// ─── Figure 6: Test of Cure (Post-Treatment) ─────────────────────────────────
+// ─── Post-Treatment Review ────────────────────────────────────────────────────
 
 const FIGURE_6: FigureDef = {
   id: 'FIGURE_6',
-  title: 'Figure 6 — Test of Cure',
-  subtitle: 'Post-treatment follow-up',
+  title: 'Post-Treatment Review',
+  subtitle: 'Test of Cure monitoring after CIN treatment',
   viewBox: '0 0 860 560',
   nodes: [
-    { id: 'start',   type: 'start',    label: 'Test of Cure',                sublabel: 'Post-treatment follow-up', x: 430, y: 44  },
+    { id: 'start',   type: 'start',    label: 'Post-Treatment Review',                sublabel: 'Test of Cure follow-up', x: 430, y: 44  },
     { id: 'hpv',     type: 'decision', label: 'HPV Result?',                  x: 430, y: 160, width: 200, height: 90 },
     { id: 'neg1st',  type: 'outcome',  label: 'Repeat Co-test — 12 Months',  sublabel: 'F6-TOC-6M-NEG',       risk: 'LOW',    x: 130, y: 320, codes: ['F6-TOC-6M-NEG'] },
     { id: 'dis',     type: 'outcome',  label: 'Discharge to 5-Year Recall',  sublabel: 'F6-TOC-DISCHARGE-5Y', risk: 'LOW',    x: 320, y: 320, codes: ['F6-TOC-DISCHARGE-5Y', 'F6-TOC-DISCHARGE-IC-3Y'] },
@@ -200,15 +200,15 @@ const FIGURE_6: FigureDef = {
   ],
 };
 
-// ─── Figure 7: Glandular Abnormalities ───────────────────────────────────────
+// ─── Glandular Abnormality ────────────────────────────────────────────────────
 
 const FIGURE_7: FigureDef = {
   id: 'FIGURE_7',
-  title: 'Figure 7 — Glandular Abnormalities',
-  subtitle: 'AG/AC cytology pathway',
+  title: 'Glandular Abnormality',
+  subtitle: 'Atypical glandular / adenocarcinoma pathway',
   viewBox: '0 0 860 500',
   nodes: [
-    { id: 'start', type: 'start',    label: 'Glandular Abnormalities',     sublabel: 'AG/AC cytology pathway', x: 430, y: 44  },
+    { id: 'start', type: 'start',    label: 'Glandular Abnormality',     sublabel: 'AG/AC cytology pathway', x: 430, y: 44  },
     { id: 'grade', type: 'decision', label: 'Glandular Grade?',             x: 430, y: 160, width: 200, height: 90 },
     { id: 'ag1',   type: 'outcome',  label: 'Colposcopy — P3',             sublabel: 'F7-AG1-COLP',  risk: 'MEDIUM', x: 130, y: 320, codes: ['F7-AG1-COLP', 'F7-AG1-AC1-COLP'] },
     { id: 'ag2',   type: 'outcome',  label: 'Gynaecology Referral',        sublabel: 'F7-AG2-GYN',   risk: 'HIGH',   x: 330, y: 320, codes: ['F7-AG2-GYN', 'F7-AG2-ATEND-GYN'] },
@@ -224,15 +224,15 @@ const FIGURE_7: FigureDef = {
   ],
 };
 
-// ─── Figure 8: Post-Hysterectomy Vault Screening ─────────────────────────────
+// ─── Post-Hysterectomy ────────────────────────────────────────────────────────
 
 const FIGURE_8: FigureDef = {
   id: 'FIGURE_8',
-  title: 'Figure 8 — Post-Hysterectomy Vault',
-  subtitle: 'Vault cytology pathway',
+  title: 'Post-Hysterectomy',
+  subtitle: 'Vault cytology surveillance',
   viewBox: '0 0 760 480',
   nodes: [
-    { id: 'start', type: 'start',    label: 'Post-Hysterectomy Vault',     sublabel: 'Vault cytology pathway', x: 380, y: 44  },
+    { id: 'start', type: 'start',    label: 'Post-Hysterectomy',     sublabel: 'Vault cytology surveillance', x: 380, y: 44  },
     { id: 'cyt',   type: 'decision', label: 'Vault Cytology Result?',       x: 380, y: 160, width: 200, height: 90 },
     { id: 'neg',   type: 'outcome',  label: 'No Further Recall Required',  sublabel: 'F8-VAULT-NEG',  risk: 'LOW',    x: 130, y: 320, codes: ['F8-VAULT-NEG'] },
     { id: 'sat',   type: 'outcome',  label: 'Repeat Vault Cytology',       sublabel: 'F8-VAULT-SAT',  risk: 'LOW',    x: 310, y: 320, codes: ['F8-VAULT-SAT', 'F8-VAULT-UNSAT'] },
@@ -248,15 +248,15 @@ const FIGURE_8: FigureDef = {
   ],
 };
 
-// ─── Figure 9: Pregnancy + High-Grade Cytology ───────────────────────────────
+// ─── Pregnancy Protocol ───────────────────────────────────────────────────────
 
 const FIGURE_9: FigureDef = {
   id: 'FIGURE_9',
-  title: 'Figure 9 — Pregnancy + High-Grade Cytology',
-  subtitle: 'Deferral until post-partum',
+  title: 'Pregnancy Protocol',
+  subtitle: 'High-grade cytology during pregnancy',
   viewBox: '0 0 760 480',
   nodes: [
-    { id: 'start', type: 'start',    label: 'Pregnancy — High-Grade Cytology', sublabel: 'Deferral until post-partum', x: 380, y: 44  },
+    { id: 'start', type: 'start',    label: 'Pregnancy Protocol', sublabel: 'High-grade cytology management', x: 380, y: 44  },
     { id: 'deg',   type: 'decision', label: 'Cytology Grade?',                  x: 380, y: 160, width: 200, height: 90 },
     { id: 'low',   type: 'outcome',  label: 'Defer to Post-Partum — 6 Weeks',  sublabel: 'F9-PREG-LOW-DEFER', risk: 'LOW',    x: 150, y: 320, codes: ['F9-PREG-LOW-DEFER', 'F9-PREG-DEFER'] },
     { id: 'high',  type: 'process',  label: 'Colposcopy During Pregnancy',       x: 380, y: 320 },
@@ -272,15 +272,15 @@ const FIGURE_9: FigureDef = {
   ],
 };
 
-// ─── Figure 10: Abnormal Vaginal Bleeding ────────────────────────────────────
+// ─── Abnormal Bleeding ────────────────────────────────────────────────────────
 
 const FIGURE_10: FigureDef = {
   id: 'FIGURE_10',
-  title: 'Figure 10 — Abnormal Vaginal Bleeding',
-  subtitle: 'Initial assessment pathway',
+  title: 'Abnormal Bleeding',
+  subtitle: 'Abnormal vaginal bleeding assessment',
   viewBox: '0 0 860 520',
   nodes: [
-    { id: 'start',  type: 'start',    label: 'Abnormal Vaginal Bleeding',        sublabel: 'Initial assessment pathway', x: 430, y: 44  },
+    { id: 'start',  type: 'start',    label: 'Abnormal Bleeding',        sublabel: 'Initial assessment pathway', x: 430, y: 44  },
     { id: 'exam',   type: 'decision', label: 'Cervix Appearance?',                x: 430, y: 160, width: 200, height: 90 },
     { id: 'cancer', type: 'outcome',  label: 'Urgent Referral — Suspected Cancer', sublabel: 'F10-CANCEL-URGENT', risk: 'URGENT', x: 100, y: 320, codes: ['F10-CANCEL-URGENT', 'F10-CANCER-URGENT'] },
     { id: 'sti',    type: 'outcome',  label: 'Treat STI — Recall 3 Months',      sublabel: 'F10-STI-TREAT',  risk: 'MEDIUM', x: 300, y: 320, codes: ['F10-STI-TREAT'] },
