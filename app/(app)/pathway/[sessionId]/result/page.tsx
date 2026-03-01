@@ -391,6 +391,39 @@ export default function WizardResultPage({
             )}
           </div>
 
+          {/* Decision Pathway diagram — always visible */}
+          {(() => {
+            const fig = getFigureById(decision.figure);
+            if (!fig) return null;
+            return (
+              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-slate-50/60">
+                  <div className="p-1.5 rounded-lg bg-brand-50">
+                    <GitBranch className="h-4 w-4 text-brand-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 leading-tight">Decision Pathway</p>
+                    <p className="text-xs text-slate-500 truncate">{fig.title} · {fig.subtitle}</p>
+                  </div>
+                  {decision.recommendationCode && (
+                    <span className="text-[10px] font-mono text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-md flex-shrink-0">
+                      {decision.recommendationCode}
+                    </span>
+                  )}
+                </div>
+
+                {/* Interactive diagram */}
+                <FlowDiagram
+                  figure={fig}
+                  activeCode={decision.recommendationCode}
+                  height={460}
+                  className="rounded-none border-0"
+                />
+              </div>
+            );
+          })()}
+
           {/* Guideline reference */}
           <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
             <button
@@ -429,30 +462,6 @@ export default function WizardResultPage({
               </div>
             )}
           </div>
-
-          {/* Decision Pathway diagram */}
-          {(() => {
-            const fig = getFigureById(decision.figure);
-            if (!fig) return null;
-            return (
-              <div className="mt-2">
-                <details className="group">
-                  <summary className="flex items-center gap-2 cursor-pointer list-none px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
-                    <GitBranch className="h-4 w-4 text-brand-600" />
-                    <span className="text-sm font-semibold text-slate-800">View Decision Pathway</span>
-                    <ChevronRight className="h-4 w-4 text-slate-400 ml-auto group-open:rotate-90 transition-transform" />
-                  </summary>
-                  <div className="mt-3">
-                    <FlowDiagram
-                      figure={fig}
-                      activeCode={decision.recommendationCode}
-                      className="rounded-xl"
-                    />
-                  </div>
-                </details>
-              </div>
-            );
-          })()}
 
           {/* Notifications */}
           <Card className="no-print">
