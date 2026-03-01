@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight, ChevronDown, AlertTriangle, CheckCircle } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,85 +69,28 @@ type SessionData = {
 
 // ─── Caution tag colours ──────────────────────────────────────────────────────
 
-function cautionClass(tag?: string): string {
-  if (!tag) return "bg-gray-100 text-gray-600";
+function cautionColorFromTag(tag?: string): "red" | "amber" {
+  if (!tag) return "amber";
   const lower = tag.toLowerCase();
-  if (lower.includes("urgent")) return "bg-red-100 text-red-700";
-  if (lower.includes("high")) return "bg-purple-100 text-purple-700";
-  if (lower.includes("gynaecology")) return "bg-blue-100 text-blue-700";
-  if (lower.includes("treatment")) return "bg-orange-100 text-orange-700";
-  return "bg-amber-100 text-amber-700";
+  if (lower.includes("urgent") || lower.includes("high") || lower.includes("invasive")) return "red";
+  return "amber";
 }
 
-// ─── Option Card Component ────────────────────────────────────────────────────
+// Clinical warning messages for high-risk selections
+const clinicalWarnings: Record<string, string> = {
+  HPV_16_18:  "HPV 16/18 always requires colposcopy referral, regardless of cytology result.",
+  HSIL:       "High-grade cytology — colposcopy referral required.",
+  ASC_H:      "Cannot exclude HSIL — colposcopy pathway applies.",
+  AG2:        "Atypical endometrial cells — direct gynaecology referral required (not colposcopy).",
+  AC2:        "AC2 glandular abnormality — direct gynaecology referral required per Figure 7.",
+  INVASION:   "Invasive disease suspected — urgent MDM and oncology referral required.",
+  CIN3:       "CIN3 requires urgent treatment.",
+};
 
-function AnswerOptionCard({
-  option,
-  selected,
-  autoFilled,
-  onClick,
-  animating,
-}: {
-  option: OptionCard;
-  selected: boolean;
-  autoFilled?: boolean;
-  onClick: () => void;
-  animating: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={animating}
-      className={cn(
-        "w-full text-left rounded-2xl border-2 px-5 py-4 transition-all duration-200 cursor-pointer",
-        "focus:outline-none focus:ring-2 focus:ring-offset-2",
-        selected
-          ? "border-[#0D9488] bg-teal-50 focus:ring-[#0D9488] shadow-md"
-          : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm focus:ring-gray-300",
-        animating && selected ? "scale-98 opacity-80" : ""
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          {/* Radio indicator */}
-          <div
-            className={cn(
-              "mt-0.5 h-5 w-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center",
-              selected ? "border-[#0D9488] bg-[#0D9488]" : "border-gray-300"
-            )}
-          >
-            {selected && <div className="h-2 w-2 rounded-full bg-white" />}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <p className={cn("font-semibold", selected ? "text-[#0D9488]" : "text-gray-800")}>
-              {option.label}
-            </p>
-            {option.hint && (
-              <p className="text-sm text-gray-500 mt-0.5">{option.hint}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          {option.cautionTag && (
-            <span className={cn("rounded-full text-xs font-medium px-2 py-0.5", cautionClass(option.cautionTag))}>
-              {option.cautionTag}
-            </span>
-          )}
-          {autoFilled && (
-            <span className="rounded-full text-xs font-medium px-2 py-0.5 bg-teal-50 text-teal-700 border border-teal-200">
-              📋 Pre-filled
-            </span>
-          )}
-          {selected && !autoFilled && (
-            <span className="text-[#0D9488] text-lg">✓</span>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
+const highRiskValues = new Set([
+  "HPV_16_18", "HSIL", "ASC_H", "SCC", "AG2", "AG3", "AG4", "AG5",
+  "AC2", "AC3", "AC4", "INVASION", "CIN3", "AIS", "ADENOCARCINOMA",
+]);
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -157,7 +101,6 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [currentStep, setCurrentStep] = useState<WizardStep | null>(null);
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -165,8 +108,18 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
   const [progress, setProgress] = useState<Progress>({ current: 0, total: 0, percent: 0 });
   const [isAutoFilledStep, setIsAutoFilledStep] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [bannerExpanded, setBannerExpanded] = useState(false);
 
-  // Load session
+  const completeAndRedirect = useCallback(async (sid: string) => {
+    setCompleting(true);
+    try {
+      const res = await fetch(`/api/pathway/sessions/${sid}/complete`, { method: "POST" });
+      if (res.ok) router.push(`/pathway/${sid}/result`);
+    } catch {
+      setCompleting(false);
+    }
+  }, [router]);
+
   const loadSession = useCallback(async () => {
     try {
       const res = await fetch(`/api/pathway/sessions/${sessionId}`);
@@ -176,7 +129,6 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
       setProgress(data.progress);
 
       if (data.isComplete) {
-        // Auto-complete and redirect
         await completeAndRedirect(sessionId);
         return;
       }
@@ -200,19 +152,7 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
-
-  const completeAndRedirect = async (sid: string) => {
-    setCompleting(true);
-    try {
-      const res = await fetch(`/api/pathway/sessions/${sid}/complete`, { method: "POST" });
-      if (res.ok) {
-        router.push(`/pathway/${sid}/result`);
-      }
-    } catch {
-      setCompleting(false);
-    }
-  };
+  }, [sessionId, completeAndRedirect]);
 
   useEffect(() => {
     loadSession();
@@ -221,10 +161,8 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
   const handleSelect = useCallback(async (option: OptionCard) => {
     if (!currentStep || submitting || animating) return;
     setSelectedValue(option.value);
-
-    // Short visual delay before advancing
     setAnimating(true);
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 350));
 
     setSubmitting(true);
     try {
@@ -247,7 +185,6 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
         return;
       }
 
-      // Move to next step with fade transition
       setAnimating(false);
       setCurrentStep(data.nextStep);
       setSelectedValue(null);
@@ -258,34 +195,25 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
     } finally {
       setSubmitting(false);
     }
-  }, [currentStep, submitting, animating, sessionId, router]);
+  }, [currentStep, submitting, animating, sessionId, completeAndRedirect]);
 
   const handleBack = useCallback(async () => {
     if (!sessionData) return;
-    // Find last answered step
-    const allAnswered = sessionData.allSteps
-      .filter((s) => s.isAnswered)
-      .slice(-1)[0];
-    if (!allAnswered || allAnswered.id === currentStep?.id) return;
-
-    // Go back by finding the last answered step that's different from current
-    const answeredSteps = sessionData.allSteps.filter((s) => s.isAnswered && s.id !== currentStep?.id);
-    const prevStep = answeredSteps[answeredSteps.length - 1];
-    if (!prevStep) return;
-
-    // Find the step definition
-    const stepDef = sessionData.allSteps.find((s) => s.id === prevStep.id);
-    if (!stepDef) return;
-
-    // Reload to get the correct step
+    const answeredSteps = sessionData.allSteps.filter(
+      (s) => s.isAnswered && s.id !== currentStep?.id
+    );
+    if (!answeredSteps.length) {
+      router.back();
+      return;
+    }
     await loadSession();
-  }, [sessionData, currentStep, loadSession]);
+  }, [sessionData, currentStep, loadSession, router]);
 
   if (loading || completing) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="h-12 w-12 rounded-full border-4 border-gray-200 border-t-[#0D9488] animate-spin" />
-        <p className="text-sm text-gray-500">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-br from-slate-50 to-brand-50/20">
+        <div className="h-12 w-12 rounded-full border-4 border-slate-200 border-t-brand-600 animate-spin" />
+        <p className="text-sm text-slate-500">
           {completing ? "Generating clinical decision…" : "Loading wizard…"}
         </p>
       </div>
@@ -294,11 +222,14 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
 
   if (error) {
     return (
-      <div className="max-w-lg mx-auto py-12 px-4 text-center space-y-4">
-        <div className="text-3xl text-red-400">⚠</div>
-        <p className="text-gray-700 font-medium">{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
+        <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
+          <AlertTriangle className="h-7 w-7 text-red-500" />
+        </div>
+        <p className="text-slate-700 font-medium text-center">{error}</p>
         <Button variant="outline" onClick={() => router.push("/pathway")}>
-          ← Back to Pathway Wizard
+          <ArrowLeft className="h-4 w-4" />
+          Back to Pathway Wizard
         </Button>
       </div>
     );
@@ -308,120 +239,210 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
 
   const patient = sessionData.patient;
   const answeredCount = sessionData.allSteps.filter((s) => s.isAnswered).length;
+  const showClinicalWarning = selectedValue && highRiskValues.has(selectedValue);
+  const warningText = selectedValue ? clinicalWarnings[selectedValue] : null;
+
+  // Determine option grid layout
+  const optCount = currentStep.options?.length ?? 0;
+  const gridClass = optCount <= 2
+    ? "grid-cols-1 sm:grid-cols-2"
+    : optCount === 3
+    ? "grid-cols-1 sm:grid-cols-3"
+    : "grid-cols-1 sm:grid-cols-2";
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f0f9f8 100%)" }}>
-      {/* Top progress bar */}
-      <div className="w-full h-1.5 bg-gray-200">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-brand-50/30 flex flex-col">
+      {/* Patient banner */}
+      <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <button
+          onClick={() => setBannerExpanded(e => !e)}
+          className="w-full px-6 py-3 flex items-center gap-3 hover:bg-slate-50/80 transition-colors text-left"
+          aria-expanded={bannerExpanded}
+        >
+          <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-[10px] font-bold">
+              {patient.firstName?.[0] ?? ""}{patient.lastName?.[0] ?? ""}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0 flex items-center gap-3">
+            <span className="text-sm font-semibold text-slate-900">
+              {patient.firstName} {patient.lastName}
+            </span>
+            <span className="text-xs text-slate-400 font-mono">{patient.nhi}</span>
+            {patient.isFirstTimeHPVTransition && (
+              <span className="text-[10px] font-medium bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">
+                HPV Transition
+              </span>
+            )}
+            {patient.isPostHysterectomy && (
+              <span className="text-[10px] font-medium bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200">
+                Post-Hysterectomy
+              </span>
+            )}
+          </div>
+          <div className="text-right flex-shrink-0 mr-2">
+            <p className="text-xs text-slate-500">Step {answeredCount + 1} of {progress.total}</p>
+          </div>
+          <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", bannerExpanded && "rotate-180")} />
+        </button>
+        {bannerExpanded && (
+          <div className="px-6 pb-3 flex gap-6 text-xs text-slate-500 animate-slide-down">
+            <span>DOB: {patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString("en-NZ") : "—"}</span>
+            <span>NHI: <span className="font-mono">{patient.nhi}</span></span>
+            {patient.gpPractice && <span>Practice: {patient.gpPractice.name}</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-1 bg-slate-100">
         <div
-          className="h-full bg-[#0D9488] transition-all duration-500"
+          className="h-1 bg-brand-500 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
           style={{ width: `${progress.percent}%` }}
+          role="progressbar"
+          aria-valuenow={progress.percent}
+          aria-label={`Step ${answeredCount + 1} of ${progress.total}`}
         />
       </div>
 
-      {/* Patient context strip */}
-      <div className="border-b border-gray-200 bg-white px-6 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-800">
-                {patient.firstName} {patient.lastName}
-              </p>
-              <p className="text-xs text-gray-500 font-mono">{patient.nhi}</p>
-            </div>
-            <div className="flex gap-1.5">
-              {patient.isFirstTimeHPVTransition && (
-                <span className="rounded-full bg-purple-100 text-purple-700 text-xs font-medium px-2 py-0.5">
-                  HPV Transition
-                </span>
-              )}
-              {patient.isPostHysterectomy && (
-                <span className="rounded-full bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5">
-                  Post-Hysterectomy
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="text-right">
-            <p className="text-xs text-gray-500">Step {answeredCount + 1} of {progress.total}</p>
-            <p className="text-xs font-semibold text-[#0D9488]">{progress.percent}% complete</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main question area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
         <div
           className={cn(
-            "w-full max-w-2xl space-y-6 transition-all duration-300",
-            animating ? "opacity-60 translate-y-1" : "opacity-100 translate-y-0"
+            "w-full max-w-2xl transition-all duration-300",
+            animating ? "opacity-50 translate-y-1" : "opacity-100 translate-y-0"
           )}
+          key={currentStep.id}
         >
+          {/* Step counter */}
+          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-6">
+            Step {answeredCount + 1} of {progress.total}
+          </p>
+
           {/* Auto-filled notice */}
           {isAutoFilledStep && (
-            <div className="flex items-center gap-2 rounded-xl bg-teal-50 border border-teal-200 px-4 py-2.5">
-              <span className="text-teal-600">📋</span>
-              <p className="text-sm text-teal-800">
+            <div className="mb-5 flex gap-3 p-3.5 rounded-xl border border-brand-200 bg-brand-50 animate-slide-down">
+              <CheckCircle className="h-4 w-4 text-brand-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-brand-800">
                 This answer was <strong>pre-filled from existing records</strong>. You can change it if needed.
               </p>
             </div>
           )}
 
           {/* Question */}
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-gray-900 leading-snug">
-              {currentStep.question}
-            </h2>
-            {currentStep.hint && (
-              <p className="text-sm text-gray-500 leading-relaxed">{currentStep.hint}</p>
-            )}
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight mb-2">
+            {currentStep.question}
+          </h1>
+          {currentStep.hint ? (
+            <p className="text-base text-slate-500 mb-8 leading-relaxed">{currentStep.hint}</p>
+          ) : (
+            <div className="mb-8" />
+          )}
 
-          {/* Answer options */}
-          {currentStep.options && currentStep.options.length > 0 && (
-            <div className="grid gap-3">
-              {currentStep.options.map((option) => (
-                <AnswerOptionCard
-                  key={option.value}
-                  option={option}
-                  selected={selectedValue === option.value}
-                  autoFilled={isAutoFilledStep && selectedValue === option.value}
-                  onClick={() => handleSelect(option)}
-                  animating={animating}
-                />
-              ))}
+          {/* Clinical warning */}
+          {showClinicalWarning && (
+            <div className="mb-6 flex gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 animate-slide-down">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800 font-medium">
+                {warningText ?? "This result requires clinical attention — please review the pathway recommendation carefully."}
+              </p>
             </div>
           )}
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between pt-2">
-            <button
-              onClick={handleBack}
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              ← Back
-            </button>
-
-            <div className="flex items-center gap-1.5">
-              {sessionData.allSteps
-                .map((s, i) => (
-                  <div
-                    key={s.id}
+          {/* Option cards */}
+          {currentStep.options && currentStep.options.length > 0 && (
+            <div className={cn("grid gap-3", gridClass)}>
+              {currentStep.options.map((opt) => {
+                const isSelected = selectedValue === opt.value;
+                const cautionColor = cautionColorFromTag(opt.cautionTag);
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleSelect(opt)}
+                    disabled={animating}
                     className={cn(
-                      "rounded-full transition-all",
-                      s.id === currentStep.id
-                        ? "h-2.5 w-2.5 bg-[#0D9488]"
-                        : s.isAnswered
-                        ? "h-2 w-2 bg-teal-300"
-                        : "h-2 w-2 bg-gray-200"
+                      "relative text-left rounded-xl border-2 p-4 transition-all duration-150",
+                      "hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
+                      "disabled:cursor-not-allowed",
+                      isSelected
+                        ? "border-brand-600 bg-brand-50/60 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
                     )}
-                  />
-                ))}
+                    aria-pressed={isSelected}
+                  >
+                    {/* Caution tag */}
+                    {opt.cautionTag && (
+                      <span className={cn(
+                        "absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                        cautionColor === "red"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                      )}>
+                        {opt.cautionTag}
+                      </span>
+                    )}
+                    {/* Radio indicator */}
+                    <div className={cn(
+                      "absolute top-3 left-3 w-4 h-4 rounded-full border-2 transition-all duration-150 flex items-center justify-center",
+                      isSelected ? "border-brand-600 bg-brand-600" : "border-slate-300"
+                    )}>
+                      {isSelected && (
+                        <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none">
+                          <path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="pl-7 pr-16">
+                      <p className={cn("text-sm font-semibold", isSelected ? "text-brand-900" : "text-slate-900")}>
+                        {opt.label}
+                      </p>
+                      {opt.hint && (
+                        <p className={cn("text-xs mt-1 leading-relaxed", isSelected ? "text-brand-700" : "text-slate-500")}>
+                          {opt.hint}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+          )}
 
-            <div className="w-16" />
+          {/* Step dots */}
+          <div className="flex items-center justify-center gap-1.5 mt-10">
+            {sessionData.allSteps.map((s) => (
+              <div
+                key={s.id}
+                className={cn(
+                  "rounded-full transition-all",
+                  s.id === currentStep.id
+                    ? "h-2.5 w-2.5 bg-brand-600"
+                    : s.isAnswered
+                    ? "h-2 w-2 bg-brand-300"
+                    : "h-2 w-2 bg-slate-200"
+                )}
+              />
+            ))}
           </div>
+        </div>
+      </div>
+
+      {/* Footer navigation */}
+      <div className="border-t border-slate-200 bg-white/90 backdrop-blur-sm px-6 py-4">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+          <Button variant="ghost" onClick={handleBack} size="md">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          {selectedValue && !animating && (
+            <p className="text-xs text-slate-400 hidden sm:block">Select an option to continue automatically</p>
+          )}
+          {animating && (
+            <div className="flex items-center gap-2 text-xs text-brand-600">
+              <div className="h-3.5 w-3.5 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
+              Saving…
+            </div>
+          )}
         </div>
       </div>
     </div>

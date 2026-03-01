@@ -1,96 +1,132 @@
 import { cn } from "@/lib/utils";
-import { InputHTMLAttributes, forwardRef } from "react";
+import { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef, SelectHTMLAttributes } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
+  icon?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, hint, id, ...props }, ref) => {
+  ({ className, label, error, hint, icon, id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
     return (
-      <div className="space-y-1">
+      <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1.5">
             {label}
-            {props.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
           </label>
         )}
-        <input
-          ref={ref}
-          id={inputId}
-          className={cn(
-            "block w-full rounded-lg border px-3 py-2 text-sm",
-            "border-gray-300 bg-white text-gray-900 placeholder-gray-400",
-            "focus:border-[#0D9488] focus:outline-none focus:ring-1 focus:ring-[#0D9488]",
-            "disabled:bg-gray-50 disabled:text-gray-500",
-            error && "border-red-400 focus:border-red-500 focus:ring-red-500",
-            className
+        <div className="relative">
+          {icon && (
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              {icon}
+            </div>
           )}
-          aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
-          aria-invalid={error ? "true" : undefined}
-          {...props}
-        />
-        {hint && !error && (
-          <p id={`${inputId}-hint`} className="text-xs text-gray-500">{hint}</p>
-        )}
-        {error && (
-          <p id={`${inputId}-error`} className="text-xs text-red-600" role="alert">{error}</p>
-        )}
+          <input
+            ref={ref}
+            id={inputId}
+            className={cn(
+              "w-full rounded-lg border text-sm transition-colors duration-150",
+              "px-3 py-2.5 h-10",
+              "bg-white text-slate-900 placeholder:text-slate-400",
+              "focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600",
+              error
+                ? "border-red-400 focus:ring-red-500 focus:border-red-500"
+                : "border-slate-200 hover:border-slate-300",
+              icon && "pl-9",
+              className
+            )}
+            {...props}
+          />
+        </div>
+        {error && <p className="mt-1 text-xs text-red-600 flex items-center gap-1">⚠ {error}</p>}
+        {hint && !error && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
       </div>
     );
   }
 );
-
 Input.displayName = "Input";
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   hint?: string;
-  options: { value: string; label: string }[];
+}
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, label, error, hint, id, ...props }, ref) => {
+    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+    return (
+      <div className="w-full">
+        {label && (
+          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1.5">
+            {label}
+          </label>
+        )}
+        <textarea
+          ref={ref}
+          id={inputId}
+          className={cn(
+            "w-full rounded-lg border text-sm transition-colors duration-150 resize-none",
+            "px-3 py-2.5",
+            "bg-white text-slate-900 placeholder:text-slate-400",
+            "focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600",
+            error ? "border-red-400" : "border-slate-200 hover:border-slate-300",
+            className
+          )}
+          {...props}
+        />
+        {error && <p className="mt-1 text-xs text-red-600">⚠ {error}</p>}
+        {hint && !error && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      </div>
+    );
+  }
+);
+Textarea.displayName = "Textarea";
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  error?: string;
+  hint?: string;
+  options?: { value: string; label: string }[];
   placeholder?: string;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, hint, options, placeholder, id, ...props }, ref) => {
-    const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+  ({ className, label, error, hint, id, children, options, placeholder, ...props }, ref) => {
+    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
     return (
-      <div className="space-y-1">
+      <div className="w-full">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-gray-700">
+          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1.5">
             {label}
-            {props.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
           </label>
         )}
         <select
           ref={ref}
-          id={selectId}
+          id={inputId}
           className={cn(
-            "block w-full rounded-lg border px-3 py-2 text-sm",
-            "border-gray-300 bg-white text-gray-900",
-            "focus:border-[#0D9488] focus:outline-none focus:ring-1 focus:ring-[#0D9488]",
-            "disabled:bg-gray-50",
-            error && "border-red-400",
+            "w-full rounded-lg border text-sm transition-colors duration-150 h-10 px-3",
+            "bg-white text-slate-900",
+            "focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600",
+            error ? "border-red-400" : "border-slate-200 hover:border-slate-300",
             className
           )}
-          aria-describedby={error ? `${selectId}-error` : undefined}
           {...props}
         >
           {placeholder && <option value="">{placeholder}</option>}
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
+          {options
+            ? options.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))
+            : children}
         </select>
-        {hint && !error && <p className="text-xs text-gray-500">{hint}</p>}
-        {error && (
-          <p id={`${selectId}-error`} className="text-xs text-red-600" role="alert">{error}</p>
-        )}
+        {error && <p className="mt-1 text-xs text-red-600">⚠ {error}</p>}
+        {hint && !error && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
       </div>
     );
   }
 );
-
 Select.displayName = "Select";

@@ -874,8 +874,11 @@ function evaluateFigure6(input: ClinicalInput): ClinicalDecision {
     }
   }
 
-  if (hpvResult === "HPV_OTHER" && cytologyResult === "NEGATIVE") {
-    if (consecutiveLowGradeCount >= 2) {
+  if (hpvResult === "HPV_OTHER") {
+    // Any cytology (including low-grade) — if this is the SECOND HPV Other test
+    // post-treatment (consecutiveLowGradeCount >= 1) → escalate to colposcopy.
+    // NZ Guidelines Figure 6: persistent HPV Other at second ToC test → colposcopy.
+    if (consecutiveLowGradeCount >= 1) {
       return {
         figure: "FIGURE_6",
         riskLevel: "HIGH",
@@ -885,22 +888,25 @@ function evaluateFigure6(input: ClinicalInput): ClinicalDecision {
         referralRequired: true,
         referralType: "COLPOSCOPY",
         referralPriority: "P2",
-        referralReason: "Persistent HPV Other after treatment in Test of Cure protocol",
-        guidelineReference: "Figure 6 - Persistent HPV post-treatment",
-        rationale: "Persistent HPV Other after 2 co-tests post-treatment requires colposcopy.",
+        referralReason: "Persistent HPV Other after second ToC test — requires colposcopy",
+        guidelineReference: "Figure 6 — Persistent HPV Other: second positive post-treatment",
+        rationale:
+          "HPV Other still detected at second post-treatment co-test. NZ guidelines require colposcopy referral for persistent HPV Other.",
       };
     }
+    // First HPV Other post-treatment: recall in 12 months
     return {
       figure: "FIGURE_6",
       riskLevel: "MEDIUM",
-      recommendation: "HPV Other detected post-treatment. Repeat co-test in 12 months.",
+      recommendation: "HPV Other detected post-treatment (first co-test). Repeat co-test in 12 months.",
       recommendationCode: "F6-HPVO-12M",
       nextAction: "Schedule repeat co-test in 12 months",
       recallRequired: true,
       recallIntervalMonths: 12,
       incrementConsecutiveLowGrade: true,
-      guidelineReference: "Figure 6 - HPV Other post-treatment",
-      rationale: "HPV Other post-treatment. Monitoring required.",
+      guidelineReference: "Figure 6 — HPV Other post-treatment: first positive",
+      rationale:
+        "HPV Other detected at first post-treatment co-test. Second co-test required at 12 months. If still positive → colposcopy.",
     };
   }
 
@@ -1783,7 +1789,9 @@ export function evaluateClinicalDecision(input: ClinicalInput): ClinicalDecision
   }
 
   // ── Test of Cure (Figure 6) ───────────────────────────────────────────────
-  if (input.currentFigure === "FIGURE_6") {
+  // Route when nurse explicitly flags this as a Test of Cure session OR
+  // when the session was saved with currentFigure = FIGURE_6.
+  if (input.isTestOfCure || input.currentFigure === "FIGURE_6") {
     return evaluateFigure6(input);
   }
 

@@ -97,6 +97,8 @@ export async function POST(
     stiIdentified:            fieldMap.stiIdentified as boolean | undefined,
     bleedingResolved:         fieldMap.bleedingResolved as boolean | undefined,
     mdmOutcome:               fieldMap.mdmOutcome as string | undefined,
+    // Test of Cure flag — routes engine to Figure 6
+    isTestOfCure:             (fieldMap.isTestOfCure as boolean | undefined) ?? false,
     // Counters from existing session
     consecutiveNegativeCoTestCount: existingSession?.consecutiveNegativeCoTestCount ?? 0,
     consecutiveLowGradeCount:       existingSession?.consecutiveLowGradeCount ?? 0,

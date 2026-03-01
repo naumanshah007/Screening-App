@@ -2,8 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { StatCard, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate, formatDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { formatDate, formatDateTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import {
+  Users, Shield, Settings, FileText, CheckCircle,
+  Lock, Database, Activity, AlertTriangle
+} from "lucide-react";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -19,6 +25,8 @@ export default async function AdminPage() {
     recentAuditLogs,
     patientStats,
     rulesets,
+    sessionsThirtyDays,
+    referralStats,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.clinicalRuleSet.count({ where: { isActive: true } }),
@@ -37,87 +45,133 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
+    prisma.screeningSession.count({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+    }),
+    prisma.referral.groupBy({
+      by: ["priority", "status"],
+      _count: true,
+    }),
   ]);
 
   const totalPatients = patientStats.reduce((sum, s) => sum + s._count, 0);
   const activePatients = patientStats.find((s) => s.status === "ACTIVE")?._count ?? 0;
 
+  const actionBadgeClass: Record<string, string> = {
+    CREATE: "bg-emerald-100 text-emerald-700",
+    READ:   "bg-sky-100 text-sky-700",
+    UPDATE: "bg-amber-100 text-amber-700",
+    DELETE: "bg-red-100 text-red-700",
+  };
+
+  // Pending referrals by priority
+  const pendingByPriority = referralStats
+    .filter(r => r.status === "PENDING")
+    .reduce((acc, r) => {
+      acc[r.priority] = (acc[r.priority] ?? 0) + r._count;
+      return acc;
+    }, {} as Record<string, number>);
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 animate-fade-in">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#1E3A5F]">Admin Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
           System administration — NZ Cervical Screening Programme
         </p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="Total Patients"
           value={totalPatients.toLocaleString()}
           subtext={`${activePatients} active`}
+          icon={<Users className="h-5 w-5" />}
         />
         <StatCard
           label="System Users"
           value={totalUsers.toLocaleString()}
           subtext="Clinicians and coordinators"
+          icon={<Users className="h-5 w-5" />}
         />
         <StatCard
           label="Active Rule Sets"
           value={activeRules.toLocaleString()}
-          subtext="Clinical decision rules published"
+          subtext="Clinical decision rules"
           variant={activeRules === 0 ? "urgent" : "default"}
+          icon={<Settings className="h-5 w-5" />}
         />
         <StatCard
           label="Audit Events (30d)"
           value={recentAuditLogs.length.toLocaleString()}
-          subtext="System access and changes"
+          subtext="System access logged"
+          icon={<FileText className="h-5 w-5" />}
         />
       </div>
 
+      {/* Second KPI row */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard
+          label="Sessions (30d)"
+          value={sessionsThirtyDays.toLocaleString()}
+          subtext="Pathway sessions"
+          icon={<Activity className="h-5 w-5" />}
+        />
+        {Object.entries(pendingByPriority).sort().map(([priority, count]) => (
+          <StatCard
+            key={priority}
+            label={`${priority} Pending`}
+            value={count}
+            subtext="Referrals awaiting action"
+            variant={priority === "P1" ? "urgent" : priority === "P2" ? "warning" : "default"}
+          />
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Clinical Rule Set history */}
+        {/* Rule version history */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Rule Version History</CardTitle>
-              <Badge variant="default">Two-Person Rule</Badge>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-brand-600" />
+              Rule Version History
+            </CardTitle>
+            <Badge variant="info">Two-Person Rule</Badge>
           </CardHeader>
           <CardContent className="p-0">
             {rulesets.length === 0 ? (
-              <div className="px-6 py-8 text-center text-gray-400 text-sm">
-                No rule sets published yet.
-                <p className="mt-2 text-xs">
-                  Clinical rules must go through two-person review before publishing.
-                </p>
-              </div>
+              <EmptyState
+                icon={Database}
+                title="No rule sets published"
+                description="Clinical rules must go through two-person review before publishing."
+              />
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-slate-50">
                 {rulesets.map((rs) => (
-                  <div key={rs.id} className="px-6 py-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-[#1E3A5F] text-sm">{rs.name}</p>
+                  <div key={rs.id} className="px-5 py-4 hover:bg-slate-50/60 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-slate-900 text-sm">{rs.name}</p>
                           {rs.isActive && (
                             <Badge variant="low">Active</Badge>
                           )}
+                          <span className="text-xs font-mono text-slate-400">v{rs.version}</span>
                         </div>
-                        <p className="text-xs font-mono text-gray-400">v{rs.version}</p>
                         {rs.changeNotes && (
-                          <p className="text-xs text-gray-500 mt-1">{rs.changeNotes}</p>
+                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">{rs.changeNotes}</p>
                         )}
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
+                          {rs.publishedBy && (
+                            <span>Published by {rs.publishedBy.name} ({formatDate(rs.publishedAt)})</span>
+                          )}
+                          {rs.reviewedBy && (
+                            <span>· Reviewed by {rs.reviewedBy.name} ({formatDate(rs.reviewedAt)})</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
-                      {rs.publishedBy && (
-                        <span>Published by: {rs.publishedBy.name} ({formatDate(rs.publishedAt)})</span>
-                      )}
-                      {rs.reviewedBy && (
-                        <span>Reviewed by: {rs.reviewedBy.name} ({formatDate(rs.reviewedAt)})</span>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -129,37 +183,32 @@ export default async function AdminPage() {
         {/* Audit log */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Audit Events</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-brand-600" />
+              Recent Audit Events
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {recentAuditLogs.length === 0 ? (
-              <div className="px-6 py-8 text-center text-gray-400 text-sm">
-                No audit events recorded.
-              </div>
+              <EmptyState
+                icon={FileText}
+                title="No audit events"
+                description="System access and changes will be logged here."
+              />
             ) : (
-              <div className="overflow-y-auto max-h-[400px] divide-y divide-gray-100">
+              <div className="overflow-y-auto max-h-[360px] divide-y divide-slate-50">
                 {recentAuditLogs.map((log) => (
-                  <div key={log.id} className="px-4 py-3 flex items-center gap-3">
+                  <div key={log.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/60 transition-colors">
+                    <span className={cn(
+                      "text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0",
+                      actionBadgeClass[log.action] ?? "bg-slate-100 text-slate-600"
+                    )}>
+                      {log.action}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-xs font-mono px-1.5 py-0.5 rounded ${
-                            log.action === "CREATE"
-                              ? "bg-green-100 text-green-700"
-                              : log.action === "READ"
-                              ? "bg-blue-100 text-blue-700"
-                              : log.action === "UPDATE"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {log.action}
-                        </span>
-                        <span className="text-xs text-gray-600">{log.entity}</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {log.user?.name ?? "System"} ({log.user?.role ?? "—"}) ·{" "}
-                        {formatDateTime(log.createdAt)}
+                      <p className="text-xs font-medium text-slate-700">{log.entity}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {log.user?.name ?? "System"} ({log.user?.role ?? "—"}) · {formatDateTime(log.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -170,44 +219,60 @@ export default async function AdminPage() {
         </Card>
       </div>
 
-      {/* Patient status breakdown */}
+      {/* Patient register status */}
       <Card>
         <CardHeader>
-          <CardTitle>Patient Register Status</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-brand-600" />
+            Patient Register Status
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-6">
-            {patientStats.map((s) => (
-              <div key={s.status} className="text-center">
-                <p className="text-2xl font-bold text-[#1E3A5F]">{s._count}</p>
-                <p className="text-xs text-gray-500 mt-1">{s.status}</p>
-              </div>
-            ))}
-            {patientStats.length === 0 && (
-              <p className="text-sm text-gray-400">No patients registered yet.</p>
-            )}
-          </div>
+          {patientStats.length === 0 ? (
+            <p className="text-sm text-slate-400">No patients registered yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-8">
+              {patientStats.map((s) => (
+                <div key={s.status} className="text-center">
+                  <p className="text-3xl font-bold text-slate-900 tracking-tight">{s._count.toLocaleString()}</p>
+                  <p className="text-xs text-slate-400 mt-1 uppercase tracking-wide">{s.status}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Security info */}
+      {/* Security & Compliance */}
       <Card>
         <CardHeader>
-          <CardTitle>Security & Compliance</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-brand-600" />
+            Security &amp; Compliance
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-              <p className="font-semibold text-green-800">Session Security</p>
-              <p className="text-green-700 text-xs mt-1">15-minute idle timeout enforced</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+              <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">Session Security</p>
+                <p className="text-xs text-emerald-700 mt-0.5">15-minute idle timeout enforced</p>
+              </div>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-              <p className="font-semibold text-blue-800">Account Lockout</p>
-              <p className="text-blue-700 text-xs mt-1">30-min lockout after 5 failed attempts</p>
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-sky-50 border border-sky-200">
+              <Lock className="h-5 w-5 text-sky-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-sky-800">Account Lockout</p>
+                <p className="text-xs text-sky-700 mt-0.5">30-min lockout after 5 failed attempts</p>
+              </div>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-              <p className="font-semibold text-amber-800">Audit Logging</p>
-              <p className="text-amber-700 text-xs mt-1">All read/write access logged</p>
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Audit Logging</p>
+                <p className="text-xs text-amber-700 mt-0.5">All read/write access logged</p>
+              </div>
             </div>
           </div>
         </CardContent>
