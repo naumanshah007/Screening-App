@@ -3,20 +3,32 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
+// Resolve a plain username (e.g. "admin") or full email ("admin@cs.nz") to a DB user.
+// Allows testers to type just the username prefix without the domain.
+async function findUserByLogin(login: string) {
+  const normalized = login.trim().toLowerCase();
+  // Try exact email match first
+  const byEmail = await prisma.user.findUnique({ where: { email: normalized } });
+  if (byEmail) return byEmail;
+  // Fall back: treat as username, append @cs.nz
+  if (!normalized.includes("@")) {
+    return prisma.user.findUnique({ where: { email: `${normalized}@cs.nz` } });
+  }
+  return null;
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
+        const user = await findUserByLogin(credentials.email as string);
 
         if (!user || !user.passwordHash) return null;
 
@@ -87,6 +99,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 15 * 60,
+    maxAge: 8 * 60 * 60, // 8 hours — generous for dev/testing
   },
 });

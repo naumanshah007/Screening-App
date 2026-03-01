@@ -1,10 +1,15 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+// Prisma v7 requires the libsql adapter (same as lib/prisma.ts)
+const adapter = new PrismaLibSql({
+  url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
+});
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  // Create GP practice
+  // ── Practice ──────────────────────────────────────────────────────────────
   const practice = await prisma.gPPractice.upsert({
     where: { hpiNumber: "G00001" },
     update: {},
@@ -16,46 +21,57 @@ async function main() {
     },
   });
 
-  // Create users
-  const adminHash = await bcrypt.hash("Admin1234!", 10);
-  const gpHash = await bcrypt.hash("GP1234!", 10);
-  const coordHash = await bcrypt.hash("Coord1234!", 10);
+  // ── Users — all share password "admin123" ─────────────────────────────────
+  const pw = await bcrypt.hash("admin123", 10);
 
-  await prisma.user.upsert({
-    where: { email: "admin@cervical.nz" },
-    update: {},
-    create: {
+  const users = [
+    {
+      email: "admin@cs.nz",
       name: "System Admin",
-      email: "admin@cervical.nz",
-      passwordHash: adminHash,
-      role: "ADMIN",
+      role: "ADMIN" as const,
+      gpPracticeId: null,
     },
-  });
-
-  await prisma.user.upsert({
-    where: { email: "dr.smith@cervical.nz" },
-    update: {},
-    create: {
+    {
+      email: "clinician@cs.nz",
       name: "Dr. Sarah Smith",
-      email: "dr.smith@cervical.nz",
-      passwordHash: gpHash,
-      role: "GP",
+      role: "GP" as const,
       gpPracticeId: practice.id,
     },
-  });
-
-  await prisma.user.upsert({
-    where: { email: "coordinator@cervical.nz" },
-    update: {},
-    create: {
+    {
+      email: "coordinator@cs.nz",
       name: "Jane Coordinator",
-      email: "coordinator@cervical.nz",
-      passwordHash: coordHash,
-      role: "COORDINATOR",
+      role: "COORDINATOR" as const,
+      gpPracticeId: null,
     },
-  });
+    {
+      email: "specialist@cs.nz",
+      name: "Dr. James Colposcopy",
+      role: "COLPOSCOPIST" as const,
+      gpPracticeId: practice.id,
+    },
+  ];
 
-  // Create sample patients
+  for (const u of users) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: {
+        // Keep existing record but ensure password & role are up to date
+        passwordHash: pw,
+        role: u.role,
+        name: u.name,
+        ...(u.gpPracticeId ? { gpPracticeId: u.gpPracticeId } : {}),
+      },
+      create: {
+        email: u.email,
+        name: u.name,
+        passwordHash: pw,
+        role: u.role,
+        ...(u.gpPracticeId ? { gpPracticeId: u.gpPracticeId } : {}),
+      },
+    });
+  }
+
+  // ── Sample patients ───────────────────────────────────────────────────────
   const patients = [
     {
       nhi: "ZZZ0001",
@@ -96,10 +112,14 @@ async function main() {
     });
   }
 
-  console.log("✓ Seed data created");
-  console.log("  Admin:       admin@cervical.nz / Admin1234!");
-  console.log("  GP:          dr.smith@cervical.nz / GP1234!");
-  console.log("  Coordinator: coordinator@cervical.nz / Coord1234!");
+  console.log("\n✓ Seed complete — all accounts use password: admin123\n");
+  console.log("  Username        Role");
+  console.log("  ─────────────────────────────────────────");
+  console.log("  admin           ADMIN");
+  console.log("  clinician       GP / Clinician");
+  console.log("  coordinator     COORDINATOR");
+  console.log("  specialist      COLPOSCOPIST");
+  console.log("\n  (append @cs.nz for full email, e.g. admin@cs.nz)\n");
 }
 
 main()
