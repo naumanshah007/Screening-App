@@ -12,6 +12,8 @@ import {
   BookOpen, ChevronRight, CheckCircle, FileText,
   GitBranch, Bell, Printer
 } from "lucide-react";
+import { FlowDiagram } from "@/components/clinical/FlowDiagram";
+import { getFigureById } from "@/lib/decision-trees";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -427,6 +429,30 @@ export default function WizardResultPage({
               </div>
             )}
           </div>
+
+          {/* Decision Pathway diagram */}
+          {(() => {
+            const fig = getFigureById(decision.figure);
+            if (!fig) return null;
+            return (
+              <div className="mt-2">
+                <details className="group">
+                  <summary className="flex items-center gap-2 cursor-pointer list-none px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                    <GitBranch className="h-4 w-4 text-brand-600" />
+                    <span className="text-sm font-semibold text-slate-800">View Decision Pathway</span>
+                    <ChevronRight className="h-4 w-4 text-slate-400 ml-auto group-open:rotate-90 transition-transform" />
+                  </summary>
+                  <div className="mt-3">
+                    <FlowDiagram
+                      figure={fig}
+                      activeCode={decision.recommendationCode}
+                      className="rounded-xl"
+                    />
+                  </div>
+                </details>
+              </div>
+            );
+          })()}
 
           {/* Notifications */}
           <Card className="no-print">

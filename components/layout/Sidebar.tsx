@@ -5,7 +5,7 @@ import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, GitBranch, ClipboardList,
-  BarChart3, FileText, LogOut, Activity
+  BarChart3, FileText, LogOut, Activity, BookOpen
 } from "lucide-react";
 
 const navSections = [
@@ -15,6 +15,7 @@ const navSections = [
       { href: "/dashboard",   label: "Dashboard",     icon: LayoutDashboard, roles: ["GP","COORDINATOR","ADMIN"] },
       { href: "/patients",    label: "Patients",       icon: Users,           roles: ["GP","COORDINATOR","ADMIN"] },
       { href: "/pathway",     label: "Pathway Wizard", icon: GitBranch,       roles: ["GP","COORDINATOR","ADMIN"] },
+      { href: "/guidelines",  label: "Guidelines",     icon: BookOpen,        roles: ["GP","COORDINATOR","ADMIN","COLPOSCOPIST"] },
     ]
   },
   {

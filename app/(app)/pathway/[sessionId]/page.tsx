@@ -370,17 +370,6 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
                     )}
                     aria-pressed={isSelected}
                   >
-                    {/* Caution tag */}
-                    {opt.cautionTag && (
-                      <span className={cn(
-                        "absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                        cautionColor === "red"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-amber-100 text-amber-700"
-                      )}>
-                        {opt.cautionTag}
-                      </span>
-                    )}
                     {/* Radio indicator */}
                     <div className={cn(
                       "absolute top-3 left-3 w-4 h-4 rounded-full border-2 transition-all duration-150 flex items-center justify-center",
@@ -392,12 +381,23 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
                         </svg>
                       )}
                     </div>
-                    <div className="pl-7 pr-16">
-                      <p className={cn("text-sm font-semibold", isSelected ? "text-brand-900" : "text-slate-900")}>
-                        {opt.label}
-                      </p>
+                    {/* Caution tag — inline with label, not absolute */}
+                    <div className="pl-7">
+                      <div className="flex items-start justify-between gap-3 mb-1">
+                        <p className={cn("text-sm font-semibold leading-snug", isSelected ? "text-brand-900" : "text-slate-900")}>
+                          {opt.label}
+                        </p>
+                        {opt.cautionTag && (
+                          <span className={cn(
+                            "shrink-0 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mt-0.5",
+                            cautionColor === "red" ? "bg-red-100 text-red-700 ring-1 ring-red-200" : "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                          )}>
+                            {opt.cautionTag}
+                          </span>
+                        )}
+                      </div>
                       {opt.hint && (
-                        <p className={cn("text-xs mt-1 leading-relaxed", isSelected ? "text-brand-700" : "text-slate-500")}>
+                        <p className={cn("text-xs leading-relaxed", isSelected ? "text-brand-700" : "text-slate-500")}>
                           {opt.hint}
                         </p>
                       )}
