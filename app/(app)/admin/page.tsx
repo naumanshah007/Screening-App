@@ -204,7 +204,7 @@ export default async function AdminPage() {
               />
             ) : (
               <div className="overflow-y-auto max-h-[360px] divide-y divide-slate-50">
-                {recentAuditLogs.map((log) => (
+                {recentAuditLogs.map((log: any) => (
                   <div key={log.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/60 transition-colors">
                     <span className={cn(
                       "text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0",
