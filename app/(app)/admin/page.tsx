@@ -77,6 +77,7 @@ export default async function AdminPage() {
       acc[r.priority] = (acc[r.priority] ?? 0) + r._count;
       return acc;
     }, {} as Record<string, number>);
+  const pendingEntries = Object.entries(pendingByPriority) as [string, number][];
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -125,7 +126,7 @@ export default async function AdminPage() {
           subtext="Pathway sessions"
           icon={<Activity className="h-5 w-5" />}
         />
-        {Object.entries(pendingByPriority).sort().map(([priority, count]) => (
+        {pendingEntries.sort().map(([priority, count]) => (
           <StatCard
             key={priority}
             label={`${priority} Pending`}
