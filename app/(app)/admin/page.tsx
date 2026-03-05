@@ -156,7 +156,7 @@ export default async function AdminPage() {
               />
             ) : (
               <div className="divide-y divide-slate-50">
-                {rulesets.map((rs) => (
+                {rulesets.map((rs: any) => (
                   <div key={rs.id} className="px-5 py-4 hover:bg-slate-50/60 transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
