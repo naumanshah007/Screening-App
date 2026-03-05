@@ -54,8 +54,13 @@ export default async function AdminPage() {
     }),
   ]);
 
-  const totalPatients = patientStats.reduce((sum: number, s) => sum + s._count, 0);
-  const activePatients = patientStats.find((s) => s.status === "ACTIVE")?._count ?? 0;
+  type PatientStat = { status: string; _count: number };
+  const totalPatients = patientStats.reduce(
+    (sum: number, s: PatientStat) => sum + s._count,
+    0
+  );
+  const activePatients =
+    patientStats.find((s: PatientStat) => s.status === "ACTIVE")?._count ?? 0;
 
   const actionBadgeClass: Record<string, string> = {
     CREATE: "bg-emerald-100 text-emerald-700",
