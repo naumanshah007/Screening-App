@@ -70,9 +70,10 @@ export default async function AdminPage() {
   };
 
   // Pending referrals by priority
+  type ReferralStat = { priority: string; status: string; _count: number };
   const pendingByPriority = referralStats
-    .filter(r => r.status === "PENDING")
-    .reduce((acc, r) => {
+    .filter((r: ReferralStat) => r.status === "PENDING")
+    .reduce((acc, r: ReferralStat) => {
       acc[r.priority] = (acc[r.priority] ?? 0) + r._count;
       return acc;
     }, {} as Record<string, number>);
