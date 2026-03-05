@@ -38,7 +38,6 @@ yarn-error.log*
 
 # next.js
 .next/
-prisma/dev.db
 
 # typescript
 *.tsbuildinfo
