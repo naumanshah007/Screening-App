@@ -54,7 +54,7 @@ export default async function AdminPage() {
     }),
   ]);
 
-  const totalPatients = patientStats.reduce((sum, s) => sum + s._count, 0);
+  const totalPatients = patientStats.reduce((sum: number, s) => sum + s._count, 0);
   const activePatients = patientStats.find((s) => s.status === "ACTIVE")?._count ?? 0;
 
   const actionBadgeClass: Record<string, string> = {
