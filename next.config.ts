@@ -45,6 +45,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Ensure the schema SQL file is included in Vercel serverless bundles
+  outputFileTracingIncludes: {
+    "/api/**": ["./lib/database/current-schema.sql"],
+  },
   async headers() {
     return [
       {
