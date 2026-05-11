@@ -1,6 +1,6 @@
 import { createClient } from "@libsql/client";
 import bcrypt from "bcryptjs";
-import { existsSync, readFileSync, readdirSync } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
 import {
   isRemoteLibSqlUrl,
@@ -21,24 +21,20 @@ function splitSqlStatements(sql: string) {
     .filter(Boolean);
 }
 
-async function applyMigrations(url: string) {
+async function applyCurrentSchema(url: string) {
   const client = createClient({
     url,
     ...(resolveDatabaseAuthToken() ? { authToken: resolveDatabaseAuthToken() } : {}),
   });
 
   try {
-    const migrationRoot = join(process.cwd(), "prisma", "migrations");
-    const migrations = readdirSync(migrationRoot)
-      .sort()
-      .map((directory) => join(migrationRoot, directory, "migration.sql"))
-      .filter((path) => existsSync(path));
+    const schemaSql = readFileSync(
+      join(process.cwd(), "lib", "database", "current-schema.sql"),
+      "utf8"
+    );
 
-    for (const migration of migrations) {
-      const sql = readFileSync(migration, "utf8");
-      for (const statement of splitSqlStatements(sql)) {
-        await client.execute(statement);
-      }
+    for (const statement of splitSqlStatements(schemaSql)) {
+      await client.execute(statement);
     }
   } finally {
     client.close();
@@ -247,7 +243,7 @@ export async function ensureDatabaseReady() {
 
   bootstrapPromise ??= (async () => {
     if (!(await databaseHasSchema(url))) {
-      await applyMigrations(url);
+      await applyCurrentSchema(url);
     }
     await applyCompatibilityPatches(url);
     await seedDemoUsers(url);

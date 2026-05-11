@@ -1,7 +1,7 @@
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 const LOCAL_DATABASE_URL = "file:./prisma/dev.db";
-const VERCEL_DATABASE_URL = "file:/tmp/cervical-screening.db";
+const VERCEL_DATABASE_URL = "file:/tmp/cervical-screening-v2.db";
 
 export type DatabaseRuntimeSummary = {
   adapter: "libsql";
