@@ -1,6 +1,7 @@
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 const LOCAL_DATABASE_URL = "file:./prisma/dev.db";
+const VERCEL_DATABASE_URL = "file:/tmp/cervical-screening.db";
 
 export type DatabaseRuntimeSummary = {
   adapter: "libsql";
@@ -19,6 +20,7 @@ export function resolveDatabaseUrl() {
   return (
     normalizeEnvValue(process.env.DATABASE_URL) ??
     normalizeEnvValue(process.env.TURSO_DATABASE_URL) ??
+    (process.env.VERCEL === "1" ? VERCEL_DATABASE_URL : undefined) ??
     LOCAL_DATABASE_URL
   );
 }
