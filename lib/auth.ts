@@ -7,10 +7,13 @@ import {
   recordSecurityEvent,
   SECURITY_EVENT_ACTION,
 } from "@/lib/security/events";
+import { ensureDatabaseReady } from "@/lib/database/bootstrap";
 
 // Resolve a plain username (e.g. "admin") or full email ("admin@cs.nz") to a DB user.
 // Allows testers to type just the username prefix without the domain.
 async function findUserByLogin(login: string) {
+  await ensureDatabaseReady();
+
   const normalized = login.trim().toLowerCase();
   // Try exact email match first
   const byEmail = await prisma.user.findUnique({ where: { email: normalized } });
@@ -151,6 +154,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (token.id) {
+        await ensureDatabaseReady();
+
         const currentUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: {
