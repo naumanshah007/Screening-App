@@ -218,6 +218,150 @@ async function seedDemoUsers(url: string) {
   }
 }
 
+async function seedDemoPatients(url: string) {
+  const client = createClient({
+    url,
+    ...(resolveDatabaseAuthToken() ? { authToken: resolveDatabaseAuthToken() } : {}),
+  });
+
+  try {
+    const now = new Date().toISOString();
+    const patients = [
+      {
+        id: "demo-patient-mary",
+        nhi: "ZZZ0001",
+        firstName: "Mary",
+        lastName: "Johnson",
+        dateOfBirth: "1985-03-15T00:00:00.000Z",
+        email: "mary.johnson@example.test",
+        phone: "0215550101",
+        address: "12 Queen Street, Auckland",
+        gpPracticeId: "demo-practice-auckland",
+        isFirstTimeHPVTransition: false,
+        previousScreeningType: null,
+        isPostHysterectomy: false,
+      },
+      {
+        id: "demo-patient-patricia",
+        nhi: "ZZZ0002",
+        firstName: "Patricia",
+        lastName: "Williams",
+        dateOfBirth: "1978-07-22T00:00:00.000Z",
+        email: "patricia.williams@example.test",
+        phone: "0215550102",
+        address: "44 Manukau Road, Auckland",
+        gpPracticeId: "demo-practice-auckland",
+        isFirstTimeHPVTransition: true,
+        previousScreeningType: "CYTOLOGY",
+        isPostHysterectomy: false,
+      },
+      {
+        id: "demo-patient-linda",
+        nhi: "ZZZ0003",
+        firstName: "Linda",
+        lastName: "Brown",
+        dateOfBirth: "1962-11-08T00:00:00.000Z",
+        email: "linda.brown@example.test",
+        phone: "0215550103",
+        address: "8 Lake Road, Takapuna",
+        gpPracticeId: "demo-practice-auckland",
+        isFirstTimeHPVTransition: false,
+        previousScreeningType: null,
+        isPostHysterectomy: true,
+      },
+      {
+        id: "demo-patient-hine",
+        nhi: "CMH1001",
+        firstName: "Hine",
+        lastName: "Tuhoe",
+        dateOfBirth: "1990-06-12T00:00:00.000Z",
+        email: "hine.tuhoe@example.test",
+        phone: "0215550201",
+        address: "21 Great South Road, Manukau",
+        gpPracticeId: "demo-practice-counties",
+        isFirstTimeHPVTransition: false,
+        previousScreeningType: null,
+        isPostHysterectomy: false,
+      },
+      {
+        id: "demo-patient-anika",
+        nhi: "CMH1002",
+        firstName: "Anika",
+        lastName: "Prasad",
+        dateOfBirth: "1975-02-28T00:00:00.000Z",
+        email: "anika.prasad@example.test",
+        phone: "0215550202",
+        address: "90 Cavendish Drive, Manukau",
+        gpPracticeId: "demo-practice-counties",
+        isFirstTimeHPVTransition: true,
+        previousScreeningType: "CYTOLOGY",
+        isPostHysterectomy: false,
+      },
+      {
+        id: "demo-patient-mei",
+        nhi: "CMH1003",
+        firstName: "Mei",
+        lastName: "Wong",
+        dateOfBirth: "1988-09-14T00:00:00.000Z",
+        email: "mei.wong@example.test",
+        phone: "0215550203",
+        address: "7 Broadway, Papakura",
+        gpPracticeId: "demo-practice-counties",
+        isFirstTimeHPVTransition: false,
+        previousScreeningType: null,
+        isPostHysterectomy: false,
+      },
+    ] as const;
+
+    for (const patient of patients) {
+      await client.execute({
+        sql: `INSERT INTO Patient
+          (id, nhi, firstName, lastName, dateOfBirth, email, phone, address,
+           gpPracticeId, status, isFirstTimeHPVTransition, previousScreeningType,
+           isPostHysterectomy, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?)
+          ON CONFLICT(nhi) DO UPDATE SET
+            firstName = excluded.firstName,
+            lastName = excluded.lastName,
+            email = excluded.email,
+            phone = excluded.phone,
+            address = excluded.address,
+            gpPracticeId = excluded.gpPracticeId,
+            isFirstTimeHPVTransition = excluded.isFirstTimeHPVTransition,
+            previousScreeningType = excluded.previousScreeningType,
+            isPostHysterectomy = excluded.isPostHysterectomy,
+            updatedAt = excluded.updatedAt`,
+        args: [
+          patient.id,
+          patient.nhi,
+          patient.firstName,
+          patient.lastName,
+          patient.dateOfBirth,
+          patient.email,
+          patient.phone,
+          patient.address,
+          patient.gpPracticeId,
+          patient.isFirstTimeHPVTransition,
+          patient.previousScreeningType,
+          patient.isPostHysterectomy,
+          now,
+          now,
+        ],
+      });
+
+      await client.execute({
+        sql: `INSERT OR IGNORE INTO MedicalHistory
+          (id, patientId, previousHighGradeLesion, immunocompromised, hiv,
+           atypicalEndometrialHistory, createdAt, updatedAt)
+          VALUES (?, ?, 0, 0, 0, 0, ?, ?)`,
+        args: [`${patient.id}-history`, patient.id, now, now],
+      });
+    }
+  } finally {
+    client.close();
+  }
+}
+
 async function databaseHasSchema(url: string) {
   const client = createClient({
     url,
@@ -247,6 +391,7 @@ export async function ensureDatabaseReady() {
     }
     await applyCompatibilityPatches(url);
     await seedDemoUsers(url);
+    await seedDemoPatients(url);
   })();
 
   await bootstrapPromise;
