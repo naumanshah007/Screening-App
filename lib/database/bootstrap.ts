@@ -45,6 +45,97 @@ async function applyMigrations(url: string) {
   }
 }
 
+async function getTableColumns(
+  client: ReturnType<typeof createClient>,
+  tableName: string
+) {
+  const result = await client.execute({
+    sql: `PRAGMA table_info("${tableName}")`,
+    args: [],
+  });
+
+  return new Set(result.rows.map((row) => String(row.name)));
+}
+
+async function addColumnIfMissing(
+  client: ReturnType<typeof createClient>,
+  tableName: string,
+  columns: Set<string>,
+  columnName: string,
+  definition: string
+) {
+  if (columns.has(columnName)) {
+    return;
+  }
+
+  await client.execute(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${definition}`);
+  columns.add(columnName);
+}
+
+async function applyCompatibilityPatches(url: string) {
+  const client = createClient({
+    url,
+    ...(resolveDatabaseAuthToken() ? { authToken: resolveDatabaseAuthToken() } : {}),
+  });
+
+  try {
+    const userColumns = await getTableColumns(client, "User");
+    await addColumnIfMissing(
+      client,
+      "User",
+      userColumns,
+      "passwordChangeRequired",
+      "BOOLEAN NOT NULL DEFAULT false"
+    );
+    await addColumnIfMissing(
+      client,
+      "User",
+      userColumns,
+      "passwordChangedAt",
+      "DATETIME"
+    );
+    await addColumnIfMissing(
+      client,
+      "User",
+      userColumns,
+      "passwordExpiresAt",
+      "DATETIME"
+    );
+    await addColumnIfMissing(
+      client,
+      "User",
+      userColumns,
+      "twoFARecoveryCodesJson",
+      "TEXT"
+    );
+
+    const auditColumns = await getTableColumns(client, "AuditLog");
+    await addColumnIfMissing(
+      client,
+      "AuditLog",
+      auditColumns,
+      "severity",
+      "TEXT NOT NULL DEFAULT 'INFO'"
+    );
+    await addColumnIfMissing(
+      client,
+      "AuditLog",
+      auditColumns,
+      "correlationId",
+      "TEXT"
+    );
+    await addColumnIfMissing(
+      client,
+      "AuditLog",
+      auditColumns,
+      "sessionId",
+      "TEXT"
+    );
+  } finally {
+    client.close();
+  }
+}
+
 async function seedDemoUsers(url: string) {
   const client = createClient({
     url,
@@ -158,6 +249,7 @@ export async function ensureDatabaseReady() {
     if (!(await databaseHasSchema(url))) {
       await applyMigrations(url);
     }
+    await applyCompatibilityPatches(url);
     await seedDemoUsers(url);
   })();
 
