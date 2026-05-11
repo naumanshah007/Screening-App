@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.vercel
+.next
+node_modules
+prisma/*.db
+prisma/*.db-shm
+prisma/*.db-wal
+storage
