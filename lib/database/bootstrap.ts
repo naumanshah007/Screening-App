@@ -10,8 +10,16 @@ import {
 
 let bootstrapPromise: Promise<void> | null = null;
 
-function shouldBootstrapLocalDatabase(url: string) {
-  return process.env.VERCEL === "1" && url.startsWith("file:") && !isRemoteLibSqlUrl(url);
+function shouldBootstrapDatabase(url: string) {
+  if (process.env.VERCEL !== "1") {
+    return false;
+  }
+
+  if (url.startsWith("file:") && !isRemoteLibSqlUrl(url)) {
+    return true;
+  }
+
+  return process.env.BOOTSTRAP_DEMO_DB === "1";
 }
 
 function splitSqlStatements(sql: string) {
@@ -381,7 +389,7 @@ async function databaseHasSchema(url: string) {
 
 export async function ensureDatabaseReady() {
   const url = resolveDatabaseUrl();
-  if (!shouldBootstrapLocalDatabase(url)) {
+  if (!shouldBootstrapDatabase(url)) {
     return;
   }
 
