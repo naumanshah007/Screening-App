@@ -8,13 +8,15 @@ import {
   resolveDatabaseUrl,
 } from "@/lib/config/database";
 
+// Cleared on failure so the next request retries rather than re-throwing a stale rejected promise.
 let bootstrapPromise: Promise<void> | null = null;
 
 function shouldBootstrapDatabase(url: string) {
+  // Explicit opt-in (set on Vercel for the demo deployment)
   if (process.env.BOOTSTRAP_DEMO_DB === "1") {
     return true;
   }
-
+  // Legacy fallback: auto-bootstrap local SQLite file on Vercel
   return process.env.VERCEL === "1" && url.startsWith("file:") && !isRemoteLibSqlUrl(url);
 }
 
@@ -389,14 +391,20 @@ export async function ensureDatabaseReady() {
     return;
   }
 
-  bootstrapPromise ??= (async () => {
-    if (!(await databaseHasSchema(url))) {
-      await applyCurrentSchema(url);
-    }
-    await applyCompatibilityPatches(url);
-    await seedDemoUsers(url);
-    await seedDemoPatients(url);
-  })();
+  if (!bootstrapPromise) {
+    bootstrapPromise = (async () => {
+      if (!(await databaseHasSchema(url))) {
+        await applyCurrentSchema(url);
+      }
+      await applyCompatibilityPatches(url);
+      await seedDemoUsers(url);
+      await seedDemoPatients(url);
+    })().catch((err) => {
+      // Clear so the next request retries from scratch
+      bootstrapPromise = null;
+      throw err;
+    });
+  }
 
   await bootstrapPromise;
 }
