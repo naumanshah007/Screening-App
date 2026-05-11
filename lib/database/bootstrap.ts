@@ -11,15 +11,11 @@ import {
 let bootstrapPromise: Promise<void> | null = null;
 
 function shouldBootstrapDatabase(url: string) {
-  if (process.env.VERCEL !== "1") {
-    return false;
-  }
-
-  if (url.startsWith("file:") && !isRemoteLibSqlUrl(url)) {
+  if (process.env.BOOTSTRAP_DEMO_DB === "1") {
     return true;
   }
 
-  return process.env.BOOTSTRAP_DEMO_DB === "1";
+  return process.env.VERCEL === "1" && url.startsWith("file:") && !isRemoteLibSqlUrl(url);
 }
 
 function splitSqlStatements(sql: string) {
