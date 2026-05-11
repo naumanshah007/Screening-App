@@ -3,6 +3,13 @@ import type {
   SecurityIncidentStatus,
 } from "@prisma/client";
 
+export const SECURITY_INCIDENT_STATUSES = [
+  "OPEN",
+  "ACKNOWLEDGED",
+  "UNDER_REVIEW",
+  "RESOLVED",
+] satisfies SecurityIncidentStatus[];
+
 export type SecurityIncidentTimingState =
   | "RESOLVED"
   | "OVERDUE"

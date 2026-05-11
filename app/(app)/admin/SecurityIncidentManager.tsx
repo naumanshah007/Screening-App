@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { SecurityIncidentStatus } from "@prisma/client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import {
+  SECURITY_INCIDENT_STATUSES,
   getSecurityIncidentTimingState,
   securityIncidentSeverityVariant,
   securityIncidentStatusLabel,
@@ -19,8 +19,9 @@ import type {
   SecurityIncidentAssignee,
   SecurityIncidentRecord,
 } from "@/lib/security/incidents";
+import type { SecurityIncidentStatus } from "@prisma/client";
 
-const INCIDENT_STATUS_OPTIONS = Object.values(SecurityIncidentStatus).map((status) => ({
+const INCIDENT_STATUS_OPTIONS = SECURITY_INCIDENT_STATUSES.map((status) => ({
   value: status,
   label: securityIncidentStatusLabel(status),
 }));
