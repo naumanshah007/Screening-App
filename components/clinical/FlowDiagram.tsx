@@ -312,7 +312,16 @@ interface FlowDiagramProps {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function FlowDiagram({ figure, activeCode, className, height = 480 }: FlowDiagramProps) {
+export function FlowDiagram(props: FlowDiagramProps) {
+  return <FlowDiagramViewport key={props.figure.id} {...props} />;
+}
+
+function FlowDiagramViewport({
+  figure,
+  activeCode,
+  className,
+  height = 480,
+}: FlowDiagramProps) {
   // ── Active path ────────────────────────────────────────────────────────────
   const { nodeIds: activeNodes, edgeIds: activeEdges } = useMemo(() => {
     if (!activeCode) return { nodeIds: new Set<string>(), edgeIds: new Set<string>() };
@@ -330,13 +339,6 @@ export function FlowDiagram({ figure, activeCode, className, height = 480 }: Flo
   const baseRef  = useRef(baseVB);
   const [vb, setVb] = useState<VB>(baseVB);
   const vbRef    = useRef(vb);
-
-  // Reset when figure changes
-  useEffect(() => {
-    const b = autoVB(figure.nodes);
-    baseRef.current = b;
-    setVb(b);
-  }, [figure.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep ref in sync
   useEffect(() => { vbRef.current = vb; }, [vb]);
@@ -460,7 +462,7 @@ export function FlowDiagram({ figure, activeCode, className, height = 480 }: Flo
   return (
     <div
       className={cn(
-        "relative rounded-xl border border-slate-200 bg-white overflow-hidden select-none",
+        "relative rounded-xl border border-border bg-card overflow-hidden select-none",
         className,
       )}
       style={{ height }}
@@ -470,21 +472,21 @@ export function FlowDiagram({ figure, activeCode, className, height = 480 }: Flo
         <button
           onClick={() => applyZoom(0.72)}
           title="Zoom in"
-          className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:border-brand-400 hover:text-brand-700 transition-all"
+          className="w-8 h-8 rounded-lg bg-card border border-border shadow-sm flex items-center justify-center text-muted-foreground hover:bg-muted/40 hover:border-brand-400 hover:text-brand-700 transition-all"
         >
           <ZoomIn className="h-4 w-4" />
         </button>
         <button
           onClick={() => applyZoom(1.38)}
           title="Zoom out"
-          className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:border-brand-400 hover:text-brand-700 transition-all"
+          className="w-8 h-8 rounded-lg bg-card border border-border shadow-sm flex items-center justify-center text-muted-foreground hover:bg-muted/40 hover:border-brand-400 hover:text-brand-700 transition-all"
         >
           <ZoomOut className="h-4 w-4" />
         </button>
         <button
           onClick={resetView}
           title="Fit to screen"
-          className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:border-brand-400 hover:text-brand-700 transition-all"
+          className="w-8 h-8 rounded-lg bg-card border border-border shadow-sm flex items-center justify-center text-muted-foreground hover:bg-muted/40 hover:border-brand-400 hover:text-brand-700 transition-all"
         >
           <Maximize2 className="h-3.5 w-3.5" />
         </button>
@@ -492,7 +494,7 @@ export function FlowDiagram({ figure, activeCode, className, height = 480 }: Flo
 
       {/* ── Interaction hint ── */}
       <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
-        <span className="text-[10px] text-slate-400 bg-white/80 px-2 py-1 rounded-md">
+        <span className="text-[10px] text-muted-foreground bg-card/80 px-2 py-1 rounded-md">
           Scroll to zoom · Drag to pan
         </span>
       </div>

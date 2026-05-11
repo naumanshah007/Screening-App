@@ -35,6 +35,7 @@ yarn-error.log*
 
 # vercel
 .vercel
+.claude
 
 # next.js
 .next/
@@ -44,3 +45,12 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+/storage/
+
+# Database files — never commit PHI or dev databases
+prisma/*.db
+prisma/*.db-shm
+prisma/*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

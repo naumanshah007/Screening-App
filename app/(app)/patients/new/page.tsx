@@ -71,7 +71,7 @@ export default function NewPatientPage() {
       </div>
 
       {error && (
-        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+        <div role="alert" className="bg-destructive/5 border border-destructive/30 text-destructive text-sm px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -132,7 +132,7 @@ export default function NewPatientPage() {
           <CardHeader><CardTitle>Clinical Flags</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {/* HPV Transition */}
-            <div className="flex items-start gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50">
+            <div className="flex items-start gap-3 p-3 rounded-lg border border-info/30 bg-info/5">
               <input
                 id="transition"
                 type="checkbox"
@@ -145,7 +145,7 @@ export default function NewPatientPage() {
                   First-time HPV Transition Patient
                 </label>
                 <p className="text-xs text-blue-600 mt-0.5">
-                  Patient transitioning from cytology-based to HPV-based screening → routes to Figure 1 or 2
+                  Patient transitioning from cytology-based to HPV-based screening → uses the transition pathway
                 </p>
               </div>
             </div>
@@ -164,7 +164,7 @@ export default function NewPatientPage() {
             )}
 
             {/* Post-hysterectomy */}
-            <div className="flex items-start gap-3 p-3 rounded-lg border border-purple-200 bg-purple-50">
+            <div className="flex items-start gap-3 p-3 rounded-lg border border-brand-200 bg-brand-50/40">
               <input
                 id="posthyst"
                 type="checkbox"
@@ -177,7 +177,7 @@ export default function NewPatientPage() {
                   Post-Hysterectomy
                 </label>
                 <p className="text-xs text-purple-600 mt-0.5">
-                  Patient has had a hysterectomy → routes to Figure 8 or 10
+                  Patient has had a hysterectomy → uses post-hysterectomy pathway checks
                 </p>
               </div>
             </div>

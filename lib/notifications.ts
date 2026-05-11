@@ -1,12 +1,13 @@
 /**
  * Notification Service
  *
- * Sends email notifications to patients, GPs, and coordinators
- * after a clinical pathway decision is made.
+ * Sends email notifications to patients, GPs, coordinators, and security reviewers.
  *
  * In development (no SMTP configured): logs to console + creates AuditLog entry.
- * In production: uses Nodemailer with SMTP_HOST/SMTP_USER/SMTP_PASS env vars.
+ * In production: uses Nodemailer with SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/SMTP_FROM.
  */
+
+import nodemailer from "nodemailer";
 
 import { prisma } from "@/lib/prisma";
 
@@ -48,6 +49,18 @@ export type CoordinatorNotificationParams = {
   referenceId: string;
 };
 
+export type SecurityIncidentNotificationParams = {
+  recipientEmail: string;
+  recipientName?: string | null;
+  incidentTitle: string;
+  incidentSummary: string;
+  severity: string;
+  status: string;
+  dueAt?: Date | null;
+  reminderKind: "manual" | "due_soon" | "overdue";
+  referenceId: string;
+};
+
 export type NotificationResult = {
   channel: "patient" | "gp" | "coordinator";
   email: string;
@@ -55,7 +68,14 @@ export type NotificationResult = {
   message?: string;
 };
 
-// ─── Dev mode mailer (console logger) ─────────────────────────────────────────
+export type NotificationRuntimeSummary = {
+  configured: boolean;
+  mode: "smtp" | "development";
+  summary: string;
+  detail: string;
+};
+
+// ─── Delivery helpers ──────────────────────────────────────────────────────────
 
 function devLog(channel: string, to: string, subject: string, body: string) {
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -71,13 +91,16 @@ async function logNotificationAudit(
   channel: string,
   to: string,
   subject: string,
-  referenceId: string
+  referenceId: string,
+  entity = "WizardSession",
+  actorUserId?: string | null
 ) {
   try {
     await prisma.auditLog.create({
       data: {
+        userId: actorUserId ?? null,
         action: "NOTIFICATION_SENT",
-        entity: "WizardSession",
+        entity,
         entityId: referenceId,
         newValue: JSON.stringify({ channel, to, subject }),
       },
@@ -85,6 +108,80 @@ async function logNotificationAudit(
   } catch {
     // Non-fatal
   }
+}
+
+function hasSmtpConfig() {
+  return Boolean(
+    process.env.SMTP_HOST &&
+      process.env.SMTP_PORT &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS &&
+      process.env.SMTP_FROM
+  );
+}
+
+export function getNotificationRuntimeSummary(): NotificationRuntimeSummary {
+  if (!hasSmtpConfig()) {
+    return {
+      configured: false,
+      mode: "development",
+      summary: "Notifications are running in development log mode.",
+      detail:
+        "SMTP settings are not configured, so emails are logged to the console and audit trail instead of being delivered.",
+    };
+  }
+
+  return {
+    configured: true,
+    mode: "smtp",
+    summary: "Notifications are configured for SMTP delivery.",
+    detail:
+      "Email delivery is ready to use with the configured SMTP server.",
+  };
+}
+
+async function deliverEmail({
+  channel,
+  to,
+  subject,
+  body,
+  referenceId,
+  entity = "WizardSession",
+  actorUserId,
+}: {
+  channel: NotificationResult["channel"];
+  to: string;
+  subject: string;
+  body: string;
+  referenceId: string;
+  entity?: string;
+  actorUserId?: string | null;
+}): Promise<NotificationResult> {
+  if (!hasSmtpConfig()) {
+    devLog(channel, to, subject, body);
+    await logNotificationAudit(channel, to, subject, referenceId, entity, actorUserId);
+    return { channel, email: to, status: "logged" };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to,
+    subject,
+    text: body,
+  });
+
+  await logNotificationAudit(channel, to, subject, referenceId, entity, actorUserId);
+  return { channel, email: to, status: "sent" };
 }
 
 // ─── Priority label helper ─────────────────────────────────────────────────────
@@ -101,9 +198,9 @@ function priorityLabel(p?: string): string {
 
 function riskLabel(r: string): string {
   const map: Record<string, string> = {
-    LOW:    "Low",
+    LOW: "Low",
     MEDIUM: "Medium",
-    HIGH:   "High",
+    HIGH: "High",
     URGENT: "Urgent",
   };
   return map[r] ?? r;
@@ -114,7 +211,15 @@ function riskLabel(r: string): string {
 export async function sendPatientNotification(
   params: PatientNotificationParams
 ): Promise<NotificationResult> {
-  const { patientEmail, patientName, recommendation, nextAppointmentGuidance, practicePhone, practiceName, referenceId } = params;
+  const {
+    patientEmail,
+    patientName,
+    recommendation,
+    nextAppointmentGuidance,
+    practicePhone,
+    practiceName,
+    referenceId,
+  } = params;
 
   const subject = `Your Cervical Screening Results — ${practiceName}`;
 
@@ -141,10 +246,13 @@ If you need to reschedule or have urgent concerns, contact your practice directl
 Reference: ${referenceId}
 `.trim();
 
-  devLog("patient", patientEmail, subject, body);
-  await logNotificationAudit("patient", patientEmail, subject, referenceId);
-
-  return { channel: "patient", email: patientEmail, status: "logged" };
+  return deliverEmail({
+    channel: "patient",
+    to: patientEmail,
+    subject,
+    body,
+    referenceId,
+  });
 }
 
 // ─── GP Notification ──────────────────────────────────────────────────────────
@@ -153,9 +261,18 @@ export async function sendGPNotification(
   params: GPNotificationParams
 ): Promise<NotificationResult> {
   const {
-    gpEmail, patientName, nhi, decisionCode, recommendation,
-    figure, riskLevel, referralPriority, referralType,
-    recallMonths, guidelineReference, referenceId,
+    gpEmail,
+    patientName,
+    nhi,
+    decisionCode,
+    recommendation,
+    figure,
+    riskLevel,
+    referralPriority,
+    referralType,
+    recallMonths,
+    guidelineReference,
+    referenceId,
   } = params;
 
   const subject = `Cervical Screening Decision — ${patientName} (${nhi})`;
@@ -190,10 +307,13 @@ Reference: ${referenceId}
 Generated by the NZ Cervical Screening Clinical Decision Support System.
 `.trim();
 
-  devLog("gp", gpEmail, subject, body);
-  await logNotificationAudit("gp", gpEmail, subject, referenceId);
-
-  return { channel: "gp", email: gpEmail, status: "logged" };
+  return deliverEmail({
+    channel: "gp",
+    to: gpEmail,
+    subject,
+    body,
+    referenceId,
+  });
 }
 
 // ─── Coordinator Notification ─────────────────────────────────────────────────
@@ -202,8 +322,14 @@ export async function sendCoordinatorNotification(
   params: CoordinatorNotificationParams
 ): Promise<NotificationResult> {
   const {
-    coordinatorEmail, patientName, nhi, referralType,
-    referralPriority, targetDays, targetDate, referenceId,
+    coordinatorEmail,
+    patientName,
+    nhi,
+    referralType,
+    referralPriority,
+    targetDays,
+    targetDate,
+    referenceId,
   } = params;
 
   const subject = `ACTION REQUIRED — New ${referralType} Referral (${referralPriority}): ${patientName}`;
@@ -226,8 +352,64 @@ and arrange an appointment for the patient.
 Reference: ${referenceId}
 `.trim();
 
-  devLog("coordinator", coordinatorEmail, subject, body);
-  await logNotificationAudit("coordinator", coordinatorEmail, subject, referenceId);
+  return deliverEmail({
+    channel: "coordinator",
+    to: coordinatorEmail,
+    subject,
+    body,
+    referenceId,
+  });
+}
 
-  return { channel: "coordinator", email: coordinatorEmail, status: "logged" };
+// ─── Security Incident Notification ───────────────────────────────────────────
+
+export async function sendSecurityIncidentNotification(
+  params: SecurityIncidentNotificationParams
+): Promise<NotificationResult> {
+  const {
+    recipientEmail,
+    recipientName,
+    incidentTitle,
+    incidentSummary,
+    severity,
+    status,
+    dueAt,
+    reminderKind,
+    referenceId,
+  } = params;
+
+  const subject =
+    reminderKind === "overdue"
+      ? `Security Incident Overdue — ${incidentTitle}`
+      : reminderKind === "due_soon"
+        ? `Security Incident Due Soon — ${incidentTitle}`
+        : `Security Incident Reminder — ${incidentTitle}`;
+
+  const body = `
+Hello ${recipientName ?? "team"},
+
+This is a security incident ${reminderKind === "overdue" ? "escalation" : "reminder"} from the Women’s Health platform.
+
+INCIDENT
+  Title:    ${incidentTitle}
+  Severity: ${severity}
+  Status:   ${status}
+  Due:      ${dueAt ? dueAt.toLocaleString("en-NZ") : "No due date set"}
+
+SUMMARY
+${incidentSummary}
+
+Reference: ${referenceId}
+
+Please review the security incident queue in the admin workspace and update ownership, status, or resolution notes as needed.
+`.trim();
+
+  return deliverEmail({
+    channel: "coordinator",
+    to: recipientEmail,
+    subject,
+    body,
+    referenceId,
+    entity: "SecurityIncident",
+  });
 }

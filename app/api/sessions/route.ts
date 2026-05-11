@@ -76,8 +76,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Build clinical input
+  const patientAge = patient.dateOfBirth
+    ? Math.floor((new Date().getTime() - new Date(patient.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+    : body.patientAge;
+
   const clinicalInput: ClinicalInput = {
+    ...body,
     patientId,
+    patientAge,
     isFirstTimeHPVTransition: patient.isFirstTimeHPVTransition,
     previousScreeningType: patient.previousScreeningType as "CYTOLOGY" | "HPV" | undefined,
     isPostHysterectomy: patient.isPostHysterectomy,
@@ -127,6 +133,7 @@ export async function POST(req: NextRequest) {
     where: { id: activeSession.id },
     data: {
       activeModule: decision.figure,
+      activeModuleVersion: decision.ruleVersion,
       currentRiskLevel: decision.riskLevel,
       recommendation: decision.recommendation,
       recommendationCode: decision.recommendationCode,
@@ -193,6 +200,12 @@ export async function POST(req: NextRequest) {
         figure: decision.figure,
         riskLevel: decision.riskLevel,
         recommendationCode: decision.recommendationCode,
+        ruleVersion: decision.ruleVersion,
+        branchPath: decision.branchPath,
+        safetyOutcome: decision.safetyOutcome,
+        missingInformation: decision.missingInformation,
+        externalDependencies: decision.externalDependencies,
+        inputFacts: clinicalInput,
       }),
     },
   });

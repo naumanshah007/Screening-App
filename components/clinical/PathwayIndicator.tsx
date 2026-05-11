@@ -12,7 +12,7 @@ export function PathwayIndicator({ figure, riskLevel, step }: PathwayIndicatorPr
   if (!figure) return null;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="bg-card border border-gray-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       {/* Pathway name */}
       <div className="flex items-center gap-3">
         <div className="w-2 h-8 rounded-full bg-[#0D9488]" aria-hidden="true" />
@@ -46,9 +46,9 @@ export function PathwayIndicator({ figure, riskLevel, step }: PathwayIndicatorPr
 export function RiskLegend() {
   const items = [
     { level: "LOW", icon: "●", label: "Low Risk", colour: "text-green-600", bg: "bg-green-100" },
-    { level: "MEDIUM", icon: "▲", label: "Medium Risk", colour: "text-amber-600", bg: "bg-amber-100" },
+    { level: "MEDIUM", icon: "▲", label: "Medium Risk", colour: "text-warn", bg: "bg-warn/10" },
     { level: "HIGH", icon: "■", label: "High Risk", colour: "text-purple-600", bg: "bg-purple-100" },
-    { level: "URGENT", icon: "⚠", label: "Urgent", colour: "text-red-600", bg: "bg-red-100" },
+    { level: "URGENT", icon: "⚠", label: "Urgent", colour: "text-destructive", bg: "bg-destructive/10" },
   ];
 
   return (

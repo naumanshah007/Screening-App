@@ -7,10 +7,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, formatDateTime, calculateAge, getFigureLabel } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { PageIntro } from "@/components/layout/PageIntro";
 import {
   User, Calendar, Phone, Mail, Building2, GitBranch,
   AlertTriangle, Shield, Clock, Activity, ArrowLeft,
-  ChevronRight, Microscope, ClipboardList
+  Microscope, ClipboardList
 } from "lucide-react";
 
 interface Props {
@@ -46,78 +47,48 @@ export default async function PatientDetailPage({ params }: Props) {
   const age = calculateAge(patient.dateOfBirth);
 
   const riskDotColors: Record<string, string> = {
-    URGENT: "bg-red-500",
-    HIGH:   "bg-amber-500",
-    MEDIUM: "bg-violet-500",
-    LOW:    "bg-emerald-500",
+    URGENT: "bg-destructive",
+    HIGH:   "bg-warn",
+    MEDIUM: "bg-info",
+    LOW:    "bg-success",
   };
+
+  const initials = `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`;
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4">
-          <Link href="/patients">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div className="w-14 h-14 rounded-2xl bg-navy-600/10 flex items-center justify-center flex-shrink-0">
-            <span className="text-navy-600 font-bold text-xl">
-              {patient.firstName.charAt(0)}{patient.lastName.charAt(0)}
-            </span>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {patient.firstName} {patient.lastName}
-            </h1>
-            <div className="flex items-center gap-3 text-sm text-slate-500 mt-0.5">
-              <span className="font-mono">NHI: {patient.nhi}</span>
-              <span>·</span>
-              <span>{age} years old</span>
-              <span>·</span>
-              <span>DOB: {formatDate(patient.dateOfBirth)}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <Link href={`/gp?nhi=${patient.nhi}`}>
-            <Button variant="outline" size="md">
-              <Activity className="h-4 w-4" />
-              Enter Results
-            </Button>
-          </Link>
-          <Link href="/pathway">
-            <Button size="md">
-              <GitBranch className="h-4 w-4" />
-              Start Pathway
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <PageIntro
+        eyebrow={`NHI: ${patient.nhi} · ${age} years · DOB: ${formatDate(patient.dateOfBirth)}`}
+        title={`${patient.firstName} ${patient.lastName}`}
+        breadcrumb={[{ label: "Patients", href: "/patients" }, { label: `${patient.firstName} ${patient.lastName}` }]}
+        actions={[
+          { href: `/gp?nhi=${patient.nhi}`, label: "Enter Results", variant: "outline", icon: <Activity className="h-4 w-4" /> },
+          { href: "/pathway", label: "Start Pathway", icon: <GitBranch className="h-4 w-4" /> },
+        ]}
+      />
 
       {/* Recall alert */}
       {nextRecall && (
         <div className={cn(
           "flex items-start gap-3 px-4 py-3.5 rounded-xl border",
           isRecallOverdue
-            ? "bg-red-50 border-red-200"
-            : "bg-amber-50 border-amber-200"
+            ? "bg-destructive/5 border-destructive/30"
+            : "bg-warn/5 border-warn/30"
         )}>
           <div className={cn(
             "p-1.5 rounded-lg flex-shrink-0",
-            isRecallOverdue ? "bg-red-100" : "bg-amber-100"
+            isRecallOverdue ? "bg-destructive/10" : "bg-warn/10"
           )}>
             {isRecallOverdue
-              ? <AlertTriangle className="h-4 w-4 text-red-600" />
-              : <Calendar className="h-4 w-4 text-amber-600" />
+              ? <AlertTriangle className="h-4 w-4 text-destructive" />
+              : <Calendar className="h-4 w-4 text-warn" />
             }
           </div>
           <div>
-            <p className={cn("text-sm font-semibold", isRecallOverdue ? "text-red-800" : "text-amber-800")}>
+            <p className={cn("text-sm font-semibold", isRecallOverdue ? "text-destructive" : "text-foreground")}>
               {isRecallOverdue ? "Recall Overdue" : "Next Screening Due"}
             </p>
-            <p className={cn("text-xs mt-0.5", isRecallOverdue ? "text-red-600" : "text-amber-600")}>
+            <p className={cn("text-xs mt-0.5", isRecallOverdue ? "text-destructive" : "text-warn")}>
               Due: {formatDate(nextRecall.dueDate)}
               {nextRecall.reason && ` · ${nextRecall.reason}`}
             </p>
@@ -139,29 +110,29 @@ export default async function PatientDetailPage({ params }: Props) {
             <CardContent className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Date of Birth</p>
-                  <p className="font-medium text-slate-900 mt-0.5">{formatDate(patient.dateOfBirth)}</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Date of Birth</p>
+                  <p className="font-medium text-foreground mt-0.5">{formatDate(patient.dateOfBirth)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Age</p>
-                  <p className="font-medium text-slate-900 mt-0.5">{age} years</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Age</p>
+                  <p className="font-medium text-foreground mt-0.5">{age} years</p>
                 </div>
               </div>
               {patient.email && (
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Mail className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                   <span className="text-sm truncate">{patient.email}</span>
                 </div>
               )}
               {patient.phone && (
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Phone className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                   <span className="text-sm">{patient.phone}</span>
                 </div>
               )}
               {patient.gpPractice && (
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Building2 className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                   <span className="text-sm">{patient.gpPractice.name}</span>
                 </div>
               )}
@@ -169,10 +140,10 @@ export default async function PatientDetailPage({ params }: Props) {
                 <span className={cn(
                   "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border",
                   patient.status === "ACTIVE"
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                    : "bg-slate-100 text-slate-600 border-slate-200"
+                    ? "bg-success/5 text-foreground border-success/30"
+                    : "bg-muted text-muted-foreground border-border"
                 )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", patient.status === "ACTIVE" ? "bg-emerald-500" : "bg-slate-400")} />
+                  <span className={cn("w-1.5 h-1.5 rounded-full", patient.status === "ACTIVE" ? "bg-success/50" : "bg-muted-foreground/40")} />
                   {patient.status}
                 </span>
               </div>
@@ -189,32 +160,32 @@ export default async function PatientDetailPage({ params }: Props) {
             </CardHeader>
             <CardContent className="space-y-2">
               {patient.isFirstTimeHPVTransition && (
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-sky-50 border border-sky-200">
-                  <span className="text-xs font-medium text-sky-800">HPV Transition Patient</span>
-                  <span className="text-[10px] text-sky-500">→ Fig 1/2</span>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-info/5 border border-info/30">
+                  <span className="text-xs font-medium text-foreground">HPV Transition Patient</span>
+                  <span className="text-[10px] text-muted-foreground">Transition pathway</span>
                 </div>
               )}
               {patient.isPostHysterectomy && (
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-violet-50 border border-violet-200">
-                  <span className="text-xs font-medium text-violet-800">Post-Hysterectomy</span>
-                  <span className="text-[10px] text-violet-500">→ Fig 8</span>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-brand-50/40 border border-brand-200">
+                  <span className="text-xs font-medium text-foreground">Post-Hysterectomy</span>
+                  <span className="text-[10px] text-muted-foreground">Post-hysterectomy pathway</span>
                 </div>
               )}
               {patient.medicalHistory?.atypicalEndometrialHistory && (
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-red-50 border border-red-200">
-                  <span className="text-xs font-medium text-red-800">Atypical Endometrial History</span>
-                  <span className="text-[10px] text-red-500">→ Gynaecology</span>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-destructive/5 border border-destructive/30">
+                  <span className="text-xs font-medium text-destructive">Atypical Endometrial History</span>
+                  <span className="text-[10px] text-destructive">→ Gynaecology</span>
                 </div>
               )}
               {patient.medicalHistory?.immunocompromised && (
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 border border-amber-200">
-                  <span className="text-xs font-medium text-amber-800">Immunocompromised</span>
-                  <span className="text-[10px] text-amber-500">3y recall</span>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-warn/5 border border-warn/30">
+                  <span className="text-xs font-medium text-foreground">Immunocompromised</span>
+                  <span className="text-[10px] text-warn">3y recall</span>
                 </div>
               )}
               {!patient.isFirstTimeHPVTransition && !patient.isPostHysterectomy &&
                 !patient.medicalHistory?.atypicalEndometrialHistory && !patient.medicalHistory?.immunocompromised && (
-                  <p className="text-xs text-slate-400 py-2">No special clinical flags</p>
+                  <p className="text-xs text-muted-foreground py-2">No special clinical flags</p>
                 )}
             </CardContent>
           </Card>
@@ -231,13 +202,13 @@ export default async function PatientDetailPage({ params }: Props) {
               <CardContent className="space-y-3">
                 {latestSession.currentRiskLevel && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Risk Level</span>
+                    <span className="text-sm text-muted-foreground">Risk Level</span>
                     <RiskBadge risk={latestSession.currentRiskLevel} />
                   </div>
                 )}
                 {latestSession.activeModule && (
                   <div>
-                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Active Pathway</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Active Pathway</p>
                     <p className="text-sm font-semibold text-navy-600">
                       {getFigureLabel(latestSession.activeModule)}
                     </p>
@@ -246,21 +217,21 @@ export default async function PatientDetailPage({ params }: Props) {
                 {latestSession.recommendation && (
                   <div className="bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
                     <p className="text-[10px] font-mono text-brand-600 mb-0.5">{latestSession.recommendationCode}</p>
-                    <p className="text-xs text-slate-700 leading-relaxed">{latestSession.recommendation}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{latestSession.recommendation}</p>
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border text-center">
                   <div>
-                    <p className="text-lg font-bold text-slate-900">{latestSession.consecutiveNegativeCoTestCount}</p>
-                    <p className="text-[10px] text-slate-400 leading-tight">Consec. Neg.</p>
+                    <p className="text-lg font-bold text-foreground">{latestSession.consecutiveNegativeCoTestCount}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Consec. Neg.</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-slate-900">{latestSession.consecutiveLowGradeCount}</p>
-                    <p className="text-[10px] text-slate-400 leading-tight">Low Grade</p>
+                    <p className="text-lg font-bold text-foreground">{latestSession.consecutiveLowGradeCount}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Low Grade</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-slate-900">{latestSession.unsatisfactoryCytologyCount}</p>
-                    <p className="text-[10px] text-slate-400 leading-tight">Unsat. Cyt.</p>
+                    <p className="text-lg font-bold text-foreground">{latestSession.unsatisfactoryCytologyCount}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Unsat. Cyt.</p>
                   </div>
                 </div>
               </CardContent>
@@ -276,7 +247,7 @@ export default async function PatientDetailPage({ params }: Props) {
                 <Clock className="h-4 w-4 text-brand-600" />
                 Screening History
               </CardTitle>
-              <span className="text-xs text-slate-400">{patient.screeningSessions.length} session{patient.screeningSessions.length !== 1 ? "s" : ""}</span>
+              <span className="text-xs text-muted-foreground">{patient.screeningSessions.length} session{patient.screeningSessions.length !== 1 ? "s" : ""}</span>
             </CardHeader>
             <CardContent className="p-0">
               {patient.screeningSessions.length === 0 ? (
@@ -289,14 +260,14 @@ export default async function PatientDetailPage({ params }: Props) {
               ) : (
                 <div className="relative">
                   {/* Timeline line */}
-                  <div className="absolute left-10 top-4 bottom-4 w-0.5 bg-slate-100" aria-hidden />
-                  <div className="divide-y divide-slate-50">
+                  <div className="absolute left-10 top-4 bottom-4 w-0.5 bg-muted" aria-hidden />
+                  <div className="divide-y divide-border">
                     {patient.screeningSessions.map((session, idx) => {
                       const latestResult = session.testResults[0];
                       const referral = session.referrals[0];
-                      const dotColor = riskDotColors[session.currentRiskLevel ?? ""] ?? "bg-slate-300";
+                      const dotColor = riskDotColors[session.currentRiskLevel ?? ""] ?? "bg-muted-foreground/30";
                       return (
-                        <div key={session.id} className="relative px-6 py-5 hover:bg-slate-50/60 transition-colors">
+                        <div key={session.id} className="relative px-6 py-5 hover:bg-muted/40 transition-colors">
                           {/* Timeline dot */}
                           <div
                             className={cn(
@@ -308,10 +279,10 @@ export default async function PatientDetailPage({ params }: Props) {
                           <div className="ml-9">
                             <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
                               <div>
-                                <p className="text-sm font-semibold text-slate-900">
+                                <p className="text-sm font-semibold text-foreground">
                                   Session #{patient.screeningSessions.length - idx}
                                 </p>
-                                <p className="text-xs text-slate-400 mt-0.5">
+                                <p className="text-xs text-muted-foreground mt-0.5">
                                   {formatDateTime(session.createdAt)}
                                 </p>
                               </div>
@@ -330,7 +301,7 @@ export default async function PatientDetailPage({ params }: Props) {
                             {session.recommendation && (
                               <div className="mb-3 bg-brand-50/60 border border-brand-100 rounded-lg px-3 py-2">
                                 <p className="text-[10px] font-mono text-brand-600 mb-0.5">{session.recommendationCode}</p>
-                                <p className="text-xs text-slate-700 leading-relaxed">{session.recommendation}</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">{session.recommendation}</p>
                               </div>
                             )}
 
@@ -341,26 +312,26 @@ export default async function PatientDetailPage({ params }: Props) {
                                   <span className={cn(
                                     "text-xs px-2 py-1 rounded-md font-medium",
                                     latestResult.hpvResult === "HPV_16_18"
-                                      ? "bg-red-100 text-red-700"
+                                      ? "bg-destructive/10 text-destructive"
                                       : latestResult.hpvResult === "HPV_OTHER"
-                                      ? "bg-amber-100 text-amber-700"
-                                      : "bg-emerald-100 text-emerald-700"
+                                      ? "bg-warn/10 text-warn"
+                                      : "bg-success/10 text-success"
                                   )}>
                                     HPV: {latestResult.hpvResult.replace(/_/g, " ")}
                                   </span>
                                 )}
                                 {latestResult.cytologyResult && (
-                                  <span className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700 font-mono">
+                                  <span className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground font-mono">
                                     Cyt: {latestResult.cytologyResult}
                                   </span>
                                 )}
                                 {latestResult.tzType && (
-                                  <span className="text-xs px-2 py-1 rounded-md bg-violet-50 text-violet-700 border border-violet-200">
+                                  <span className="text-xs px-2 py-1 rounded-md bg-brand-50/40 text-muted-foreground border border-brand-200">
                                     TZ {latestResult.tzType}
                                   </span>
                                 )}
                                 {latestResult.sampleType && latestResult.sampleType === "SWAB" && (
-                                  <span className="text-xs px-2 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                                  <span className="text-xs px-2 py-1 rounded-md bg-warn/5 text-warn border border-warn/30 flex items-center gap-1">
                                     <AlertTriangle className="h-3 w-3" />
                                     SWAB
                                   </span>
@@ -371,10 +342,10 @@ export default async function PatientDetailPage({ params }: Props) {
                             {/* Referral */}
                             {referral && (
                               <div className="flex items-center gap-2 flex-wrap">
-                                <ClipboardList className="h-3.5 w-3.5 text-slate-400" />
-                                <span className="text-xs text-slate-500">Referral:</span>
+                                <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">Referral:</span>
                                 <PriorityBadge priority={referral.priority} />
-                                <span className="text-xs text-slate-600">{referral.type}</span>
+                                <span className="text-xs text-muted-foreground">{referral.type}</span>
                                 <StatusBadge status={referral.status} />
                               </div>
                             )}

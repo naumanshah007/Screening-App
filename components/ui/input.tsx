@@ -1,48 +1,72 @@
 import { cn } from "@/lib/utils";
 import { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef, SelectHTMLAttributes } from "react";
+import { AlertCircle } from "lucide-react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
   icon?: React.ReactNode;
+  trailing?: React.ReactNode;
+  required?: boolean;
 }
 
+const fieldBase = cn(
+  "w-full rounded-lg border text-sm transition-colors duration-150",
+  "bg-card text-foreground placeholder:text-muted-foreground",
+  "focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent-color",
+  "disabled:opacity-50 disabled:cursor-not-allowed"
+);
+
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, hint, icon, id, ...props }, ref) => {
+  ({ className, label, error, hint, icon, trailing, id, required, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-medium text-foreground mb-1.5">
             {label}
+            {required && <span className="text-destructive ml-1" aria-hidden>*</span>}
           </label>
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground">
               {icon}
             </div>
           )}
           <input
             ref={ref}
             id={inputId}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
             className={cn(
-              "w-full rounded-lg border text-sm transition-colors duration-150",
+              fieldBase,
               "px-3 py-2.5 h-10",
-              "bg-white text-slate-900 placeholder:text-slate-400",
-              "focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600",
               error
-                ? "border-red-400 focus:ring-red-500 focus:border-red-500"
-                : "border-slate-200 hover:border-slate-300",
+                ? "border-destructive focus:ring-destructive/30 focus:border-destructive"
+                : "border-border hover:border-border-strong",
               icon && "pl-9",
+              trailing && "pr-9",
               className
             )}
             {...props}
           />
+          {trailing && (
+            <div className="absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+              {trailing}
+            </div>
+          )}
         </div>
-        {error && <p className="mt-1 text-xs text-red-600 flex items-center gap-1">⚠ {error}</p>}
-        {hint && !error && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+        {error && (
+          <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={`${inputId}-hint`} className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        )}
       </div>
     );
   }
@@ -53,33 +77,44 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   hint?: string;
+  required?: boolean;
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, label, error, hint, id, ...props }, ref) => {
+  ({ className, label, error, hint, id, required, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-medium text-foreground mb-1.5">
             {label}
+            {required && <span className="text-destructive ml-1" aria-hidden>*</span>}
           </label>
         )}
         <textarea
           ref={ref}
           id={inputId}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={cn(
-            "w-full rounded-lg border text-sm transition-colors duration-150 resize-none",
-            "px-3 py-2.5",
-            "bg-white text-slate-900 placeholder:text-slate-400",
-            "focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600",
-            error ? "border-red-400" : "border-slate-200 hover:border-slate-300",
+            fieldBase,
+            "px-3 py-2.5 resize-none",
+            error
+              ? "border-destructive focus:ring-destructive/30"
+              : "border-border hover:border-border-strong",
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-xs text-red-600">⚠ {error}</p>}
-        {hint && !error && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+        {error && (
+          <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={`${inputId}-hint`} className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        )}
       </div>
     );
   }
@@ -92,39 +127,49 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   hint?: string;
   options?: { value: string; label: string }[];
   placeholder?: string;
+  required?: boolean;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, hint, id, children, options, placeholder, ...props }, ref) => {
+  ({ className, label, error, hint, id, children, options, placeholder, required, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-medium text-foreground mb-1.5">
             {label}
+            {required && <span className="text-destructive ml-1" aria-hidden>*</span>}
           </label>
         )}
         <select
           ref={ref}
           id={inputId}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={cn(
-            "w-full rounded-lg border text-sm transition-colors duration-150 h-10 px-3",
-            "bg-white text-slate-900",
-            "focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600",
-            error ? "border-red-400" : "border-slate-200 hover:border-slate-300",
+            fieldBase,
+            "h-10 px-3",
+            error
+              ? "border-destructive focus:ring-destructive/30"
+              : "border-border hover:border-border-strong",
             className
           )}
           {...props}
         >
           {placeholder && <option value="">{placeholder}</option>}
           {options
-            ? options.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))
+            ? options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)
             : children}
         </select>
-        {error && <p className="mt-1 text-xs text-red-600">⚠ {error}</p>}
-        {hint && !error && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+        {error && (
+          <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={`${inputId}-hint`} className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        )}
       </div>
     );
   }

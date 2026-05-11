@@ -7,8 +7,8 @@ export function Card({ className, children, onClick }: CardProps) {
     <div
       onClick={onClick}
       className={cn(
-        "bg-white border border-slate-200/80 rounded-xl shadow-sm",
-        onClick && "cursor-pointer hover:shadow-md hover:border-slate-300 transition-all duration-150",
+        "bg-card border border-border rounded-xl shadow-sm",
+        onClick && "cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150",
         className
       )}
     >
@@ -18,11 +18,15 @@ export function Card({ className, children, onClick }: CardProps) {
 }
 
 export function CardHeader({ className, children }: CardProps) {
-  return <div className={cn("px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3", className)}>{children}</div>;
+  return (
+    <div className={cn("px-5 py-4 border-b border-border flex items-center justify-between gap-3", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function CardTitle({ className, children }: CardProps) {
-  return <h2 className={cn("text-sm font-semibold text-slate-800 tracking-tight", className)}>{children}</h2>;
+  return <h2 className={cn("text-sm font-semibold text-foreground tracking-tight", className)}>{children}</h2>;
 }
 
 export function CardContent({ className, children }: CardProps) {
@@ -35,30 +39,48 @@ interface StatCardProps {
   subtext?: string;
   delta?: string;
   deltaDirection?: "up" | "down" | "neutral";
-  variant?: "default" | "urgent" | "warning" | "success";
+  variant?: "default" | "urgent" | "warning" | "success" | "info";
   icon?: React.ReactNode;
   href?: string;
+  onClick?: () => void;
 }
 
 const statBorderVariant: Record<string, string> = {
-  default: "border-l-brand-600",
+  default: "border-l-accent-color",
   urgent:  "border-l-red-500",
   warning: "border-l-amber-500",
   success: "border-l-emerald-500",
+  info:    "border-l-sky-500",
 };
 
-export function StatCard({ label, value, subtext, delta, deltaDirection = "neutral", variant = "default", icon }: StatCardProps) {
-  const deltaColor = { up: "text-emerald-600", down: "text-red-600", neutral: "text-slate-500" }[deltaDirection];
-  const deltaIcon  = { up: "↑", down: "↓", neutral: "" }[deltaDirection];
+const statIconBg: Record<string, string> = {
+  default: "bg-brand-50 text-brand-600",
+  urgent:  "bg-destructive/5 text-destructive",
+  warning: "bg-warn/5 text-warn",
+  success: "bg-success/5 text-success",
+  info:    "bg-info/5 text-sky-600",
+};
+
+export function StatCard({
+  label, value, subtext, delta, deltaDirection = "neutral",
+  variant = "default", icon, onClick,
+}: StatCardProps) {
+  const deltaColor = {
+    up:      "text-success",
+    down:    "text-destructive",
+    neutral: "text-muted-foreground",
+  }[deltaDirection];
+  const deltaIcon = { up: "↑", down: "↓", neutral: "" }[deltaDirection];
+
   return (
-    <Card className={cn("border-l-4", statBorderVariant[variant])}>
+    <Card className={cn("border-l-4", statBorderVariant[variant])} onClick={onClick}>
       <CardContent className="py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
-            <p className="text-3xl font-bold text-slate-900 mt-1 tracking-tight">{value}</p>
+            <p className="text-label text-muted-foreground">{label}</p>
+            <p className="text-3xl font-bold text-foreground mt-1.5 tracking-tight tabular-nums">{value}</p>
             <div className="flex items-center gap-2 mt-1">
-              {subtext && <p className="text-xs text-slate-400">{subtext}</p>}
+              {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
               {delta && (
                 <span className={cn("text-xs font-medium", deltaColor)}>
                   {deltaIcon} {delta}
@@ -67,7 +89,7 @@ export function StatCard({ label, value, subtext, delta, deltaDirection = "neutr
             </div>
           </div>
           {icon && (
-            <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400 flex-shrink-0">
+            <div className={cn("p-2.5 rounded-xl flex-shrink-0", statIconBg[variant])}>
               {icon}
             </div>
           )}

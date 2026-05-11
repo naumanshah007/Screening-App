@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "./button";
 
@@ -11,20 +11,31 @@ interface DialogProps {
   description?: string;
   children?: React.ReactNode;
   footer?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
-const sizeClasses = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl" };
+const sizeClasses = {
+  sm:  "max-w-md",
+  md:  "max-w-lg",
+  lg:  "max-w-2xl",
+  xl:  "max-w-4xl",
+};
 
 export function Dialog({ open, onClose, title, description, children, footer, size = "md" }: DialogProps) {
-  const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    const prev = document.activeElement as HTMLElement | null;
     const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handleKey);
-    ref.current?.focus();
-    return () => document.removeEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
+    panelRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
+      prev?.focus();
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -35,42 +46,46 @@ export function Dialog({ open, onClose, title, description, children, footer, si
       role="dialog"
       aria-modal="true"
       aria-labelledby="dialog-title"
+      aria-describedby={description ? "dialog-description" : undefined}
     >
-      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
         aria-hidden
       />
-      {/* Panel */}
       <div
-        ref={ref}
+        ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "relative w-full bg-white rounded-2xl shadow-xl animate-fade-in",
-          "flex flex-col max-h-[90vh] overflow-hidden",
+          "relative w-full bg-card rounded-2xl shadow-overlay animate-fade-in",
+          "flex flex-col max-h-[90dvh] overflow-hidden",
+          "border border-border",
           sizeClasses[size]
         )}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border">
           <div>
-            <h2 id="dialog-title" className="text-lg font-semibold text-slate-900">{title}</h2>
-            {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
+            <h2 id="dialog-title" className="text-lg font-semibold text-foreground">{title}</h2>
+            {description && (
+              <p id="dialog-description" className="text-sm text-muted-foreground mt-0.5">{description}</p>
+            )}
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
+            className={cn(
+              "p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted",
+              "transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            )}
             aria-label="Close dialog"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        {/* Body */}
-        {children && <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>}
-        {/* Footer */}
+        {children && (
+          <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        )}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/40">
             {footer}
           </div>
         )}
@@ -94,7 +109,7 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({
   open, onClose, onConfirm, title, description,
   confirmLabel = "Confirm", cancelLabel = "Cancel",
-  variant = "danger", loading
+  variant = "danger", loading,
 }: ConfirmDialogProps) {
   return (
     <Dialog
@@ -105,13 +120,24 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={loading}>{cancelLabel}</Button>
-          <Button variant={variant === "danger" ? "danger" : "primary"} onClick={onConfirm} loading={loading}>
+          <Button
+            variant={variant === "danger" ? "danger" : "primary"}
+            onClick={onConfirm}
+            loading={loading}
+          >
             {confirmLabel}
           </Button>
         </>
       }
     >
-      <p className="text-sm text-slate-600">{description}</p>
+      <div className="flex gap-3">
+        {variant === "danger" && (
+          <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-danger-bg">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          </div>
+        )}
+        <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+      </div>
     </Dialog>
   );
 }

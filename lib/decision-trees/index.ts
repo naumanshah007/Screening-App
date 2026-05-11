@@ -38,8 +38,8 @@ export interface FigureDef {
 
 const FIGURE_1: FigureDef = {
   id: 'FIGURE_1',
-  title: 'Cytology Transition',
-  subtitle: 'First HPV screen after cytology-based screening',
+  title: 'HPV Transition Invitation Pathway',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 860 560',
   nodes: [
     { id: 'start',  type: 'start',    label: 'Cytology Transition', sublabel: 'First HPV Screen',        x: 430, y: 44  },
@@ -66,8 +66,8 @@ const FIGURE_1: FigureDef = {
 
 const FIGURE_2: FigureDef = {
   id: 'FIGURE_2',
-  title: 'Ongoing HPV Recall',
-  subtitle: 'Routine follow-up after prior HPV screen',
+  title: 'Previous High-Grade / History Transition Pathway',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 760 480',
   nodes: [
     { id: 'start', type: 'start',    label: 'Ongoing HPV Recall',  sublabel: 'Prior screening with outcome', x: 380, y: 44  },
@@ -94,8 +94,8 @@ const FIGURE_2: FigureDef = {
 
 const FIGURE_3: FigureDef = {
   id: 'FIGURE_3',
-  title: 'Primary HPV Screening',
-  subtitle: 'Standard first-contact screening pathway',
+  title: 'Primary HPV Screening Pathway',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 1000 620',
   nodes: [
     { id: 'start',   type: 'start',    label: 'Primary HPV Screening',       sublabel: 'Standard first-contact screening',      x: 500, y: 44  },
@@ -126,8 +126,8 @@ const FIGURE_3: FigureDef = {
 
 const FIGURE_4: FigureDef = {
   id: 'FIGURE_4',
-  title: 'Low-Grade Colposcopy',
-  subtitle: 'Colposcopy referral for low-grade findings',
+  title: 'Post-Normal Colposcopy Follow-up After Low-Grade Cytology',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 860 560',
   nodes: [
     { id: 'start', type: 'start',    label: 'Low-Grade Colposcopy',         sublabel: 'Low-grade / initial assessment', x: 430, y: 44  },
@@ -154,8 +154,8 @@ const FIGURE_4: FigureDef = {
 
 const FIGURE_5: FigureDef = {
   id: 'FIGURE_5',
-  title: 'High-Grade Colposcopy',
-  subtitle: 'Colposcopy for HSIL, AIS & glandular changes',
+  title: 'Post-Normal Colposcopy Follow-up After High-Grade Cytology',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 860 500',
   nodes: [
     { id: 'start', type: 'start',    label: 'High-Grade Colposcopy',     sublabel: 'HSIL, AIS & glandular changes',  x: 430, y: 44  },
@@ -178,8 +178,8 @@ const FIGURE_5: FigureDef = {
 
 const FIGURE_6: FigureDef = {
   id: 'FIGURE_6',
-  title: 'Post-Treatment Review',
-  subtitle: 'Test of Cure monitoring after CIN treatment',
+  title: 'Test of Cure After HSIL/CIN2/3 Treatment',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 860 560',
   nodes: [
     { id: 'start',   type: 'start',    label: 'Post-Treatment Review',                sublabel: 'Test of Cure follow-up', x: 430, y: 44  },
@@ -204,8 +204,8 @@ const FIGURE_6: FigureDef = {
 
 const FIGURE_7: FigureDef = {
   id: 'FIGURE_7',
-  title: 'Glandular Abnormality',
-  subtitle: 'Atypical glandular / adenocarcinoma pathway',
+  title: 'Atypical and Abnormal Glandular Abnormalities',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 860 500',
   nodes: [
     { id: 'start', type: 'start',    label: 'Glandular Abnormality',     sublabel: 'AG/AC cytology pathway', x: 430, y: 44  },
@@ -228,8 +228,8 @@ const FIGURE_7: FigureDef = {
 
 const FIGURE_8: FigureDef = {
   id: 'FIGURE_8',
-  title: 'Post-Hysterectomy',
-  subtitle: 'Vault cytology surveillance',
+  title: 'Screening After Total Hysterectomy',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 760 480',
   nodes: [
     { id: 'start', type: 'start',    label: 'Post-Hysterectomy',     sublabel: 'Vault cytology surveillance', x: 380, y: 44  },
@@ -252,8 +252,8 @@ const FIGURE_8: FigureDef = {
 
 const FIGURE_9: FigureDef = {
   id: 'FIGURE_9',
-  title: 'Pregnancy Protocol',
-  subtitle: 'High-grade cytology during pregnancy',
+  title: 'Pregnancy High-Grade/Glandular Cytology Pathway',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 760 480',
   nodes: [
     { id: 'start', type: 'start',    label: 'Pregnancy Protocol', sublabel: 'High-grade cytology management', x: 380, y: 44  },
@@ -276,13 +276,13 @@ const FIGURE_9: FigureDef = {
 
 const FIGURE_10: FigureDef = {
   id: 'FIGURE_10',
-  title: 'Abnormal Bleeding',
-  subtitle: 'Abnormal vaginal bleeding assessment',
+  title: 'Abnormal Vaginal Bleeding Pathway',
+  subtitle: 'Under validation: simplified visual; rule output is source of truth',
   viewBox: '0 0 860 520',
   nodes: [
     { id: 'start',  type: 'start',    label: 'Abnormal Bleeding',        sublabel: 'Initial assessment pathway', x: 430, y: 44  },
     { id: 'exam',   type: 'decision', label: 'Cervix Appearance?',                x: 430, y: 160, width: 200, height: 90 },
-    { id: 'cancer', type: 'outcome',  label: 'Urgent Referral — Suspected Cancer', sublabel: 'F10-CANCEL-URGENT', risk: 'URGENT', x: 100, y: 320, codes: ['F10-CANCEL-URGENT', 'F10-CANCER-URGENT'] },
+    { id: 'cancer', type: 'outcome',  label: 'Urgent Referral — Suspected Cancer', sublabel: 'F10-CANCER-SYMPTOMS-URGENT-GYN', risk: 'URGENT', x: 100, y: 320, codes: ['F10-CANCER-SYMPTOMS-URGENT-GYN', 'F10-CANCER-URGENT'] },
     { id: 'sti',    type: 'outcome',  label: 'Treat STI — Recall 3 Months',      sublabel: 'F10-STI-TREAT',  risk: 'MEDIUM', x: 300, y: 320, codes: ['F10-STI-TREAT'] },
     { id: 'oc',     type: 'outcome',  label: 'Adjust OC / Recall 3 Months',      sublabel: 'F10-OC-ADJUST',  risk: 'LOW',    x: 490, y: 320, codes: ['F10-OC-ADJUST'] },
     { id: 'res',    type: 'decision', label: 'Bleeding Resolved?',                x: 680, y: 320, width: 160, height: 80 },

@@ -5,10 +5,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { PathwayFigure } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { autofillFromPatient } from "@/lib/wizard/autofill";
-import { getVisibleSteps, getNextUnansweredStep, WIZARD_STEPS } from "@/lib/wizard/steps";
+import { getVisibleSteps, getNextUnansweredStep } from "@/lib/wizard/steps";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -48,7 +49,8 @@ export async function POST(req: NextRequest) {
       patientId: body.patientId,
       createdById: session.user.id,
       status: "IN_PROGRESS",
-      determinedFigure: autofill.detectedFigure as any ?? undefined,
+      determinedFigure:
+        (autofill.detectedFigure as PathwayFigure | undefined) ?? undefined,
       answers: {
         create: autofill.answers.map((a) => ({
           stepId: a.stepId,

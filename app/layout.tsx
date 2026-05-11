@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cervical Screening Clinical Decision System",
+  title: "ClinicalTriage — Referral Grading Platform",
   description:
-    "NZ Cervical Screening Programme — Clinical Decision Support System implementing Figures 1-10 of the NZ Cervical Screening Clinical Practice Guidelines.",
+    "Enterprise referral triage and grading platform for colposcopy and gynaecology services — Health NZ Counties Manukau.",
 };
 
 export default function RootLayout({
@@ -25,10 +25,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}
-      >
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <a href="#main-content" className="skip-to-content">Skip to main content</a>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -5,12 +5,25 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import {
+  CytologyResult,
+  HPVResult,
+  HistologyResult,
+  PathwayFigure,
+  ColposcopicImpression as PrismaColposcopicImpression,
+  ReferralPriority,
+  ReferralType,
+  RiskLevel,
+  SampleType,
+  SessionStatus,
+  TZType,
+} from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
 import { answersToInputFields } from "@/lib/wizard/steps";
 import type { ClinicalInput } from "@/lib/engine/types";
-import { addMonths, addDays } from "date-fns";
+import { addMonths } from "date-fns";
 
 // Priority → target working days mapping
 const PRIORITY_DAYS: Record<string, number> = {
@@ -67,6 +80,7 @@ export async function POST(
 
   // ── Convert to ClinicalInput ──────────────────────────────────────────────
   const fieldMap = answersToInputFields(answersMap) as Record<string, unknown>;
+  const structuredInput = fieldMap as Partial<ClinicalInput>;
   const patient = wizardSession.patient;
   const existingSession = patient.screeningSessions[0];
 
@@ -76,33 +90,22 @@ export async function POST(
     : undefined;
 
   const clinicalInput: ClinicalInput = {
-    patientId:                patient.id,
-    patientAge:               patientAgYears,
-    isFirstTimeHPVTransition: (fieldMap.isFirstTimeHPVTransition as boolean) ?? patient.isFirstTimeHPVTransition,
-    isPostHysterectomy:       (fieldMap.isPostHysterectomy as boolean) ?? patient.isPostHysterectomy,
-    atypicalEndometrialHistory: (fieldMap.atypicalEndometrialHistory as boolean) ?? (patient.medicalHistory?.atypicalEndometrialHistory ?? false),
-    immunocompromised:        (fieldMap.immunocompromised as boolean) ?? (patient.medicalHistory?.immunocompromised ?? false),
-    sampleType:               fieldMap.sampleType as ClinicalInput["sampleType"],
-    hpvResult:                fieldMap.hpvResult as ClinicalInput["hpvResult"],
-    cytologyResult:           fieldMap.cytologyResult as ClinicalInput["cytologyResult"],
-    histologyResult:          fieldMap.histologyResult as ClinicalInput["histologyResult"],
-    tzType:                   fieldMap.tzType as ClinicalInput["tzType"],
-    colposcopicImpression:    fieldMap.colposcopicImpression as ClinicalInput["colposcopicImpression"],
-    biopsyResult:             fieldMap.biopsyResult as ClinicalInput["biopsyResult"],
-    isPregnant:               fieldMap.isPregnant as boolean | undefined,
-    hasAbnormalVaginalBleeding: fieldMap.hasAbnormalVaginalBleeding as boolean | undefined,
-    abnormalCervix:           fieldMap.abnormalCervix as boolean | undefined,
-    suspicionOfCancer:        fieldMap.suspicionOfCancer as boolean | undefined,
-    suspectOralContraceptiveProblem: fieldMap.suspectOralContraceptiveProblem as boolean | undefined,
-    stiIdentified:            fieldMap.stiIdentified as boolean | undefined,
-    bleedingResolved:         fieldMap.bleedingResolved as boolean | undefined,
-    mdmOutcome:               fieldMap.mdmOutcome as string | undefined,
-    // Test of Cure flag — routes engine to Figure 6
-    isTestOfCure:             (fieldMap.isTestOfCure as boolean | undefined) ?? false,
+    ...structuredInput,
+    patientId: patient.id,
+    patientAge: patientAgYears,
+    isFirstTimeHPVTransition: structuredInput.isFirstTimeHPVTransition ?? patient.isFirstTimeHPVTransition,
+    isPostHysterectomy: structuredInput.isPostHysterectomy ?? patient.isPostHysterectomy,
+    atypicalEndometrialHistory:
+      structuredInput.atypicalEndometrialHistory ??
+      (patient.medicalHistory?.atypicalEndometrialHistory ?? false),
+    immunocompromised:
+      structuredInput.immunocompromised ??
+      (patient.medicalHistory?.immunocompromised ?? false),
+    isTestOfCure: structuredInput.isTestOfCure ?? false,
     // Counters from existing session
     consecutiveNegativeCoTestCount: existingSession?.consecutiveNegativeCoTestCount ?? 0,
-    consecutiveLowGradeCount:       existingSession?.consecutiveLowGradeCount ?? 0,
-    unsatisfactoryCytologyCount:    existingSession?.unsatisfactoryCytologyCount ?? 0,
+    consecutiveLowGradeCount: existingSession?.consecutiveLowGradeCount ?? 0,
+    unsatisfactoryCytologyCount: existingSession?.unsatisfactoryCytologyCount ?? 0,
   };
 
   // ── Evaluate decision ─────────────────────────────────────────────────────
@@ -120,9 +123,16 @@ export async function POST(
     data: {
       patientId: patient.id,
       createdById: session.user.id,
-      status: decision.referralRequired ? "REFERRED" : decision.recallRequired ? "RECALLED" : "COMPLETE",
-      activeModule: decision.figure as any,
-      currentRiskLevel: decision.riskLevel as any,
+      status: (
+        decision.referralRequired
+          ? "REFERRED"
+          : decision.recallRequired
+            ? "RECALLED"
+            : "COMPLETE"
+      ) as SessionStatus,
+      activeModule: decision.figure as PathwayFigure,
+      activeModuleVersion: decision.ruleVersion,
+      currentRiskLevel: decision.riskLevel as RiskLevel,
       nextScreeningDue,
       recommendation: decision.recommendation,
       recommendationCode: decision.recommendationCode,
@@ -149,13 +159,50 @@ export async function POST(
       data: {
         screeningSessionId: screeningSession.id,
         testDate: now,
-        sampleType: clinicalInput.sampleType as any ?? undefined,
-        hpvResult: clinicalInput.hpvResult as any ?? undefined,
+        sampleType: clinicalInput.sampleType as SampleType | undefined,
+        hpvResult: clinicalInput.hpvResult as HPVResult | undefined,
         hpv16_18: clinicalInput.hpvResult === "HPV_16_18",
         hpvOther:  clinicalInput.hpvResult === "HPV_OTHER",
-        cytologyResult: clinicalInput.cytologyResult as any ?? undefined,
-        histologyResult: clinicalInput.histologyResult as any ?? undefined,
-        tzType: clinicalInput.tzType as any ?? undefined,
+        cytologyResult: clinicalInput.cytologyResult as CytologyResult | undefined,
+        histologyResult: clinicalInput.histologyResult as HistologyResult | undefined,
+        tzType: clinicalInput.tzType as TZType | undefined,
+      },
+    });
+  }
+
+  // ── Create ColposcopyFinding when structured colposcopy facts were captured ─
+  const shouldPersistColposcopy =
+    answersMap.has_colposcopy_findings === "true" ||
+    clinicalInput.visibleLesion !== undefined ||
+    clinicalInput.colposcopicImpression !== undefined ||
+    clinicalInput.transformationZoneState !== undefined ||
+    clinicalInput.mdmOutcome !== undefined;
+
+  if (shouldPersistColposcopy) {
+    const persistableImpression =
+      clinicalInput.colposcopicImpression && clinicalInput.colposcopicImpression !== "AIS"
+        ? (clinicalInput.colposcopicImpression as PrismaColposcopicImpression)
+        : undefined;
+
+    await prisma.colposcopyFinding.create({
+      data: {
+        screeningSessionId: screeningSession.id,
+        clinicianId: session.user.id,
+        colposcopyDate: now,
+        tzType: (clinicalInput.colposcopyTZType ?? clinicalInput.tzType) as TZType | undefined,
+        visibleLesion: clinicalInput.visibleLesion ?? (
+          clinicalInput.colposcopicImpression === "LSIL" ||
+          clinicalInput.colposcopicImpression === "HSIL" ||
+          clinicalInput.colposcopicImpression === "INVASION"
+        ),
+        colposcopicImpression: persistableImpression,
+        biopsyTaken: answersMap.biopsy_taken === "true" || clinicalInput.biopsyResult !== undefined,
+        biopsyResult: clinicalInput.biopsyResult as HistologyResult | undefined,
+        mdmReviewRequired: decision.requiresMDMReview ?? (clinicalInput.mdmOutcome !== undefined),
+        mdmOutcome: clinicalInput.mdmOutcome,
+        notes: clinicalInput.transformationZoneState
+          ? `Transformation zone state: ${clinicalInput.transformationZoneState}`
+          : undefined,
       },
     });
   }
@@ -167,8 +214,8 @@ export async function POST(
     referral = await prisma.referral.create({
       data: {
         screeningSessionId: screeningSession.id,
-        type: (decision.referralType as any) ?? "COLPOSCOPY",
-        priority: decision.referralPriority as any,
+        type: (decision.referralType as ReferralType | undefined) ?? ReferralType.COLPOSCOPY,
+        priority: decision.referralPriority as ReferralPriority,
         status: "PENDING",
         reason: decision.referralReason ?? decision.recommendation,
         targetDays,
@@ -198,8 +245,8 @@ export async function POST(
       toState: decision.figure,
       transitionReason: decision.recommendationCode,
       createdByUserId: session.user.id,
-      pathwayFigure: decision.figure as any,
-      riskLevel: decision.riskLevel as any,
+      pathwayFigure: decision.figure as PathwayFigure,
+      riskLevel: decision.riskLevel as RiskLevel,
     },
   });
 
@@ -214,7 +261,14 @@ export async function POST(
         decisionCode: decision.recommendationCode,
         figure: decision.figure,
         riskLevel: decision.riskLevel,
+        ruleVersion: decision.ruleVersion,
+        branchPath: decision.branchPath,
+        outcome: decision.safetyOutcome,
+        missingInformation: decision.missingInformation,
+        externalDependencies: decision.externalDependencies,
+        validationStatus: decision.validationStatus,
         patientId: patient.id,
+        inputFacts: clinicalInput,
       }),
     },
   });
@@ -229,7 +283,7 @@ export async function POST(
       status: "COMPLETE",
       completedAt: now,
       decisionJson: JSON.stringify(decision),
-      determinedFigure: decision.figure as any,
+      determinedFigure: decision.figure as PathwayFigure,
       screeningSessionId: screeningSession.id,
     },
   });

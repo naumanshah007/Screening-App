@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, ChevronDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, ChevronDown, AlertTriangle, CheckCircle } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,7 +82,7 @@ const clinicalWarnings: Record<string, string> = {
   HSIL:       "High-grade cytology — colposcopy referral required.",
   ASC_H:      "Cannot exclude HSIL — colposcopy pathway applies.",
   AG2:        "Atypical endometrial cells — direct gynaecology referral required (not colposcopy).",
-  AC2:        "AC2 glandular abnormality — direct gynaecology referral required per Figure 7.",
+  AC2:        "AC2 glandular abnormality — direct gynaecology referral required.",
   INVASION:   "Invasive disease suspected — urgent MDM and oncology referral required.",
   CIN3:       "CIN3 requires urgent treatment.",
 };
@@ -212,8 +212,8 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
   if (loading || completing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-br from-slate-50 to-brand-50/20">
-        <div className="h-12 w-12 rounded-full border-4 border-slate-200 border-t-brand-600 animate-spin" />
-        <p className="text-sm text-slate-500">
+        <div className="h-12 w-12 rounded-full border-4 border-border border-t-brand-600 animate-spin" />
+        <p className="text-sm text-muted-foreground">
           {completing ? "Generating clinical decision…" : "Loading wizard…"}
         </p>
       </div>
@@ -223,10 +223,10 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
-        <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
-          <AlertTriangle className="h-7 w-7 text-red-500" />
+        <div className="w-14 h-14 rounded-2xl bg-destructive/5 flex items-center justify-center">
+          <AlertTriangle className="h-7 w-7 text-destructive" />
         </div>
-        <p className="text-slate-700 font-medium text-center">{error}</p>
+        <p className="text-muted-foreground font-medium text-center">{error}</p>
         <Button variant="outline" onClick={() => router.push("/pathway")}>
           <ArrowLeft className="h-4 w-4" />
           Back to Pathway Wizard
@@ -253,10 +253,10 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-brand-50/30 flex flex-col">
       {/* Patient banner */}
-      <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <button
           onClick={() => setBannerExpanded(e => !e)}
-          className="w-full px-6 py-3 flex items-center gap-3 hover:bg-slate-50/80 transition-colors text-left"
+          className="w-full px-6 py-3 flex items-center gap-3 hover:bg-muted/40 transition-colors text-left"
           aria-expanded={bannerExpanded}
         >
           <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
@@ -265,28 +265,28 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
             </span>
           </div>
           <div className="flex-1 min-w-0 flex items-center gap-3">
-            <span className="text-sm font-semibold text-slate-900">
+            <span className="text-sm font-semibold text-foreground">
               {patient.firstName} {patient.lastName}
             </span>
-            <span className="text-xs text-slate-400 font-mono">{patient.nhi}</span>
+            <span className="text-xs text-muted-foreground font-mono">{patient.nhi}</span>
             {patient.isFirstTimeHPVTransition && (
-              <span className="text-[10px] font-medium bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">
+              <span className="text-[10px] font-medium bg-brand-50 text-muted-foreground px-2 py-0.5 rounded-full border border-brand-200">
                 HPV Transition
               </span>
             )}
             {patient.isPostHysterectomy && (
-              <span className="text-[10px] font-medium bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200">
+              <span className="text-[10px] font-medium bg-info/10 text-info px-2 py-0.5 rounded-full border border-info/30">
                 Post-Hysterectomy
               </span>
             )}
           </div>
           <div className="text-right flex-shrink-0 mr-2">
-            <p className="text-xs text-slate-500">Step {answeredCount + 1} of {progress.total}</p>
+            <p className="text-xs text-muted-foreground">Step {answeredCount + 1} of {progress.total}</p>
           </div>
-          <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", bannerExpanded && "rotate-180")} />
+          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", bannerExpanded && "rotate-180")} />
         </button>
         {bannerExpanded && (
-          <div className="px-6 pb-3 flex gap-6 text-xs text-slate-500 animate-slide-down">
+          <div className="px-6 pb-3 flex gap-6 text-xs text-muted-foreground animate-slide-down">
             <span>DOB: {patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString("en-NZ") : "—"}</span>
             <span>NHI: <span className="font-mono">{patient.nhi}</span></span>
             {patient.gpPractice && <span>Practice: {patient.gpPractice.name}</span>}
@@ -295,7 +295,7 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 bg-slate-100">
+      <div className="h-1 bg-muted">
         <div
           className="h-1 bg-brand-500 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
           style={{ width: `${progress.percent}%` }}
@@ -315,7 +315,7 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
           key={currentStep.id}
         >
           {/* Step counter */}
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-6">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Step {answeredCount + 1} of {progress.total}
           </p>
 
@@ -330,20 +330,20 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
           )}
 
           {/* Question */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight mb-2">
             {currentStep.question}
           </h1>
           {currentStep.hint ? (
-            <p className="text-base text-slate-500 mb-8 leading-relaxed">{currentStep.hint}</p>
+            <p className="text-base text-muted-foreground mb-8 leading-relaxed">{currentStep.hint}</p>
           ) : (
             <div className="mb-8" />
           )}
 
           {/* Clinical warning */}
           {showClinicalWarning && (
-            <div className="mb-6 flex gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 animate-slide-down">
-              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-800 font-medium">
+            <div className="mb-6 flex gap-3 p-4 rounded-xl border border-warn/30 bg-warn/5 animate-slide-down">
+              <AlertTriangle className="h-5 w-5 text-warn flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground font-medium">
                 {warningText ?? "This result requires clinical attention — please review the pathway recommendation carefully."}
               </p>
             </div>
@@ -366,14 +366,14 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
                       "disabled:cursor-not-allowed",
                       isSelected
                         ? "border-brand-600 bg-brand-50/60 shadow-sm"
-                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                        : "border-border bg-card hover:border-border-strong hover:bg-muted/30"
                     )}
                     aria-pressed={isSelected}
                   >
                     {/* Radio indicator */}
                     <div className={cn(
                       "absolute top-3 left-3 w-4 h-4 rounded-full border-2 transition-all duration-150 flex items-center justify-center",
-                      isSelected ? "border-brand-600 bg-brand-600" : "border-slate-300"
+                      isSelected ? "border-brand-600 bg-brand-600" : "border-border-strong"
                     )}>
                       {isSelected && (
                         <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none">
@@ -384,20 +384,20 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
                     {/* Caution tag — inline with label, not absolute */}
                     <div className="pl-7">
                       <div className="flex items-start justify-between gap-3 mb-1">
-                        <p className={cn("text-sm font-semibold leading-snug", isSelected ? "text-brand-900" : "text-slate-900")}>
+                        <p className={cn("text-sm font-semibold leading-snug", isSelected ? "text-brand-900" : "text-foreground")}>
                           {opt.label}
                         </p>
                         {opt.cautionTag && (
                           <span className={cn(
                             "shrink-0 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mt-0.5",
-                            cautionColor === "red" ? "bg-red-100 text-red-700 ring-1 ring-red-200" : "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                            cautionColor === "red" ? "bg-destructive/10 text-destructive ring-1 ring-red-200" : "bg-warn/10 text-warn ring-1 ring-amber-200"
                           )}>
                             {opt.cautionTag}
                           </span>
                         )}
                       </div>
                       {opt.hint && (
-                        <p className={cn("text-xs leading-relaxed", isSelected ? "text-brand-700" : "text-slate-500")}>
+                        <p className={cn("text-xs leading-relaxed", isSelected ? "text-brand-700" : "text-muted-foreground")}>
                           {opt.hint}
                         </p>
                       )}
@@ -419,7 +419,7 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
                     ? "h-2.5 w-2.5 bg-brand-600"
                     : s.isAnswered
                     ? "h-2 w-2 bg-brand-300"
-                    : "h-2 w-2 bg-slate-200"
+                    : "h-2 w-2 bg-muted/60"
                 )}
               />
             ))}
@@ -428,14 +428,14 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
       </div>
 
       {/* Footer navigation */}
-      <div className="border-t border-slate-200 bg-white/90 backdrop-blur-sm px-6 py-4">
+      <div className="border-t border-border bg-card/90 backdrop-blur-sm px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
           <Button variant="ghost" onClick={handleBack} size="md">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
           {selectedValue && !animating && (
-            <p className="text-xs text-slate-400 hidden sm:block">Select an option to continue automatically</p>
+            <p className="text-xs text-muted-foreground hidden sm:block">Select an option to continue automatically</p>
           )}
           {animating && (
             <div className="flex items-center gap-2 text-xs text-brand-600">

@@ -17,6 +17,10 @@ enum UserRole {
   COORDINATOR
   ADMIN
   COLPOSCOPIST
+  GYNAE_GRADER
+  COLPO_CNS
+  SMO_REVIEWER
+  INTEGRATION_ADMIN
 }
 
 enum PatientStatus {
@@ -153,34 +157,204 @@ enum WizardStatus {
   ABANDONED
 }
 
+enum ServiceLine {
+  COLPOSCOPY
+  GYNAECOLOGY
+}
+
+enum CaseStatus {
+  NEW
+  INGESTING
+  READY_FOR_SUMMARY
+  READY_FOR_GRADING
+  NEEDS_MORE_INFO
+  GRADED
+  REJECTED
+  RETURNED_TO_GP
+  BOOKED
+  CLOSED
+}
+
+enum TriagePriority {
+  P1
+  P1_HSC
+  P2
+  P2_HSC
+  P3
+  P5
+  REJECT
+  DECLINE
+  INFO_REQUIRED
+}
+
+enum DocumentType {
+  REFERRAL
+  CLINIC_LETTER
+  DISCHARGE_SUMMARY
+  LAB_RESULT
+  RADIOLOGY
+  OTHER
+}
+
+enum DocumentProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+enum SummaryStatus {
+  DRAFT
+  REVIEWED
+  APPROVED
+}
+
+enum IntegrationValidationOutcome {
+  PASSED
+  WARNING
+  FAILED
+}
+
+enum SecurityIncidentSeverity {
+  URGENT
+  HIGH
+  INFO
+}
+
+enum AuditSeverity {
+  INFO
+  WARN
+  ERROR
+  CRITICAL
+}
+
+enum ConsentPurpose {
+  SCREENING_DATA_ENTRY
+  NCSR_ACCESS
+  AI_PROCESSING
+  RESEARCH
+}
+
+enum ConsentStatus {
+  GIVEN
+  WITHDRAWN
+  EXPIRED
+}
+
+enum SecurityIncidentStatus {
+  OPEN
+  ACKNOWLEDGED
+  UNDER_REVIEW
+  RESOLVED
+}
+
 // ─── Auth / User Models ───────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  role          UserRole  @default(GP)
-  twoFASecret   String?
-  twoFAEnabled  Boolean   @default(false)
-  failedAttempts Int      @default(0)
-  lockedUntil   DateTime?
-  lastLoginAt   DateTime?
-  gpPracticeId  String?
-  gpPractice    GPPractice? @relation(fields: [gpPracticeId], references: [id])
-  accounts      Account[]
-  sessions      Session[]
-  auditLogs     AuditLog[]
-  createdSessions ScreeningSession[]
-  reviewedRules   ClinicalRuleSet[] @relation("RuleReviewer")
-  publishedRules  ClinicalRuleSet[] @relation("RulePublisher")
-  pathwayHistory  PathwayStateHistory[]
-  colposcopyFindings ColposcopyFinding[]
-  wizardSessions  WizardSession[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                        String                  @id @default(cuid())
+  name                      String?
+  email                     String                  @unique
+  emailVerified             DateTime?
+  image                     String?
+  passwordHash              String?
+  passwordChangeRequired    Boolean                 @default(false)
+  passwordChangedAt         DateTime?
+  passwordExpiresAt         DateTime?
+  role                      UserRole                @default(GP)
+  twoFASecret               String?
+  twoFAEnabled              Boolean                 @default(false)
+  twoFARecoveryCodesJson    String?
+  failedAttempts            Int                     @default(0)
+  lockedUntil               DateTime?
+  lastLoginAt               DateTime?
+  gpPracticeId              String?
+  gpPractice                GPPractice?             @relation(fields: [gpPracticeId], references: [id])
+  accounts                  Account[]
+  sessions                  Session[]
+  auditLogs                 AuditLog[]
+  createdCases              ReferralCase[]          @relation("CaseCreator")
+  assignedCases             ReferralCase[]          @relation("CaseAssignee")
+  clinicianDecisions        ClinicianDecision[]     @relation("CaseDecisionMaker")
+  uploadedDocuments         ReferralDocument[]      @relation("DocumentUploader")
+  approvedSummaries         ClinicalSummary[]       @relation("CaseSummaryApprover")
+  reviewedCaseRules         CaseRuleSetRelease[]    @relation("CaseRuleReviewer")
+  publishedCaseRules        CaseRuleSetRelease[]    @relation("CaseRulePublisher")
+  createdSessions           ScreeningSession[]
+  reviewedRules             ClinicalRuleSet[]       @relation("RuleReviewer")
+  publishedRules            ClinicalRuleSet[]       @relation("RulePublisher")
+  pathwayHistory            PathwayStateHistory[]
+  colposcopyFindings        ColposcopyFinding[]
+  wizardSessions            WizardSession[]
+  accessCertifications      AccessCertification[]
+  integrationValidations    IntegrationValidation[] @relation("IntegrationValidationReviewer")
+  openedSecurityIncidents   SecurityIncident[]      @relation("SecurityIncidentOpenedBy")
+  assignedSecurityIncidents SecurityIncident[]      @relation("SecurityIncidentAssignedTo")
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+}
+
+model AccessCertification {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemName        String
+  certificationType String
+  completedAt       DateTime
+  expiresAt         DateTime?
+  active            Boolean   @default(true)
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, systemName, active])
+  @@index([systemName, active, expiresAt])
+}
+
+model IntegrationValidation {
+  id                String                       @id @default(cuid())
+  integrationId     String
+  environment       String                       @default("current")
+  outcome           IntegrationValidationOutcome
+  summary           String
+  notes             String?
+  validatedAt       DateTime
+  expiresAt         DateTime?
+  validatedByUserId String
+  validatedBy       User                         @relation("IntegrationValidationReviewer", fields: [validatedByUserId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  @@index([integrationId, validatedAt])
+  @@index([validatedByUserId, validatedAt])
+}
+
+model SecurityIncident {
+  id               String                   @id @default(cuid())
+  title            String
+  summary          String
+  severity         SecurityIncidentSeverity
+  status           SecurityIncidentStatus   @default(OPEN)
+  dueAt            DateTime?
+  lastReminderAt   DateTime?
+  sourcePreset     String?
+  sourceEntity     String?
+  sourceAction     String?
+  sourceUserId     String?
+  auditFilterJson  String?
+  openedByUserId   String
+  openedBy         User                     @relation("SecurityIncidentOpenedBy", fields: [openedByUserId], references: [id], onDelete: Cascade)
+  assignedToUserId String?
+  assignedTo       User?                    @relation("SecurityIncidentAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  resolutionNotes  String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@index([status, severity, createdAt])
+  @@index([assignedToUserId, status])
+  @@index([sourcePreset, status])
+  @@index([status, dueAt])
 }
 
 model Account {
@@ -196,6 +370,7 @@ model Account {
   id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([provider, providerAccountId])
 }
 
@@ -210,109 +385,334 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
+
   @@id([identifier, token])
 }
 
 // ─── Practice Model ────────────────────────────────────────────────────────────
 
 model GPPractice {
-  id          String   @id @default(cuid())
-  name        String
-  address     String?
-  dhbRegion   String?
-  hpiNumber   String?  @unique
-  users       User[]
-  patients    Patient[]
-  recalls     Recall[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String    @id @default(cuid())
+  name      String
+  address   String?
+  dhbRegion String?
+  hpiNumber String?   @unique
+  users     User[]
+  patients  Patient[]
+  recalls   Recall[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 // ─── Patient Model ─────────────────────────────────────────────────────────────
 
 model Patient {
-  id                       String        @id @default(cuid())
-  nhi                      String        @unique
-  firstName                String
-  lastName                 String
-  dateOfBirth              DateTime
-  email                    String?
-  phone                    String?
-  address                  String?
-  gpPracticeId             String?
-  gpPractice               GPPractice?   @relation(fields: [gpPracticeId], references: [id])
-  status                   PatientStatus @default(ACTIVE)
+  id           String        @id @default(cuid())
+  nhi          String        @unique
+  firstName    String
+  lastName     String
+  dateOfBirth  DateTime
+  email        String?
+  phone        String?
+  address      String?
+  gpPracticeId String?
+  gpPractice   GPPractice?   @relation(fields: [gpPracticeId], references: [id])
+  status       PatientStatus @default(ACTIVE)
 
   // Phase 1 critical fix: Module A routing detection
-  isFirstTimeHPVTransition Boolean       @default(false)
+  isFirstTimeHPVTransition Boolean        @default(false)
   previousScreeningType    ScreeningType?
   lastCytologyDate         DateTime?
 
   // Flags
-  isPostHysterectomy       Boolean       @default(false)
-  hysterectomyDate         DateTime?
-  hysterectomyType         String?       // TOTAL, SUBTOTAL
+  isPostHysterectomy Boolean   @default(false)
+  hysterectomyDate   DateTime?
+  hysterectomyType   String?   // TOTAL, SUBTOTAL
 
-  screeningSessions        ScreeningSession[]
-  medicalHistory           MedicalHistory?
-  recalls                  Recall[]
-  wizardSessions           WizardSession[]
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
+  // NZ ethnicity (Level 2 codes: "21" Māori, "30" Pacific, "10" NZ European, etc.)
+  ethnicityPrimary   String?
+  ethnicityOther     String?   // Secondary ethnicity code
+  interpreterRequired Boolean  @default(false)
+  preferredLanguage  String?   // ISO 639-1 code, e.g. "mi" for te reo Māori
+
+  // NHI validation tracking
+  nhiValidatedAt     DateTime?
+
+  // Soft delete
+  deletedAt          DateTime?
+  deletedByUserId    String?
+
+  screeningSessions ScreeningSession[]
+  referralCases     ReferralCase[]
+  medicalHistory    MedicalHistory?
+  recalls           Recall[]
+  wizardSessions    WizardSession[]
+  consentRecords    PatientConsent[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@index([nhi])
   @@index([status])
+  @@index([deletedAt])
+  @@index([ethnicityPrimary])
+}
+
+// ─── Enterprise Referral Case Foundation ─────────────────────────────────────
+
+model ReferralCase {
+  id                  String             @id @default(cuid())
+  patientId           String
+  patient             Patient            @relation(fields: [patientId], references: [id])
+  serviceLine         ServiceLine
+  status              CaseStatus         @default(NEW)
+  receivedAt          DateTime           @default(now())
+  referralSource      String?
+  externalCaseId      String?
+  referralReason      String?
+  currentPriority     TriagePriority?
+  currentCategory     String?
+  targetDueAt         DateTime?
+  bookedForAt         DateTime?
+  bookedAt            DateTime?
+  bookingNotes        String?
+  assignedToUserId    String?
+  assignedTo          User?              @relation("CaseAssignee", fields: [assignedToUserId], references: [id])
+  createdByUserId     String
+  createdBy           User               @relation("CaseCreator", fields: [createdByUserId], references: [id])
+  documents           ReferralDocument[]
+  extractedFacts      ExtractedFact[]
+  summary             ClinicalSummary?
+  ruleDecision        RuleDecision?
+  clinicianDecision   ClinicianDecision?
+  highSuspicionCancer Boolean            @default(false)
+  smoOnly             Boolean            @default(false)
+  regradeOfCaseId     String?
+  triageNotes         String?
+
+  // ─── Colposcopy-specific triage fields ─────────────────────────────────────
+  fctStatus            String? // Confirmed cancer / High suspicion / No/Low suspicion
+  hpvTestResult        String? // HPV test result value
+  hpvType              String? // HPV 16, HPV 18, Not applicable, Oncogenic, Other
+  cytologySample       String? // Cytology sample result
+  referrerReasonCode   String? // Structured referrer reason code
+  assessmentOfReferral String? // Clinical assessment of referral
+  bookingPriorityNote  String? // Booking priority notes/override
+  referralType         String? // Type of referral
+  ovestinInstruction   String? // Ovestin cream instruction
+  ncsrNoteAdded        Boolean? // NCSR Note added flag
+  referralNoteAdded    Boolean? // Referral Note added flag
+  internalTriageNotes  String? // Internal triage notes (separate from triageNotes)
+
+  // ─── Gynaecology-specific triage fields ────────────────────────────────────
+  gynaecologyCategory String? // AUB, Fibroids, Ovarian Mass, PMB, Pelvic Pain, etc.
+  ussAvailable        Boolean? // Ultrasound scan available
+  ussFindings         String? // USS findings summary
+
+  // ─── Relations ─────────────────────────────────────────────────────────────
+  investigations    CaseInvestigation[]
+  aiRecommendations AIRecommendation[]
+
+  // Soft delete
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceLine, status, receivedAt])
+  @@index([patientId, serviceLine, createdAt])
+  @@index([assignedToUserId, status])
+  @@index([currentPriority, status, receivedAt])
+  @@index([targetDueAt, status])
+  @@index([bookedForAt, status])
+  @@index([deletedAt])
+}
+
+model ReferralDocument {
+  id               String                   @id @default(cuid())
+  caseId           String
+  referralCase     ReferralCase             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type             DocumentType             @default(OTHER)
+  fileName         String
+  storageKey       String                   @unique
+  mimeType         String
+  byteSize         Int
+  uploadedByUserId String?
+  uploadedBy       User?                    @relation("DocumentUploader", fields: [uploadedByUserId], references: [id])
+  ocrStatus        DocumentProcessingStatus @default(PENDING)
+  parseStatus      DocumentProcessingStatus @default(PENDING)
+  pageCount        Int?
+  pages            DocumentPage[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@index([caseId, type, createdAt])
+  @@index([uploadedByUserId, createdAt])
+}
+
+model ClinicalSummary {
+  id               String        @id @default(cuid())
+  caseId           String        @unique
+  referralCase     ReferralCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  status           SummaryStatus @default(DRAFT)
+  summaryJson      String
+  renderedMarkdown String
+  generatedBy      String
+  approvedByUserId String?
+  approvedBy       User?         @relation("CaseSummaryApprover", fields: [approvedByUserId], references: [id])
+  approvedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([approvedByUserId, approvedAt])
+}
+
+model CaseRuleSetRelease {
+  id                String         @id @default(cuid())
+  serviceLine       ServiceLine
+  version           String
+  name              String
+  description       String?
+  definitionJson    String
+  schemaVersion     String         @default("1.0")
+  isActive          Boolean        @default(false)
+  publishedAt       DateTime?
+  publishedByUserId String?
+  publishedBy       User?          @relation("CaseRulePublisher", fields: [publishedByUserId], references: [id])
+  reviewedByUserId  String?
+  reviewedBy        User?          @relation("CaseRuleReviewer", fields: [reviewedByUserId], references: [id])
+  reviewedAt        DateTime?
+  changeNotes       String?
+  ruleDecisions     RuleDecision[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([serviceLine, version])
+  @@index([serviceLine, isActive, publishedAt])
+  @@index([reviewedByUserId, reviewedAt])
+}
+
+model RuleDecision {
+  id               String              @id @default(cuid())
+  caseId           String              @unique
+  referralCase     ReferralCase        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  ruleSetReleaseId String?
+  ruleSetRelease   CaseRuleSetRelease? @relation(fields: [ruleSetReleaseId], references: [id])
+  priority         TriagePriority?
+  category         String?
+  outcome          String
+  rationale        String
+  evidenceJson     String
+  traceJson        String
+  generatedBy      String
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([priority, updatedAt])
+  @@index([ruleSetReleaseId, updatedAt])
+}
+
+model ClinicianDecision {
+  id              String          @id @default(cuid())
+  caseId          String          @unique
+  referralCase    ReferralCase    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  decidedByUserId String
+  decidedBy       User            @relation("CaseDecisionMaker", fields: [decidedByUserId], references: [id])
+  finalPriority   TriagePriority?
+  finalCategory   String?
+  finalOutcome    String
+  overrideReason  String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([finalPriority, updatedAt])
+  @@index([decidedByUserId, updatedAt])
+}
+
+model DocumentPage {
+  id            String           @id @default(cuid())
+  documentId    String
+  document      ReferralDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pageNumber    Int
+  extractedText String
+  facts         ExtractedFact[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([documentId, pageNumber])
+  @@index([documentId, createdAt])
+}
+
+model ExtractedFact {
+  id             String       @id @default(cuid())
+  caseId         String
+  referralCase   ReferralCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documentPageId String
+  documentPage   DocumentPage @relation(fields: [documentPageId], references: [id], onDelete: Cascade)
+  factType       String
+  label          String
+  valueText      String
+  valueDate      DateTime?
+  valueNumber    Float?
+  confidence     Float?
+  sourceQuote    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([caseId, factType])
+  @@index([documentPageId])
 }
 
 // ─── Medical History ──────────────────────────────────────────────────────────
 
 model MedicalHistory {
-  id                          String   @id @default(cuid())
-  patientId                   String   @unique
-  patient                     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  previousHighGradeLesion     Boolean  @default(false)
-  previousTreatment           String?
-  treatmentDate               DateTime?
-  immunocompromised           Boolean  @default(false)
-  hiv                         Boolean  @default(false)
+  id                         String    @id @default(cuid())
+  patientId                  String    @unique
+  patient                    Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  previousHighGradeLesion    Boolean   @default(false)
+  previousTreatment          String?
+  treatmentDate              DateTime?
+  immunocompromised          Boolean   @default(false)
+  hiv                        Boolean   @default(false)
   // Phase 1 critical fix: AG2 routing
-  atypicalEndometrialHistory  Boolean  @default(false)
-  otherRelevantHistory        String?
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
+  atypicalEndometrialHistory Boolean   @default(false)
+  otherRelevantHistory       String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 }
 
 // ─── Screening Session ─────────────────────────────────────────────────────────
 
 model ScreeningSession {
-  id             String        @id @default(cuid())
-  patientId      String
-  patient        Patient       @relation(fields: [patientId], references: [id])
-  createdById    String
-  createdBy      User          @relation(fields: [createdById], references: [id])
-  status         SessionStatus @default(IN_PROGRESS)
-  activeModule   PathwayFigure?
-  activeModuleVersion String?  // Track which rule version used
+  id                  String         @id @default(cuid())
+  patientId           String
+  patient             Patient        @relation(fields: [patientId], references: [id])
+  createdById         String
+  createdBy           User           @relation(fields: [createdById], references: [id])
+  status              SessionStatus  @default(IN_PROGRESS)
+  activeModule        PathwayFigure?
+  activeModuleVersion String? // Track which rule version used
 
   // Phase 1 critical fix: Consecutive counter tracking (Test of Cure)
   consecutiveNegativeCoTestCount Int @default(0)
   consecutiveLowGradeCount       Int @default(0)
 
   // Phase 1 critical fix: Unsatisfactory cytology counter
-  unsatisfactoryCytologyCount    Int @default(0)
+  unsatisfactoryCytologyCount Int @default(0)
 
   // Risk classification
-  currentRiskLevel  RiskLevel?
-  nextScreeningDue  DateTime?
-  recommendation    String?
+  currentRiskLevel   RiskLevel?
+  nextScreeningDue   DateTime?
+  recommendation     String?
   recommendationCode String?
 
-  testResults       TestResult[]
+  testResults        TestResult[]
   colposcopyFindings ColposcopyFinding[]
-  referrals         Referral[]
-  pathwayHistory    PathwayStateHistory[]
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  referrals          Referral[]
+  pathwayHistory     PathwayStateHistory[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 
   @@index([patientId, status, createdAt])
 }
@@ -320,61 +720,61 @@ model ScreeningSession {
 // ─── Test Result ──────────────────────────────────────────────────────────────
 
 model TestResult {
-  id                  String          @id @default(cuid())
-  screeningSessionId  String
-  screeningSession    ScreeningSession @relation(fields: [screeningSessionId], references: [id])
-  testDate            DateTime
-  labId               String?
-  specimenId          String?
+  id                 String           @id @default(cuid())
+  screeningSessionId String
+  screeningSession   ScreeningSession @relation(fields: [screeningSessionId], references: [id])
+  testDate           DateTime
+  labId              String?
+  specimenId         String?
 
   // Phase 1 critical fix: Sample type (Figure 3 branching)
-  sampleType          SampleType?
+  sampleType SampleType?
 
   // HPV result
-  hpvResult           HPVResult?
-  hpv16_18            Boolean?
-  hpvOther            Boolean?
+  hpvResult HPVResult?
+  hpv16_18  Boolean?
+  hpvOther  Boolean?
 
   // Cytology result (structured vocabulary)
-  cytologyResult      CytologyResult?
-  cytologyAdequacy    String?
+  cytologyResult   CytologyResult?
+  cytologyAdequacy String?
 
   // Histology result
-  histologyResult     HistologyResult?
+  histologyResult HistologyResult?
 
   // Phase 1 critical fix: TZ type for Figure 4/5/7 exceptions
-  tzType              TZType?
+  tzType TZType?
 
-  pathwayHistory      PathwayStateHistory[]
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  pathwayHistory PathwayStateHistory[]
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 }
 
 // ─── Colposcopy Finding (New Model) ───────────────────────────────────────────
 
 model ColposcopyFinding {
-  id                  String                @id @default(cuid())
-  screeningSessionId  String
-  screeningSession    ScreeningSession      @relation(fields: [screeningSessionId], references: [id])
-  clinicianId         String
-  clinician           User                  @relation(fields: [clinicianId], references: [id])
-  colposcopyDate      DateTime
+  id                 String           @id @default(cuid())
+  screeningSessionId String
+  screeningSession   ScreeningSession @relation(fields: [screeningSessionId], references: [id])
+  clinicianId        String
+  clinician          User             @relation(fields: [clinicianId], references: [id])
+  colposcopyDate     DateTime
 
   // Phase 1 critical fix: TZ type stored
-  tzType              TZType?
-  visibleLesion       Boolean               @default(false)
+  tzType                TZType?
+  visibleLesion         Boolean                @default(false)
   colposcopicImpression ColposcopicImpression?
-  acetowhiteChange    Boolean               @default(false)
-  iodineNegative      Boolean               @default(false)
-  atypicalVessels     Boolean               @default(false)
-  biopsyTaken         Boolean               @default(false)
-  biopsyResult        HistologyResult?
-  biopsySite          String?
-  mdmReviewRequired   Boolean               @default(false)
-  mdmOutcome          String?
-  notes               String?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  acetowhiteChange      Boolean                @default(false)
+  iodineNegative        Boolean                @default(false)
+  atypicalVessels       Boolean                @default(false)
+  biopsyTaken           Boolean                @default(false)
+  biopsyResult          HistologyResult?
+  biopsySite            String?
+  mdmReviewRequired     Boolean                @default(false)
+  mdmOutcome            String?
+  notes                 String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 }
 
 // ─── Pathway State History (New Model - State Machine) ────────────────────────
@@ -398,25 +798,25 @@ model PathwayStateHistory {
 // ─── Referral ─────────────────────────────────────────────────────────────────
 
 model Referral {
-  id                  String          @id @default(cuid())
-  screeningSessionId  String
-  screeningSession    ScreeningSession @relation(fields: [screeningSessionId], references: [id])
-  type                ReferralType
-  priority            ReferralPriority @default(P3)
-  status              ReferralStatus  @default(PENDING)
-  reason              String?
-  clinicalNotes       String?
+  id                 String           @id @default(cuid())
+  screeningSessionId String
+  screeningSession   ScreeningSession @relation(fields: [screeningSessionId], references: [id])
+  type               ReferralType
+  priority           ReferralPriority @default(P3)
+  status             ReferralStatus   @default(PENDING)
+  reason             String?
+  clinicalNotes      String?
 
   // Phase 1: Timeliness tracking
-  timelinessDays      Int?
-  targetDays          Int?            // P1=20, P2=42, P3=84, P4=168
-  escalationSentAt    DateTime?
-  appointmentDate     DateTime?
-  letterSentAt        DateTime?
-  responseReceivedAt  DateTime?
+  timelinessDays     Int?
+  targetDays         Int? // P1=20, P2=42, P3=84, P4=168
+  escalationSentAt   DateTime?
+  appointmentDate    DateTime?
+  letterSentAt       DateTime?
+  responseReceivedAt DateTime?
 
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([priority, status, createdAt])
 }
@@ -444,22 +844,22 @@ model Recall {
 // ─── Clinical Rule Set (Consolidated Engine) ──────────────────────────────────
 
 model ClinicalRuleSet {
-  id              String       @id @default(cuid())
-  version         String       @unique
-  name            String
-  description     String?
-  rulesJson       String       // JSON schema for all figures 1-10 + Table 1
-  schemaVersion   String       @default("1.0")
-  isActive        Boolean      @default(false)
-  publishedAt     DateTime?
-  publishedById   String?
-  publishedBy     User?        @relation("RulePublisher", fields: [publishedById], references: [id])
-  reviewedById    String?
-  reviewedBy      User?        @relation("RuleReviewer", fields: [reviewedById], references: [id])
-  reviewedAt      DateTime?
-  changeNotes     String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id            String    @id @default(cuid())
+  version       String    @unique
+  name          String
+  description   String?
+  rulesJson     String // JSON schema for all figures 1-10 + Table 1
+  schemaVersion String    @default("1.0")
+  isActive      Boolean   @default(false)
+  publishedAt   DateTime?
+  publishedById String?
+  publishedBy   User?     @relation("RulePublisher", fields: [publishedById], references: [id])
+  reviewedById  String?
+  reviewedBy    User?     @relation("RuleReviewer", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  changeNotes   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 // ─── Wizard Session ───────────────────────────────────────────────────────────
@@ -472,7 +872,7 @@ model WizardSession {
   createdBy          User           @relation(fields: [createdById], references: [id])
   status             WizardStatus   @default(IN_PROGRESS)
   determinedFigure   PathwayFigure?
-  decisionJson       String?        // JSON blob of final ClinicalDecision
+  decisionJson       String? // JSON blob of final ClinicalDecision
   screeningSessionId String?        @unique
   answers            WizardAnswer[]
   startedAt          DateTime       @default(now())
@@ -500,23 +900,92 @@ model WizardAnswer {
   @@index([wizardSessionId])
 }
 
+// ─── Case Investigation ──────────────────────────────────────────────────────
+
+model CaseInvestigation {
+  id                String       @id @default(cuid())
+  caseId            String
+  referralCase      ReferralCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type              String // e.g. Colposcopy, Biopsy, Imaging, Blood test
+  result            String?
+  notes             String?
+  investigationDate DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([caseId, createdAt])
+}
+
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  action      String
-  entity      String
-  entityId    String?
-  oldValue    String?
-  newValue    String?
-  ipAddress   String?
-  userAgent   String?
-  exportEvent Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id            String        @id @default(cuid())
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
+  action        String
+  entity        String
+  entityId      String?
+  oldValue      String?
+  newValue      String?
+  ipAddress     String?
+  userAgent     String?
+  exportEvent   Boolean       @default(false)
+  severity      AuditSeverity @default(INFO)
+  correlationId String?       // links related audit events in a single request/operation
+  sessionId     String?       // NextAuth session token (hashed) for session-level tracing
+  createdAt     DateTime      @default(now())
 
   @@index([entity, action])
   @@index([userId, createdAt])
   @@index([entityId])
+  @@index([severity, createdAt])
+  @@index([correlationId])
+}
+
+// ─── Patient Consent Records ─────────────────────────────────────────────────
+// NZ Privacy Act 2020 — explicit consent tracking per purpose.
+
+model PatientConsent {
+  id          String        @id @default(cuid())
+  patientId   String
+  patient     Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  purpose     ConsentPurpose
+  status      ConsentStatus @default(GIVEN)
+  givenAt     DateTime      @default(now())
+  givenByUserId String?     // clinician or coordinator who recorded consent
+  withdrawnAt DateTime?
+  expiresAt   DateTime?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([patientId, purpose, status])
+  @@index([status, expiresAt])
+}
+
+// ─── AI Recommendation ────────────────────────────────────────────────────────
+
+model AIRecommendation {
+  id                      String          @id @default(cuid())
+  caseId                  String
+  referralCase            ReferralCase    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  modelName               String // e.g. "claude-sonnet-4-6"
+  modelVersion            String
+  promptVersion           String // semver of the prompt template used
+  inputJson               String // serialised input sent to the model
+  outputJson              String // raw model response
+  suggestedPriority       TriagePriority?
+  suggestedCategory       String?
+  suggestedOutcome        String?
+  rationale               String?
+  confidence              Float? // 0–1 model confidence where available
+  citations               String? // JSON array of source document citations
+  concordantWithRule      Boolean? // true if matches deterministic rule recommendation
+  concordantWithClinician Boolean? // true if clinician confirmed without override
+  generatedByUserId       String?
+  createdAt               DateTime        @default(now())
+
+  @@index([caseId, createdAt])
+  @@index([suggestedPriority, createdAt])
+  @@index([concordantWithRule, concordantWithClinician])
 }

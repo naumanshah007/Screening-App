@@ -1,12 +1,14 @@
 "use client";
+import Link from "next/link";
 import { useState, useCallback } from "react";
+import { PageIntro } from "@/components/layout/PageIntro";
 import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge, PriorityBadge } from "@/components/ui/badge";
-import { getFigureLabel } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { cn, formatClinicalReferenceText, getFigureLabel } from "@/lib/utils";
 import type { ClinicalDecision } from "@/lib/engine/types";
+import { Alert } from "@/components/ui/alert";
 import {
   Search, CheckCircle, AlertTriangle, Activity,
   ClipboardList, Calendar, ChevronRight, BookOpen, FlaskConical
@@ -30,15 +32,15 @@ const CYTOLOGY_OPTIONS = [
   { value: "ASC_H",          label: "ASC-H — cannot exclude HSIL" },
   { value: "HSIL",           label: "HSIL — high-grade squamous" },
   { value: "SCC",            label: "SCC — squamous cell carcinoma" },
-  { value: "AG1",            label: "AG1 — atypical glandular, NOS" },
+  { value: "AG1",            label: "AG1 — atypical endocervical cells" },
   { value: "AG2",            label: "AG2 — atypical endometrial" },
-  { value: "AG3",            label: "AG3 — favour neoplasia" },
-  { value: "AG4",            label: "AG4 — AIS" },
-  { value: "AG5",            label: "AG5 — adenocarcinoma" },
-  { value: "AC1",            label: "AC1 — atypical endocervical, NOS" },
-  { value: "AC2",            label: "AC2 — atypical endocervical, favour neoplasia" },
-  { value: "AC3",            label: "AC3 — AIS endocervical" },
-  { value: "AC4",            label: "AC4 — adenocarcinoma, endocervical" },
+  { value: "AG3",            label: "AG3 — atypical glandular cells NOS" },
+  { value: "AG4",            label: "AG4 — atypical endocervical cells favouring neoplasia" },
+  { value: "AG5",            label: "AG5 — atypical glandular cells favouring neoplasia" },
+  { value: "AC1",            label: "AC1 — endocervical adenocarcinoma" },
+  { value: "AC2",            label: "AC2 — endometrial adenocarcinoma" },
+  { value: "AC3",            label: "AC3 — extrauterine adenocarcinoma" },
+  { value: "AC4",            label: "AC4 — adenocarcinoma NOS" },
   { value: "UNSATISFACTORY", label: "Unsatisfactory" },
 ];
 
@@ -50,16 +52,16 @@ const SAMPLE_OPTIONS = [
 
 const FIGURE_OPTIONS = [
   { value: "", label: "Auto-detect (recommended)" },
-  { value: "FIGURE_1",  label: "Figure 1 — HPV Transition (cytology-negative)" },
-  { value: "FIGURE_2",  label: "Figure 2 — HPV Transition (previously abnormal)" },
-  { value: "FIGURE_3",  label: "Figure 3 — Primary HPV Screening" },
-  { value: "FIGURE_4",  label: "Figure 4 — Colposcopy & Histology" },
-  { value: "FIGURE_5",  label: "Figure 5 — High-grade Lesion Management" },
-  { value: "FIGURE_6",  label: "Figure 6 — Test of Cure" },
-  { value: "FIGURE_7",  label: "Figure 7 — Post-abnormal Management" },
-  { value: "FIGURE_8",  label: "Figure 8 — Post-hysterectomy" },
-  { value: "FIGURE_9",  label: "Figure 9 — Extended Post-abnormal" },
-  { value: "FIGURE_10", label: "Figure 10 — Post-hysterectomy Follow-up" },
+  { value: "FIGURE_1",  label: "HPV transition invitation pathway" },
+  { value: "FIGURE_2",  label: "Previous high-grade/history transition pathway" },
+  { value: "FIGURE_3",  label: "Primary HPV screening pathway" },
+  { value: "FIGURE_4",  label: "Post-normal colposcopy follow-up after low-grade cytology" },
+  { value: "FIGURE_5",  label: "Post-normal colposcopy follow-up after high-grade cytology" },
+  { value: "FIGURE_6",  label: "Test of Cure pathway" },
+  { value: "FIGURE_7",  label: "Glandular abnormality pathway" },
+  { value: "FIGURE_8",  label: "Post-hysterectomy screening pathway" },
+  { value: "FIGURE_9",  label: "Pregnancy high-grade/glandular cytology pathway" },
+  { value: "FIGURE_10", label: "Abnormal vaginal bleeding pathway" },
 ];
 
 interface PatientInfo {
@@ -74,10 +76,10 @@ interface PatientInfo {
 }
 
 const riskBgMap: Record<string, string> = {
-  URGENT: "border-l-red-500 bg-red-50",
-  HIGH:   "border-l-amber-500 bg-amber-50",
-  MEDIUM: "border-l-violet-500 bg-violet-50",
-  LOW:    "border-l-emerald-500 bg-emerald-50",
+  URGENT: "border-l-destructive bg-destructive/5",
+  HIGH:   "border-l-warn bg-warn/5",
+  MEDIUM: "border-l-info bg-info/5",
+  LOW:    "border-l-success bg-success/5",
 };
 
 // ─── Decision Panel (redesigned) ─────────────────────────────────────────────
@@ -85,12 +87,12 @@ const riskBgMap: Record<string, string> = {
 function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecision | null; isPreview: boolean }) {
   if (!decision) {
     return (
-      <div className="h-full flex flex-col items-center justify-center py-16 px-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-white">
-        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-3">
-          <FlaskConical className="h-6 w-6 text-slate-400" strokeWidth={1.5} />
+      <div className="h-full flex flex-col items-center justify-center py-16 px-6 text-center border-2 border-dashed border-border rounded-xl bg-card">
+        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3">
+          <FlaskConical className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
         </div>
-        <p className="text-sm font-medium text-slate-600 mb-1">No decision yet</p>
-        <p className="text-xs text-slate-400">Enter test results to see a clinical decision preview</p>
+        <p className="text-sm font-medium text-muted-foreground mb-1">No decision yet</p>
+        <p className="text-xs text-muted-foreground">Enter test results to see a clinical decision preview</p>
       </div>
     );
   }
@@ -111,8 +113,8 @@ function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecis
       <div className={cn("rounded-xl border-l-4 p-4", borderClass)}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Active Pathway</p>
-            <p className="font-semibold text-sm text-slate-900">{getFigureLabel(decision.figure)}</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Active Pathway</p>
+            <p className="font-semibold text-sm text-foreground">{getFigureLabel(decision.figure)}</p>
           </div>
           <RiskBadge risk={riskLevel} size="md" />
         </div>
@@ -124,16 +126,16 @@ function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecis
           <CardTitle>Recommendation</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <p className="text-sm text-slate-700 font-medium leading-relaxed">{decision.recommendation}</p>
+          <p className="text-sm text-muted-foreground font-medium leading-relaxed">{formatClinicalReferenceText(decision.recommendation)}</p>
           {decision.recommendationCode && (
-            <p className="text-xs text-slate-400 mt-1.5 font-mono">{decision.recommendationCode}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 font-mono">{decision.recommendationCode}</p>
           )}
           {decision.nextAction && (
             <div className="mt-3 flex items-start gap-2 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
               <ChevronRight className="h-4 w-4 text-brand-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-[10px] font-semibold text-brand-700 uppercase tracking-wider">Next Action</p>
-                <p className="text-xs text-brand-800 mt-0.5">{decision.nextAction}</p>
+                <p className="text-xs text-brand-800 mt-0.5">{formatClinicalReferenceText(decision.nextAction)}</p>
               </div>
             </div>
           )}
@@ -152,10 +154,10 @@ function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecis
           <CardContent className="pt-0 space-y-2">
             <div className="flex items-center gap-2">
               <PriorityBadge priority={decision.referralPriority} showDays />
-              {decision.referralType && <span className="text-sm text-slate-600">{decision.referralType}</span>}
+              {decision.referralType && <span className="text-sm text-muted-foreground">{decision.referralType}</span>}
             </div>
             {decision.referralReason && (
-              <p className="text-xs text-slate-500 leading-relaxed">{decision.referralReason}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{formatClinicalReferenceText(decision.referralReason)}</p>
             )}
           </CardContent>
         </Card>
@@ -171,7 +173,7 @@ function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecis
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-muted-foreground">
               Recall in{" "}
               <strong>
                 {decision.recallIntervalMonths >= 12
@@ -185,16 +187,16 @@ function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecis
 
       {/* Clinical warnings */}
       {decision.clinicalWarnings && decision.clinicalWarnings.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-2">
-          <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+        <div className="rounded-xl border border-warn/30 bg-warn/5 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
             <AlertTriangle className="h-3.5 w-3.5" />
             Clinical Warnings
           </p>
           <ul className="space-y-1.5">
             {decision.clinicalWarnings.map((w, i) => (
-              <li key={i} className="text-xs text-amber-800 flex items-start gap-2">
-                <span className="w-1 h-1 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
-                {w}
+              <li key={i} className="text-xs text-foreground flex items-start gap-2">
+                <span className="w-1 h-1 rounded-full bg-warn/50 mt-1.5 flex-shrink-0" />
+                {formatClinicalReferenceText(w)}
               </li>
             ))}
           </ul>
@@ -203,9 +205,9 @@ function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecis
 
       {/* Guideline reference */}
       {decision.guidelineReference && (
-        <div className="flex items-start gap-2 text-xs text-slate-400 border-t border-slate-100 pt-3">
+        <div className="flex items-start gap-2 text-xs text-muted-foreground border-t border-border pt-3">
           <BookOpen className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-          <span>{decision.guidelineReference}</span>
+          <span>{formatClinicalReferenceText(decision.guidelineReference)}</span>
         </div>
       )}
     </div>
@@ -318,7 +320,7 @@ export default function GPPortalPage() {
     hpvResult === "HPV_16_18" && !cytologyResult
       ? "HPV 16/18 detected — cytology result required to determine final pathway"
       : hpvResult === "HPV_OTHER" && !cytologyResult
-      ? "HPV Other detected — cytology result required per Figure 3 pathway"
+      ? "HPV Other detected — cytology result required for the primary HPV screening pathway"
       : null;
 
   const swabWarning = sampleType === "SWAB"
@@ -340,11 +342,31 @@ export default function GPPortalPage() {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Enter Screening Results</h1>
-        <p className="text-sm text-slate-500 mt-0.5">GP Portal — NZ Cervical Screening Programme</p>
-      </div>
+      <PageIntro
+        eyebrow="Legacy cervical tool"
+        title="Cervical Results Entry"
+        description="Manual validation tool — not the primary enterprise referral workflow. Use this workspace for cervical screening result entry and pathway support; for colposcopy and gynaecology referral grading, use the enterprise case workflow."
+        trailing={
+          <>
+            <Link href="/cases">
+              <Button variant="outline" size="sm">Enterprise cases</Button>
+            </Link>
+            <Link href="/guidelines">
+              <Button variant="outline" size="sm">Guidelines</Button>
+            </Link>
+            <Link href="/pathway">
+              <Button variant="outline" size="sm">Pathway wizard</Button>
+            </Link>
+          </>
+        }
+      />
+
+      <Card>
+        <CardContent className="py-4 text-sm text-muted-foreground">
+          Use this screen when you already have structured cervical results and want a fast pathway recommendation:
+          search for the patient, enter HPV and cytology details, preview the decision, then save the result into the clinical record.
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ── Left: Form ── */}
@@ -374,34 +396,31 @@ export default function GPPortalPage() {
                 </div>
               </form>
               {lookupError && (
-                <div role="alert" className="mt-3 flex gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-                  <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{lookupError}</p>
-                </div>
+                <Alert variant="error" className="mt-3">{lookupError}</Alert>
               )}
               {patient && (
                 <div className="mt-4 bg-brand-50 border border-brand-100 rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-slate-900 text-base">
+                      <p className="font-semibold text-foreground text-base">
                         {patient.firstName} {patient.lastName}
                       </p>
-                      <p className="text-sm text-slate-500 font-mono mt-0.5">NHI: {patient.nhi}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-muted-foreground font-mono mt-0.5">NHI: {patient.nhi}</p>
+                      <p className="text-sm text-muted-foreground">
                         DOB: {new Date(patient.dateOfBirth).toLocaleDateString("en-NZ")}
                       </p>
                       {patient.gpPractice && (
-                        <p className="text-xs text-slate-400 mt-0.5">{patient.gpPractice.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{patient.gpPractice.name}</p>
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
                       {patient.isFirstTimeHPVTransition && (
-                        <span className="text-[10px] font-semibold bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200">
+                        <span className="text-[10px] font-semibold bg-info/10 text-info px-2 py-0.5 rounded-full border border-info/30">
                           HPV Transition
                         </span>
                       )}
                       {patient.isPostHysterectomy && (
-                        <span className="text-[10px] font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">
+                        <span className="text-[10px] font-semibold bg-brand-50 text-muted-foreground px-2 py-0.5 rounded-full border border-brand-200">
                           Post-Hysterectomy
                         </span>
                       )}
@@ -445,18 +464,13 @@ export default function GPPortalPage() {
                     onChange={(e) => setSampleType(e.target.value)}
                     hint="LBC is standard. Swab requires return visit."
                   />
-                  {swabWarning && (
-                    <div className="flex gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                      <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700">{swabWarning}</p>
-                    </div>
-                  )}
+                  {swabWarning && <Alert variant="warning">{swabWarning}</Alert>}
                   <Select
                     label="HPV Result"
                     options={HPV_OPTIONS}
                     value={hpvResult}
                     onChange={(e) => { setHpvResult(e.target.value); previewDecision(); }}
-                    hint="Required for Figure 3 Primary HPV Screening pathway"
+                    hint="Required for the primary HPV screening pathway"
                   />
                   <Select
                     label="Cytology Result"
@@ -465,12 +479,7 @@ export default function GPPortalPage() {
                     onChange={(e) => { setCytologyResult(e.target.value); previewDecision(); }}
                     hint="Structured vocabulary per NZ Cervical Screening guidelines"
                   />
-                  {cytologyWarning && (
-                    <div className="flex gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                      <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700">{cytologyWarning}</p>
-                    </div>
-                  )}
+                  {cytologyWarning && <Alert variant="warning">{cytologyWarning}</Alert>}
                 </CardContent>
               </Card>
 
@@ -479,12 +488,12 @@ export default function GPPortalPage() {
                   <CardTitle className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-brand-600" />
                     3. Pathway Override
-                    <span className="ml-1 text-[10px] font-medium text-slate-400 normal-case tracking-normal">Optional</span>
+                    <span className="ml-1 text-[10px] font-medium text-muted-foreground normal-case tracking-normal">Optional</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Select
-                    label="Clinical Figure"
+                    label="Clinical pathway"
                     options={FIGURE_OPTIONS}
                     value={currentFigure}
                     onChange={(e) => { setCurrentFigure(e.target.value); previewDecision(); }}
@@ -493,12 +502,7 @@ export default function GPPortalPage() {
                 </CardContent>
               </Card>
 
-              {submitError && (
-                <div role="alert" className="flex gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-                  <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{submitError}</p>
-                </div>
-              )}
+              {submitError && <Alert variant="error">{submitError}</Alert>}
 
               <div className="flex gap-3">
                 <Button
@@ -518,15 +522,15 @@ export default function GPPortalPage() {
 
           {/* Success state */}
           {submitted && (
-            <Card className="border-emerald-200 bg-emerald-50">
+            <Card className="border-success/30 bg-success/5">
               <CardContent className="py-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-success rounded-full flex items-center justify-center flex-shrink-0">
                     <CheckCircle className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-emerald-800">Results Submitted Successfully</p>
-                    <p className="text-sm text-emerald-600 mt-0.5">
+                    <p className="font-semibold text-foreground">Results Submitted Successfully</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       Clinical decision recorded and pathway updated.
                     </p>
                   </div>
@@ -542,7 +546,7 @@ export default function GPPortalPage() {
         {/* ── Right: Decision Preview ── */}
         <div className="lg:sticky lg:top-6">
           <div className="mb-3">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Clinical Decision</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Clinical Decision</p>
           </div>
           <DecisionPreviewPanel decision={decision} isPreview={!submitted} />
         </div>

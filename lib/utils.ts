@@ -80,19 +80,43 @@ export function getPriorityLabel(priority?: string): string {
 
 export function getFigureLabel(figure?: string): string {
   switch (figure) {
-    case "FIGURE_1":  return "Cytology Transition";
-    case "FIGURE_2":  return "Ongoing HPV Recall";
+    case "FIGURE_1":  return "HPV transition invitation pathway";
+    case "FIGURE_2":  return "Previous high-grade/history transition pathway";
     case "FIGURE_3":  return "Primary HPV Screening";
-    case "FIGURE_4":  return "Low-Grade Colposcopy";
-    case "FIGURE_5":  return "High-Grade Colposcopy";
-    case "FIGURE_6":  return "Post-Treatment Review";
-    case "FIGURE_7":  return "Glandular Abnormality";
-    case "FIGURE_8":  return "Post-Hysterectomy";
-    case "FIGURE_9":  return "Pregnancy Protocol";
-    case "FIGURE_10": return "Abnormal Bleeding";
-    case "TABLE_1":   return "Routine Case Management";
+    case "FIGURE_4":  return "Post-normal colposcopy follow-up after low-grade cytology";
+    case "FIGURE_5":  return "Post-normal colposcopy follow-up after high-grade cytology";
+    case "FIGURE_6":  return "Test of Cure pathway";
+    case "FIGURE_7":  return "Glandular abnormality pathway";
+    case "FIGURE_8":  return "Post-hysterectomy screening pathway";
+    case "FIGURE_9":  return "Pregnancy high-grade/glandular cytology pathway";
+    case "FIGURE_10": return "Abnormal vaginal bleeding pathway";
+    case "TABLE_1":   return "Vaginal screening after total hysterectomy";
     default:          return figure ?? "Unknown";
   }
+}
+
+const clinicalSourceNames: Record<string, string> = {
+  "Figure 1": "HPV transition invitation pathway",
+  "Figure 2": "previous high-grade/history transition pathway",
+  "Figure 3": "primary HPV screening pathway",
+  "Figure 4": "post-normal colposcopy follow-up after low-grade cytology",
+  "Figure 5": "post-normal colposcopy follow-up after high-grade cytology",
+  "Figure 6": "Test of Cure pathway",
+  "Figure 7": "glandular abnormality pathway",
+  "Figure 8": "post-hysterectomy screening pathway",
+  "Figure 9": "pregnancy high-grade/glandular cytology pathway",
+  "Figure 10": "abnormal vaginal bleeding pathway",
+  "Table 1": "post-hysterectomy vaginal screening table",
+};
+
+export function formatClinicalReferenceText(text?: string | null): string {
+  if (!text) return "";
+
+  return Object.entries(clinicalSourceNames).reduce(
+    (current, [sourceName, clinicalName]) =>
+      current.replaceAll(sourceName, clinicalName),
+    text
+  );
 }
 
 export function calculateAge(dob: Date | string): number {

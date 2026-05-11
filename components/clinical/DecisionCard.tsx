@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, formatClinicalReferenceText } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -46,24 +46,24 @@ const PRIORITY_DAYS: Record<string, number> = {
 };
 
 const FIGURE_LABELS: Record<string, string> = {
-  FIGURE_1:  "Figure 1 — HPV Transition (First HPV Screen, No Prior Abnormality)",
-  FIGURE_2:  "Figure 2 — HPV Transition (Previously Abnormal Cytology)",
-  FIGURE_3:  "Figure 3 — Primary HPV Screening",
-  FIGURE_4:  "Figure 4 — Colposcopy (Low-grade Findings)",
-  FIGURE_5:  "Figure 5 — Colposcopy (High-grade Lesion Management: CIN2/3, AIS)",
-  FIGURE_6:  "Figure 6 — Test of Cure (Post-treatment Follow-up)",
-  FIGURE_7:  "Figure 7 — Management of Glandular Abnormalities (AG1–AG5 / AC1–AC4)",
-  FIGURE_8:  "Figure 8 — Post-hysterectomy Vault Screening",
-  FIGURE_9:  "Figure 9 — Pregnant Participant with High-grade Cytology (ASC-H / HSIL / AG / AIS)",
-  FIGURE_10: "Figure 10 — Investigation of Abnormal Vaginal Bleeding",
-  TABLE_1:   "Table 1 — Routine Case Management",
+  FIGURE_1:  "HPV Transition Invitation Pathway",
+  FIGURE_2:  "Previous High-grade / History Transition Pathway",
+  FIGURE_3:  "Primary HPV Screening Pathway",
+  FIGURE_4:  "Post-normal Colposcopy Follow-up After Low-grade Cytology",
+  FIGURE_5:  "Post-normal Colposcopy Follow-up After High-grade Cytology",
+  FIGURE_6:  "Test of Cure Pathway",
+  FIGURE_7:  "Glandular Abnormality Pathway",
+  FIGURE_8:  "Post-hysterectomy Screening Pathway",
+  FIGURE_9:  "Pregnancy High-grade / Glandular Cytology Pathway",
+  FIGURE_10: "Abnormal Vaginal Bleeding Pathway",
+  TABLE_1:   "Vaginal Screening After Total Hysterectomy",
 };
 
 function riskConfig(level: string) {
   switch (level) {
-    case "URGENT": return { label: "URGENT", bg: "bg-red-50",    border: "border-red-300",    text: "text-red-800",    icon: "⚠", badge: "bg-red-600 text-white" };
+    case "URGENT": return { label: "URGENT", bg: "bg-destructive/5",    border: "border-red-300",    text: "text-foreground",    icon: "⚠", badge: "bg-red-600 text-white" };
     case "HIGH":   return { label: "HIGH",   bg: "bg-purple-50", border: "border-purple-300", text: "text-purple-800", icon: "■", badge: "bg-purple-600 text-white" };
-    case "MEDIUM": return { label: "MEDIUM", bg: "bg-amber-50",  border: "border-amber-300",  text: "text-amber-800",  icon: "▲", badge: "bg-amber-500 text-white" };
+    case "MEDIUM": return { label: "MEDIUM", bg: "bg-warn/5",  border: "border-amber-300",  text: "text-foreground",  icon: "▲", badge: "bg-warn/50 text-white" };
     default:       return { label: "LOW",    bg: "bg-green-50",  border: "border-green-300",  text: "text-green-800",  icon: "●", badge: "bg-green-600 text-white" };
   }
 }
@@ -72,7 +72,7 @@ function priorityConfig(p?: string) {
   switch (p) {
     case "P1": return { label: "P1 — Urgent",   color: "bg-red-600 text-white",    days: 20 };
     case "P2": return { label: "P2 — Priority",  color: "bg-purple-600 text-white", days: 42 };
-    case "P3": return { label: "P3 — Routine",   color: "bg-amber-500 text-white",  days: 84 };
+    case "P3": return { label: "P3 — Routine",   color: "bg-warn/50 text-white",  days: 84 };
     case "P4": return { label: "P4 — Deferred",  color: "bg-gray-500 text-white",   days: 168 };
     default:   return { label: "Routine",         color: "bg-gray-500 text-white",   days: 84 };
   }
@@ -182,7 +182,7 @@ export function DecisionCard({
         {/* Recommendation */}
         <div className="space-y-1.5">
           <span className="text-xs text-gray-500 uppercase tracking-wide">Recommendation</span>
-          <p className="text-lg font-bold text-gray-900 leading-snug">{decision.recommendation}</p>
+          <p className="text-lg font-bold text-gray-900 leading-snug">{formatClinicalReferenceText(decision.recommendation)}</p>
           <div className="flex items-center gap-2">
             <code className="rounded-lg bg-gray-100 text-gray-700 text-sm font-mono px-3 py-1 border border-gray-200">
               {decision.recommendationCode}
@@ -191,7 +191,7 @@ export function DecisionCard({
           {decision.nextAction && (
             <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3 mt-2">
               <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">Next Action</span>
-              <p className="text-sm text-teal-900 font-medium mt-0.5">{decision.nextAction}</p>
+              <p className="text-sm text-teal-900 font-medium mt-0.5">{formatClinicalReferenceText(decision.nextAction)}</p>
             </div>
           )}
         </div>
@@ -227,7 +227,7 @@ export function DecisionCard({
               {decision.referralReason && (
                 <div className="col-span-2">
                   <span className="text-xs text-gray-500">Reason</span>
-                  <p className="text-sm text-gray-700 mt-0.5">{decision.referralReason}</p>
+                  <p className="text-sm text-gray-700 mt-0.5">{formatClinicalReferenceText(decision.referralReason)}</p>
                 </div>
               )}
             </div>
@@ -258,16 +258,16 @@ export function DecisionCard({
 
         {/* Clinical Warnings */}
         {decision.clinicalWarnings && decision.clinicalWarnings.length > 0 && (
-          <div className="rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4 space-y-2">
+          <div className="rounded-2xl bg-warn/5 border border-warn/30 px-5 py-4 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-amber-600 text-lg">⚠</span>
-              <span className="text-sm font-bold text-amber-800 uppercase tracking-wide">Clinical Warnings</span>
+              <span className="text-warn text-lg">⚠</span>
+              <span className="text-sm font-bold text-foreground uppercase tracking-wide">Clinical Warnings</span>
             </div>
             <ul className="space-y-1.5">
               {decision.clinicalWarnings.map((w, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-amber-800">
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
                   <span className="text-amber-500 mt-0.5 flex-shrink-0">•</span>
-                  {w}
+                  {formatClinicalReferenceText(w)}
                 </li>
               ))}
             </ul>
@@ -278,13 +278,13 @@ export function DecisionCard({
         {decision.rationale && (
           <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">Rationale</span>
-            <p className="text-sm text-blue-900 mt-0.5">{decision.rationale}</p>
+            <p className="text-sm text-blue-900 mt-0.5">{formatClinicalReferenceText(decision.rationale)}</p>
           </div>
         )}
 
         {/* Guideline */}
         {decision.guidelineReference && (
-          <p className="text-xs text-gray-400 italic">{decision.guidelineReference}</p>
+          <p className="text-xs text-gray-400 italic">{formatClinicalReferenceText(decision.guidelineReference)}</p>
         )}
       </div>
 

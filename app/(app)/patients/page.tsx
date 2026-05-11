@@ -3,12 +3,14 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageIntro } from "@/components/layout/PageIntro";
 import { formatDate, calculateAge } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import Link from "next/link";
-import { Users, Search, Plus, ChevronRight, Activity } from "lucide-react";
+import { Users, Search, Plus, ChevronRight, Activity, Copy } from "lucide-react";
 
 interface Patient {
   id: string;
@@ -23,147 +25,138 @@ interface Patient {
   _count: { screeningSessions: number };
 }
 
+function PatientRowSkeleton() {
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
+      <Skeleton className="h-10 w-10 rounded-full" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-56" />
+      </div>
+      <Skeleton className="h-3 w-20" />
+    </div>
+  );
+}
+
+function NHICopy({ nhi }: { nhi: string }) {
+  const { copy, copied } = useCopyToClipboard("NHI copied");
+  return (
+    <button
+      onClick={(e) => { e.preventDefault(); copy(nhi); }}
+      className="flex items-center gap-1 font-mono hover:text-foreground transition-colors group"
+      aria-label={`Copy NHI ${nhi}`}
+      title="Copy NHI"
+    >
+      <span>NHI: {nhi}</span>
+      <Copy className={`h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity ${copied ? "text-success" : ""}`} aria-hidden />
+    </button>
+  );
+}
+
 export default function PatientsPage() {
   const [search, setSearch] = useState("");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const loadPatients = useCallback(async (query: string) => {
     setLoading(true);
-    setHasSearched(true);
     try {
       const res = await fetch(`/api/patients?search=${encodeURIComponent(query)}&limit=50`);
       const data = await res.json();
       setPatients(data.patients ?? []);
       setTotal(data.total ?? 0);
+      setHasLoaded(true);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    loadPatients("");
+  }, [loadPatients]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (search.length >= 2) loadPatients(search);
-      else if (search.length === 0) {
-        loadPatients("");
-      }
+      if (search.length >= 2 || search.length === 0) loadPatients(search);
     }, 300);
     return () => clearTimeout(timer);
   }, [search, loadPatients]);
 
-  // Load initial list
-  useEffect(() => {
-    loadPatients("");
-  }, [loadPatients]);
-
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Patients</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {total > 0 ? `${total} patients on cervical screening register` : "Cervical screening register"}
-          </p>
-        </div>
-        <Link href="/patients/new">
-          <Button size="md">
-            <Plus className="h-4 w-4" />
-            Register Patient
-          </Button>
-        </Link>
-      </div>
+    <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6 animate-fade-in">
+      <PageIntro
+        eyebrow="Legacy tools"
+        title="Patients"
+        description={hasLoaded ? `${total.toLocaleString()} patients on the cervical screening register.` : "Cervical screening register"}
+        actions={[{ href: "/patients/new", label: "Register patient", icon: <Plus className="h-4 w-4" /> }]}
+      />
 
-      {/* Search */}
       <Input
         label="Search patients"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by NHI, first name, or last name…"
-        hint="Type at least 2 characters to search. Results update as you type."
+        placeholder="NHI, first name, or last name…"
+        hint="Results update as you type. Search requires at least 2 characters."
         icon={<Search className="h-4 w-4" />}
       />
 
-      {/* Results */}
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="h-8 w-8 rounded-full border-4 border-slate-200 border-t-brand-600 animate-spin" />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => <PatientRowSkeleton key={i} />)}
         </div>
-      ) : !hasSearched || patients.length === 0 ? (
+      ) : patients.length === 0 ? (
         <EmptyState
           icon={Users}
-          title={search && hasSearched ? "No patients found" : "Search the register"}
+          title={search ? "No patients found" : "Search the register"}
           description={
-            search && hasSearched
-              ? `No patients match "${search}". Check the spelling or try an NHI number.`
-              : "Enter a name or NHI number to find a patient."
+            search
+              ? `No patients match "${search}". Try an NHI number or check the spelling.`
+              : "Enter a name or NHI number to find a patient record."
           }
-          action={
-            search && hasSearched
-              ? { label: "Register new patient", onClick: () => window.location.href = "/patients/new" }
-              : undefined
-          }
+          action={search ? { href: "/patients/new", label: "Register new patient", variant: "outline" } : undefined}
         />
       ) : (
         <div className="space-y-2">
           {patients.map((p, i) => (
-            <div key={p.id} className="animate-fade-in" style={{ animationDelay: `${i * 20}ms` }}>
-            <Link href={`/patients/${p.id}`}>
-              <Card
-                className="hover:border-brand-300 hover:shadow-md transition-all duration-150"
-              >
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-4">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-navy-600/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-navy-600 font-semibold text-sm">
-                        {p.firstName.charAt(0)}{p.lastName.charAt(0)}
-                      </span>
-                    </div>
-                    {/* Main info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-slate-900">
-                          {p.firstName} {p.lastName}
-                        </p>
-                        {p.isFirstTimeHPVTransition && (
-                          <Badge variant="info" size="sm">Transition</Badge>
-                        )}
-                        {p.isPostHysterectomy && (
-                          <Badge variant="medium" size="sm">Post-hyst</Badge>
-                        )}
-                        {p.status !== "ACTIVE" && (
-                          <Badge variant="default" size="sm">{p.status}</Badge>
-                        )}
+            <div key={p.id} className="animate-fade-in" style={{ animationDelay: `${i * 15}ms` }}>
+              <Link href={`/patients/${p.id}`}>
+                <Card className="hover:border-border-strong hover:shadow-md transition-all duration-150">
+                  <CardContent className="py-3.5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-navy-600/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-navy-700 font-semibold text-sm">
+                          {p.firstName.charAt(0)}{p.lastName.charAt(0)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
-                        <span className="font-mono">NHI: {p.nhi}</span>
-                        <span>·</span>
-                        <span>{calculateAge(p.dateOfBirth)}y</span>
-                        <span>·</span>
-                        <span>DOB: {formatDate(p.dateOfBirth)}</span>
-                        {p.gpPractice && (
-                          <>
-                            <span>·</span>
-                            <span>{p.gpPractice.name}</span>
-                          </>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <p className="font-semibold text-foreground">{p.firstName} {p.lastName}</p>
+                          {p.isFirstTimeHPVTransition && <Badge variant="info" size="sm">HPV Transition</Badge>}
+                          {p.isPostHysterectomy && <Badge variant="medium" size="sm">Post-hyst</Badge>}
+                          {p.status !== "ACTIVE" && <Badge variant="default" size="sm">{p.status}</Badge>}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                          <NHICopy nhi={p.nhi} />
+                          <span aria-hidden>·</span>
+                          <span>{calculateAge(p.dateOfBirth)}y</span>
+                          <span aria-hidden>·</span>
+                          <span>DOB {formatDate(p.dateOfBirth)}</span>
+                          {p.gpPractice && <><span aria-hidden>·</span><span>{p.gpPractice.name}</span></>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Activity className="h-3.5 w-3.5" aria-hidden />
+                          {p._count.screeningSessions} {p._count.screeningSessions === 1 ? "session" : "sessions"}
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
                       </div>
                     </div>
-                    {/* Sessions + arrow */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                        <Activity className="h-3.5 w-3.5" />
-                        {p._count.screeningSessions} session{p._count.screeningSessions !== 1 ? "s" : ""}
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-slate-300" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
           ))}
         </div>

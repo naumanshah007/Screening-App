@@ -1,13 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RiskBadge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageIntro } from "@/components/layout/PageIntro";
+import { SkeletonTable } from "@/components/ui/skeleton";
 import { formatDate, calculateAge } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
-  RefreshCw, ClipboardList, AlertTriangle, CheckCircle2,
+  RefreshCw, AlertTriangle, CheckCircle2,
   Clock, Filter, LayoutGrid, List, Calendar
 } from "lucide-react";
 
@@ -40,11 +42,11 @@ type ViewMode = "table" | "kanban";
 
 const PRIORITY_ORDER = ["P1", "P2", "P3", "P4"];
 
-const KANBAN_COLUMNS: { key: ReferralStatus; label: string; accent: string; bg: string }[] = [
-  { key: "PENDING",              label: "Pending Review",       accent: "border-amber-400",   bg: "bg-amber-50" },
-  { key: "APPROVED",             label: "Approved",             accent: "border-sky-400",     bg: "bg-sky-50" },
-  { key: "AWAITING_APPOINTMENT", label: "Awaiting Appointment", accent: "border-violet-400",  bg: "bg-violet-50" },
-  { key: "COMPLETE",             label: "Complete",             accent: "border-emerald-400", bg: "bg-emerald-50" },
+const KANBAN_COLUMNS: { key: ReferralStatus; label: string; accent: string }[] = [
+  { key: "PENDING",              label: "Pending Review",       accent: "border-t-warn" },
+  { key: "APPROVED",             label: "Approved",             accent: "border-t-info" },
+  { key: "AWAITING_APPOINTMENT", label: "Awaiting Appointment", accent: "border-t-brand-500" },
+  { key: "COMPLETE",             label: "Complete",             accent: "border-t-success" },
 ];
 
 function daysSince(dateStr: string): number {
@@ -63,7 +65,7 @@ function TargetChip({ r }: { r: Referral }) {
 
   if (overdue > 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
         <AlertTriangle className="h-3 w-3" />
         {overdue}d overdue
       </span>
@@ -71,14 +73,14 @@ function TargetChip({ r }: { r: Referral }) {
   }
   if (daysLeft <= 3) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn/10 text-warn">
         <Clock className="h-3 w-3" />
         {daysLeft}d left
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
       <Clock className="h-3 w-3" />
       {daysLeft}d left
     </span>
@@ -149,96 +151,97 @@ export default function CoordinatorPage() {
   const urgentCount = referrals.filter(r => r.priority === "P1" && r.status === "PENDING").length;
   const overdueCount = referrals.filter(r => daysOverdue(r) > 0).length;
 
+  const alertBadge = (urgentCount > 0 || overdueCount > 0) ? (
+    <div className="flex items-center gap-2">
+      {urgentCount > 0 && (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-destructive/10 text-destructive">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          {urgentCount} P1 urgent
+        </span>
+      )}
+      {overdueCount > 0 && (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-warn/10 text-warn">
+          <Clock className="h-3.5 w-3.5" />
+          {overdueCount} overdue
+        </span>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Referral Queue</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Coordinator Portal — NZ Cervical Screening Programme
-            {urgentCount > 0 && (
-              <span className="ml-2 inline-flex items-center gap-1 text-red-600 font-medium">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {urgentCount} P1 urgent
-              </span>
-            )}
-            {overdueCount > 0 && (
-              <span className="ml-2 inline-flex items-center gap-1 text-amber-600 font-medium">
-                <Clock className="h-3.5 w-3.5" />
-                {overdueCount} overdue
-              </span>
-            )}
-          </p>
+      <PageIntro
+        eyebrow="Coordinator Portal — NZ Cervical Screening"
+        title="Referral Queue"
+        description="Review, approve and track referrals across priority and status."
+        trailing={alertBadge}
+      />
+
+      {/* Controls bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Priority filter */}
+        <div className="flex items-center gap-1.5 border border-border bg-card rounded-lg px-3 h-9">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="text-sm text-muted-foreground bg-transparent border-none focus:outline-none"
+            aria-label="Filter by priority"
+          >
+            <option value="">All Priorities</option>
+            <option value="P1">P1 Urgent</option>
+            <option value="P2">P2 High</option>
+            <option value="P3">P3 Standard</option>
+            <option value="P4">P4 Routine</option>
+          </select>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Priority filter */}
-          <div className="flex items-center gap-1.5 border border-slate-200 bg-white rounded-lg px-3 h-9">
-            <Filter className="h-3.5 w-3.5 text-slate-400" />
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="text-sm text-slate-700 bg-transparent border-none focus:outline-none"
-              aria-label="Filter by priority"
-            >
-              <option value="">All Priorities</option>
-              <option value="P1">P1 Urgent</option>
-              <option value="P2">P2 High</option>
-              <option value="P3">P3 Standard</option>
-              <option value="P4">P4 Routine</option>
-            </select>
-          </div>
-          {/* Status filter */}
-          <div className="flex items-center gap-1.5 border border-slate-200 bg-white rounded-lg px-3 h-9">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-sm text-slate-700 bg-transparent border-none focus:outline-none"
-              aria-label="Filter by status"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="AWAITING_APPOINTMENT">Awaiting Appt</option>
-              <option value="COMPLETE">Complete</option>
-            </select>
-          </div>
-          {/* View toggle */}
-          <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-white">
-            <button
-              onClick={() => setView("table")}
-              className={cn(
-                "px-3 h-9 flex items-center gap-1.5 text-sm font-medium transition-colors",
-                view === "table" ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"
-              )}
-              aria-pressed={view === "table"}
-            >
-              <List className="h-3.5 w-3.5" />
-              Table
-            </button>
-            <button
-              onClick={() => setView("kanban")}
-              className={cn(
-                "px-3 h-9 flex items-center gap-1.5 text-sm font-medium transition-colors",
-                view === "kanban" ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"
-              )}
-              aria-pressed={view === "kanban"}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              Kanban
-            </button>
-          </div>
-          <Button onClick={loadReferrals} variant="outline" size="md">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
+        {/* Status filter */}
+        <div className="flex items-center gap-1.5 border border-border bg-card rounded-lg px-3 h-9">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-sm text-muted-foreground bg-transparent border-none focus:outline-none"
+            aria-label="Filter by status"
+          >
+            <option value="">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="AWAITING_APPOINTMENT">Awaiting Appt</option>
+            <option value="COMPLETE">Complete</option>
+          </select>
         </div>
+        {/* View toggle */}
+        <div className="flex border border-border rounded-lg overflow-hidden bg-card">
+          <button
+            onClick={() => setView("table")}
+            className={cn(
+              "px-3 h-9 flex items-center gap-1.5 text-sm font-medium transition-colors",
+              view === "table" ? "bg-brand-600 text-white" : "text-muted-foreground hover:bg-muted/40"
+            )}
+            aria-pressed={view === "table"}
+          >
+            <List className="h-3.5 w-3.5" />
+            Table
+          </button>
+          <button
+            onClick={() => setView("kanban")}
+            className={cn(
+              "px-3 h-9 flex items-center gap-1.5 text-sm font-medium transition-colors",
+              view === "kanban" ? "bg-brand-600 text-white" : "text-muted-foreground hover:bg-muted/40"
+            )}
+            aria-pressed={view === "kanban"}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Kanban
+          </button>
+        </div>
+        <Button onClick={loadReferrals} variant="outline" size="md" icon={<RefreshCw className="h-4 w-4" />}>
+          Refresh
+        </Button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-brand-600 animate-spin" />
-        </div>
+        <SkeletonTable rows={6} cols={8} />
       ) : referrals.length === 0 ? (
         <EmptyState
           icon={CheckCircle2}
@@ -251,15 +254,15 @@ export default function CoordinatorPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm" role="grid" aria-label="Referral queue">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-muted/40 border-b border-border">
                   {["Patient", "Priority", "Status", "Type", "Risk", "Referred", "Target", "Actions"].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-border">
                 {sortedReferrals.map((r) => {
                   const patient = r.screeningSession.patient;
                   const overdue = daysOverdue(r);
@@ -268,24 +271,24 @@ export default function CoordinatorPage() {
                     <tr
                       key={r.id}
                       className={cn(
-                        "hover:bg-slate-50/80 transition-colors",
-                        overdue > 0 ? "bg-red-50/50" : isHighPriority ? "bg-amber-50/30" : ""
+                        "hover:bg-muted/40 transition-colors",
+                        overdue > 0 ? "bg-destructive/5/50" : isHighPriority ? "bg-warn/5/30" : ""
                       )}
                     >
                       <td className="px-4 py-3.5">
-                        <p className="font-semibold text-slate-900">{patient.firstName} {patient.lastName}</p>
-                        <p className="text-xs text-slate-400 font-mono mt-0.5">
+                        <p className="font-semibold text-foreground">{patient.firstName} {patient.lastName}</p>
+                        <p className="text-xs text-muted-foreground font-mono mt-0.5">
                           {patient.nhi} · {calculateAge(patient.dateOfBirth)}y
                         </p>
                         {patient.gpPractice && (
-                          <p className="text-xs text-slate-400 mt-0.5">{patient.gpPractice.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{patient.gpPractice.name}</p>
                         )}
                       </td>
                       <td className="px-4 py-3.5"><PriorityBadge priority={r.priority} /></td>
                       <td className="px-4 py-3.5"><StatusBadge status={r.status} /></td>
-                      <td className="px-4 py-3.5 text-slate-600 text-xs">{r.type}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{r.type}</td>
                       <td className="px-4 py-3.5"><RiskBadge risk={r.screeningSession.currentRiskLevel} /></td>
-                      <td className="px-4 py-3.5 text-slate-500 text-xs whitespace-nowrap">
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs whitespace-nowrap">
                         {formatDate(r.createdAt)}
                       </td>
                       <td className="px-4 py-3.5">
@@ -305,7 +308,7 @@ export default function CoordinatorPage() {
                               <button
                                 onClick={() => updateStatus(r.id, "REJECTED")}
                                 disabled={updating === r.id}
-                                className="text-xs px-2 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                className="text-xs px-2 py-1 bg-destructive text-white rounded-md hover:bg-destructive/90 disabled:opacity-50 transition-colors"
                               >
                                 Reject
                               </button>
@@ -315,7 +318,7 @@ export default function CoordinatorPage() {
                             <button
                               onClick={() => updateStatus(r.id, "AWAITING_APPOINTMENT")}
                               disabled={updating === r.id}
-                              className="text-xs px-2 py-1 bg-sky-600 text-white rounded-md hover:bg-sky-700 disabled:opacity-50 transition-colors"
+                              className="text-xs px-2 py-1 bg-info text-white rounded-md hover:bg-info/90 disabled:opacity-50 transition-colors"
                             >
                               Book
                             </button>
@@ -324,14 +327,14 @@ export default function CoordinatorPage() {
                             <button
                               onClick={() => updateStatus(r.id, "COMPLETE")}
                               disabled={updating === r.id}
-                              className="text-xs px-2 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                              className="text-xs px-2 py-1 bg-success text-white rounded-md hover:bg-success/90 disabled:opacity-50 transition-colors"
                             >
                               Complete
                             </button>
                           )}
                           <button
                             onClick={() => sendRecall(patient.id)}
-                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors"
+                            className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-md hover:bg-muted/60 transition-colors"
                           >
                             Recall
                           </button>
@@ -354,18 +357,18 @@ export default function CoordinatorPage() {
               return pa - pb;
             });
             return (
-              <div key={col.key} className={cn("rounded-xl border-t-2 bg-white border border-slate-200 flex flex-col shadow-sm", col.accent)}>
-                <div className="px-4 py-3 border-b border-slate-100">
-                  <h2 className="text-sm font-semibold text-slate-700 flex items-center justify-between">
+              <div key={col.key} className={cn("rounded-xl border-t-4 bg-card border border-border flex flex-col shadow-sm", col.accent)}>
+                <div className="px-4 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold text-muted-foreground flex items-center justify-between">
                     {col.label}
-                    <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-medium">
+                    <span className="bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full font-medium">
                       {items.length}
                     </span>
                   </h2>
                 </div>
                 <div className="p-3 space-y-3 flex-1 overflow-y-auto max-h-[600px]">
                   {items.length === 0 && (
-                    <p className="text-xs text-slate-400 text-center py-6">No referrals</p>
+                    <p className="text-xs text-muted-foreground text-center py-6">No referrals</p>
                   )}
                   {items.map((r) => {
                     const overdue = daysOverdue(r);
@@ -374,16 +377,16 @@ export default function CoordinatorPage() {
                       <div
                         key={r.id}
                         className={cn(
-                          "bg-white rounded-lg border shadow-sm p-3 space-y-2.5 transition-all",
-                          overdue > 0 ? "border-red-200" : "border-slate-200"
+                          "bg-card rounded-lg border shadow-sm p-3 space-y-2.5 transition-all",
+                          overdue > 0 ? "border-destructive/30" : "border-border"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">
+                            <p className="text-sm font-semibold text-foreground truncate">
                               {patient.firstName} {patient.lastName}
                             </p>
-                            <p className="text-xs text-slate-400 font-mono">{patient.nhi}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{patient.nhi}</p>
                           </div>
                           <PriorityBadge priority={r.priority} />
                         </div>
@@ -392,9 +395,9 @@ export default function CoordinatorPage() {
                           <TargetChip r={r} />
                         </div>
                         {r.reason && (
-                          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{r.reason}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{r.reason}</p>
                         )}
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[10px] text-muted-foreground">
                           {formatDate(r.createdAt)}
                           {patient.gpPractice && ` · ${patient.gpPractice.name}`}
                         </p>
@@ -412,7 +415,7 @@ export default function CoordinatorPage() {
                               <button
                                 onClick={() => updateStatus(r.id, "REJECTED")}
                                 disabled={updating === r.id}
-                                className="text-xs px-2 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                                className="text-xs px-2 py-1 bg-destructive text-white rounded-md hover:bg-destructive/90 transition-colors disabled:opacity-50"
                               >
                                 Reject
                               </button>
@@ -422,7 +425,7 @@ export default function CoordinatorPage() {
                             <button
                               onClick={() => updateStatus(r.id, "AWAITING_APPOINTMENT")}
                               disabled={updating === r.id}
-                              className="text-xs px-2 py-1 bg-sky-600 text-white rounded-md hover:bg-sky-700 transition-colors disabled:opacity-50"
+                              className="text-xs px-2 py-1 bg-info text-white rounded-md hover:bg-info/90 transition-colors disabled:opacity-50"
                             >
                               <Calendar className="h-3 w-3 inline mr-1" />
                               Book Appt
@@ -432,7 +435,7 @@ export default function CoordinatorPage() {
                             <button
                               onClick={() => updateStatus(r.id, "COMPLETE")}
                               disabled={updating === r.id}
-                              className="text-xs px-2 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                              className="text-xs px-2 py-1 bg-success text-white rounded-md hover:bg-success/90 transition-colors disabled:opacity-50"
                             >
                               <CheckCircle2 className="h-3 w-3 inline mr-1" />
                               Complete
@@ -440,7 +443,7 @@ export default function CoordinatorPage() {
                           )}
                           <button
                             onClick={() => sendRecall(patient.id)}
-                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors"
+                            className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-md hover:bg-muted/60 transition-colors"
                           >
                             Send Recall
                           </button>

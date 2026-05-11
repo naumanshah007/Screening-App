@@ -1,7 +1,7 @@
 "use client";
 import { RiskBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getFigureLabel } from "@/lib/utils";
+import { formatClinicalReferenceText, getFigureLabel } from "@/lib/utils";
 import type { ClinicalDecision } from "@/lib/engine/types";
 
 interface DecisionPanelProps {
@@ -21,9 +21,9 @@ export function DecisionPanel({ decision, isPreview = false }: DecisionPanelProp
   }
 
   const priorityColour: Record<string, string> = {
-    P1: "bg-red-50 border-red-200 text-red-800",
+    P1: "bg-destructive/5 border-destructive/30 text-foreground",
     P2: "bg-purple-50 border-purple-200 text-purple-800",
-    P3: "bg-amber-50 border-amber-200 text-amber-800",
+    P3: "bg-warn/5 border-warn/30 text-foreground",
     P4: "bg-green-50 border-green-200 text-green-800",
   };
 
@@ -50,12 +50,12 @@ export function DecisionPanel({ decision, isPreview = false }: DecisionPanelProp
           <CardTitle>Recommendation</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-700 font-medium">{decision.recommendation}</p>
+          <p className="text-sm text-gray-700 font-medium">{formatClinicalReferenceText(decision.recommendation)}</p>
           <p className="text-xs text-gray-400 mt-1 font-mono">{decision.recommendationCode}</p>
           {decision.nextAction && (
             <div className="mt-3 bg-[#0D9488]/10 border border-[#0D9488]/20 rounded-lg px-3 py-2">
               <p className="text-xs font-semibold text-[#0D9488] uppercase tracking-wider">Next Action</p>
-              <p className="text-sm text-[#0D9488] mt-0.5">{decision.nextAction}</p>
+              <p className="text-sm text-[#0D9488] mt-0.5">{formatClinicalReferenceText(decision.nextAction)}</p>
             </div>
           )}
         </CardContent>
@@ -79,7 +79,7 @@ export function DecisionPanel({ decision, isPreview = false }: DecisionPanelProp
               <span className="text-sm text-gray-700">{decision.referralType}</span>
             </div>
             {decision.referralReason && (
-              <p className="text-sm text-gray-600">{decision.referralReason}</p>
+              <p className="text-sm text-gray-600">{formatClinicalReferenceText(decision.referralReason)}</p>
             )}
           </CardContent>
         </Card>
@@ -108,15 +108,15 @@ export function DecisionPanel({ decision, isPreview = false }: DecisionPanelProp
 
       {/* Clinical warnings */}
       {decision.clinicalWarnings && decision.clinicalWarnings.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-2">
+        <div className="bg-warn/5 border border-warn/30 rounded-xl px-4 py-3">
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">
             Clinical Warnings
           </p>
           <ul className="space-y-1">
             {decision.clinicalWarnings.map((w, i) => (
-              <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+              <li key={i} className="text-sm text-warn flex items-start gap-2">
                 <span>⚠</span>
-                <span>{w}</span>
+                <span>{formatClinicalReferenceText(w)}</span>
               </li>
             ))}
           </ul>
@@ -127,7 +127,7 @@ export function DecisionPanel({ decision, isPreview = false }: DecisionPanelProp
       {decision.guidelineReference && (
         <div className="text-xs text-gray-400 border-t pt-3">
           <span className="font-semibold">Guideline: </span>
-          {decision.guidelineReference}
+          {formatClinicalReferenceText(decision.guidelineReference)}
         </div>
       )}
     </div>
