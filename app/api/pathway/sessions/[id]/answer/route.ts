@@ -12,6 +12,7 @@ import {
   getWizardProgress,
   getVisibleSteps,
   getStepById,
+  getInvalidatedAnswerStepIds,
 } from "@/lib/wizard/steps";
 
 export async function POST(
@@ -88,12 +89,13 @@ export async function POST(
   // Update answers map with new answer
   answersMap[body.stepId!] = body.answerValue!;
 
-  // When an answer changes, invalidate any downstream answers that are
-  // no longer on a visible path
-  const nowVisible = getVisibleSteps(answersMap).map((s) => s.id);
-  const toRemove = wizardSession.answers
-    .filter((a) => a.stepId !== body.stepId && !nowVisible.includes(a.stepId))
-    .map((a) => a.stepId);
+  const toRemove = getInvalidatedAnswerStepIds(
+    Object.fromEntries(
+      wizardSession.answers.map((a) => [a.stepId, a.answerValue])
+    ),
+    body.stepId,
+    body.answerValue
+  );
 
   if (toRemove.length > 0) {
     await prisma.wizardAnswer.deleteMany({

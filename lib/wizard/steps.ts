@@ -880,6 +880,59 @@ export function getStepById(id: string): WizardStep | undefined {
 }
 
 /**
+ * Returns the canonical order index for a wizard step.
+ */
+export function getStepIndex(id: string): number {
+  return WIZARD_STEPS.findIndex((s) => s.id === id);
+}
+
+/**
+ * Returns answer IDs that should be discarded after a step is answered.
+ * Hidden answers are always stale. If an existing answer changes, all later
+ * answers are also stale even when their questions remain visible, because the
+ * user must reconfirm the branch from that point onward.
+ */
+export function getInvalidatedAnswerStepIds(
+  currentAnswers: Record<string, string>,
+  stepId: string,
+  nextValue: string
+): string[] {
+  const updatedAnswers = { ...currentAnswers, [stepId]: nextValue };
+  const visibleStepIds = new Set(getVisibleSteps(updatedAnswers).map((s) => s.id));
+  const previousValue = currentAnswers[stepId];
+  const changedExistingAnswer = previousValue !== undefined && previousValue !== nextValue;
+  const changedStepIndex = getStepIndex(stepId);
+
+  return Object.keys(currentAnswers).filter((existingStepId) => {
+    if (existingStepId === stepId) return false;
+    if (!visibleStepIds.has(existingStepId)) return true;
+    return changedExistingAnswer &&
+      changedStepIndex >= 0 &&
+      getStepIndex(existingStepId) > changedStepIndex;
+  });
+}
+
+/**
+ * Rebuilds answers in wizard order and drops answers whose steps are not
+ * visible from the already-confirmed path. This prevents old hidden branch
+ * answers from affecting final decision generation.
+ */
+export function getVisibleAnswerMap(
+  answers: Record<string, string>
+): Record<string, string> {
+  const visibleAnswers: Record<string, string> = {};
+
+  for (const step of WIZARD_STEPS) {
+    if (step.type === "info") continue;
+    if (!(step.id in answers)) continue;
+    if (!step.isVisible(visibleAnswers)) continue;
+    visibleAnswers[step.id] = answers[step.id];
+  }
+
+  return visibleAnswers;
+}
+
+/**
  * Returns the current progress: { current, total, percent }
  */
 export function getWizardProgress(answers: Record<string, string>): {

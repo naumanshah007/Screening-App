@@ -21,7 +21,7 @@ import {
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
-import { answersToInputFields } from "@/lib/wizard/steps";
+import { answersToInputFields, getVisibleAnswerMap } from "@/lib/wizard/steps";
 import type { ClinicalInput } from "@/lib/engine/types";
 import { addMonths } from "date-fns";
 
@@ -75,8 +75,9 @@ export async function POST(
   }
 
   // ── Build answers map ─────────────────────────────────────────────────────
-  const answersMap: Record<string, string> = {};
-  wizardSession.answers.forEach((a) => { answersMap[a.stepId] = a.answerValue; });
+  const rawAnswersMap: Record<string, string> = {};
+  wizardSession.answers.forEach((a) => { rawAnswersMap[a.stepId] = a.answerValue; });
+  const answersMap = getVisibleAnswerMap(rawAnswersMap);
 
   // ── Convert to ClinicalInput ──────────────────────────────────────────────
   const fieldMap = answersToInputFields(answersMap) as Record<string, unknown>;
