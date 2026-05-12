@@ -32,10 +32,20 @@ test("Figure 2 routes atypical endometrial cells older than 3 years to Figure 3"
   assert.equal(decision.recommendationCode, "F2-AG2-OLDER-3Y-FIG3");
 });
 
+test("Figure 2 routes atypical endometrial cells returned to 3-yearly cytology to Figure 3", () => {
+  const decision = evaluateFigure2(baseInput({
+    previousAtypicalEndometrialCells: true,
+    returnedTo3YearlyCytologyScreening: true,
+  }));
+
+  assert.equal(decision.recommendationCode, "F2-AG2-RETURNED-3Y-CYTOLOGY-FIG3");
+});
+
 test("Figure 2 routes atypical endometrial cells otherwise to specialist gynaecology", () => {
   const decision = evaluateFigure2(baseInput({
     previousAtypicalEndometrialCells: true,
     ag2ReportDate: new Date().toISOString(),
+    returnedTo3YearlyCytologyScreening: false,
   }));
 
   assert.equal(decision.recommendationCode, "F2-AG2-SPECIALIST-GYN");

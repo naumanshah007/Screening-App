@@ -57,7 +57,7 @@ type PatientInfo = {
 };
 
 type SessionData = {
-  session: { id: string; status: string; determinedFigure?: string };
+  session: { id: string; status: string; determinedFigure?: string; startedAt?: string; completedAt?: string | null };
   patient: PatientInfo;
   answers: WizardAnswer[];
   answersMap: Record<string, string>;
@@ -239,6 +239,7 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
 
   const patient = sessionData.patient;
   const answeredCount = sessionData.allSteps.filter((s) => s.isAnswered).length;
+  const shortSessionId = sessionData.session.id.slice(0, 8);
   const showClinicalWarning = selectedValue && highRiskValues.has(selectedValue);
   const warningText = selectedValue ? clinicalWarnings[selectedValue] : null;
 
@@ -279,6 +280,9 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
                 Post-Hysterectomy
               </span>
             )}
+            <span className="text-[10px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+              Editing assessment {shortSessionId}
+            </span>
           </div>
           <div className="text-right flex-shrink-0 mr-2">
             <p className="text-xs text-muted-foreground">Step {answeredCount + 1} of {progress.total}</p>

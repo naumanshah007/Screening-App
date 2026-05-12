@@ -310,7 +310,7 @@ Implemented but possibly wrong.
   - Confirmed ASC-H -> determine next step based on result.
 - Confirmed ASC-H:
   - Treatment deferred.
-  - Abnormal cytology, HPV detected, and/or visible lesion -> treatment recommended; consider type 2 excision TZ.
+  - Abnormal cytology and/or visible lesion -> treatment recommended; consider type 2 excision TZ. HPV detected with normal colposcopy and negative cytology follows repeat colposcopy/HPV/cytology in 12 months.
   - HPV not detected and no visible lesion -> Test of Cure/co-testing.
   - HPV detected, normal colposcopy, negative cytology -> repeat colposcopy, HPV, and cytology in 12 months.
 

@@ -84,6 +84,9 @@ export async function POST(
   const structuredInput = fieldMap as Partial<ClinicalInput>;
   const patient = wizardSession.patient;
   const existingSession = patient.screeningSessions[0];
+  const baseConsecutiveNegativeCoTestCount = 0;
+  const baseConsecutiveLowGradeCount = 0;
+  const baseUnsatisfactoryCytologyCount = 0;
 
   // Compute patient age in years from DOB
   const patientAgYears = patient.dateOfBirth
@@ -103,10 +106,11 @@ export async function POST(
       structuredInput.immunocompromised ??
       (patient.medicalHistory?.immunocompromised ?? false),
     isTestOfCure: structuredInput.isTestOfCure ?? false,
-    // Counters from existing session
-    consecutiveNegativeCoTestCount: existingSession?.consecutiveNegativeCoTestCount ?? 0,
-    consecutiveLowGradeCount: existingSession?.consecutiveLowGradeCount ?? 0,
-    unsatisfactoryCytologyCount: existingSession?.unsatisfactoryCytologyCount ?? 0,
+    // Clean wizard runs do not inherit previous session counters. Repeat stage
+    // and Test of Cure stage must come from the current wizard answers.
+    consecutiveNegativeCoTestCount: baseConsecutiveNegativeCoTestCount,
+    consecutiveLowGradeCount: baseConsecutiveLowGradeCount,
+    unsatisfactoryCytologyCount: baseUnsatisfactoryCytologyCount,
   };
 
   // ── Evaluate decision ─────────────────────────────────────────────────────
@@ -140,17 +144,17 @@ export async function POST(
       consecutiveNegativeCoTestCount:
         decision.resetConsecutiveNegative ? 0 :
         decision.incrementConsecutiveNegative
-          ? (existingSession?.consecutiveNegativeCoTestCount ?? 0) + 1
-          : existingSession?.consecutiveNegativeCoTestCount ?? 0,
+          ? baseConsecutiveNegativeCoTestCount + 1
+          : baseConsecutiveNegativeCoTestCount,
       consecutiveLowGradeCount:
         decision.resetConsecutiveLowGrade ? 0 :
         decision.incrementConsecutiveLowGrade
-          ? (existingSession?.consecutiveLowGradeCount ?? 0) + 1
-          : existingSession?.consecutiveLowGradeCount ?? 0,
+          ? baseConsecutiveLowGradeCount + 1
+          : baseConsecutiveLowGradeCount,
       unsatisfactoryCytologyCount:
         decision.incrementUnsatisfactory
-          ? (existingSession?.unsatisfactoryCytologyCount ?? 0) + 1
-          : existingSession?.unsatisfactoryCytologyCount ?? 0,
+          ? baseUnsatisfactoryCytologyCount + 1
+          : baseUnsatisfactoryCytologyCount,
     },
   });
 

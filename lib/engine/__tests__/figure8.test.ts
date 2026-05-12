@@ -13,17 +13,27 @@ test("Figure 8 known returned-regular history with no pathology needs no further
     screeningHistoryKnown: true,
   }));
 
-  assert.equal(decision.recommendationCode, "F8-KNOWN-HISTORY-NO-PATHOLOGY-NO-FURTHER");
+  assert.equal(decision.recommendationCode, "F8-NEG-RETURNED-NO-PATH-NO-FURTHER");
 });
 
-test("Figure 8 LSIL/CIN1 specimen routes to HPV test/Figure 3", () => {
+test("Figure 8 LSIL/CIN1 specimen with low-risk history routes to HPV test/Figure 3", () => {
   const decision = evaluateFigure8(baseInput({
     ...total,
     priorScreeningHistory: "NEGATIVE_OR_NORMAL",
     hysterectomySpecimenPathology: "LSIL_CIN1",
   }));
 
-  assert.equal(decision.recommendationCode, "F8-LSIL-CIN1-HPV-FIG3");
+  assert.equal(decision.recommendationCode, "F8-NEG-RETURNED-LSIL-HPV");
+});
+
+test("Figure 8 LSIL/CIN1 specimen with untreated/incomplete HSIL/AIS history routes to Test of Cure", () => {
+  const decision = evaluateFigure8(baseInput({
+    ...total,
+    priorScreeningHistory: "HSIL_AIS_UNTREATED_OR_INCOMPLETELY_TREATED",
+    hysterectomySpecimenPathology: "LSIL_CIN1",
+  }));
+
+  assert.equal(decision.recommendationCode, "F8-UNTREATED-HSIL-AIS-NO-PATH-LOWGRADE-TOC");
 });
 
 test("Figure 8 high-grade specimen routes by excision completeness", () => {

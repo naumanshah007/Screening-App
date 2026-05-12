@@ -38,3 +38,14 @@ test("Figure 5 confirmed ASC-H HPV detected normal colposcopy negative cytology 
 
   assert.equal(decision.recommendationCode, "F5-CONFIRMED-ASCH-HPV-DETECTED-NORMAL-NEG-12M");
 });
+
+test("Figure 5 confirmed ASC-H does not use HPV detected alone as treatment trigger", () => {
+  const decision = evaluateFigure5(baseInput({
+    mdmOutcome: "CONFIRMED_ASC_H",
+    hpvResult: "HPV_OTHER",
+    visibleLesion: false,
+  }));
+
+  assert.equal(decision.recommendationCode, "F5-CONFIRMED-ASCH-RESULTS-REQUIRED");
+  assert.equal(decision.safetyOutcome, "INSUFFICIENT_INFORMATION");
+});

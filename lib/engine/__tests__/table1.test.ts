@@ -14,7 +14,7 @@ test("Table 1 negative/returned regular history with no pathology needs no furth
     screeningHistoryKnown: true,
   }));
 
-  assert.equal(decision.recommendationCode, "T1-KNOWN-HISTORY-NO-PATHOLOGY-NO-FURTHER");
+  assert.equal(decision.recommendationCode, "T1-NEG-RETURNED-NO-PATH-NO-FURTHER");
 });
 
 test("Table 1 previous ASC-US/LSIL not returned with low-grade specimen follows Figure 3 after HPV test", () => {
@@ -25,7 +25,7 @@ test("Table 1 previous ASC-US/LSIL not returned with low-grade specimen follows 
     hysterectomySpecimenPathology: "LSIL_CIN1",
   }));
 
-  assert.equal(decision.recommendationCode, "T1-LOW-GRADE-NOT-RETURNED-HPV-FIG3");
+  assert.equal(decision.recommendationCode, "T1-LOWGRADE-NOT-RETURNED-LSIL-HPV");
 });
 
 test("Table 1 complete vs incomplete high-grade excision routes to ToC or colposcopy", () => {
@@ -53,7 +53,7 @@ test("Table 1 incomplete Test of Cure with no/low-grade pathology continues Test
     hysterectomySpecimenPathology: "LSIL_CIN1",
   }));
 
-  assert.equal(decision.recommendationCode, "T1-INCOMPLETE-TOC-LOW-PATHOLOGY-TOC");
+  assert.equal(decision.recommendationCode, "T1-INCOMPLETE-TOC-NO-PATH-LOWGRADE-TOC");
 });
 
 test("Table 1 no known screening history with no/low-grade pathology schedules HPV at 6 months post hysterectomy", () => {
@@ -63,5 +63,27 @@ test("Table 1 no known screening history with no/low-grade pathology schedules H
     hysterectomySpecimenPathology: "NO_CERVICAL_PATHOLOGY",
   }));
 
-  assert.equal(decision.recommendationCode, "T1-NO-KNOWN-HISTORY-HPV-6M");
+  assert.equal(decision.recommendationCode, "T1-NO-HISTORY-NO-PATH-LOWGRADE-HPV-6M");
+});
+
+test("Table 1 untreated/incompletely treated HSIL/AIS with low-grade pathology routes to Test of Cure", () => {
+  const decision = evaluateTable1(baseInput({
+    ...total,
+    priorScreeningHistory: "HSIL_AIS_UNTREATED_OR_INCOMPLETELY_TREATED",
+    hysterectomySpecimenPathology: "LSIL_CIN1",
+  }));
+
+  assert.equal(decision.recommendationCode, "T1-UNTREATED-HSIL-AIS-NO-PATH-LOWGRADE-TOC");
+});
+
+test("Table 1 unknown high-grade excision status requires review rather than guessing", () => {
+  const decision = evaluateTable1(baseInput({
+    ...total,
+    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
+    hysterectomySpecimenPathology: "HSIL_CIN23",
+    excisionStatus: "UNKNOWN",
+  }));
+
+  assert.equal(decision.recommendationCode, "T1-HSIL-AIS-EXCISION-UNKNOWN-REVIEW");
+  assert.equal(decision.safetyOutcome, "INSUFFICIENT_INFORMATION");
 });

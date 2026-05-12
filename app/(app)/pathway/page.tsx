@@ -35,6 +35,8 @@ type PatientResult = {
 
 type StartResult = {
   sessionId: string;
+  mode?: "clean" | "import" | "resume";
+  resumed?: boolean;
   confidence: "complete" | "partial" | "none";
   summary: string[];
   detectedFigure?: string;
@@ -71,7 +73,7 @@ export default function PathwayWizardStartPage() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [startResult, setStartResult] = useState<StartResult | null>(null);
-  const [starting, setStarting] = useState(false);
+  const [startingMode, setStartingMode] = useState<"clean" | "import" | "resume" | null>(null);
   const [startError, setStartError] = useState("");
 
   const handleSearch = useCallback(async () => {
@@ -97,16 +99,16 @@ export default function PathwayWizardStartPage() {
   }, [nhiInput]);
 
   const handleStart = useCallback(
-    async () => {
+    async (mode: "clean" | "import" | "resume") => {
       if (!patient) return;
-      setStarting(true);
+      setStartingMode(mode);
       setStartError("");
 
       try {
         const res = await fetch("/api/pathway/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ patientId: patient.id }),
+          body: JSON.stringify({ patientId: patient.id, mode }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to start session");
@@ -116,7 +118,7 @@ export default function PathwayWizardStartPage() {
       } catch (e: unknown) {
         setStartError(e instanceof Error ? e.message : "Failed to start wizard");
       } finally {
-        setStarting(false);
+        setStartingMode(null);
       }
     },
     [patient, router]
@@ -150,7 +152,7 @@ export default function PathwayWizardStartPage() {
             }
           />
           <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Workflow: find the patient, let the wizard pre-fill what it can from existing history, answer any remaining questions, then review the final cervical pathway decision.
+            Workflow: find the patient, start a clean new assessment, resume an incomplete assessment, or explicitly import existing history when that is clinically intended.
           </div>
         </div>
       </div>
@@ -284,19 +286,39 @@ export default function PathwayWizardStartPage() {
 
               {/* Action */}
               <div className="pt-1">
-                <Button
-                  variant="primary"
-                  onClick={() => handleStart()}
-                  disabled={starting}
-                  loading={starting}
-                  className={cn("w-full", starting && "opacity-80")}
-                >
-                  {!starting && <ArrowRight className="h-4 w-4" />}
-                  {starting ? "Starting…" : "Start pathway review"}
-                </Button>
+                <div className="grid gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={() => handleStart("clean")}
+                    disabled={startingMode !== null}
+                    loading={startingMode === "clean"}
+                    className={cn("w-full", startingMode === "clean" && "opacity-80")}
+                  >
+                    {startingMode !== "clean" && <ArrowRight className="h-4 w-4" />}
+                    {startingMode === "clean" ? "Starting…" : "Start new assessment"}
+                  </Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleStart("resume")}
+                      disabled={startingMode !== null}
+                      loading={startingMode === "resume"}
+                    >
+                      Resume incomplete assessment
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleStart("import")}
+                      disabled={startingMode !== null}
+                      loading={startingMode === "import"}
+                    >
+                      Start with history pre-fill
+                    </Button>
+                  </div>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                Existing records are used to pre-fill the review where available. The tool asks only for missing information before showing a provisional pathway decision.
+                Start new assessment begins with empty answers. History pre-fill and resume are explicit actions and are recorded in audit.
               </p>
             </CardContent>
           </Card>

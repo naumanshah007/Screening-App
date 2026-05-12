@@ -48,6 +48,11 @@ type SessionResult = {
   decision: ClinicalDecision;
   patient: PatientInfo;
   screeningSessionId: string;
+  session?: {
+    id: string;
+    startedAt?: string;
+    completedAt?: string | null;
+  };
   referral?: { id: string; priority: string; type: string } | null;
   recall?: { id: string; dueDate: string } | null;
   alreadyComplete?: boolean;
@@ -147,6 +152,11 @@ export default function WizardResultPage({
               name: `${sessionData.patient.firstName} ${sessionData.patient.lastName}`,
             },
             screeningSessionId: sessionData.session.screeningSessionId ?? "",
+            session: {
+              id: sessionData.session.id,
+              startedAt: sessionData.session.startedAt,
+              completedAt: sessionData.session.completedAt,
+            },
             alreadyComplete: true,
           });
           setLoading(false);
@@ -165,6 +175,11 @@ export default function WizardResultPage({
           decision: completeData.decision,
           patient: completeData.patient,
           screeningSessionId: completeData.screeningSessionId,
+          session: {
+            id: sessionId,
+            startedAt: sessionData.session?.startedAt,
+            completedAt: new Date().toISOString(),
+          },
           referral: completeData.referral,
           recall: completeData.recall,
         });
@@ -234,6 +249,16 @@ export default function WizardResultPage({
   const risk = (decision.riskLevel ?? "LOW") as keyof typeof riskConfig;
   const cfg = riskConfig[risk] ?? riskConfig.LOW;
   const figureLabel = getFigureLabel(decision.figure);
+  const assessmentRunLabel = result.session?.startedAt
+    ? new Date(result.session.startedAt).toLocaleString("en-NZ", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  const shortSessionId = (result.session?.id ?? sessionId).slice(0, 8);
 
   return (
     <>
@@ -285,6 +310,9 @@ export default function WizardResultPage({
                     {decision.recommendationCode}
                   </span>
                 )}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Assessment run: {assessmentRunLabel ?? "Current session"} · Session ID: {shortSessionId}
+                </p>
               </div>
             </div>
           </div>

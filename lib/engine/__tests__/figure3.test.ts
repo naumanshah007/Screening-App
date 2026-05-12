@@ -21,6 +21,13 @@ test("Figure 3 requires a return visit for HPV detected on swab before cytology-
   assert.equal(decision.recommendationCode, "F3-SWAB-RETURN-REQUIRED");
 });
 
+test("Figure 3 HPV 16/18 on swab routes to colposcopy without generic swab-return block", () => {
+  const decision = evaluateFigure3(baseInput({ hpvResult: "HPV_16_18", sampleType: "SWAB" }));
+
+  assert.equal(decision.recommendationCode, "F3-1618-COLP");
+  assert.equal(decision.referralType, "COLPOSCOPY");
+});
+
 test("Figure 3 baseline HPV Other with ASC-US/LSIL schedules first repeat", () => {
   const ascus = evaluateFigure3(baseInput({ hpvResult: "HPV_OTHER", cytologyResult: "ASC_US" }));
   const lsil = evaluateFigure3(baseInput({ hpvResult: "HPV_OTHER", cytologyResult: "LSIL" }));

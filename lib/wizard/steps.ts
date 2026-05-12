@@ -309,6 +309,23 @@ export const WIZARD_STEPS: WizardStep[] = [
       ans.ag2_report_timing !== "OLDER_THAN_3_YEARS",
   },
 
+  {
+    id: "returned_to_3_yearly_cytology_screening",
+    question: "Has the patient returned to 3-yearly cytology screening after previous atypical endometrial cells?",
+    hint: "Use validated history where available. If this cannot be verified, choose unknown so the system does not infer a safe return pathway.",
+    type: "option-cards",
+    options: [
+      { value: "true", label: "Yes — returned to 3-yearly cytology screening", hint: "Eligible to return to primary HPV screening pathway" },
+      { value: "false", label: "No — has not returned to 3-yearly cytology screening", hint: "Specialist gynaecology branch applies", cautionTag: "Specialist review" },
+      { value: "unknown", label: "Unknown / cannot verify", hint: "Requires external history or clinician review", cautionTag: "External history" },
+    ],
+    isVisible: (ans) =>
+      ans.is_first_hpv_transition === "true" &&
+      (ans.transition_prior_history === "PREVIOUS_ATYPICAL_ENDOMETRIAL" || ans.atypical_endometrial_history === "true") &&
+      ans.ag2_report_timing !== "OLDER_THAN_3_YEARS" &&
+      ans.specialist_discharged_to_primary_care !== "true",
+  },
+
   // ── Step 2b: Abnormal vaginal bleeding entry ─────────────────────────────
   {
     id: "has_abnormal_vaginal_bleeding",
@@ -550,7 +567,7 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "cytology_result",
     question: "What was the cytology result?",
-    hint: "Only required when HPV Other is detected. High-grade results (ASC-H, HSIL, SCC, AG3–AG5, AC2–AC4) trigger urgent referral.",
+    hint: "Only required when HPV Other is detected. High-grade results (ASC-H, HSIL, SCC, AIS, AG3–AG5, AC2–AC4) trigger urgent referral.",
     type: "option-cards",
     options: [
       { value: "NEGATIVE",       label: "Negative",                hint: "No abnormal cells detected" },
@@ -559,6 +576,7 @@ export const WIZARD_STEPS: WizardStep[] = [
       { value: "ASC_H",          label: "ASC-H",                   hint: "Cannot exclude HSIL", cautionTag: "High-grade" },
       { value: "HSIL",           label: "HSIL",                    hint: "High-grade squamous intraepithelial lesion", cautionTag: "High-grade" },
       { value: "SCC",            label: "SCC",                     hint: "Squamous cell carcinoma", cautionTag: "Urgent" },
+      { value: "AIS",            label: "AIS — adenocarcinoma in situ", hint: "High-grade glandular cytology — urgent pathway", cautionTag: "High-grade" },
       { value: "AG1",            label: "AG1 — atypical endocervical cells", hint: "Glandular abnormality pathway — colposcopy" },
       { value: "AG2",            label: "AG2 — atypical endometrial cells", hint: "Glandular abnormality pathway — direct gynaecology referral", cautionTag: "Gynaecology" },
       { value: "AG3",            label: "AG3 — atypical glandular cells NOS", hint: "Glandular abnormality pathway — colposcopy", cautionTag: "High-grade" },
@@ -597,7 +615,7 @@ export const WIZARD_STEPS: WizardStep[] = [
     isVisible: (ans) => {
       if (ans.is_post_hysterectomy === "true") return false;
       if (ans.has_abnormal_vaginal_bleeding === "true") return false;
-      const qualifyingCytology = ["ASC_H", "HSIL", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
+      const qualifyingCytology = ["ASC_H", "HSIL", "AIS", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
       return qualifyingCytology.includes(ans.cytology_result ?? "");
     },
   },
@@ -755,7 +773,7 @@ export const WIZARD_STEPS: WizardStep[] = [
       (
         ans.repeat_context === "POST_NORMAL_COLPOSCOPY_HIGH_GRADE_CYTOLOGY" ||
         ans.is_pregnant === "true" ||
-        ["AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"].includes(ans.cytology_result ?? "")
+        ["AIS", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"].includes(ans.cytology_result ?? "")
       ),
   },
 
@@ -839,7 +857,7 @@ export const WIZARD_STEPS: WizardStep[] = [
       (
         ans.repeat_context === "POST_NORMAL_COLPOSCOPY_HIGH_GRADE_CYTOLOGY" ||
         ans.visible_lesion === "false" ||
-        ["AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"].includes(ans.cytology_result ?? "") ||
+        ["AIS", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"].includes(ans.cytology_result ?? "") ||
         ans.histology_result === "AIS" ||
         ans.histology_result === "SCC" ||
         ans.histology_result === "ADENOCARCINOMA" ||
@@ -925,7 +943,15 @@ export function getVisibleAnswerMap(
   for (const step of WIZARD_STEPS) {
     if (step.type === "info") continue;
     if (!(step.id in answers)) continue;
-    if (!step.isVisible(visibleAnswers)) continue;
+    const preserveCytologyForLaterClinicalContext =
+      step.id === "cytology_result" &&
+      (answers.is_test_of_cure === "true" ||
+        answers.repeat_context === "TEST_OF_CURE" ||
+        answers.repeat_context === "POST_NORMAL_COLPOSCOPY_HIGH_GRADE_CYTOLOGY") &&
+      visibleAnswers.is_post_hysterectomy === "false" &&
+      visibleAnswers.is_first_hpv_transition === "false" &&
+      visibleAnswers.has_abnormal_vaginal_bleeding !== "true";
+    if (!step.isVisible(visibleAnswers) && !preserveCytologyForLaterClinicalContext) continue;
     visibleAnswers[step.id] = answers[step.id];
   }
 
@@ -993,6 +1019,9 @@ export function answersToInputFields(
     previousAtypicalGlandularCells: transitionHistory === "PREVIOUS_ATYPICAL_GLANDULAR",
     previousAtypicalEndometrialCells: transitionHistory === "PREVIOUS_ATYPICAL_ENDOMETRIAL" || answers.atypical_endometrial_history === "true",
     ag2ReportDate,
+    returnedTo3YearlyCytologyScreening: answers.returned_to_3_yearly_cytology_screening === "true" ? true
+                                      : answers.returned_to_3_yearly_cytology_screening === "false" ? false
+                                      : undefined,
     specialistDischargedToPrimaryCare: answers.specialist_discharged_to_primary_care === "true" ? true
                                     : answers.specialist_discharged_to_primary_care === "false" ? false
                                     : undefined,

@@ -16,7 +16,7 @@ test("Figure 9 initial pregnant high-grade cytology routes to colposcopy", () =>
 });
 
 test("Figure 9 qualifying cytology categories route pregnant participants to initial colposcopy", () => {
-  const qualifyingCytology = ["ASC_H", "HSIL", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"] as const;
+  const qualifyingCytology = ["ASC_H", "HSIL", "AIS", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"] as const;
 
   for (const cytologyResult of qualifyingCytology) {
     const decision = evaluateClinicalDecision(baseInput({ isPregnant: true, cytologyResult }));
@@ -31,6 +31,17 @@ test("Figure 9 normal TZ/no lesion requires MDM", () => {
   const decision = evaluateFigure9(baseInput({ isPregnant: true, cytologyResult: "ASC_H", transformationZoneState: "NORMAL" }));
 
   assert.equal(decision.recommendationCode, "F9-NORMAL-TZ-MDM");
+});
+
+test("Figure 9 MDM downgraded to LSIL/ASC-US follows LSIL pathway", () => {
+  const decision = evaluateFigure9(baseInput({
+    isPregnant: true,
+    cytologyResult: "ASC_H",
+    transformationZoneState: "NORMAL",
+    mdmOutcome: "DOWNGRADED_ASC_US_LSIL",
+  }));
+
+  assert.equal(decision.recommendationCode, "F9-MDM-DOWNGRADED-LSIL");
 });
 
 test("Figure 9 invasion impression requires biopsy before oncology", () => {

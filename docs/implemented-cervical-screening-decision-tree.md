@@ -4,12 +4,26 @@ Prepared for clinical review of the demo app at `https://screening.privexa.co`.
 
 This document describes the decision tree currently implemented in the demo application. It is extracted from the app's wizard step definitions and deterministic decision engine. It should be treated as an implementation review document, not as a final approved clinical protocol.
 
+This is an implementation review only. It is not an approved clinical protocol and must be clinically signed off before production use.
+
 ## Source Of Truth In The App
 
 - Wizard questions: `lib/wizard/steps.ts`
 - Answer-to-engine mapping: `answersToInputFields()` in `lib/wizard/steps.ts`
 - Deterministic decision engine: `lib/engine/decision-engine.ts`
 - Visual figure summaries: `lib/decision-trees/index.ts`
+
+## Figure/Table Parity Corrections
+
+The current implementation includes these targeted parity corrections from clinical source-image review:
+
+- Figure 2: added `returned_to_3_yearly_cytology_screening` for previous atypical endometrial cells, mapped to return to Figure 3 when confirmed.
+- Figure 3: HPV 16/18 no longer depends on the generic self-collected swab return-visit block; HPV 16/18 routes to colposcopy while cytology is reported if LBC is available. HPV Other on swab still requires return visit with clinical examination and cytology collection.
+- Figure 5: confirmed ASC-H no longer treats "HPV detected alone" as a treatment trigger. The specific HPV detected + normal colposcopy + negative cytology branch repeats colposcopy/HPV/cytology in 12 months.
+- Figure 6: Test of Cure now distinguishes first negative, second negative, continuing Test of Cure, and repeat abnormal-cytology branches.
+- Figure 8/Table 1: post-hysterectomy logic is row-specific; the old broad LSIL/CIN1 shortcut has been replaced.
+- Figure 9: MDM downgrade wording includes LSIL/ASC-US.
+- Figure 10: history wording explicitly includes menstrual, contraceptive, and sexual history.
 
 ## High-Level Routing Order
 
@@ -63,7 +77,7 @@ Key engine outcomes:
 | Post-hysterectomy HPV detected | Follow Figure 3 primary HPV pathway |
 | Known negative/returned-regular history and no cervical pathology | No further screening required |
 | Unknown history and no cervical pathology | HPV test required |
-| LSIL/CIN1 specimen | HPV test and follow Figure 3 |
+| LSIL/CIN1 specimen | Row-specific Table 1 handling: HPV test/Figure 3 for low-risk or returned-to-screening rows; Test of Cure for untreated/incomplete high-grade history rows |
 | HSIL/CIN2/3 or AIS completely excised | Start or continue Test of Cure |
 | HSIL/CIN2/3 or AIS incompletely excised | Refer to colposcopy |
 
@@ -100,6 +114,7 @@ Key engine outcomes:
 | `colposcopy_completed_last_recommendation` | Has that recommended colposcopy already occurred? | `true`: Yes - already occurred; `false`: No - has not occurred |
 | `ag2_report_timing` | For previous AG2/atypical endometrial cells, when was the report? | `OLDER_THAN_3_YEARS`; `WITHIN_3_YEARS`; `UNKNOWN` |
 | `specialist_discharged_to_primary_care` | Has the patient already been seen by specialist services and discharged to primary care? | `true`: Yes - discharged to primary care; `false`: No / not documented |
+| `returned_to_3_yearly_cytology_screening` | Has the patient returned to 3-yearly cytology screening after previous atypical endometrial cells? | `true`; `false`; `unknown` |
 | `atypical_endometrial_history` | Does this patient have a history of atypical endometrial cells (AG2)? | `true`: Yes - previous AG2 / atypical endometrial cells; `false`: No - no atypical endometrial history |
 
 Key engine outcomes:
@@ -109,6 +124,7 @@ Key engine outcomes:
 | Previous AIS without total hysterectomy | `F2-AIS-R208-FOLLOWUP` | Service-defined post-treatment follow-up / clinician-confirmed pathway |
 | Previous atypical endometrial report older than 3 years | `F2-AG2-OLDER-3Y-FIG3` | Return to HPV primary screening / Figure 3 |
 | Previous atypical endometrial history and discharged to primary care | `F2-AG2-DISCHARGED-FIG3` | Return to HPV primary screening / Figure 3 |
+| Previous atypical endometrial history and returned to 3-yearly cytology screening | `F2-AG2-RETURNED-3Y-CYTOLOGY-FIG3` | Return to HPV primary screening / Figure 3 |
 | Previous atypical endometrial history not returned to screening | `F2-AG2-SPECIALIST-GYN` | Refer to specialist gynaecology |
 | Previous high-grade/glandular and recommended colposcopy not done | `F2-PRIOR-HG-COLP` | Refer to colposcopy |
 | Previous high-grade/glandular with completed Test of Cure | `F2-PRIOR-HG-TOC-COMPLETE-FIG3` | Return to regular HPV screening / Figure 3 |
@@ -135,7 +151,7 @@ Key engine outcomes:
 | Branch | Recommendation code | Implemented outcome |
 |---|---|---|
 | Cancer signs/symptoms present | `F10-CANCER-SYMPTOMS-URGENT-GYN` | Urgent gynaecological assessment without delay |
-| Initial assessment incomplete or cervix not assessed | `F10-INITIAL-ASSESSMENT` | Complete history, speculum exam, pelvic exam, co-test, and cervix assessment |
+| Initial assessment incomplete or cervix not assessed | `F10-INITIAL-ASSESSMENT` | Complete menstrual, contraceptive, and sexual history; speculum exam; pelvic exam; co-test; and cervix assessment |
 | Abnormal cervix with suspicion of cancer | `F10-ABNORMAL-CERVIX-CANCER-COTEST-COLP` | Complete co-test and refer to colposcopy, P1 |
 | Abnormal cervix without suspicion of cancer | `F10-ABNORMAL-CERVIX-NO-CANCER-REVIEW` | Treat per Healthcare Pathways or refer to gynaecology, then review in 6-8 weeks |
 | Normal cervix, suspected OCP issue | `F10-OCP-ADJUST-REVIEW` | Adjust OCP and review in 6-8 weeks |
@@ -152,7 +168,7 @@ Key engine outcomes:
 | `sample_type` | What sample type was used for this test? | `LBC`: LBC - Liquid Based Cytology; `SWAB`: SWAB - Self-collected vaginal swab |
 | `swab_return_visit_completed` | Has the patient returned for a clinical examination following the self-collected swab? | `true`: Yes - return visit completed; `false`: No - return visit not yet completed |
 | `hpv_result` | What was the HPV test result? | `NOT_DETECTED`; `HPV_16_18`; `HPV_OTHER`; `INADEQUATE` |
-| `cytology_result` | What was the cytology result? | `NEGATIVE`; `ASC_US`; `LSIL`; `ASC_H`; `HSIL`; `SCC`; `AG1`; `AG2`; `AG3`; `AG4`; `AG5`; `AC1`; `AC2`; `AC3`; `AC4`; `UNSATISFACTORY` |
+| `cytology_result` | What was the cytology result? | `NEGATIVE`; `ASC_US`; `LSIL`; `ASC_H`; `HSIL`; `SCC`; `AIS`; `AG1`; `AG2`; `AG3`; `AG4`; `AG5`; `AC1`; `AC2`; `AC3`; `AC4`; `UNSATISFACTORY` |
 
 ### Figure 3 / Primary HPV Screening
 
@@ -160,11 +176,11 @@ Key engine outcomes:
 
 | Branch | Recommendation code | Implemented outcome |
 |---|---|---|
-| Self-collected swab with HPV detected and no return visit | `F3-SWAB-RETURN-REQUIRED` | Schedule return visit with clinical exam and cytology/co-test review |
+| Self-collected swab with HPV Other and no return visit | `F3-SWAB-RETURN-REQUIRED` | Schedule return visit with clinical examination and cytology sample collection |
 | HPV not detected | `F3-NEG-5Y` or immunocompromised 3-year branch | Routine recall, 60 months or 36 months if immunocompromised |
 | Inadequate HPV sample | `F3-INAD-3M` | Repeat HPV test in 3 months |
 | Second repeat HPV detected, any type | `F3-SECOND-REPEAT-HPV-DETECTED-COLP` | Report cytology if available and refer to colposcopy |
-| HPV 16/18 | `F3-1618-COLP` / `F3-1618-HIGH-GRADE-COLP` | Refer to colposcopy; high-grade cytology uses urgent/high-grade branch |
+| HPV 16/18, including self-collected swab | `F3-1618-COLP` / `F3-1618-HIGH-GRADE-COLP` | Refer to colposcopy; cytology should be reported if LBC is available |
 | HPV Other + high-grade cytology | `F3-HPV-OTHER-HIGH-GRADE-COLP` | Refer to colposcopy |
 | Baseline HPV Other + negative/ASC-US/LSIL | `F3-HPV-OTHER-NEG-ASCUS-LSIL-12M` | First repeat HPV test in 12 months, recommend LBC |
 | First repeat HPV Other + negative/ASC-US/LSIL + age >=50 | `F3-FIRST-REPEAT-AGE50-COLP` | Refer to colposcopy |
@@ -191,7 +207,7 @@ Key engine outcomes:
 |---|---|---|
 | Pregnant with qualifying high-grade/glandular cytology and no colposcopy findings yet | `F9-INITIAL-COLPOSCOPY` | Arrange colposcopy |
 | Normal TZ/no visible lesion, MDM downgraded negative | `F9-MDM-DOWNGRADED-NEGATIVE-FIG3` | Follow Figure 3 |
-| Normal TZ/no visible lesion, MDM downgraded LSIL | `F9-MDM-DOWNGRADED-LSIL` | Follow LSIL pathway |
+| Normal TZ/no visible lesion, MDM downgraded LSIL/ASC-US | `F9-MDM-DOWNGRADED-LSIL` | Follow LSIL pathway |
 | Normal TZ/no visible lesion, MDM confirmed high-grade | `F9-MDM-CONFIRMED-HIGH-GRADE-REVIEW` | Colposcopy review in 6 months or 6-12 weeks postpartum |
 | Normal TZ/no visible lesion, MDM not entered | `F9-NORMAL-TZ-MDM` | Complete MDM case review |
 | Invasion suspected, no biopsy | `F9-INVASION-IMPRESSION-BIOPSY` | Perform biopsy |
@@ -212,8 +228,11 @@ Key engine outcomes:
 |---|---|---|
 | HPV detected any type with any cytology | `F6-HPV-DETECTED-ANY-CYTOLOGY-COLP` | Refer to colposcopy |
 | First negative Test of Cure co-test | `F6-FIRST-NEGATIVE-REPEAT-12M` | Repeat cytology and HPV in 12 months |
+| Second negative Test of Cure co-test | `F6-SECOND-NEGATIVE-RETURN-REGULAR` | Return to regular screening |
 | HPV not detected but high-grade cytology | `F6-HPV-NEG-HIGH-GRADE-COLP` | Refer to colposcopy |
-| HPV not detected with low-grade cytology | `F6-HPV-NEG-LOW-GRADE-REPEAT-12M` | Repeat cytology and HPV in 12 months |
+| First Test of Cure HPV not detected with low-grade cytology | `F6-HPV-NEG-LOW-GRADE-REPEAT-12M` | Repeat cytology and HPV in 12 months |
+| Repeat Test of Cure HPV not detected with abnormal cytology | `F6-REPEAT-HPV-NEG-CYTOLOGY-ABNORMAL-COLP` | Refer to colposcopy |
+| Continuing Test of Cure HPV not detected with negative cytology | `F6-CONTINUE-TOC-UNTIL-COMPLETE` | Continue Test of Cure until successful completion |
 
 ### Repeat / Follow-Up Context
 
@@ -255,7 +274,7 @@ Key engine outcomes:
 | MDM upgraded to HSIL | `F5-MDM-UPGRADED-HSIL-TREAT` | Follow HSIL pathway and arrange treatment |
 | Confirmed ASC-H + HPV not detected + no visible lesion | `F5-CONFIRMED-ASCH-HPV-NEG-NO-LESION-TOC` | Arrange Test of Cure/co-testing |
 | Confirmed ASC-H + HPV detected + normal colposcopy + negative cytology | `F5-CONFIRMED-ASCH-HPV-DETECTED-NORMAL-NEG-12M` | Repeat colposcopy, HPV, and cytology in 12 months |
-| Confirmed ASC-H with abnormal cytology, HPV detected, or visible lesion | `F5-CONFIRMED-ASCH-TREAT` | Treatment recommended; consider type 2 excision TZ |
+| Confirmed ASC-H with abnormal cytology and/or visible lesion | `F5-CONFIRMED-ASCH-TREAT` | Treatment recommended; consider type 2 excision TZ |
 
 ### Figure 7 / Glandular Abnormality
 
@@ -270,6 +289,38 @@ Key engine outcomes:
 | MDM confirmed cytology and not AG2 | `F7-MDM-CONFIRMED-NOT-AG2-TYPE3` | Type 3 excision required |
 | MDM confirmed AG2 | `F7-MDM-AG2-INVESTIGATE-MALIGNANCIES` | Investigate other gynaecological malignancies |
 | MDM did not confirm cytology | `F7-MDM-CYTOLOGY-NOT-CONFIRMED-6M` | Repeat colposcopy in 6 months |
+
+Glossary:
+
+| Code | Meaning |
+|---|---|
+| AG1 | Atypical endocervical cells |
+| AG2 | Atypical endometrial cells |
+| AG3 | Atypical glandular cells NOS |
+| AG4 | Atypical endocervical cells favouring a neoplastic process |
+| AG5 | Atypical glandular cells favouring a neoplastic process |
+| AIS | Adenocarcinoma in situ |
+| AC1 | Endocervical adenocarcinoma |
+| AC2 | Endometrial adenocarcinoma |
+| AC3 | Extrauterine adenocarcinoma |
+| AC4 | Adenocarcinoma NOS |
+
+### Figure 8 / Table 1 Row-Specific Post-Hysterectomy Logic
+
+| Table 1 row/specimen branch | Recommendation code | Implemented outcome |
+|---|---|---|
+| Negative/normal or previous ASC-US/LSIL returned to regular screening + no cervical pathology | `T1-NEG-RETURNED-NO-PATH-NO-FURTHER` | No further screening |
+| Negative/normal or previous ASC-US/LSIL returned to regular screening + LSIL/CIN1 | `T1-NEG-RETURNED-LSIL-HPV` | HPV test and follow Figure 3 |
+| Previous ASC-US/LSIL not returned to regular screening + no cervical pathology | `T1-LOWGRADE-NOT-RETURNED-NO-PATH-HPV` | HPV test and follow Figure 3 |
+| Previous ASC-US/LSIL not returned to regular screening + LSIL/CIN1 | `T1-LOWGRADE-NOT-RETURNED-LSIL-HPV` | HPV test and follow Figure 3 |
+| Treated HSIL/CIN2/3 with completed Test of Cure + no cervical pathology | `T1-HSIL-TOC-COMPLETE-NO-PATH-NO-FURTHER` | No further screening |
+| Treated HSIL/CIN2/3 with completed Test of Cure + LSIL/CIN1 | `T1-HSIL-TOC-COMPLETE-LSIL-HPV` | HPV test and follow Figure 3 |
+| HSIL/CIN2/3 or AIS completely excised | `T1-HSIL-AIS-COMPLETE-TOC` | Start or continue Test of Cure |
+| HSIL/CIN2/3 or AIS incompletely excised | `T1-HSIL-AIS-INCOMPLETE-COLP` | Refer to colposcopy |
+| Untreated/incompletely treated HSIL/CIN2/3 or AIS + no/low-grade pathology | `T1-UNTREATED-HSIL-AIS-NO-PATH-LOWGRADE-TOC` | Continue Test of Cure |
+| Previous treatment with incomplete Test of Cure + no/low-grade pathology | `T1-INCOMPLETE-TOC-NO-PATH-LOWGRADE-TOC` | Continue Test of Cure |
+| No known screening history + no/low-grade pathology | `T1-NO-HISTORY-NO-PATH-LOWGRADE-HPV-6M` | HPV test at 6 months post-hysterectomy |
+| HSIL/CIN2/3 or AIS with unknown excision status | `T1-HSIL-AIS-EXCISION-UNKNOWN-REVIEW` | Insufficient information; confirm pathology/excision status |
 
 ## Known Review Notes
 

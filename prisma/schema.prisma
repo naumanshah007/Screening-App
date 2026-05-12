@@ -59,6 +59,7 @@ enum CytologyResult {
   ASC_H
   HSIL
   SCC
+  AIS
   AG1
   AG2
   AG3

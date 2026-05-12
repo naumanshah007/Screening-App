@@ -12,7 +12,7 @@ const RULE_VERSION = "business-figures-table1-v1";
 const THREE_YEARS_MS = 3 * 365.25 * 24 * 60 * 60 * 1000;
 
 const GLANDULAR_CODES = ["AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
-const FIGURE_9_QUALIFYING_CYTOLOGY = ["ASC_H", "HSIL", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
+const FIGURE_9_QUALIFYING_CYTOLOGY = ["ASC_H", "HSIL", "AIS", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
 
 function withDefaults(decision: ClinicalDecision): ClinicalDecision {
   return {
@@ -81,7 +81,7 @@ function isLowGradeCytology(cytologyResult?: string): boolean {
 }
 
 function isHighGradeCytology(cytologyResult?: string): boolean {
-  return ["ASC_H", "HSIL", "SCC", ...GLANDULAR_CODES].includes(cytologyResult ?? "");
+  return ["ASC_H", "HSIL", "SCC", "AIS", ...GLANDULAR_CODES].includes(cytologyResult ?? "");
 }
 
 function isGlandularCytology(cytologyResult?: string): boolean {
@@ -221,27 +221,50 @@ function evaluateFigure2(input: ClinicalInput): ClinicalDecision {
   ) {
     const olderThanThreeYears = reportOlderThanThreeYears(input.ag2ReportDate);
 
-    if (olderThanThreeYears === true || input.specialistDischargedToPrimaryCare) {
+    if (
+      olderThanThreeYears === true ||
+      input.specialistDischargedToPrimaryCare ||
+      input.returnedTo3YearlyCytologyScreening
+    ) {
       return withDefaults({
         figure: "FIGURE_2",
         riskLevel: "LOW",
         recommendation: "Previous atypical endometrial cells are eligible to return to HPV primary screening.",
-        recommendationCode: olderThanThreeYears ? "F2-AG2-OLDER-3Y-FIG3" : "F2-AG2-DISCHARGED-FIG3",
+        recommendationCode: olderThanThreeYears
+          ? "F2-AG2-OLDER-3Y-FIG3"
+          : input.specialistDischargedToPrimaryCare
+            ? "F2-AG2-DISCHARGED-FIG3"
+            : "F2-AG2-RETURNED-3Y-CYTOLOGY-FIG3",
         nextAction: "Proceed to primary HPV screening pathway (Figure 3) at the next scheduled visit.",
         guidelineReference: "Figure 2 - atypical endometrial cells status",
         rationale: olderThanThreeYears
           ? "The supplied Figure 2 routes reports more than 3 years old to primary HPV screening."
-          : "The supplied Figure 2 routes specialist-discharged participants to primary HPV screening.",
-        branchPath: ["FIGURE_2", "PREVIOUS_AG2", olderThanThreeYears ? "REPORT_OLDER_THAN_3Y" : "SPECIALIST_DISCHARGED", "FIGURE_3_NEXT"],
+          : input.specialistDischargedToPrimaryCare
+            ? "The supplied Figure 2 routes specialist-discharged participants to primary HPV screening."
+            : "The supplied Figure 2 routes participants returned to 3-yearly cytology screening to primary HPV screening.",
+        branchPath: [
+          "FIGURE_2",
+          "PREVIOUS_AG2",
+          olderThanThreeYears
+            ? "REPORT_OLDER_THAN_3Y"
+            : input.specialistDischargedToPrimaryCare
+              ? "SPECIALIST_DISCHARGED"
+              : "RETURNED_TO_3_YEARLY_CYTOLOGY",
+          "FIGURE_3_NEXT",
+        ],
       });
     }
 
-    if (olderThanThreeYears === undefined && !input.specialistDischargedToPrimaryCare) {
+    if (
+      olderThanThreeYears === undefined &&
+      !input.specialistDischargedToPrimaryCare &&
+      input.returnedTo3YearlyCytologyScreening === undefined
+    ) {
       return insufficient(
         "FIGURE_2",
         "F2-AG2-STATUS-REQUIRED",
-        ["ag2ReportDate or specialistDischargedToPrimaryCare"],
-        "Confirm atypical endometrial cell report age or specialist discharge status",
+        ["ag2ReportDate, specialistDischargedToPrimaryCare, or returnedTo3YearlyCytologyScreening"],
+        "Confirm atypical endometrial cell report age, specialist discharge status, or return to 3-yearly cytology screening",
         ["NCSR or specialist service history"]
       );
     }
@@ -267,7 +290,8 @@ function evaluateFigure2(input: ClinicalInput): ClinicalDecision {
       return withDefaults({
         figure: "FIGURE_2",
         riskLevel: "HIGH",
-        recommendation: "Previous possible/definite HSIL or atypical glandular result requires colposcopy because the last recommended colposcopy has not occurred.",
+        recommendation:
+          "Previous possible/definite HSIL or atypical glandular cells, excluding atypical endometrial cells, require colposcopy because the last recommended colposcopy has not occurred.",
         recommendationCode: "F2-PRIOR-HG-COLP",
         nextAction: "Refer to colposcopy.",
         referralRequired: true,
@@ -320,8 +344,8 @@ function evaluateFigure3(input: ClinicalInput): ClinicalDecision {
     return insufficient("FIGURE_3", "F3-HPV-REQUIRED", ["hpvResult"], "Enter HPV result");
   }
 
-  const cytologyNeeded = input.hpvResult === "HPV_OTHER" || input.hpvResult === "HPV_16_18";
-  if (input.sampleType === "SWAB" && cytologyNeeded && !input.swabReturnVisitCompleted) {
+  const swabReturnRequired = input.hpvResult === "HPV_OTHER";
+  if (input.sampleType === "SWAB" && swabReturnRequired && !input.swabReturnVisitCompleted) {
     return withDefaults({
       figure: "FIGURE_3",
       riskLevel: "MEDIUM",
@@ -683,11 +707,11 @@ function evaluateFigure5(input: ClinicalInput): ClinicalDecision {
       });
     }
 
-    if (isHpvDetected(input.hpvResult) || (input.cytologyResult && input.cytologyResult !== "NEGATIVE") || input.visibleLesion) {
+    if ((input.cytologyResult && input.cytologyResult !== "NEGATIVE") || input.visibleLesion) {
       return withDefaults({
         figure: "FIGURE_5",
         riskLevel: "HIGH",
-        recommendation: "Confirmed ASC-H with abnormal cytology, HPV detected, and/or visible lesion. Treatment recommended; consider type 2 excision TZ.",
+        recommendation: "Confirmed ASC-H with abnormal cytology and/or visible lesion. Treatment recommended; consider type 2 excision TZ.",
         recommendationCode: "F5-CONFIRMED-ASCH-TREAT",
         nextAction: "Recommend treatment; consider type 2 excision TZ.",
         referralRequired: true,
@@ -695,7 +719,7 @@ function evaluateFigure5(input: ClinicalInput): ClinicalDecision {
         referralPriority: "P2",
         referralReason: "Confirmed ASC-H with treatment branch criteria",
         guidelineReference: "Figure 5 - confirmed ASC-H treatment branch",
-        rationale: "The supplied Figure 5 routes abnormal cytology, HPV detected, and/or visible lesion to treatment recommendation.",
+        rationale: "The supplied Figure 5 routes abnormal cytology and/or visible lesion to treatment recommendation; HPV detection alone is handled by the repeat-follow-up branch when cytology is negative and colposcopy is normal.",
         branchPath: ["FIGURE_5", "CONFIRMED_ASC_H", "TREATMENT_RECOMMENDED"],
       });
     }
@@ -732,6 +756,23 @@ function evaluateFigure6(input: ClinicalInput): ClinicalDecision {
   }
 
   if (input.hpvResult === "NOT_DETECTED" && input.cytologyResult === "NEGATIVE") {
+    if (input.testOfCureStage === "CONTINUING") {
+      return withDefaults({
+        figure: "FIGURE_6",
+        riskLevel: "LOW",
+        recommendation: "Continuing Test of Cure after prior abnormality now has HPV not detected with negative cytology. Continue Test of Cure until successful completion.",
+        recommendationCode: "F6-CONTINUE-TOC-UNTIL-COMPLETE",
+        nextAction: "Continue Test of Cure until successful completion.",
+        recallRequired: true,
+        recallIntervalMonths: 12,
+        incrementConsecutiveNegative: true,
+        missingInformation: treatmentDateMissing.length ? treatmentDateMissing : undefined,
+        guidelineReference: "Figure 6 - continuing Test of Cure",
+        rationale: "The supplied Figure 6 keeps continuing Test of Cure in follow-up until successful completion criteria are met.",
+        branchPath: ["FIGURE_6", "CONTINUING_TOC", "HPV_NOT_DETECTED", "NEGATIVE_CYTOLOGY", "CONTINUE_UNTIL_COMPLETE"],
+      });
+    }
+
     const secondNegative =
       input.testOfCureStage === "SECOND_TEST" ||
       input.testOfCureStatus === "COMPLETE" ||
@@ -775,6 +816,24 @@ function evaluateFigure6(input: ClinicalInput): ClinicalDecision {
   }
 
   if (input.hpvResult === "NOT_DETECTED" && isLowGradeCytology(input.cytologyResult)) {
+    if (input.testOfCureStage === "SECOND_TEST" || input.testOfCureStage === "CONTINUING") {
+      return withDefaults({
+        figure: "FIGURE_6",
+        riskLevel: "HIGH",
+        recommendation: "Repeat Test of Cure HPV not detected but cytology remains abnormal. Refer to colposcopy.",
+        recommendationCode: "F6-REPEAT-HPV-NEG-CYTOLOGY-ABNORMAL-COLP",
+        nextAction: "Refer to colposcopy.",
+        referralRequired: true,
+        referralType: "COLPOSCOPY",
+        referralPriority: "P2",
+        referralReason: "Repeat Test of Cure cytology abnormal despite HPV not detected",
+        missingInformation: treatmentDateMissing.length ? treatmentDateMissing : undefined,
+        guidelineReference: "Figure 6 - repeat abnormal cytology",
+        rationale: "The supplied Figure 6 escalates repeat abnormal cytology during Test of Cure to colposcopy.",
+        branchPath: ["FIGURE_6", input.testOfCureStage, "HPV_NOT_DETECTED", "ABNORMAL_CYTOLOGY", "COLPOSCOPY"],
+      });
+    }
+
     return withDefaults({
       figure: "FIGURE_6",
       riskLevel: "MEDIUM",
@@ -787,6 +846,24 @@ function evaluateFigure6(input: ClinicalInput): ClinicalDecision {
       guidelineReference: "Figure 6 - low-grade cytology",
       rationale: "The supplied Figure 6 routes low-grade cytology to repeat testing.",
       branchPath: ["FIGURE_6", "HPV_NOT_DETECTED", "LOW_GRADE_CYTOLOGY", "REPEAT_12M"],
+    });
+  }
+
+  if (input.hpvResult === "NOT_DETECTED" && input.cytologyResult !== "NEGATIVE") {
+    return withDefaults({
+      figure: "FIGURE_6",
+      riskLevel: "HIGH",
+      recommendation: "Repeat Test of Cure HPV not detected but cytology is abnormal. Refer to colposcopy.",
+      recommendationCode: "F6-REPEAT-HPV-NEG-CYTOLOGY-ABNORMAL-COLP",
+      nextAction: "Refer to colposcopy.",
+      referralRequired: true,
+      referralType: "COLPOSCOPY",
+      referralPriority: "P2",
+      referralReason: "Abnormal cytology during Test of Cure despite HPV not detected",
+      missingInformation: treatmentDateMissing.length ? treatmentDateMissing : undefined,
+      guidelineReference: "Figure 6 - abnormal cytology during Test of Cure",
+      rationale: "The supplied Figure 6 escalates abnormal cytology during repeat Test of Cure to colposcopy.",
+      branchPath: ["FIGURE_6", input.testOfCureStage ?? "TOC", "HPV_NOT_DETECTED", "ABNORMAL_CYTOLOGY", "COLPOSCOPY"],
     });
   }
 
@@ -961,6 +1038,10 @@ function lowOrNoPathology(pathology?: string): boolean {
   return pathology === "NO_CERVICAL_PATHOLOGY" || pathology === "NORMAL" || pathology === "LSIL_CIN1";
 }
 
+function noPathology(pathology?: string): boolean {
+  return pathology === "NO_CERVICAL_PATHOLOGY" || pathology === "NORMAL";
+}
+
 function hysterectomyHighGradeOutcome(input: ClinicalInput, figure: PathwayFigure): ClinicalDecision {
   if (input.excisionStatus === "COMPLETE") {
     return withDefaults({
@@ -990,7 +1071,66 @@ function hysterectomyHighGradeOutcome(input: ClinicalInput, figure: PathwayFigur
       branchPath: [figure, "HSIL_AIS", "INCOMPLETE_EXCISION", "COLPOSCOPY"],
     });
   }
-  return insufficient(figure, `${figure === "TABLE_1" ? "T1" : "F8"}-EXCISION-STATUS-REQUIRED`, ["excisionStatus"], "Enter complete/incomplete excision status for HSIL/CIN2/3 or AIS specimen pathology");
+  return insufficient(
+    figure,
+    `${figure === "TABLE_1" ? "T1" : "F8"}-HSIL-AIS-EXCISION-UNKNOWN-REVIEW`,
+    ["excisionStatus"],
+    "Enter complete/incomplete excision status for HSIL/CIN2/3 or AIS specimen pathology"
+  );
+}
+
+function hysterectomyHpvFollowFigure3(
+  figure: PathwayFigure,
+  code: string,
+  recommendation: string,
+  branchPath: string[]
+): ClinicalDecision {
+  return withDefaults({
+    figure,
+    riskLevel: "MEDIUM",
+    recommendation,
+    recommendationCode: code,
+    nextAction: "Perform HPV test and follow Figure 3.",
+    guidelineReference: `${figure} - Table 1 HPV test branch`,
+    rationale: "The supplied Figure 8/Table 1 route this row/specimen combination to HPV testing and Figure 3.",
+    branchPath,
+  });
+}
+
+function hysterectomyNoFurther(
+  figure: PathwayFigure,
+  code: string,
+  recommendation: string,
+  branchPath: string[]
+): ClinicalDecision {
+  return withDefaults({
+    figure,
+    riskLevel: "LOW",
+    recommendation,
+    recommendationCode: code,
+    nextAction: "No further screening required.",
+    guidelineReference: `${figure} - Table 1 no further screening branch`,
+    rationale: "The supplied Figure 8/Table 1 route this row/specimen combination to no further screening.",
+    branchPath,
+  });
+}
+
+function hysterectomyContinueToc(
+  figure: PathwayFigure,
+  code: string,
+  recommendation: string,
+  branchPath: string[]
+): ClinicalDecision {
+  return withDefaults({
+    figure,
+    riskLevel: "HIGH",
+    recommendation,
+    recommendationCode: code,
+    nextAction: "Continue Test of Cure until successful completion.",
+    guidelineReference: `${figure} - Table 1 Test of Cure branch`,
+    rationale: "The supplied Figure 8/Table 1 route this row/specimen combination to Test of Cure until successful completion.",
+    branchPath,
+  });
 }
 
 function evaluateHysterectomyPathway(input: ClinicalInput, figure: PathwayFigure): ClinicalDecision {
@@ -1052,80 +1192,87 @@ function evaluateHysterectomyPathway(input: ClinicalInput, figure: PathwayFigure
   if (
     history === "NEGATIVE_OR_NORMAL" ||
     history === "LOW_GRADE_RETURNED_TO_REGULAR" ||
-    history === "LOW_GRADE_ONLY" ||
-    history === "HIGH_GRADE_TOC_COMPLETE"
+    history === "LOW_GRADE_ONLY"
   ) {
-    if (pathology === "NO_CERVICAL_PATHOLOGY" || pathology === "NORMAL") {
-      if (input.screeningHistoryKnown === false) {
-        return withDefaults({
-          figure,
-          riskLevel: "MEDIUM",
-          recommendation: "Screening history is unknown with no cervical pathology. HPV test is required.",
-          recommendationCode: `${prefix}-UNKNOWN-HISTORY-HPV-TEST`,
-          nextAction: "Perform HPV test; if HPV not detected no further screening, if HPV detected follow Figure 3.",
-          guidelineReference: `${figure} - unknown history/no pathology`,
-          rationale: "The supplied Figure 8 requires HPV testing when screening history is not known.",
-          branchPath: [figure, "UNKNOWN_HISTORY", "NO_PATHOLOGY", "HPV_TEST"],
-        });
-      }
-      return withDefaults({
+    if (noPathology(pathology)) {
+      return hysterectomyNoFurther(
         figure,
-        riskLevel: "LOW",
-        recommendation: "Known negative/returned-regular history with no cervical pathology. No further screening required.",
-        recommendationCode: `${prefix}-KNOWN-HISTORY-NO-PATHOLOGY-NO-FURTHER`,
-        nextAction: "No further screening required.",
-        guidelineReference: `${figure} - no cervical pathology`,
-        rationale: "The supplied Figure 8/Table 1 route this branch to no further screening.",
-        branchPath: [figure, "KNOWN_HISTORY", "NO_CERVICAL_PATHOLOGY", "NO_FURTHER_SCREENING"],
-      });
+        `${prefix}-NEG-RETURNED-NO-PATH-NO-FURTHER`,
+        "Negative/normal or previous ASC-US/LSIL returned to regular screening with no cervical pathology. No further screening required.",
+        [figure, "NEGATIVE_OR_LOW_GRADE_RETURNED", "NO_CERVICAL_PATHOLOGY", "NO_FURTHER_SCREENING"]
+      );
     }
     if (pathology === "LSIL_CIN1") {
-      return withDefaults({
+      return hysterectomyHpvFollowFigure3(
         figure,
-        riskLevel: "MEDIUM",
-        recommendation: "LSIL/CIN1 in hysterectomy specimen. HPV test and follow Figure 3.",
-        recommendationCode: `${prefix}-LSIL-CIN1-HPV-FIG3`,
-        nextAction: "Perform HPV test and follow Figure 3.",
-        guidelineReference: `${figure} - LSIL/CIN1 specimen`,
-        rationale: "The supplied Figure 8/Table 1 route LSIL/CIN1 specimen pathology to HPV testing/Figure 3.",
-        branchPath: [figure, "LSIL_CIN1", "HPV_TEST", "FIGURE_3"],
-      });
+        `${prefix}-NEG-RETURNED-LSIL-HPV`,
+        "Negative/normal or previous ASC-US/LSIL returned to regular screening with LSIL/CIN1 specimen pathology. HPV test and follow Figure 3.",
+        [figure, "NEGATIVE_OR_LOW_GRADE_RETURNED", "LSIL_CIN1", "HPV_TEST_FIGURE_3"]
+      );
+    }
+    if (highGradeSpecimen(pathology)) return hysterectomyHighGradeOutcome(input, figure);
+  }
+
+  if (history === "HIGH_GRADE_TOC_COMPLETE") {
+    if (noPathology(pathology)) {
+      return hysterectomyNoFurther(
+        figure,
+        `${prefix}-HSIL-TOC-COMPLETE-NO-PATH-NO-FURTHER`,
+        "Treated HSIL/CIN2/3 with completed Test of Cure and no cervical pathology. No further screening required.",
+        [figure, "HSIL_TOC_COMPLETE", "NO_CERVICAL_PATHOLOGY", "NO_FURTHER_SCREENING"]
+      );
+    }
+    if (pathology === "LSIL_CIN1") {
+      return hysterectomyHpvFollowFigure3(
+        figure,
+        `${prefix}-HSIL-TOC-COMPLETE-LSIL-HPV`,
+        "Treated HSIL/CIN2/3 with completed Test of Cure and LSIL/CIN1 specimen pathology. HPV test and follow Figure 3.",
+        [figure, "HSIL_TOC_COMPLETE", "LSIL_CIN1", "HPV_TEST_FIGURE_3"]
+      );
     }
     if (highGradeSpecimen(pathology)) return hysterectomyHighGradeOutcome(input, figure);
   }
 
   if (history === "LOW_GRADE_NOT_RETURNED_TO_REGULAR") {
-    if (lowOrNoPathology(pathology)) {
-      return withDefaults({
+    if (noPathology(pathology)) {
+      return hysterectomyHpvFollowFigure3(
         figure,
-        riskLevel: "MEDIUM",
-        recommendation: "Previous low-grade history not returned to regular screening with normal/LSIL specimen. HPV test and follow Figure 3.",
-        recommendationCode: `${prefix}-LOW-GRADE-NOT-RETURNED-HPV-FIG3`,
-        nextAction: "Perform HPV test and follow Figure 3.",
-        guidelineReference: `${figure} - low-grade not returned`,
-        rationale: "The supplied Figure 8/Table 1 route this branch to HPV testing/Figure 3.",
-        branchPath: [figure, "LOW_GRADE_NOT_RETURNED", "NORMAL_OR_LSIL", "HPV_TEST_FIGURE_3"],
-      });
+        `${prefix}-LOWGRADE-NOT-RETURNED-NO-PATH-HPV`,
+        "Previous ASC-US/LSIL not returned to regular screening with no cervical pathology. HPV test and follow Figure 3.",
+        [figure, "LOW_GRADE_NOT_RETURNED", "NO_CERVICAL_PATHOLOGY", "HPV_TEST_FIGURE_3"]
+      );
+    }
+    if (pathology === "LSIL_CIN1") {
+      return hysterectomyHpvFollowFigure3(
+        figure,
+        `${prefix}-LOWGRADE-NOT-RETURNED-LSIL-HPV`,
+        "Previous ASC-US/LSIL not returned to regular screening with LSIL/CIN1 specimen pathology. HPV test and follow Figure 3.",
+        [figure, "LOW_GRADE_NOT_RETURNED", "LSIL_CIN1", "HPV_TEST_FIGURE_3"]
+      );
     }
     if (highGradeSpecimen(pathology)) return hysterectomyHighGradeOutcome(input, figure);
   }
 
-  if (
-    history === "HIGH_GRADE_TOC_INCOMPLETE" ||
-    history === "HSIL_AIS_UNTREATED_OR_INCOMPLETELY_TREATED" ||
-    input.testOfCureStatus === "INCOMPLETE"
-  ) {
+  if (history === "HSIL_AIS_UNTREATED_OR_INCOMPLETELY_TREATED") {
     if (lowOrNoPathology(pathology)) {
-      return withDefaults({
+      return hysterectomyContinueToc(
         figure,
-        riskLevel: "HIGH",
-        recommendation: "Untreated/incomplete Test of Cure high-grade history with no/low-grade specimen pathology. Continue Test of Cure until successful completion.",
-        recommendationCode: `${prefix}-INCOMPLETE-TOC-LOW-PATHOLOGY-TOC`,
-        nextAction: "Continue Test of Cure until successful completion.",
-        guidelineReference: `${figure} - incomplete Test of Cure`,
-        rationale: "The supplied Figure 8/Table 1 route this branch to Test of Cure until successful completion.",
-        branchPath: [figure, "INCOMPLETE_TOC_OR_UNTREATED_HSIL_AIS", "NO_OR_LOW_GRADE_PATHOLOGY", "TEST_OF_CURE"],
-      });
+        `${prefix}-UNTREATED-HSIL-AIS-NO-PATH-LOWGRADE-TOC`,
+        "Abnormal screening with diagnosed HSIL/CIN2/3 or AIS prior to hysterectomy, untreated or incompletely treated, with no/low-grade specimen pathology. Continue Test of Cure.",
+        [figure, "UNTREATED_OR_INCOMPLETELY_TREATED_HSIL_AIS", "NO_OR_LOW_GRADE_PATHOLOGY", "TEST_OF_CURE"]
+      );
+    }
+    if (highGradeSpecimen(pathology)) return hysterectomyHighGradeOutcome(input, figure);
+  }
+
+  if (history === "HIGH_GRADE_TOC_INCOMPLETE" || input.testOfCureStatus === "INCOMPLETE") {
+    if (lowOrNoPathology(pathology)) {
+      return hysterectomyContinueToc(
+        figure,
+        `${prefix}-INCOMPLETE-TOC-NO-PATH-LOWGRADE-TOC`,
+        "Previous treatment for HSIL/CIN2/3 or AIS with incomplete Test of Cure and no/low-grade specimen pathology. Continue Test of Cure.",
+        [figure, "INCOMPLETE_TOC", "NO_OR_LOW_GRADE_PATHOLOGY", "TEST_OF_CURE"]
+      );
     }
     if (highGradeSpecimen(pathology)) return hysterectomyHighGradeOutcome(input, figure);
   }
@@ -1136,7 +1283,7 @@ function evaluateHysterectomyPathway(input: ClinicalInput, figure: PathwayFigure
         figure,
         riskLevel: "MEDIUM",
         recommendation: "No known screening history with no/low-grade specimen pathology. HPV test at 6 months post hysterectomy.",
-        recommendationCode: `${prefix}-NO-KNOWN-HISTORY-HPV-6M`,
+        recommendationCode: `${prefix}-NO-HISTORY-NO-PATH-LOWGRADE-HPV-6M`,
         nextAction: "Schedule HPV test at 6 months post hysterectomy.",
         recallRequired: true,
         recallIntervalMonths: 6,

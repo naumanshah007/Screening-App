@@ -42,6 +42,27 @@ test("Figure 6 HPV not detected with low-grade cytology repeats in 12 months", (
   assert.equal(decision.recommendationCode, "F6-HPV-NEG-LOW-GRADE-REPEAT-12M");
 });
 
+test("Figure 6 repeat HPV not detected with abnormal cytology routes to colposcopy", () => {
+  const decision = evaluateFigure6(baseInput({
+    hpvResult: "NOT_DETECTED",
+    cytologyResult: "LSIL",
+    testOfCureStage: "SECOND_TEST",
+  }));
+
+  assert.equal(decision.recommendationCode, "F6-REPEAT-HPV-NEG-CYTOLOGY-ABNORMAL-COLP");
+  assert.equal(decision.referralType, "COLPOSCOPY");
+});
+
+test("Figure 6 continuing Test of Cure HPV not detected with negative cytology continues until complete", () => {
+  const decision = evaluateFigure6(baseInput({
+    hpvResult: "NOT_DETECTED",
+    cytologyResult: "NEGATIVE",
+    testOfCureStage: "CONTINUING",
+  }));
+
+  assert.equal(decision.recommendationCode, "F6-CONTINUE-TOC-UNTIL-COMPLETE");
+});
+
 test("Figure 6 HPV not detected with high-grade cytology routes to colposcopy", () => {
   const decision = evaluateFigure6(baseInput({ hpvResult: "NOT_DETECTED", cytologyResult: "ASC_H" }));
 

@@ -63,7 +63,7 @@ export default async function PatientDetailPage({ params }: Props) {
         breadcrumb={[{ label: "Patients", href: "/patients" }, { label: `${patient.firstName} ${patient.lastName}` }]}
         actions={[
           { href: `/gp?nhi=${patient.nhi}`, label: "Enter Results", variant: "outline", icon: <Activity className="h-4 w-4" /> },
-          { href: "/pathway", label: "Start Pathway", icon: <GitBranch className="h-4 w-4" /> },
+          { href: "/pathway", label: "Start New Assessment", icon: <GitBranch className="h-4 w-4" /> },
         ]}
       />
 

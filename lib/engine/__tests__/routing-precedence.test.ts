@@ -50,5 +50,5 @@ test("Routing precedence sends total hysterectomy to Figure 8/Table 1 logic", ()
   }));
 
   assert.equal(decision.figure, "FIGURE_8");
-  assert.equal(decision.recommendationCode, "F8-NO-KNOWN-HISTORY-HPV-6M");
+  assert.equal(decision.recommendationCode, "F8-NO-HISTORY-NO-PATH-LOWGRADE-HPV-6M");
 });

@@ -10,6 +10,7 @@ export type CytologyResult =
   | "ASC_H"
   | "HSIL"
   | "SCC"
+  | "AIS"
   | "AG1"
   | "AG2"
   | "AG3"
@@ -124,6 +125,7 @@ export interface ClinicalInput {
   previousAtypicalGlandularCells?: boolean;
   previousAtypicalEndometrialCells?: boolean;
   ag2ReportDate?: string | Date;
+  returnedTo3YearlyCytologyScreening?: boolean;
   specialistDischargedToPrimaryCare?: boolean;
   colposcopyRecommendedInLastCytology?: boolean;
   colposcopyCompletedForLastRecommendation?: boolean;

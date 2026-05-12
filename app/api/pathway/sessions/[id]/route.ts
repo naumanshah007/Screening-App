@@ -63,6 +63,7 @@ export async function GET(
       determinedFigure: wizardSession.determinedFigure,
       startedAt: wizardSession.startedAt,
       completedAt: wizardSession.completedAt,
+      screeningSessionId: wizardSession.screeningSessionId,
       decisionJson: wizardSession.decisionJson
         ? JSON.parse(wizardSession.decisionJson)
         : null,

@@ -1,7 +1,7 @@
 /**
  * POST /api/pathway/sessions
- * Start a new wizard session for a patient.
- * Runs auto-fill from existing patient data and creates the WizardSession.
+ * Start or resume a wizard session for a patient.
+ * Clean starts intentionally do not import prior answers or clinical result state.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -11,13 +11,15 @@ import { prisma } from "@/lib/prisma";
 import { autofillFromPatient } from "@/lib/wizard/autofill";
 import { getVisibleSteps, getNextUnansweredStep } from "@/lib/wizard/steps";
 
+type StartMode = "clean" | "import" | "resume";
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
-  let body: { patientId?: string };
+  let body: { patientId?: string; mode?: StartMode };
   try {
     body = await req.json();
   } catch {
@@ -26,6 +28,10 @@ export async function POST(req: NextRequest) {
 
   if (!body.patientId) {
     return NextResponse.json({ error: "patientId is required" }, { status: 400 });
+  }
+  const mode: StartMode = body.mode ?? "clean";
+  if (!["clean", "import", "resume"].includes(mode)) {
+    return NextResponse.json({ error: "mode must be clean, import, or resume" }, { status: 400 });
   }
 
   const patient = await prisma.patient.findUnique({
@@ -36,8 +42,59 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Patient not found" }, { status: 404 });
   }
 
-  // Run auto-fill from existing records
-  const autofill = await autofillFromPatient(body.patientId);
+  if (mode === "resume") {
+    const existing = await prisma.wizardSession.findFirst({
+      where: {
+        patientId: body.patientId,
+        createdById: session.user.id,
+        status: "IN_PROGRESS",
+      },
+      orderBy: { startedAt: "desc" },
+      include: { answers: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "No incomplete assessment found for this patient" }, { status: 404 });
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: "ASSESSMENT_RESUMED",
+        entity: "WizardSession",
+        entityId: existing.id,
+        newValue: JSON.stringify({
+          patientId: body.patientId,
+          wizardSessionId: existing.id,
+          previousAnswersRetained: true,
+        }),
+      },
+    });
+
+    return NextResponse.json({
+      sessionId: existing.id,
+      patientName: `${patient.firstName} ${patient.lastName}`,
+      patientNhi: patient.nhi,
+      mode,
+      resumed: true,
+      confidence: "partial",
+      summary: ["Existing incomplete assessment resumed."],
+      detectedFigure: existing.determinedFigure ?? undefined,
+      nextStep: null,
+      totalSteps: 0,
+      autoFilledCount: existing.answers.filter((a) => a.isAutoFilled).length,
+      isComplete: false,
+    });
+  }
+
+  const autofill = mode === "import"
+    ? await autofillFromPatient(body.patientId)
+    : {
+        answers: [],
+        confidence: "none" as const,
+        detectedFigure: undefined,
+        summary: ["Clean assessment started. Previous answers were not imported."],
+      };
 
   // Build answers map for step computation
   const answersMap: Record<string, string> = {};
@@ -64,6 +121,37 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "NEW_ASSESSMENT_STARTED",
+      entity: "WizardSession",
+      entityId: wizardSession.id,
+      newValue: JSON.stringify({
+        patientId: body.patientId,
+        wizardSessionId: wizardSession.id,
+        mode,
+        copiedPreviousAnswers: mode === "import",
+        autoFilledCount: autofill.answers.length,
+      }),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: mode === "import" ? "PREVIOUS_SESSION_IMPORTED" : "PREVIOUS_SESSION_NOT_IMPORTED",
+      entity: "WizardSession",
+      entityId: wizardSession.id,
+      newValue: JSON.stringify({
+        patientId: body.patientId,
+        wizardSessionId: wizardSession.id,
+        copiedPreviousAnswers: mode === "import",
+        autoFilledStepIds: autofill.answers.map((a) => a.stepId),
+      }),
+    },
+  });
+
   // Determine next step
   const nextStep = getNextUnansweredStep(answersMap);
 
@@ -77,6 +165,7 @@ export async function POST(req: NextRequest) {
     patientName: `${patient.firstName} ${patient.lastName}`,
     patientNhi: patient.nhi,
     confidence: autofill.confidence,
+    mode,
     summary: autofill.summary,
     detectedFigure: autofill.detectedFigure,
     nextStep: nextStep
