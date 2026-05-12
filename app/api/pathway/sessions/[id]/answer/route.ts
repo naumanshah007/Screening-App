@@ -107,6 +107,23 @@ export async function POST(
   const nextStep = getNextUnansweredStep(answersMap);
   const progress = getWizardProgress(answersMap);
   const isComplete = nextStep === null;
+  const refreshedVisibleSteps = getVisibleSteps(answersMap).filter((s) => s.type !== "info");
+
+  if (body.stepId === "consent_confirmed" && body.answerValue === "true") {
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: "CONSENT_CONFIRMED",
+        entity: "WizardSession",
+        entityId: id,
+        newValue: JSON.stringify({
+          patientId: wizardSession.patientId,
+          wizardSessionId: id,
+          consentConfirmed: true,
+        }),
+      },
+    });
+  }
 
   // Update the wizard session's determined figure
   const figureMap: Record<string, string> = {
@@ -128,5 +145,12 @@ export async function POST(
     progress,
     isComplete,
     removedSteps: toRemove,
+    answersMap,
+    allSteps: refreshedVisibleSteps.map((s) => ({
+      id: s.id,
+      question: s.question,
+      isAnswered: s.id in answersMap,
+      isAutoFilled: false,
+    })),
   });
 }

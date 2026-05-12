@@ -78,6 +78,12 @@ export async function POST(
   const rawAnswersMap: Record<string, string> = {};
   wizardSession.answers.forEach((a) => { rawAnswersMap[a.stepId] = a.answerValue; });
   const answersMap = getVisibleAnswerMap(rawAnswersMap);
+  if (answersMap.consent_confirmed !== "true") {
+    return NextResponse.json(
+      { error: "Consent is required before data entry can continue." },
+      { status: 409 }
+    );
+  }
 
   // ── Convert to ClinicalInput ──────────────────────────────────────────────
   const fieldMap = answersToInputFields(answersMap) as Record<string, unknown>;
@@ -273,6 +279,23 @@ export async function POST(
         externalDependencies: decision.externalDependencies,
         validationStatus: decision.validationStatus,
         patientId: patient.id,
+        inputFacts: clinicalInput,
+      }),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "FINAL_RECOMMENDATION_GENERATED",
+      entity: "WizardSession",
+      entityId: id,
+      newValue: JSON.stringify({
+        patientId: patient.id,
+        wizardSessionId: id,
+        screeningSessionId: screeningSession.id,
+        decisionCode: decision.recommendationCode,
+        figure: decision.figure,
         inputFacts: clinicalInput,
       }),
     },

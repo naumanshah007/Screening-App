@@ -4,6 +4,7 @@ import { getInvalidatedAnswerStepIds, getVisibleAnswerMap } from "@/lib/wizard/s
 
 test("wizard keeps later answers when the same answer is submitted again", () => {
   const answers = {
+    pathway_entry: "CLINICAL_CARE",
     consent_confirmed: "true",
     is_post_hysterectomy: "false",
     immunocompromised: "false",
@@ -22,6 +23,7 @@ test("wizard keeps later answers when the same answer is submitted again", () =>
 
 test("wizard invalidates later answers when an earlier answer changes even if they remain visible", () => {
   const answers = {
+    pathway_entry: "CLINICAL_CARE",
     consent_confirmed: "true",
     is_post_hysterectomy: "false",
     immunocompromised: "false",
@@ -40,6 +42,7 @@ test("wizard invalidates later answers when an earlier answer changes even if th
 
 test("wizard invalidates answers from branches that become hidden", () => {
   const answers = {
+    pathway_entry: "CLINICAL_CARE",
     consent_confirmed: "true",
     is_post_hysterectomy: "false",
     immunocompromised: "false",
@@ -68,6 +71,7 @@ test("wizard invalidates answers from branches that become hidden", () => {
 
 test("wizard finalization ignores hidden stale branch answers", () => {
   const answers = {
+    pathway_entry: "CLINICAL_CARE",
     consent_confirmed: "true",
     is_post_hysterectomy: "false",
     immunocompromised: "false",
@@ -80,6 +84,7 @@ test("wizard finalization ignores hidden stale branch answers", () => {
   };
 
   assert.deepEqual(getVisibleAnswerMap(answers), {
+    pathway_entry: "CLINICAL_CARE",
     consent_confirmed: "true",
     is_post_hysterectomy: "false",
     immunocompromised: "false",

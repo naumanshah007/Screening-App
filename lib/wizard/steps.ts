@@ -20,7 +20,7 @@ export type WizardStep = {
   id: string;                         // maps to ClinicalInput key or sentinel
   question: string;                   // large question text
   hint?: string;                      // clinical guidance shown below question
-  type: "option-cards" | "boolean-cards" | "info";
+  type: "option-cards" | "boolean-cards" | "consent-checkbox" | "info";
   options?: OptionCard[];             // for option-cards and boolean-cards
   isVisible: (answers: Record<string, string>) => boolean;
 };
@@ -28,6 +28,9 @@ export type WizardStep = {
 // ─── Helper predicates ────────────────────────────────────────────────────────
 
 const always = () => true;
+const consentConfirmed = (ans: Record<string, string>) => ans.consent_confirmed === "true";
+const directHpvEntry = (ans: Record<string, string>) => ans.pathway_entry === "DIRECT_HPV";
+const clinicalCareEntry = (ans: Record<string, string>) => ans.pathway_entry === "CLINICAL_CARE";
 
 // ─── Step Definitions ─────────────────────────────────────────────────────────
 
@@ -40,17 +43,43 @@ export const WIZARD_STEPS: WizardStep[] = [
     isVisible: always,
   },
 
-  // ── Step 0b: Consent confirmation ─────────────────────────────────────────
+  // ── Step 1: Pathway entry ────────────────────────────────────────────────
   {
-    id: "consent_confirmed",
-    question: "Has the patient been informed and provided consent for cervical screening data entry?",
-    hint: "Under the NZ Privacy Act 2020, patients must be informed of how their health information will be used. Confirm verbal or written consent before proceeding with data entry.",
-    type: "boolean-cards",
+    id: "pathway_entry",
+    question: "How is this patient entering the cervical screening workflow?",
+    hint: "Select the pathway that best matches how this assessment is being started.",
+    type: "option-cards",
     options: [
-      { value: "true",  label: "Yes — consent confirmed", hint: "Patient has been informed and consents to data entry" },
-      { value: "false", label: "No — consent not confirmed", hint: "Do not proceed until consent is obtained", cautionTag: "Required" },
+      {
+        value: "DIRECT_HPV",
+        label: "Direct HPV / Molecular Screening Pathway",
+        hint: "For NCSP, self-collected samples, lab HPV testing, direct cervical screening, or patients who are not coming through GP.",
+        cautionTag: "Primary screening pathway",
+      },
+      {
+        value: "CLINICAL_CARE",
+        label: "GP / Routine Clinical Care / Specialist Pathway",
+        hint: "For GP-led care, routine clinical care, abnormal bleeding, symptoms, complex history, or specialist clinic entry.",
+        cautionTag: "Clinical care pathway",
+      },
     ],
     isVisible: always,
+  },
+
+  // ── Step 2: Consent confirmation ─────────────────────────────────────────
+  {
+    id: "consent_confirmed",
+    question: "Confirm patient consent",
+    hint: "Under the NZ Privacy Act 2020, patients must be informed how their health information will be used. Confirm verbal or written consent before proceeding with cervical screening data entry.",
+    type: "consent-checkbox",
+    options: [
+      {
+        value: "true",
+        label: "I confirm the patient has been informed and has provided verbal or written consent.",
+        hint: "Confirm consent and continue",
+      },
+    ],
+    isVisible: (ans) => Boolean(ans.pathway_entry),
   },
 
   // ── Step 1: Post-hysterectomy flag ────────────────────────────────────────
@@ -63,7 +92,7 @@ export const WIZARD_STEPS: WizardStep[] = [
       { value: "true",  label: "Yes — hysterectomy performed", hint: "Will ask for hysterectomy type on next step" },
       { value: "false", label: "No — uterus intact", hint: "Continue with standard screening pathway" },
     ],
-    isVisible: (ans) => ans.consent_confirmed === "true",
+    isVisible: (ans) => consentConfirmed(ans) && clinicalCareEntry(ans),
   },
 
   // ── Step 1a: Hysterectomy type ────────────────────────────────────────────
@@ -175,8 +204,10 @@ export const WIZARD_STEPS: WizardStep[] = [
       { value: "false", label: "No — immunocompetent", hint: "Standard recall intervals apply" },
     ],
     isVisible: (ans) =>
-      ans.is_post_hysterectomy === "false" ||
-      ans.hysterectomy_type === "SUBTOTAL",
+      consentConfirmed(ans) &&
+      (directHpvEntry(ans) ||
+        ans.is_post_hysterectomy === "false" ||
+        ans.hysterectomy_type === "SUBTOTAL")
   },
 
   // ── Step 2: First-time HPV transition flag ────────────────────────────────
@@ -190,8 +221,10 @@ export const WIZARD_STEPS: WizardStep[] = [
       { value: "false", label: "No — already on HPV primary screening", hint: "Uses the current clinical pathway based on symptoms, history, and results" },
     ],
     isVisible: (ans) =>
-      ans.is_post_hysterectomy === "false" ||
-      ans.hysterectomy_type === "SUBTOTAL",
+      consentConfirmed(ans) &&
+      clinicalCareEntry(ans) &&
+      (ans.is_post_hysterectomy === "false" ||
+        ans.hysterectomy_type === "SUBTOTAL"),
   },
 
   // ── Step 2a: Screening status for transition invitation ─────────────────
@@ -518,14 +551,16 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "sample_type",
     question: "What sample type was used for this test?",
-    hint: "Self-collected swabs (SWAB) require a return visit with clinical examination before cytology results can be interpreted.",
+    hint: "Self-collected swabs (SWAB) require a return visit only when cytology-dependent triage is needed. HPV 16/18 routes directly to colposcopy.",
     type: "option-cards",
     options: [
       { value: "LBC",  label: "LBC — Liquid Based Cytology", hint: "Clinician-collected cervical sample" },
       { value: "SWAB", label: "SWAB — Self-collected vaginal swab", hint: "Requires clinical review if cytology needed", cautionTag: "Clinical review required" },
     ],
     isVisible: (ans) =>
-      (ans.figure10_cotest_result_available === "true" ||
+      consentConfirmed(ans) &&
+      (directHpvEntry(ans) ||
+        ans.figure10_cotest_result_available === "true" ||
         ans.is_post_hysterectomy === "false" ||
         ans.post_hysterectomy_hpv_test_indicated === "true") &&
       (ans.has_abnormal_vaginal_bleeding !== "true" || ans.figure10_cotest_result_available === "true") &&
@@ -536,28 +571,28 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "swab_return_visit_completed",
     question: "Has the patient returned for a clinical examination following the self-collected swab?",
-    hint: "NZ NCSP requires a return visit with speculum examination and co-test review before the pathway decision can be made for self-collected swabs. Do not proceed until this visit is documented.",
+    hint: "Required for HPV Other because the next pathway decision depends on clinical examination and cytology. HPV 16/18 does not wait for this step.",
     type: "boolean-cards",
     options: [
       { value: "true",  label: "Yes — return visit completed", hint: "Clinical examination and co-test review has been performed" },
       { value: "false", label: "No — return visit not yet completed", hint: "Schedule return visit before proceeding", cautionTag: "Required" },
     ],
-    isVisible: (ans) => ans.sample_type === "SWAB",
+    isVisible: (ans) => ans.sample_type === "SWAB" && ans.hpv_result === "HPV_OTHER",
   },
 
   // ── Step 5: HPV result ────────────────────────────────────────────────────
   {
     id: "hpv_result",
     question: "What was the HPV test result?",
-    hint: "HPV 16/18 is considered high-risk and typically triggers colposcopy referral. HPV Other requires co-testing with cytology.",
+    hint: "HPV 16/18 goes directly to colposcopy. HPV Other requires co-testing with cytology.",
     type: "option-cards",
     options: [
       { value: "NOT_DETECTED", label: "HPV Not Detected",     hint: "Routine recall — 5-year interval" },
       { value: "HPV_16_18",    label: "HPV 16/18 Positive",   hint: "High risk — colposcopy referral likely", cautionTag: "High risk" },
       { value: "HPV_OTHER",    label: "HPV Other Positive",   hint: "Requires cytology co-test result" },
-      { value: "INADEQUATE",   label: "Inadequate / Repeat required", hint: "3-month repeat required" },
     ],
     isVisible: (ans) =>
+      consentConfirmed(ans) &&
       (ans.has_abnormal_vaginal_bleeding !== "true" || ans.figure10_cotest_result_available === "true") &&
       (ans.is_post_hysterectomy !== "true" || ans.post_hysterectomy_hpv_test_indicated === "true") &&
       ans.is_first_hpv_transition !== "true",
@@ -567,7 +602,7 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "cytology_result",
     question: "What was the cytology result?",
-    hint: "Only required when HPV Other is detected. High-grade results (ASC-H, HSIL, SCC, AIS, AG3–AG5, AC2–AC4) trigger urgent referral.",
+    hint: "Required for HPV Other and specialist follow-up contexts. HPV 16/18 does not require cytology before colposcopy.",
     type: "option-cards",
     options: [
       { value: "NEGATIVE",       label: "Negative",                hint: "No abnormal cells detected" },
@@ -586,15 +621,14 @@ export const WIZARD_STEPS: WizardStep[] = [
       { value: "AC2",            label: "AC2 — endometrial adenocarcinoma", hint: "Glandular abnormality pathway — direct gynaecology referral", cautionTag: "Gynaecology" },
       { value: "AC3",            label: "AC3 — extrauterine adenocarcinoma", hint: "Glandular abnormality pathway — colposcopy", cautionTag: "Urgent" },
       { value: "AC4",            label: "AC4 — adenocarcinoma NOS", hint: "Glandular abnormality pathway — colposcopy", cautionTag: "Urgent" },
-      { value: "UNSATISFACTORY", label: "Unsatisfactory",          hint: "Sample inadequate — 3-month repeat" },
     ],
     isVisible: (ans) =>
+      consentConfirmed(ans) &&
       (ans.has_abnormal_vaginal_bleeding !== "true" || ans.figure10_cotest_result_available === "true") &&
       (ans.is_post_hysterectomy !== "true" || ans.post_hysterectomy_hpv_test_indicated === "true") &&
       ans.is_first_hpv_transition !== "true" &&
       (
         ans.hpv_result === "HPV_OTHER" ||
-        ans.hpv_result === "HPV_16_18" ||
         ans.is_test_of_cure === "true" ||
         ans.repeat_context === "TEST_OF_CURE" ||
         ans.repeat_context === "POST_NORMAL_COLPOSCOPY_HIGH_GRADE_CYTOLOGY"
@@ -951,7 +985,11 @@ export function getVisibleAnswerMap(
       visibleAnswers.is_post_hysterectomy === "false" &&
       visibleAnswers.is_first_hpv_transition === "false" &&
       visibleAnswers.has_abnormal_vaginal_bleeding !== "true";
-    if (!step.isVisible(visibleAnswers) && !preserveCytologyForLaterClinicalContext) continue;
+    const preserveSwabReturnForHpvOther =
+      step.id === "swab_return_visit_completed" &&
+      answers.sample_type === "SWAB" &&
+      answers.hpv_result === "HPV_OTHER";
+    if (!step.isVisible(visibleAnswers) && !preserveCytologyForLaterClinicalContext && !preserveSwabReturnForHpvOther) continue;
     visibleAnswers[step.id] = answers[step.id];
   }
 

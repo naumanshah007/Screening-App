@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { evaluateClinicalDecision } from "../decision-engine";
 import type { ClinicalInput } from "../types";
-import { answersToInputFields, getVisibleAnswerMap } from "../../wizard/steps";
+import { answersToInputFields, getInvalidatedAnswerStepIds, getNextUnansweredStep, getVisibleAnswerMap, getVisibleSteps, WIZARD_STEPS } from "../../wizard/steps";
 
 type WizardScenario = {
   answers: Record<string, string>;
@@ -46,11 +46,18 @@ function completeViaWizardAnswers(scenario: WizardScenario): {
 }
 
 const standardScreeningAnswers = {
+  pathway_entry: "CLINICAL_CARE",
   consent_confirmed: "true",
   is_post_hysterectomy: "false",
   immunocompromised: "false",
   is_first_hpv_transition: "false",
   has_abnormal_vaginal_bleeding: "false",
+};
+
+const directHpvAnswers = {
+  pathway_entry: "DIRECT_HPV",
+  consent_confirmed: "true",
+  immunocompromised: "false",
 };
 
 const primaryHpvAnswers = {
@@ -82,28 +89,61 @@ const testOfCureAnswers = {
   is_test_of_cure: "true",
 };
 
-test("Wizard/API completion mapping: Figure 3 HPV 16/18 swab bypasses return-visit block", () => {
+test("Wizard/API completion mapping: Figure 3 HPV 16/18 swab bypasses return-visit block without cytology", () => {
   completeViaWizardAnswers({
     answers: {
-      ...primaryHpvAnswers,
+      ...directHpvAnswers,
       sample_type: "SWAB",
-      swab_return_visit_completed: "false",
       hpv_result: "HPV_16_18",
-      cytology_result: "NEGATIVE",
     },
     expectedCode: "F3-1618-COLP",
     expectedInput: {
       sampleType: "SWAB",
-      swabReturnVisitCompleted: false,
+      swabReturnVisitCompleted: undefined,
+      hpvResult: "HPV_16_18",
+      cytologyResult: undefined,
+    },
+  });
+});
+
+test("Wizard/API completion mapping: Figure 3 HPV 16/18 LBC bypasses cytology requirement", () => {
+  completeViaWizardAnswers({
+    answers: {
+      ...directHpvAnswers,
+      sample_type: "LBC",
+      hpv_result: "HPV_16_18",
+    },
+    expectedCode: "F3-1618-COLP",
+    expectedInput: {
+      sampleType: "LBC",
+      hpvResult: "HPV_16_18",
+      cytologyResult: undefined,
+    },
+  });
+});
+
+test("Wizard/API completion mapping: Figure 3 HPV 16/18 ignores stale swab-return answer", () => {
+  const result = completeViaWizardAnswers({
+    answers: {
+      ...directHpvAnswers,
+      sample_type: "SWAB",
+      swab_return_visit_completed: "false",
+      hpv_result: "HPV_16_18",
+    },
+    expectedCode: "F3-1618-COLP",
+    expectedInput: {
+      swabReturnVisitCompleted: undefined,
       hpvResult: "HPV_16_18",
     },
   });
+
+  assert.equal(result.visibleAnswers.swab_return_visit_completed, undefined);
 });
 
 test("Wizard/API completion mapping: Figure 3 HPV Other swab still requires return visit", () => {
   completeViaWizardAnswers({
     answers: {
-      ...primaryHpvAnswers,
+      ...directHpvAnswers,
       sample_type: "SWAB",
       swab_return_visit_completed: "false",
       hpv_result: "HPV_OTHER",
@@ -116,6 +156,73 @@ test("Wizard/API completion mapping: Figure 3 HPV Other swab still requires retu
       hpvResult: "HPV_OTHER",
     },
   });
+});
+
+test("Wizard/API completion mapping: Figure 3 HPV Other high-grade cytology routes to colposcopy", () => {
+  completeViaWizardAnswers({
+    answers: {
+      ...directHpvAnswers,
+      sample_type: "LBC",
+      hpv_result: "HPV_OTHER",
+      cytology_result: "HSIL",
+    },
+    expectedCode: "F3-HPV-OTHER-HIGH-GRADE-COLP",
+    expectedInput: {
+      hpvResult: "HPV_OTHER",
+      cytologyResult: "HSIL",
+    },
+  });
+});
+
+test("Wizard UI flow: cytology is hidden after HPV 16/18 and inadequate options are hidden", () => {
+  const hpvStep = WIZARD_STEPS.find((step) => step.id === "hpv_result");
+  const cytologyStep = WIZARD_STEPS.find((step) => step.id === "cytology_result");
+
+  assert.ok(hpvStep);
+  assert.ok(cytologyStep);
+  assert.equal(hpvStep.options?.some((option) => option.value === "INADEQUATE" || /Inadequate/i.test(option.label)), false);
+  assert.equal(cytologyStep.options?.some((option) => option.value === "UNSATISFACTORY" || /Unsatisfactory|Inadequate|Repeat required/i.test(option.label)), false);
+
+  const visibleAfterHpv1618 = getVisibleSteps({
+    ...directHpvAnswers,
+    sample_type: "SWAB",
+    hpv_result: "HPV_16_18",
+  }).map((step) => step.id);
+
+  assert.equal(visibleAfterHpv1618.includes("cytology_result"), false);
+  assert.equal(visibleAfterHpv1618.includes("swab_return_visit_completed"), false);
+});
+
+test("Wizard UI flow: consent gate blocks clinical questions until confirmed", () => {
+  const beforeConsent = getVisibleSteps({ pathway_entry: "DIRECT_HPV" }).map((step) => step.id);
+  assert.deepEqual(beforeConsent.filter((id) => id !== "patient_context"), ["pathway_entry", "consent_confirmed"]);
+  assert.equal(getNextUnansweredStep({ pathway_entry: "DIRECT_HPV" })?.id, "consent_confirmed");
+
+  const consentStep = WIZARD_STEPS.find((step) => step.id === "consent_confirmed");
+  assert.equal(consentStep?.type, "consent-checkbox");
+  assert.equal(consentStep?.options?.some((option) => option.value === "false"), false);
+});
+
+test("Wizard UI flow: entry pathway selection routes Direct HPV and clinical care differently", () => {
+  assert.equal(WIZARD_STEPS.find((step) => step.id === "pathway_entry")?.options?.[0]?.value, "DIRECT_HPV");
+  assert.equal(getNextUnansweredStep({ pathway_entry: "DIRECT_HPV", consent_confirmed: "true" })?.id, "immunocompromised");
+  assert.equal(getNextUnansweredStep({ pathway_entry: "DIRECT_HPV", consent_confirmed: "true", immunocompromised: "false" })?.id, "sample_type");
+  assert.equal(getNextUnansweredStep({ pathway_entry: "CLINICAL_CARE", consent_confirmed: "true" })?.id, "is_post_hysterectomy");
+});
+
+test("Wizard UI flow: Back target is previous visible answered step and changed answers prune future branch answers", () => {
+  const answers = {
+    ...directHpvAnswers,
+    sample_type: "LBC",
+    hpv_result: "HPV_OTHER",
+    cytology_result: "NEGATIVE",
+  };
+  const visible = getVisibleSteps(answers).filter((step) => step.type !== "info");
+  const currentStep = getNextUnansweredStep(answers);
+  const previousStep = visible.slice(0, currentStep ? visible.findIndex((step) => step.id === currentStep.id) : visible.length).reverse().find((step) => step.id in answers);
+
+  assert.equal(previousStep?.id, "cytology_result");
+  assert.deepEqual(getInvalidatedAnswerStepIds(answers, "hpv_result", "HPV_16_18"), ["cytology_result"]);
 });
 
 test("Wizard/API completion mapping: Figure 5 confirmed ASC-H HPV detected normal colposcopy negative cytology repeats", () => {
@@ -224,6 +331,7 @@ test("Wizard/API completion mapping: Figure 6 repeat HPV negative with abnormal 
 test("Wizard/API completion mapping: Figure 8 low-risk returned history with LSIL/CIN1 routes to HPV/Figure 3 branch", () => {
   completeViaWizardAnswers({
     answers: {
+      pathway_entry: "CLINICAL_CARE",
       consent_confirmed: "true",
       is_post_hysterectomy: "true",
       hysterectomy_type: "TOTAL",
@@ -244,6 +352,7 @@ test("Wizard/API completion mapping: Figure 8 low-risk returned history with LSI
 test("Wizard/API completion mapping: Figure 8 untreated/incomplete HSIL/AIS with LSIL/CIN1 routes to Test of Cure", () => {
   completeViaWizardAnswers({
     answers: {
+      pathway_entry: "CLINICAL_CARE",
       consent_confirmed: "true",
       is_post_hysterectomy: "true",
       hysterectomy_type: "TOTAL",
@@ -263,6 +372,7 @@ test("Wizard/API completion mapping: Figure 8 untreated/incomplete HSIL/AIS with
 test("Wizard/API completion mapping: Table 1 no known history with no pathology schedules HPV at 6 months", () => {
   completeViaWizardAnswers({
     answers: {
+      pathway_entry: "CLINICAL_CARE",
       consent_confirmed: "true",
       is_post_hysterectomy: "true",
       hysterectomy_type: "TOTAL",
@@ -302,6 +412,7 @@ test("Wizard/API completion mapping: Figure 9 pregnant qualifying cytology witho
 test("Wizard/API completion mapping: Figure 10 abnormal bleeding with cancer symptoms routes to urgent gynaecology", () => {
   completeViaWizardAnswers({
     answers: {
+      pathway_entry: "CLINICAL_CARE",
       consent_confirmed: "true",
       is_post_hysterectomy: "false",
       immunocompromised: "false",
@@ -322,6 +433,7 @@ test("Wizard/API completion mapping: Figure 10 abnormal bleeding with cancer sym
 test("Wizard/API completion mapping preserves Figure 2 returned-to-3-yearly-cytology field", () => {
   completeViaWizardAnswers({
     answers: {
+      pathway_entry: "CLINICAL_CARE",
       consent_confirmed: "true",
       is_post_hysterectomy: "false",
       immunocompromised: "false",
@@ -419,6 +531,7 @@ test("Session isolation: new primary HPV run does not retain previous Test of Cu
 test("Session isolation: new uterus-intact run does not retain hysterectomy fields", () => {
   const run1 = completeViaWizardAnswers({
     answers: {
+      pathway_entry: "CLINICAL_CARE",
       consent_confirmed: "true",
       is_post_hysterectomy: "true",
       hysterectomy_type: "TOTAL",
@@ -449,6 +562,7 @@ test("Session isolation: new uterus-intact run does not retain hysterectomy fiel
 test("Session isolation: Figure 10 priority does not remain active in new primary HPV run", () => {
   const run1 = completeViaWizardAnswers({
     answers: {
+      pathway_entry: "CLINICAL_CARE",
       consent_confirmed: "true",
       is_post_hysterectomy: "false",
       immunocompromised: "false",

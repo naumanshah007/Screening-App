@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { getStepById } from "@/lib/wizard/steps";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ type WizardStep = {
   id: string;
   question: string;
   hint?: string;
-  type: string;
+  type: "option-cards" | "boolean-cards" | "consent-checkbox" | "info";
   options?: OptionCard[];
 };
 
@@ -186,6 +187,13 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
       }
 
       setAnimating(false);
+      setSessionData((prev) => prev ? {
+        ...prev,
+        answersMap: data.answersMap ?? prev.answersMap,
+        allSteps: data.allSteps ?? prev.allSteps,
+        progress: data.progress ?? prev.progress,
+        nextStep: data.nextStep,
+      } : prev);
       setCurrentStep(data.nextStep);
       setSelectedValue(null);
       setIsAutoFilledStep(false);
@@ -198,16 +206,29 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
   }, [currentStep, submitting, animating, sessionId, completeAndRedirect]);
 
   const handleBack = useCallback(async () => {
-    if (!sessionData) return;
-    const answeredSteps = sessionData.allSteps.filter(
-      (s) => s.isAnswered && s.id !== currentStep?.id
-    );
-    if (!answeredSteps.length) {
-      router.back();
-      return;
-    }
-    await loadSession();
-  }, [sessionData, currentStep, loadSession, router]);
+    if (!sessionData || !currentStep) return;
+    const currentIndex = sessionData.allSteps.findIndex((s) => s.id === currentStep.id);
+    const searchEnd = currentIndex >= 0 ? currentIndex : sessionData.allSteps.length;
+    const previousSummary = sessionData.allSteps
+      .slice(0, searchEnd)
+      .reverse()
+      .find((s) => s.isAnswered);
+
+    if (!previousSummary) return;
+
+    const previousStep = getStepById(previousSummary.id);
+    if (!previousStep || previousStep.type === "info") return;
+
+    setCurrentStep({
+      id: previousStep.id,
+      question: previousStep.question,
+      hint: previousStep.hint,
+      type: previousStep.type,
+      options: previousStep.options,
+    });
+    setSelectedValue(sessionData.answersMap[previousStep.id] ?? null);
+    setIsAutoFilledStep(previousSummary.isAutoFilled);
+  }, [sessionData, currentStep]);
 
   if (loading || completing) {
     return (
@@ -353,12 +374,60 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
             </div>
           )}
 
+          {/* Consent hard gate */}
+          {currentStep.type === "consent-checkbox" && currentStep.options?.[0] && (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setSelectedValue(selectedValue === "true" ? null : "true")}
+                className={cn(
+                  "w-full rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
+                  selectedValue === "true"
+                    ? "border-brand-600 bg-brand-50/60"
+                    : "border-border bg-card hover:border-border-strong"
+                )}
+                aria-pressed={selectedValue === "true"}
+              >
+                <span className="flex items-start gap-3">
+                  <span className={cn(
+                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2",
+                    selectedValue === "true" ? "border-brand-600 bg-brand-600" : "border-border-strong bg-white"
+                  )}>
+                    {selectedValue === "true" && (
+                      <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 10 10" fill="none">
+                        <path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-foreground">
+                      {currentStep.options[0].label}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Consent is required before data entry can continue. Please obtain verbal or written consent before proceeding.
+                    </span>
+                  </span>
+                </span>
+              </button>
+              <Button
+                variant="primary"
+                className="w-full"
+                disabled={selectedValue !== "true" || submitting || animating}
+                loading={submitting || animating}
+                onClick={() => handleSelect(currentStep.options![0])}
+              >
+                Confirm consent and continue
+              </Button>
+            </div>
+          )}
+
           {/* Option cards */}
-          {currentStep.options && currentStep.options.length > 0 && (
+          {currentStep.type !== "consent-checkbox" && currentStep.options && currentStep.options.length > 0 && (
             <div className={cn("grid gap-3", gridClass)}>
               {currentStep.options.map((opt) => {
                 const isSelected = selectedValue === opt.value;
                 const cautionColor = cautionColorFromTag(opt.cautionTag);
+                const isPrimaryEntry = currentStep.id === "pathway_entry" && opt.value === "DIRECT_HPV";
                 return (
                   <button
                     key={opt.value}
@@ -370,6 +439,8 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
                       "disabled:cursor-not-allowed",
                       isSelected
                         ? "border-brand-600 bg-brand-50/60 shadow-sm"
+                        : isPrimaryEntry
+                        ? "border-brand-300 bg-brand-50/30 hover:border-brand-500 hover:bg-brand-50/50"
                         : "border-border bg-card hover:border-border-strong hover:bg-muted/30"
                     )}
                     aria-pressed={isSelected}
