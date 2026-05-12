@@ -190,11 +190,6 @@ export async function POST(
     clinicalInput.mdmOutcome !== undefined;
 
   if (shouldPersistColposcopy) {
-    const persistableImpression =
-      clinicalInput.colposcopicImpression && clinicalInput.colposcopicImpression !== "AIS"
-        ? (clinicalInput.colposcopicImpression as PrismaColposcopicImpression)
-        : undefined;
-
     await prisma.colposcopyFinding.create({
       data: {
         screeningSessionId: screeningSession.id,
@@ -206,7 +201,7 @@ export async function POST(
           clinicalInput.colposcopicImpression === "HSIL" ||
           clinicalInput.colposcopicImpression === "INVASION"
         ),
-        colposcopicImpression: persistableImpression,
+        colposcopicImpression: clinicalInput.colposcopicImpression as PrismaColposcopicImpression | undefined,
         biopsyTaken: answersMap.biopsy_taken === "true" || clinicalInput.biopsyResult !== undefined,
         biopsyResult: clinicalInput.biopsyResult as HistologyResult | undefined,
         mdmReviewRequired: decision.requiresMDMReview ?? (clinicalInput.mdmOutcome !== undefined),

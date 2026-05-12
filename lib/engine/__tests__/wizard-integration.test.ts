@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { evaluateClinicalDecision } from "../decision-engine";
 import type { ClinicalInput } from "../types";
 import { answersToInputFields, getInvalidatedAnswerStepIds, getNextUnansweredStep, getVisibleAnswerMap, getVisibleSteps, WIZARD_STEPS } from "../../wizard/steps";
@@ -141,7 +142,7 @@ test("Wizard/API completion mapping: Figure 3 HPV 16/18 ignores stale swab-retur
 });
 
 test("Wizard/API completion mapping: Figure 3 HPV Other swab still requires return visit", () => {
-  completeViaWizardAnswers({
+  const result = completeViaWizardAnswers({
     answers: {
       ...directHpvAnswers,
       sample_type: "SWAB",
@@ -154,8 +155,12 @@ test("Wizard/API completion mapping: Figure 3 HPV Other swab still requires retu
       sampleType: "SWAB",
       swabReturnVisitCompleted: false,
       hpvResult: "HPV_OTHER",
+      cytologyResult: undefined,
     },
   });
+
+  assert.equal(result.visibleAnswers.cytology_result, undefined);
+  assert.equal(getNextUnansweredStep(result.visibleAnswers), null);
 });
 
 test("Wizard/API completion mapping: Figure 3 HPV Other high-grade cytology routes to colposcopy", () => {
@@ -473,6 +478,35 @@ test("Wizard/API completion mapping preserves all completion-route clinical fiel
   assert.equal(clinicalInput.priorScreeningHistory, undefined);
   assert.equal(clinicalInput.hysterectomySpecimenPathology, undefined);
   assert.equal(clinicalInput.excisionStatus, undefined);
+});
+
+test("Wizard/API completion mapping preserves AIS colposcopic impression for structured persistence", () => {
+  const { clinicalInput } = completeViaWizardAnswers({
+    answers: {
+      ...standardScreeningAnswers,
+      sample_type: "LBC",
+      hpv_result: "HPV_OTHER",
+      cytology_result: "HSIL",
+      is_pregnant: "true",
+      has_colposcopy_findings: "true",
+      tz_type: "TYPE1",
+      transformation_zone_state: "ABNORMAL",
+      visible_lesion: "true",
+      colposcopic_impression: "AIS",
+      biopsy_taken: "false",
+    },
+    expectedCode: "F9-ABNORMAL-TZ-REVIEW",
+    expectedInput: {
+      colposcopicImpression: "AIS",
+    },
+  });
+
+  const schema = readFileSync("prisma/schema.prisma", "utf8");
+  const completionRoute = readFileSync("app/api/pathway/sessions/[id]/complete/route.ts", "utf8");
+
+  assert.match(schema, /enum ColposcopicImpression \{[\s\S]*\bAIS\b[\s\S]*\}/);
+  assert.doesNotMatch(completionRoute, /colposcopicImpression\s*!==\s*["']AIS["']/);
+  assert.equal(clinicalInput.colposcopicImpression, "AIS");
 });
 
 test("Session isolation: same patient Run 2 does not retain HPV Other swab-return result", () => {

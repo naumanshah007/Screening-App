@@ -622,17 +622,22 @@ export const WIZARD_STEPS: WizardStep[] = [
       { value: "AC3",            label: "AC3 — extrauterine adenocarcinoma", hint: "Glandular abnormality pathway — colposcopy", cautionTag: "Urgent" },
       { value: "AC4",            label: "AC4 — adenocarcinoma NOS", hint: "Glandular abnormality pathway — colposcopy", cautionTag: "Urgent" },
     ],
-    isVisible: (ans) =>
-      consentConfirmed(ans) &&
-      (ans.has_abnormal_vaginal_bleeding !== "true" || ans.figure10_cotest_result_available === "true") &&
-      (ans.is_post_hysterectomy !== "true" || ans.post_hysterectomy_hpv_test_indicated === "true") &&
-      ans.is_first_hpv_transition !== "true" &&
-      (
-        ans.hpv_result === "HPV_OTHER" ||
-        ans.is_test_of_cure === "true" ||
-        ans.repeat_context === "TEST_OF_CURE" ||
-        ans.repeat_context === "POST_NORMAL_COLPOSCOPY_HIGH_GRADE_CYTOLOGY"
-      ),
+    isVisible: (ans) => {
+      const hpvOtherCytologyReady =
+        ans.hpv_result === "HPV_OTHER" &&
+        (ans.sample_type !== "SWAB" || ans.swab_return_visit_completed === "true");
+
+      return consentConfirmed(ans) &&
+        (ans.has_abnormal_vaginal_bleeding !== "true" || ans.figure10_cotest_result_available === "true") &&
+        (ans.is_post_hysterectomy !== "true" || ans.post_hysterectomy_hpv_test_indicated === "true") &&
+        ans.is_first_hpv_transition !== "true" &&
+        (
+          hpvOtherCytologyReady ||
+          ans.is_test_of_cure === "true" ||
+          ans.repeat_context === "TEST_OF_CURE" ||
+          ans.repeat_context === "POST_NORMAL_COLPOSCOPY_HIGH_GRADE_CYTOLOGY"
+        );
+    },
   },
 
   // ── Step 6b: Pregnant participant? ────────────────────────────────────────

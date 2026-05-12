@@ -87,6 +87,7 @@ enum ColposcopicImpression {
   NORMAL
   LSIL
   HSIL
+  AIS
   INVASION
   UNSATISFACTORY
 }
