@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, Users, GitBranch, BookOpen,
   BarChart2, Activity, Shield, Settings, UserCog, FileSearch,
   Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight,
-  Menu, X,
+  Menu, X, Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDefaultAppRouteForRole, isAuthorizedForRoute } from "@/lib/auth/permissions";
@@ -32,14 +32,15 @@ const ICONS: Record<string, React.ElementType> = {
   "/gp":         Stethoscope,
   "/admin":      Settings,
   "/audit":      FileSearch,
+  "/batch":      Database,
 };
 
 function getIcon(href: string): React.ElementType {
   return ICONS[href] ?? LayoutDashboard;
 }
 
-function buildSidebarSections(args: { userRole?: string; showCases: boolean }): NavSection[] {
-  const { userRole, showCases } = args;
+function buildSidebarSections(args: { userRole?: string; showCases: boolean; showBatch: boolean }): NavSection[] {
+  const { userRole, showCases, showBatch } = args;
 
   function link(href: string, label: string): NavLink {
     return { href, label, icon: getIcon(href) };
@@ -53,13 +54,14 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean }): 
   const audit = isAuthorizedForRoute("/audit", userRole) ? [link("/audit", "Audit")] : [];
   const coordinator = isAuthorizedForRoute("/coordinator", userRole) ? [link("/coordinator", "Coordinator")] : [];
   const admin = isAuthorizedForRoute("/admin", userRole) ? [link("/admin", "Admin")] : [];
+  const batch = showBatch ? [link("/batch", "Batch Demo")] : [];
 
   switch (userRole) {
     case "ADMIN":
       return [
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
-        { id: "legacy", label: "Legacy Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway"), link("/gp", "GP")] },
+        { id: "legacy", label: "Legacy Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway"), link("/gp", "GP"), ...batch] },
         { id: "admin", label: "Administration", links: [...admin, ...audit] },
       ];
     case "COORDINATOR":
@@ -88,7 +90,7 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean }): 
       ];
     case "INTEGRATION_ADMIN":
       return [
-        { id: "operations", label: "Operations", links: [...readiness, ...analytics, ...audit, ...admin] },
+        { id: "operations", label: "Operations", links: [...readiness, ...analytics, ...batch, ...audit, ...admin] },
       ];
     default:
       return [
@@ -131,11 +133,13 @@ export function Sidebar({
   userName,
   userEmail,
   showCases = false,
+  showBatch = false,
 }: {
   userRole?: string;
   userName?: string;
   userEmail?: string;
   showCases?: boolean;
+  showBatch?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -143,7 +147,7 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const sections = buildSidebarSections({ userRole, showCases })
+  const sections = buildSidebarSections({ userRole, showCases, showBatch })
     .map((s) => ({ ...s, links: s.links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i) }))
     .filter((s) => s.links.length > 0);
 

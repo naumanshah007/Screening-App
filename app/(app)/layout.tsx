@@ -8,6 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect("/login");
   const user = session.user as { name?: string; role?: string; email?: string };
   const showCases = isFeatureEnabled("casesV2");
+  const showBatch = isFeatureEnabled("batchDemo");
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
@@ -16,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         userName={user.name}
         userEmail={user.email}
         showCases={showCases}
+        showBatch={showBatch}
       />
       <main
         id="main-content"

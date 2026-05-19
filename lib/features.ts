@@ -18,6 +18,10 @@ export const featureFlags = {
   // Enable via environment variable once the integration is live and tested.
   aiAssist: readFlag("ENABLE_AI_ASSIST", false),
   restrictedColpoIntegration: readFlag("ENABLE_RESTRICTED_COLPO_INTEGRATION", false),
+
+  // Batch processing demo — OFF by default.
+  // Enable with ENABLE_BATCH_DEMO=true for demo environments.
+  batchDemo: readFlag("ENABLE_BATCH_DEMO", false),
 } as const;
 
 export type FeatureFlagName = keyof typeof featureFlags;
