@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, ArrowUpRight, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
+import { formatFigureLabel, getGuidelineCitation } from "@/lib/batch/guideline-citations";
 
 interface BatchDataTableProps {
   results: BatchCaseResult[];
@@ -56,11 +57,16 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
                     <td className="px-3 py-2.5 font-medium text-foreground max-w-[180px] truncate">
                       {r.case.label || r.case.source.externalPatientId || `Row ${r.case.source.rowNumber}`}
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">
+                    <td className="px-3 py-2.5">
                       {isError ? (
                         <span className="text-red-600 dark:text-red-400">Error</span>
                       ) : (
-                        r.decision.figure?.replace(/_/g, " ") ?? "—"
+                        <span
+                          className="text-xs font-medium text-foreground"
+                          title={getGuidelineCitation(r.decision.figure)?.title}
+                        >
+                          {formatFigureLabel(r.decision.figure)}
+                        </span>
                       )}
                     </td>
                     <td className="px-3 py-2.5">

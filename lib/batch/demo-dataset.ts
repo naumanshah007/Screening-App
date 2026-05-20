@@ -56,6 +56,7 @@ function demoCase(
 export const DEMO_DATASET: CanonicalBatchCase[] = [
   // ── 1. HPV Negative, routine — Figure 3 → 5yr recall ───────────────────
   demoCase(0, "HPV Negative — routine recall", {
+    ethnicityPrimary: "EUROPEAN",
     patientAge: 35,
     hpvResult: "NOT_DETECTED",
     sampleType: "LBC",
@@ -63,6 +64,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 2. HPV 16/18, colposcopy referral — Figure 3 → colposcopy ──────────
   demoCase(1, "HPV 16/18 — colposcopy referral", {
+    ethnicityPrimary: "MAORI",
     patientAge: 42,
     hpvResult: "HPV_16_18",
     sampleType: "LBC",
@@ -70,6 +72,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 3. HPV Other + Negative cytology — Figure 3 → 12mo repeat ──────────
   demoCase(2, "HPV Other + Negative cytology — 12mo repeat", {
+    ethnicityPrimary: "PACIFIC",
     patientAge: 38,
     hpvResult: "HPV_OTHER",
     cytologyResult: "NEGATIVE",
@@ -78,6 +81,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 4. HPV Other + LSIL — Figure 3 → 12mo repeat ──────────────────────
   demoCase(3, "HPV Other + LSIL — 12mo repeat", {
+    ethnicityPrimary: "ASIAN",
     patientAge: 30,
     hpvResult: "HPV_OTHER",
     cytologyResult: "LSIL",
@@ -86,6 +90,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 5. HPV Other + HSIL — Figure 3 → colposcopy ────────────────────────
   demoCase(4, "HPV Other + HSIL — colposcopy referral", {
+    ethnicityPrimary: "MAORI",
     patientAge: 45,
     hpvResult: "HPV_OTHER",
     cytologyResult: "HSIL",
@@ -94,6 +99,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 6. HPV Negative, immunocompromised — Figure 3 → 3yr recall ─────────
   demoCase(5, "HPV Negative, immunocompromised — 3yr recall", {
+    ethnicityPrimary: "EUROPEAN",
     patientAge: 50,
     hpvResult: "NOT_DETECTED",
     immunocompromised: true,
@@ -102,6 +108,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 7. Post-hysterectomy (benign, total) — Table 1 → exit screening ────
   demoCase(6, "Post-hysterectomy (benign, total) — exit screening", {
+    ethnicityPrimary: "PACIFIC",
     patientAge: 55,
     isPostHysterectomy: true,
     hysterectomyType: "TOTAL",
@@ -111,6 +118,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 8. Test of Cure, 1st test, HPV negative — Figure 6 → continue ToC ──
   demoCase(7, "Test of Cure — 1st test, HPV negative", {
+    ethnicityPrimary: "MAORI",
     patientAge: 40,
     hpvResult: "NOT_DETECTED",
     cytologyResult: "NEGATIVE",
@@ -122,6 +130,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 9. Pregnant + HSIL cytology — Figure 9 → pregnancy pathway ─────────
   demoCase(8, "Pregnant + HSIL cytology — pregnancy pathway", {
+    ethnicityPrimary: "PACIFIC",
     patientAge: 32,
     hpvResult: "HPV_OTHER",
     cytologyResult: "HSIL",
@@ -131,6 +140,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 10. Abnormal bleeding + cancer symptoms — Figure 10 → urgent ────────
   demoCase(9, "Abnormal bleeding + cancer symptoms — urgent referral", {
+    ethnicityPrimary: "MAORI",
     patientAge: 48,
     hasAbnormalVaginalBleeding: true,
     abnormalBleedingStage: "INITIAL_ASSESSMENT",
@@ -139,6 +149,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 11. HPV 16/18 + CIN3 at colposcopy — Figure 5 → treatment ─────────
   demoCase(10, "HPV 16/18 + CIN3 at colposcopy — treatment", {
+    ethnicityPrimary: "ASIAN",
     patientAge: 37,
     hpvResult: "HPV_16_18",
     cytologyResult: "HSIL",
@@ -150,6 +161,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 12. Glandular cytology AG2 — Figure 7 → gynae referral ─────────────
   demoCase(11, "Glandular cytology AG2 — gynaecology referral", {
+    ethnicityPrimary: "EUROPEAN",
     patientAge: 52,
     hpvResult: "HPV_OTHER",
     cytologyResult: "AG2",
@@ -158,6 +170,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 13. Transition, never screened — Figure 1 → invite now ─────────────
   demoCase(12, "First HPV transition — never screened, invite now", {
+    ethnicityPrimary: "MAORI",
     patientAge: 28,
     isFirstTimeHPVTransition: true,
     screeningStatus: "NEVER_SCREENED",
@@ -166,6 +179,7 @@ export const DEMO_DATASET: CanonicalBatchCase[] = [
 
   // ── 14. HPV Other + LSIL, 2nd repeat — Figure 3 → colposcopy ──────────
   demoCase(13, "HPV Other + LSIL, 2nd repeat — colposcopy escalation", {
+    ethnicityPrimary: "PACIFIC",
     patientAge: 44,
     hpvResult: "HPV_OTHER",
     cytologyResult: "LSIL",

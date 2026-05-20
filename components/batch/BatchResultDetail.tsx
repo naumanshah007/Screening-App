@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
+import { getGuidelineCitation } from "@/lib/batch/guideline-citations";
 
 interface BatchResultDetailProps {
   result: BatchCaseResult | null;
@@ -71,6 +72,7 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
   const inp = result.input;
 
   const patientId = c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`;
+  const citation = getGuidelineCitation(decision?.figure);
 
   return (
     <SlideOver
@@ -147,11 +149,16 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
                 <CardContent className="py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-muted-foreground mb-1">Pathway Figure</div>
+                      <div className="text-xs text-muted-foreground mb-1">NCSP Guideline Pathway</div>
                       <div className="text-base font-bold text-foreground">
-                        {decision.figure?.replace(/_/g, " ") ?? "—"}
+                        {citation ? citation.title : (decision.figure?.replace(/_/g, " ") ?? "—")}
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                      {citation && (
+                        <div className="text-xs text-muted-foreground/80 mt-0.5 italic">
+                          {citation.context}
+                        </div>
+                      )}
+                      <div className="text-sm text-foreground mt-2 leading-relaxed">
                         {decision.recommendation}
                       </div>
                     </div>

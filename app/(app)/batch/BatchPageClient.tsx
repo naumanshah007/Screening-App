@@ -2,11 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { PageIntro } from "@/components/layout/PageIntro";
-import { BatchDemoBanner } from "@/components/batch/BatchDemoBanner";
+import { BatchEngineTrustPanel } from "@/components/batch/BatchEngineTrustPanel";
 import { BatchUploader } from "@/components/batch/BatchUploader";
 import { BatchValidationPreview } from "@/components/batch/BatchValidationPreview";
 import { BatchDataTable } from "@/components/batch/BatchDataTable";
 import { BatchStatCards } from "@/components/batch/BatchStatCards";
+import { BatchActionQueue } from "@/components/batch/BatchActionQueue";
+import { BatchEquityCard } from "@/components/batch/BatchEquityCard";
 import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
 import { RotateCcw, CheckCircle2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,6 +77,30 @@ export function BatchPageClient() {
     } catch (err) {
       console.error("Failed to load demo dataset:", err);
       setUploadError("Failed to load demo dataset.");
+      setState({ step: "empty" });
+    }
+  }, []);
+
+  // ── Load messy "real-world" demo dataset ─────────────────────────────────
+  const loadMessyDemo = useCallback(async () => {
+    setState({ step: "uploading" });
+    setUploadError("");
+    try {
+      const { buildMessyDataset } = await import("@/lib/batch/demo-dataset-messy");
+      const rows = buildMessyDataset();
+      const { validateBatchRows } = await import("@/lib/batch/validation");
+      const validation = validateBatchRows(rows, {
+        sourceType: "demo",
+        sourceSystem: "Mock Lab Feed — Auckland LIS",
+        sourceFileName: "real-world-sample",
+        mappingVersion: "demo-messy-v1",
+        engineVersion: ENGINE_VERSION,
+        externalPatientId: undefined,
+      });
+      setState({ step: "loaded", validation });
+    } catch (err) {
+      console.error("Failed to load messy demo dataset:", err);
+      setUploadError("Failed to load real-world sample.");
       setState({ step: "empty" });
     }
   }, []);
@@ -226,7 +252,7 @@ export function BatchPageClient() {
         })}
       </div>
 
-      <BatchDemoBanner />
+      <BatchEngineTrustPanel />
 
       {uploadError && (
         <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-400">
@@ -238,6 +264,7 @@ export function BatchPageClient() {
       {(state.step === "empty" || state.step === "uploading") && (
         <BatchUploader
           onDemoLoad={loadDemo}
+          onMessyDemoLoad={loadMessyDemo}
           onFileLoad={loadFile}
           loading={isUploading}
         />
@@ -258,7 +285,9 @@ export function BatchPageClient() {
       {/* ── Results ──────────────────────────────────────────────────────── */}
       {state.step === "results" && (
         <>
+          <BatchActionQueue results={state.result.results} onViewDetail={openDetail} />
           <BatchStatCards result={state.result} />
+          <BatchEquityCard results={state.result.results} />
           <BatchDataTable results={state.result.results} onViewDetail={openDetail} />
         </>
       )}

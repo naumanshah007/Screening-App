@@ -3,11 +3,12 @@
 import { useCallback, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Database, Upload, Download, FileText, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { Database, Upload, Download, FileText, FileSpreadsheet, AlertTriangle, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BatchUploaderProps {
   onDemoLoad: () => void;
+  onMessyDemoLoad?: () => void;
   onFileLoad: (file: File) => void;
   loading?: boolean;
 }
@@ -27,7 +28,7 @@ function FileIcon({ ext }: { ext: string }) {
   return <FileText className="h-5 w-5 text-muted-foreground" />;
 }
 
-export function BatchUploader({ onDemoLoad, onFileLoad, loading = false }: BatchUploaderProps) {
+export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading = false }: BatchUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState("");
@@ -69,21 +70,53 @@ export function BatchUploader({ onDemoLoad, onFileLoad, loading = false }: Batch
   return (
     <Card>
       <CardContent className="py-8 space-y-6">
-        {/* Demo button */}
-        <div className="text-center space-y-2">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onDemoLoad}
-            loading={loading}
-            disabled={loading}
-            icon={<Database className="h-5 w-5" />}
-          >
-            Try Built-in Demo Dataset
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            14 pre-built rows covering all major cervical screening pathways
-          </p>
+        {/* Demo buttons — clean + messy */}
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Database className="h-4 w-4 text-brand-600" />
+              Clean Demo Dataset
+            </div>
+            <p className="text-xs text-muted-foreground flex-1">
+              14 de-identified records covering all major cervical screening pathways.
+              All rows valid — ideal for the happy-path walkthrough.
+            </p>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onDemoLoad}
+              loading={loading}
+              disabled={loading}
+              icon={<Database className="h-4 w-4" />}
+              className="self-start"
+            >
+              Load Clean Demo
+            </Button>
+          </div>
+
+          {onMessyDemoLoad && (
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20 p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <FlaskConical className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                Real-world Sample (Mock Lab Feed)
+              </div>
+              <p className="text-xs text-muted-foreground flex-1">
+                14 records with realistic data-quality issues — bad enums, missing NHI, mixed case,
+                duplicates, partial rows. Demonstrates validation handling.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onMessyDemoLoad}
+                loading={loading}
+                disabled={loading}
+                icon={<FlaskConical className="h-4 w-4" />}
+                className="self-start"
+              >
+                Load Messy Sample
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="relative flex items-center gap-3">
