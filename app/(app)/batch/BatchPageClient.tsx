@@ -10,12 +10,14 @@ import { BatchStatCards } from "@/components/batch/BatchStatCards";
 import { BatchActionQueue } from "@/components/batch/BatchActionQueue";
 import { BatchEquityCard } from "@/components/batch/BatchEquityCard";
 import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
+import { ManualCaseForm } from "@/components/batch/ManualCaseForm";
 import { RotateCcw, CheckCircle2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   BatchCaseResult,
   BatchProcessingResult,
   ParsedSourceRow,
+  CanonicalBatchCase,
 } from "@/lib/batch/types";
 import type { BatchValidationResult } from "@/lib/batch/validation";
 
@@ -35,22 +37,79 @@ export function BatchPageClient() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
+  // ── Manual case form state ──────────────────────────────────────────────
+  const [manualFormOpen, setManualFormOpen] = useState(false);
+  const [editingCase, setEditingCase] = useState<CanonicalBatchCase | null>(null);
+  // Tracks manually injected rows alongside uploaded data. Keys: validation result snapshots
+  // are rebuilt by re-running validateBatchRows when rows change.
+  const [manualRows, setManualRows] = useState<ParsedSourceRow[]>([]);
+  // Track the "base" uploaded rows separately from manual additions
+  const [baseRows, setBaseRows] = useState<ParsedSourceRow[]>([]);
+  const [baseSourceMeta, setBaseSourceMeta] = useState<{
+    sourceType: "demo" | "csv" | "xlsx" | "json";
+    sourceSystem: string;
+    sourceFileName?: string;
+  } | null>(null);
+
+  // ── Revalidate all rows (base + manual) ─────────────────────────────────
+  async function revalidateAll(
+    base: ParsedSourceRow[],
+    manual: ParsedSourceRow[],
+    meta: { sourceType: "demo" | "csv" | "xlsx" | "json"; sourceSystem: string; sourceFileName?: string }
+  ) {
+    const { validateBatchRows } = await import("@/lib/batch/validation");
+
+    // Validate base rows
+    const baseValidation = base.length > 0
+      ? validateBatchRows(base, {
+          sourceType: meta.sourceType,
+          sourceSystem: meta.sourceSystem,
+          sourceFileName: meta.sourceFileName,
+          mappingVersion: `${meta.sourceType}-v1`,
+          engineVersion: ENGINE_VERSION,
+          externalPatientId: undefined,
+        })
+      : { cases: [], totalRows: 0, validCount: 0, warningCount: 0, invalidCount: 0 };
+
+    // Validate manual rows
+    const manualValidation = manual.length > 0
+      ? validateBatchRows(manual, {
+          sourceType: "manual",
+          sourceSystem: "Manual test entry",
+          mappingVersion: "manual-v1",
+          engineVersion: ENGINE_VERSION,
+          externalPatientId: undefined,
+        })
+      : { cases: [], totalRows: 0, validCount: 0, warningCount: 0, invalidCount: 0 };
+
+    // Merge results
+    const merged: import("@/lib/batch/validation").BatchValidationResult = {
+      cases: [...baseValidation.cases, ...manualValidation.cases],
+      totalRows: baseValidation.totalRows + manualValidation.totalRows,
+      validCount: baseValidation.validCount + manualValidation.validCount,
+      warningCount: baseValidation.warningCount + manualValidation.warningCount,
+      invalidCount: baseValidation.invalidCount + manualValidation.invalidCount,
+    };
+
+    setState({ step: "loaded", validation: merged });
+  }
+
   // ── Shared: validate rows and transition to "loaded" ─────────────────────
   async function validateAndLoad(
     rows: ParsedSourceRow[],
     sourceType: "demo" | "csv" | "xlsx" | "json",
     fileName?: string
   ) {
-    const { validateBatchRows } = await import("@/lib/batch/validation");
-    const validation = validateBatchRows(rows, {
+    const meta = {
       sourceType,
       sourceSystem: fileName ?? (sourceType === "demo" ? "Privexa Demo Dataset" : "Upload"),
       sourceFileName: fileName,
-      mappingVersion: `${sourceType}-v1`,
-      engineVersion: ENGINE_VERSION,
-      externalPatientId: undefined,
-    });
-    setState({ step: "loaded", validation });
+    };
+    setBaseRows(rows);
+    setBaseSourceMeta(meta);
+    // Reset manual rows on new upload
+    setManualRows([]);
+    await revalidateAll(rows, [], meta);
   }
 
   // ── Load demo dataset ─────────────────────────────────────────────────────
@@ -88,6 +147,15 @@ export function BatchPageClient() {
     try {
       const { buildMessyDataset } = await import("@/lib/batch/demo-dataset-messy");
       const rows = buildMessyDataset();
+      const meta = {
+        sourceType: "demo" as const,
+        sourceSystem: "Mock Lab Feed — Auckland LIS",
+        sourceFileName: "real-world-sample",
+      };
+      setBaseRows(rows);
+      setBaseSourceMeta(meta);
+      setManualRows([]);
+
       const { validateBatchRows } = await import("@/lib/batch/validation");
       const validation = validateBatchRows(rows, {
         sourceType: "demo",
@@ -153,6 +221,122 @@ export function BatchPageClient() {
     }
   }, []);
 
+  // ── Manual case: Add / Edit / Duplicate / Delete ──────────────────────────
+
+  const handleOpenAddManual = useCallback(() => {
+    setEditingCase(null);
+    setManualFormOpen(true);
+  }, []);
+
+  const handleEditCase = useCallback((batchCase: CanonicalBatchCase) => {
+    setEditingCase(batchCase);
+    setManualFormOpen(true);
+  }, []);
+
+  const handleDuplicateCase = useCallback(async (batchCase: CanonicalBatchCase) => {
+    // Create a new ParsedSourceRow from the case's fields
+    const { BATCH_COLUMNS } = await import("@/lib/batch/template-columns");
+    const row: ParsedSourceRow = {
+      _rowIndex: baseRows.length + manualRows.length,
+      _sourceFields: [],
+    };
+
+    for (const col of BATCH_COLUMNS) {
+      const val = (batchCase as unknown as Record<string, unknown>)[col.field];
+      if (val !== undefined && val !== null && val !== "") {
+        row[col.field] = val;
+        row._sourceFields.push(col.field);
+      }
+    }
+    // Clear the patient ID so it gets a new one
+    delete row.externalPatientId;
+    row._sourceFields = row._sourceFields.filter((f) => f !== "externalPatientId");
+
+    // Duplicate label with "(copy)" suffix
+    if (batchCase.label) {
+      row.label = `${batchCase.label} (copy)`;
+    }
+
+    const newManual = [...manualRows, row];
+    setManualRows(newManual);
+    if (baseSourceMeta) {
+      await revalidateAll(baseRows, newManual, baseSourceMeta);
+    }
+  }, [baseRows, manualRows, baseSourceMeta]);
+
+  const handleDeleteCase = useCallback(async (caseId: string) => {
+    if (state.step !== "loaded" && state.step !== "processing") return;
+    const validation = state.validation;
+
+    // Find the case to delete
+    const targetCase = validation.cases.find((c) => c.caseId === caseId);
+    if (!targetCase) return;
+
+    if (targetCase.source.sourceType === "manual") {
+      // Remove from manual rows by matching row number (rowNumber is 1-based)
+      const manualIndex = targetCase.source.rowNumber - 1;
+      const newManual = manualRows.filter((_, i) => i !== manualIndex);
+      setManualRows(newManual);
+      if (baseSourceMeta) {
+        await revalidateAll(baseRows, newManual, baseSourceMeta);
+      }
+    } else {
+      // Remove from base rows by matching row index
+      const baseIndex = targetCase.source.rowNumber - 1;
+      const newBase = baseRows.filter((_, i) => i !== baseIndex);
+      setBaseRows(newBase);
+      if (baseSourceMeta) {
+        await revalidateAll(newBase, manualRows, baseSourceMeta);
+      }
+    }
+  }, [state, baseRows, manualRows, baseSourceMeta]);
+
+  const handleSaveManualCase = useCallback(async (row: ParsedSourceRow, editCaseId?: string) => {
+    if (editCaseId && state.step === "loaded") {
+      // Editing an existing case — find which list it belongs to
+      const targetCase = state.validation.cases.find((c) => c.caseId === editCaseId);
+      if (targetCase?.source.sourceType === "manual") {
+        // Replace in manual rows
+        const manualIndex = targetCase.source.rowNumber - 1;
+        const newManual = [...manualRows];
+        row._rowIndex = manualIndex;
+        newManual[manualIndex] = row;
+        setManualRows(newManual);
+        if (baseSourceMeta) {
+          await revalidateAll(baseRows, newManual, baseSourceMeta);
+        }
+      } else if (targetCase) {
+        // Editing a base row — replace in base rows
+        const baseIndex = targetCase.source.rowNumber - 1;
+        const newBase = [...baseRows];
+        row._rowIndex = baseIndex;
+        newBase[baseIndex] = row;
+        setBaseRows(newBase);
+        if (baseSourceMeta) {
+          await revalidateAll(newBase, manualRows, baseSourceMeta);
+        }
+      }
+    } else {
+      // Adding a new manual row
+      row._rowIndex = manualRows.length;
+      const newManual = [...manualRows, row];
+      setManualRows(newManual);
+
+      if (baseSourceMeta) {
+        await revalidateAll(baseRows, newManual, baseSourceMeta);
+      } else {
+        // No base data yet — create a "manual-only" dataset
+        const meta = {
+          sourceType: "demo" as const,
+          sourceSystem: "Manual test entry",
+          sourceFileName: undefined,
+        };
+        setBaseSourceMeta(meta);
+        await revalidateAll([], newManual, meta);
+      }
+    }
+  }, [state, baseRows, manualRows, baseSourceMeta]);
+
   // ── Process selected rows ─────────────────────────────────────────────────
   const processRows = useCallback(
     async (selectedCaseIds: string[]) => {
@@ -188,6 +372,11 @@ export function BatchPageClient() {
     setDetailResult(null);
     setDetailOpen(false);
     setUploadError("");
+    setManualRows([]);
+    setBaseRows([]);
+    setBaseSourceMeta(null);
+    setManualFormOpen(false);
+    setEditingCase(null);
   }, []);
 
   const openDetail = useCallback((result: BatchCaseResult) => {
@@ -279,6 +468,10 @@ export function BatchPageClient() {
           invalidCount={state.validation.invalidCount}
           onProcess={processRows}
           processing={state.step === "processing"}
+          onAddManual={handleOpenAddManual}
+          onEditCase={handleEditCase}
+          onDuplicateCase={handleDuplicateCase}
+          onDeleteCase={handleDeleteCase}
         />
       )}
 
@@ -297,6 +490,14 @@ export function BatchPageClient() {
         result={detailResult}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
+      />
+
+      {/* ── Manual Case Form ──────────────────────────────────────────────── */}
+      <ManualCaseForm
+        open={manualFormOpen}
+        onClose={() => { setManualFormOpen(false); setEditingCase(null); }}
+        editCase={editingCase}
+        onSave={handleSaveManualCase}
       />
     </div>
   );

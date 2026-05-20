@@ -56,6 +56,7 @@ export type SourceType =
   | "csv"
   | "xlsx"
   | "json"
+  | "manual"
   | "hl7"
   | "fhir"
   | "health-nz";

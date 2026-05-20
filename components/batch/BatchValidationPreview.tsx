@@ -4,7 +4,10 @@ import { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertTriangle, XCircle, Info, Database } from "lucide-react";
+import {
+  CheckCircle2, AlertTriangle, XCircle, Info, Database,
+  Plus, Pencil, Copy, Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
 
@@ -15,6 +18,14 @@ interface BatchValidationPreviewProps {
   invalidCount: number;
   onProcess: (selectedCaseIds: string[]) => void;
   processing?: boolean;
+  /** Called when user clicks "Add Test Case Manually" */
+  onAddManual?: () => void;
+  /** Called when user clicks Edit on a row */
+  onEditCase?: (batchCase: CanonicalBatchCase) => void;
+  /** Called when user clicks Duplicate on a row */
+  onDuplicateCase?: (batchCase: CanonicalBatchCase) => void;
+  /** Called when user clicks Delete on a row */
+  onDeleteCase?: (caseId: string) => void;
 }
 
 const statusIcon = {
@@ -44,6 +55,10 @@ export function BatchValidationPreview({
   invalidCount,
   onProcess,
   processing = false,
+  onAddManual,
+  onEditCase,
+  onDuplicateCase,
+  onDeleteCase,
 }: BatchValidationPreviewProps) {
   const processableIds = useMemo(
     () => cases.filter((c) => c.validationStatus !== "invalid").map((c) => c.caseId),
@@ -59,6 +74,8 @@ export function BatchValidationPreview({
 
   const sourceSystem = cases[0]?.source?.sourceSystem ?? "Unknown source";
   const sourceType   = cases[0]?.source?.sourceType   ?? "demo";
+
+  const hasRowActions = !!(onEditCase || onDuplicateCase || onDeleteCase);
 
   return (
     <Card>
@@ -85,9 +102,21 @@ export function BatchValidationPreview({
 
         {/* Action row */}
         <div className="flex items-center justify-between gap-3 mt-1 flex-wrap">
-          <p className="text-xs text-muted-foreground">
-            Select records to process through the decision engine. Invalid rows cannot be processed.
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground">
+              Select records to process through the decision engine. Invalid rows cannot be processed.
+            </p>
+            {onAddManual && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={onAddManual}
+                icon={<Plus className="h-3 w-3" />}
+              >
+                Add Test Case
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground whitespace-nowrap">
               {selected.size} of {processableIds.length} selected
@@ -128,6 +157,9 @@ export function BatchValidationPreview({
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">Source</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">Status</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">Issues</th>
+                {hasRowActions && (
+                  <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap w-28">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -135,6 +167,7 @@ export function BatchValidationPreview({
                 const isInvalid  = c.validationStatus === "invalid";
                 const isSelected = selected.has(c.caseId);
                 const issues     = [...c.validationErrors, ...c.validationWarnings];
+                const isManual   = c.source.sourceType === "manual";
 
                 const flags: string[] = [];
                 if (c.immunocompromised)          flags.push("Immunocompromised");
@@ -171,9 +204,16 @@ export function BatchValidationPreview({
 
                     {/* Patient ID + label */}
                     <td className="px-3 py-2.5">
-                      <span className="font-mono text-xs font-semibold text-foreground tracking-wide">
-                        {c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-semibold text-foreground tracking-wide">
+                          {c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`}
+                        </span>
+                        {isManual && (
+                          <span className="inline-flex items-center rounded bg-violet-100 dark:bg-violet-900/30 px-1 py-0.5 text-[10px] font-medium text-violet-700 dark:text-violet-400">
+                            manual
+                          </span>
+                        )}
+                      </div>
                       {c.label && (
                         <div className="text-xs text-muted-foreground truncate max-w-[150px] mt-0.5" title={c.label}>
                           {c.label}
@@ -264,6 +304,47 @@ export function BatchValidationPreview({
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
+
+                    {/* Row actions */}
+                    {hasRowActions && (
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-0.5">
+                          {onEditCase && (
+                            <button
+                              type="button"
+                              onClick={() => onEditCase(c)}
+                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                              title="Edit"
+                              aria-label={`Edit ${c.source.externalPatientId ?? `row ${c.source.rowNumber}`}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {onDuplicateCase && (
+                            <button
+                              type="button"
+                              onClick={() => onDuplicateCase(c)}
+                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                              title="Duplicate"
+                              aria-label={`Duplicate ${c.source.externalPatientId ?? `row ${c.source.rowNumber}`}`}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {onDeleteCase && (
+                            <button
+                              type="button"
+                              onClick={() => onDeleteCase(c.caseId)}
+                              className="p-1 rounded text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                              title="Delete"
+                              aria-label={`Delete ${c.source.externalPatientId ?? `row ${c.source.rowNumber}`}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
