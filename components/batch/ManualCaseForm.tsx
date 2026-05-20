@@ -6,6 +6,10 @@
  * Driven entirely by BATCH_COLUMNS from template-columns.ts (single source of truth).
  * Groups fields by category and renders the appropriate control for each type.
  *
+ * When editing a row with validation issues, the problematic fields are
+ * highlighted (red for errors, amber for warnings) and the form auto-scrolls
+ * to the first error field.
+ *
  * This is demo/testing functionality — not production clinical entry.
  */
 
@@ -14,10 +18,10 @@ import { SlideOver } from "@/components/ui/slide-over";
 import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FlaskConical, Save, Plus } from "lucide-react";
+import { AlertTriangle, FlaskConical, Save, Plus, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BATCH_COLUMNS, type ColumnDef } from "@/lib/batch/template-columns";
-import type { ParsedSourceRow, CanonicalBatchCase } from "@/lib/batch/types";
+import type { ParsedSourceRow, CanonicalBatchCase, ValidationIssue } from "@/lib/batch/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +30,8 @@ interface ManualCaseFormProps {
   onClose: () => void;
   /** If provided, pre-populates the form for editing. */
   editCase?: CanonicalBatchCase | null;
+  /** Validation issues from the existing case — used to highlight error fields. */
+  validationIssues?: ValidationIssue[];
   /** Called with the raw form data when user saves. */
   onSave: (row: ParsedSourceRow, editCaseId?: string) => void;
 }
@@ -63,15 +69,39 @@ function groupColumns(): Map<string, ColumnDef[]> {
   return map;
 }
 
+/** Build field-level error/warning maps from ValidationIssue[]. */
+function buildIssuesMaps(issues?: ValidationIssue[]): {
+  errors: Record<string, string>;
+  warnings: Record<string, string>;
+} {
+  const errors: Record<string, string> = {};
+  const warnings: Record<string, string> = {};
+  if (!issues) return { errors, warnings };
+
+  for (const issue of issues) {
+    if (issue.field === "_row" || issue.field === "_parse") continue;
+    if (issue.severity === "error") {
+      if (!errors[issue.field]) errors[issue.field] = issue.message;
+    } else {
+      if (!warnings[issue.field]) warnings[issue.field] = issue.message;
+    }
+  }
+  return { errors, warnings };
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFormProps) {
+export function ManualCaseForm({ open, onClose, editCase, validationIssues, onSave }: ManualCaseFormProps) {
   const isEdit = !!editCase;
   const grouped = useMemo(() => groupColumns(), []);
 
   // Form state: field name → string value
   const [values, setValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldWarnings, setFieldWarnings] = useState<Record<string, string>>({});
+
+  // Track which fields had issues from external validation (to show distinct styling)
+  const [externalIssueFields, setExternalIssueFields] = useState<Set<string>>(new Set());
 
   // Reset form when opening
   useEffect(() => {
@@ -87,16 +117,39 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
         v.externalPatientId = editCase.source.externalPatientId;
       }
       setValues(v);
+
+      // Build initial error/warning state from validation issues
+      const { errors, warnings } = buildIssuesMaps(validationIssues);
+      setFieldErrors(errors);
+      setFieldWarnings(warnings);
+      setExternalIssueFields(new Set([...Object.keys(errors), ...Object.keys(warnings)]));
+
+      // Auto-scroll to first error field after render
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(`manual-${firstErrorField}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
     } else {
       setValues({});
+      setFieldErrors({});
+      setFieldWarnings({});
+      setExternalIssueFields(new Set());
     }
-    setFieldErrors({});
-  }, [open, editCase]);
+  }, [open, editCase, validationIssues]);
 
   const setValue = useCallback((field: string, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
-    // Clear field error on change
+    // Clear field error/warning on change
     setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    setFieldWarnings((prev) => {
       if (!prev[field]) return prev;
       const next = { ...prev };
       delete next[field];
@@ -170,6 +223,7 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
   function renderField(col: ColumnDef) {
     const val = values[col.field] ?? "";
     const error = fieldErrors[col.field];
+    const warning = fieldWarnings[col.field];
     const fieldId = `manual-${col.field}`;
 
     if (col.type === "enum" && col.allowedValues) {
@@ -181,6 +235,7 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
           value={val}
           onChange={(e) => setValue(col.field, e.target.value)}
           error={error}
+          warning={warning}
           hint={col.description}
           required={col.required}
           placeholder="Select..."
@@ -201,6 +256,7 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
           value={val}
           onChange={(e) => setValue(col.field, e.target.value)}
           error={error}
+          warning={warning}
           hint={col.description}
           required={col.required}
           placeholder="Select..."
@@ -222,6 +278,7 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
           value={val}
           onChange={(e) => setValue(col.field, e.target.value)}
           error={error}
+          warning={warning}
           hint={col.description}
           required={col.required}
           min={col.field === "patientAge" ? 0 : undefined}
@@ -240,6 +297,7 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
         value={val}
         onChange={(e) => setValue(col.field, e.target.value)}
         error={error}
+        warning={warning}
         hint={col.description}
         required={col.required}
       />
@@ -248,7 +306,9 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
 
   // ── Layout ────────────────────────────────────────────────────────────────
 
-  const hasErrors = Object.keys(fieldErrors).length > 0;
+  const errorCount = Object.keys(fieldErrors).length;
+  const warningCount = Object.keys(fieldWarnings).length;
+  const hasIssues = errorCount > 0 || warningCount > 0;
 
   return (
     <SlideOver
@@ -294,12 +354,35 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
           </div>
         </div>
 
-        {hasErrors && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20 px-4 py-3">
-            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
-            <p className="text-xs text-red-700 dark:text-red-400">
-              Please fix the highlighted errors before saving.
-            </p>
+        {/* Validation issues summary (when editing a row with issues) */}
+        {isEdit && hasIssues && (
+          <div className={cn(
+            "flex items-start gap-2.5 rounded-lg border px-4 py-3",
+            errorCount > 0
+              ? "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20"
+              : "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20"
+          )}>
+            {errorCount > 0 ? (
+              <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className={cn(
+                "text-xs font-medium",
+                errorCount > 0 ? "text-red-800 dark:text-red-300" : "text-amber-800 dark:text-amber-300"
+              )}>
+                This row has {errorCount > 0 && <>{errorCount} validation error{errorCount !== 1 ? "s" : ""}</>}
+                {errorCount > 0 && warningCount > 0 && " and "}
+                {warningCount > 0 && <>{warningCount} warning{warningCount !== 1 ? "s" : ""}</>}
+              </p>
+              <p className={cn(
+                "text-xs mt-0.5",
+                errorCount > 0 ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"
+              )}>
+                Fix the highlighted fields below. Errors will clear as you correct each value.
+              </p>
+            </div>
           </div>
         )}
 
@@ -308,17 +391,31 @@ export function ManualCaseForm({ open, onClose, editCase, onSave }: ManualCaseFo
           const cols = grouped.get(key);
           if (!cols || cols.length === 0) return null;
 
+          // Count issues in this group
+          const groupErrors = cols.filter((c) => fieldErrors[c.field]).length;
+          const groupWarnings = cols.filter((c) => fieldWarnings[c.field]).length;
+
           return (
             <div key={key} className="space-y-3">
               <div className="flex items-center gap-2 border-b border-border pb-1.5">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {label}
                 </h3>
-                <Badge variant="default" size="sm">
-                  {cols.filter((c) => c.required).length > 0
-                    ? `${cols.filter((c) => c.required).length} required`
-                    : "all optional"}
-                </Badge>
+                {groupErrors > 0 ? (
+                  <Badge variant="urgent" size="sm">
+                    {groupErrors} error{groupErrors !== 1 ? "s" : ""}
+                  </Badge>
+                ) : groupWarnings > 0 ? (
+                  <Badge variant="high" size="sm">
+                    {groupWarnings} warning{groupWarnings !== 1 ? "s" : ""}
+                  </Badge>
+                ) : (
+                  <Badge variant="default" size="sm">
+                    {cols.filter((c) => c.required).length > 0
+                      ? `${cols.filter((c) => c.required).length} required`
+                      : "all optional"}
+                  </Badge>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                 {cols.map((col) => renderField(col))}

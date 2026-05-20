@@ -5,6 +5,7 @@ import { AlertCircle } from "lucide-react";
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  warning?: string;
   hint?: string;
   icon?: React.ReactNode;
   trailing?: React.ReactNode;
@@ -19,8 +20,9 @@ const fieldBase = cn(
 );
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, hint, icon, trailing, id, required, ...props }, ref) => {
+  ({ className, label, error, warning, hint, icon, trailing, id, required, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+    const feedback = error || warning;
     return (
       <div className="w-full">
         {label && (
@@ -39,13 +41,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             aria-invalid={!!error}
-            aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
+            aria-describedby={feedback ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
             className={cn(
               fieldBase,
               "px-3 py-2.5 h-10",
               error
                 ? "border-destructive focus:ring-destructive/30 focus:border-destructive"
-                : "border-border hover:border-border-strong",
+                : warning
+                  ? "border-amber-500 focus:ring-amber-500/30 focus:border-amber-500"
+                  : "border-border hover:border-border-strong",
               icon && "pl-9",
               trailing && "pr-9",
               className
@@ -64,7 +68,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {error}
           </p>
         )}
-        {hint && !error && (
+        {!error && warning && (
+          <p id={`${inputId}-error`} role="status" className="mt-1.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+            {warning}
+          </p>
+        )}
+        {hint && !error && !warning && (
           <p id={`${inputId}-hint`} className="mt-1 text-xs text-muted-foreground">{hint}</p>
         )}
       </div>
@@ -124,6 +134,7 @@ Textarea.displayName = "Textarea";
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
+  warning?: string;
   hint?: string;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -131,8 +142,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, hint, id, children, options, placeholder, required, ...props }, ref) => {
+  ({ className, label, error, warning, hint, id, children, options, placeholder, required, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+    const feedback = error || warning;
     return (
       <div className="w-full">
         {label && (
@@ -145,13 +157,15 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={inputId}
           aria-invalid={!!error}
-          aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
+          aria-describedby={feedback ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={cn(
             fieldBase,
             "h-10 px-3",
             error
               ? "border-destructive focus:ring-destructive/30"
-              : "border-border hover:border-border-strong",
+              : warning
+                ? "border-amber-500 focus:ring-amber-500/30"
+                : "border-border hover:border-border-strong",
             className
           )}
           {...props}
@@ -167,7 +181,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {error}
           </p>
         )}
-        {hint && !error && (
+        {!error && warning && (
+          <p id={`${inputId}-error`} role="status" className="mt-1.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+            {warning}
+          </p>
+        )}
+        {hint && !error && !warning && (
           <p id={`${inputId}-hint`} className="mt-1 text-xs text-muted-foreground">{hint}</p>
         )}
       </div>

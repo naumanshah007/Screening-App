@@ -5,11 +5,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  CheckCircle2, AlertTriangle, XCircle, Info, Database,
+  CheckCircle2, AlertTriangle, XCircle, Database,
   Plus, Pencil, Copy, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
+import { ValidationIssuePopover } from "./ValidationIssuePopover";
 
 interface BatchValidationPreviewProps {
   cases: CanonicalBatchCase[];
@@ -284,25 +285,11 @@ export function BatchValidationPreview({
 
                     {/* Issues */}
                     <td className="px-3 py-2.5">
-                      {issues.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          <span className={cn(
-                            "text-xs font-medium",
-                            c.validationErrors.length > 0 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
-                          )}>
-                            {issues.length}
-                          </span>
-                          <button
-                            type="button"
-                            className="p-0.5 rounded text-muted-foreground hover:text-foreground"
-                            title={issues.map((i) => `[${i.severity}] ${i.field}: ${i.message}`).join("\n")}
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <ValidationIssuePopover
+                        issues={issues}
+                        validationStatus={c.validationStatus}
+                        patientId={c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`}
+                      />
                     </td>
 
                     {/* Row actions */}

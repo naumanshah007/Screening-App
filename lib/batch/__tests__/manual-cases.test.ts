@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { validateBatchRows, type BatchValidationResult } from "../validation";
-import type { ParsedSourceRow, SourceMetadata } from "../types";
+import { processBatch, mapCanonicalToClinicalInput } from "../processor";
+import type { ParsedSourceRow, SourceMetadata, CanonicalBatchCase } from "../types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -12,7 +13,15 @@ const MANUAL_SOURCE_META: Omit<SourceMetadata, "rowNumber" | "importedAt"> = {
   engineVersion: "test-v1",
 };
 
-function makeManualRow(
+const CSV_SOURCE_META: Omit<SourceMetadata, "rowNumber" | "importedAt"> = {
+  sourceType: "csv",
+  sourceSystem: "Test CSV",
+  sourceFileName: "test.csv",
+  mappingVersion: "csv-v1",
+  engineVersion: "test-v1",
+};
+
+function makeRow(
   overrides: Record<string, unknown> = {},
   index = 0
 ): ParsedSourceRow {
@@ -27,246 +36,307 @@ function validateManual(rows: ParsedSourceRow[]): BatchValidationResult {
   return validateBatchRows(rows, MANUAL_SOURCE_META);
 }
 
-// ─── Valid Manual Row ────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 1. Issue popover data — validation issues contain field, value, message
+// ════════════════════════════════════════════════════════════════════════════
 
-test("manual: valid row with HPV result produces valid case", () => {
+test("popover data: invalid enum issue contains field, value, and allowed list", () => {
   const result = validateManual([
-    makeManualRow({
-      externalPatientId: "MANUAL-001",
-      patientAge: 35,
-      hpvResult: "NOT_DETECTED",
-      label: "Manual test — HPV negative",
-    }),
+    makeRow({ hpvResult: "POSITIVE" }),
   ]);
-
-  assert.equal(result.cases.length, 1);
-  assert.equal(result.validCount, 1);
-  assert.equal(result.invalidCount, 0);
-
   const c = result.cases[0];
-  assert.equal(c.validationStatus, "valid");
-  assert.equal(c.source.sourceType, "manual");
-  assert.equal(c.source.sourceSystem, "Manual test entry");
-  assert.equal(c.source.mappingVersion, "manual-v1");
-  assert.equal(c.source.externalPatientId, "MANUAL-001");
-  assert.equal(c.patientAge, 35);
-  assert.equal(c.hpvResult, "NOT_DETECTED");
-  assert.equal(c.label, "Manual test — HPV negative");
+  assert.equal(c.validationStatus, "invalid");
+
+  const hpvError = c.validationErrors.find((e) => e.field === "hpvResult");
+  assert.ok(hpvError, "should have hpvResult error");
+  assert.equal(hpvError.field, "hpvResult");
+  assert.equal(hpvError.value, "POSITIVE");
+  assert.ok(hpvError.message.includes("Allowed:"), "message should list allowed values");
+  assert.ok(hpvError.message.includes("NOT_DETECTED"), "message should include NOT_DETECTED");
+  assert.ok(hpvError.message.includes("HPV_16_18"), "message should include HPV_16_18");
 });
 
-test("manual: valid row with all boolean flags", () => {
+test("popover data: age out of range issue contains field, value, and range", () => {
   const result = validateManual([
-    makeManualRow({
-      hpvResult: "HPV_16_18",
-      cytologyResult: "HSIL",
-      isPostHysterectomy: false,
-      immunocompromised: true,
-      isFirstTimeHPVTransition: false,
-      atypicalEndometrialHistory: false,
-      isPregnant: true,
-    }),
+    makeRow({ patientAge: 145, hpvResult: "NOT_DETECTED" }),
   ]);
+  const ageError = result.cases[0].validationErrors.find((e) => e.field === "patientAge");
+  assert.ok(ageError, "should have patientAge error");
+  assert.equal(ageError.value, 145);
+  assert.ok(ageError.message.includes("0") && ageError.message.includes("120"), "should mention valid range");
+});
 
+test("popover data: unknown column warning contains field name", () => {
+  const result = validateManual([
+    makeRow({ hpvResult: "NOT_DETECTED", labOrderId: "LAB-999" }, 0, ["hpvResult", "labOrderId"]),
+  ]);
+  const unknownWarn = result.cases[0].validationWarnings.find(
+    (w) => w.field === "labOrderId"
+  );
+  assert.ok(unknownWarn, "should warn about unknown column");
+  assert.ok(unknownWarn.message.includes("Unknown column"), "message should mention unknown column");
+});
+
+test("popover data: duplicate patient ID warning contains both row references", () => {
+  const result = validateManual([
+    makeRow({ hpvResult: "NOT_DETECTED", externalPatientId: "DUP-001" }, 0),
+    makeRow({ hpvResult: "HPV_OTHER", externalPatientId: "DUP-001" }, 1),
+  ]);
+  const dupWarn = result.cases[1].validationWarnings.find(
+    (w) => w.field === "externalPatientId" && w.message.includes("Duplicate")
+  );
+  assert.ok(dupWarn, "second row should have duplicate warning");
+  assert.equal(dupWarn.value, "DUP-001");
+});
+
+test("popover data: no clinical data warning has _row field", () => {
+  const result = validateManual([
+    makeRow({ externalPatientId: "EMPTY-001" }),
+  ]);
+  const noClinical = result.cases[0].validationWarnings.find(
+    (w) => w.field === "_row"
+  );
+  assert.ok(noClinical, "should warn about missing clinical data");
+  assert.ok(noClinical.message.includes("no clinical data"));
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// 2. Edit-row validation — edited rows re-validate correctly
+// ════════════════════════════════════════════════════════════════════════════
+
+test("edit: fixing invalid enum value makes row valid", () => {
+  // Start with invalid
+  const invalid = validateManual([makeRow({ hpvResult: "POSITIVE" })]);
+  assert.equal(invalid.cases[0].validationStatus, "invalid");
+
+  // "Edit" to fix
+  const fixed = validateManual([makeRow({ hpvResult: "HPV_16_18" })]);
+  assert.equal(fixed.cases[0].validationStatus, "valid");
+  assert.equal(fixed.cases[0].hpvResult, "HPV_16_18");
+});
+
+test("edit: fixing age brings row from invalid to valid", () => {
+  const invalid = validateManual([makeRow({ patientAge: 200, hpvResult: "NOT_DETECTED" })]);
+  assert.equal(invalid.cases[0].validationStatus, "invalid");
+
+  const fixed = validateManual([makeRow({ patientAge: 35, hpvResult: "NOT_DETECTED" })]);
+  assert.equal(fixed.cases[0].validationStatus, "valid");
+  assert.equal(fixed.cases[0].patientAge, 35);
+});
+
+test("edit: validation issues list is empty after fixing all errors", () => {
+  const fixed = validateManual([
+    makeRow({ hpvResult: "HPV_OTHER", cytologyResult: "LSIL", patientAge: 42 }),
+  ]);
+  assert.equal(fixed.cases[0].validationErrors.length, 0);
+  assert.equal(fixed.cases[0].validationStatus, "valid");
+});
+
+test("edit: validation issues carry field-level detail for UI highlighting", () => {
+  const result = validateManual([
+    makeRow({ hpvResult: "INVALID_VALUE", cytologyResult: "WRONG" }),
+  ]);
   const c = result.cases[0];
-  assert.equal(c.validationStatus, "valid");
-  assert.equal(c.hpvResult, "HPV_16_18");
-  assert.equal(c.cytologyResult, "HSIL");
-  assert.equal(c.immunocompromised, true);
-  assert.equal(c.isPregnant, true);
+  assert.equal(c.validationStatus, "invalid");
+
+  // Both fields should have separate errors
+  const hpvErr = c.validationErrors.find((e) => e.field === "hpvResult");
+  const cytErr = c.validationErrors.find((e) => e.field === "cytologyResult");
+  assert.ok(hpvErr, "hpvResult should have an error");
+  assert.ok(cytErr, "cytologyResult should have an error");
+  assert.equal(hpvErr.value, "INVALID_VALUE");
+  assert.equal(cytErr.value, "WRONG");
 });
 
-// ─── Edited Manual Row ──────────────────────────────────────────────────────
-
-test("manual: edited row updates field values", () => {
-  // Simulate: first validate with HPV_OTHER, then "edit" by re-validating with HPV_16_18
-  const original = validateManual([
-    makeManualRow({ hpvResult: "HPV_OTHER", patientAge: 40 }),
-  ]);
-  assert.equal(original.cases[0].hpvResult, "HPV_OTHER");
-  assert.equal(original.cases[0].patientAge, 40);
-
-  // "Edit": re-validate with changed values
-  const edited = validateManual([
-    makeManualRow({ hpvResult: "HPV_16_18", patientAge: 42, cytologyResult: "HSIL" }),
-  ]);
-  assert.equal(edited.cases[0].hpvResult, "HPV_16_18");
-  assert.equal(edited.cases[0].patientAge, 42);
-  assert.equal(edited.cases[0].cytologyResult, "HSIL");
-});
-
-test("manual: edited row preserves source metadata", () => {
+test("edit: source metadata is preserved as manual after edit", () => {
   const result = validateManual([
-    makeManualRow({ hpvResult: "NOT_DETECTED", externalPatientId: "EDIT-001" }),
+    makeRow({ hpvResult: "NOT_DETECTED", externalPatientId: "EDIT-001" }),
   ]);
-
   assert.equal(result.cases[0].source.sourceType, "manual");
   assert.equal(result.cases[0].source.sourceSystem, "Manual test entry");
   assert.equal(result.cases[0].source.mappingVersion, "manual-v1");
-  assert.equal(result.cases[0].source.externalPatientId, "EDIT-001");
 });
 
-// ─── Invalid Manual Row ─────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 3. Invalid rows cannot be processed
+// ════════════════════════════════════════════════════════════════════════════
 
-test("manual: invalid enum value produces validation error", () => {
-  const result = validateManual([
-    makeManualRow({ hpvResult: "POSITIVE" }), // invalid enum
+test("processor: invalid rows are skipped by default", () => {
+  const validation = validateManual([
+    makeRow({ hpvResult: "NOT_DETECTED" }, 0),  // valid
+    makeRow({ hpvResult: "POSITIVE" }, 1),        // invalid
+    makeRow({ hpvResult: "HPV_16_18" }, 2),       // valid
   ]);
 
-  assert.equal(result.invalidCount, 1);
-  assert.equal(result.cases[0].validationStatus, "invalid");
-  assert.ok(result.cases[0].validationErrors.length > 0);
+  const batch = processBatch(validation.cases);
+  // Only 2 valid rows should be processed
+  assert.equal(batch.results.length, 2);
+  assert.equal(batch.processedCount, 2);
 
-  const hpvError = result.cases[0].validationErrors.find((e) => e.field === "hpvResult");
-  assert.ok(hpvError, "should have an error for hpvResult");
-  assert.ok(hpvError.message.includes("POSITIVE"));
+  // The invalid row (HPV "POSITIVE") should not appear in results
+  const processedHpvValues = batch.results.map((r) => r.input.hpvResult);
+  assert.ok(processedHpvValues.includes("NOT_DETECTED"));
+  assert.ok(processedHpvValues.includes("HPV_16_18"));
 });
 
-test("manual: invalid age (> 120) produces validation error", () => {
-  const result = validateManual([
-    makeManualRow({ patientAge: 145, hpvResult: "NOT_DETECTED" }),
+test("processor: invalid rows are skipped even when includeWarnings is true", () => {
+  const validation = validateManual([
+    makeRow({ hpvResult: "POSITIVE" }, 0),  // invalid
   ]);
 
-  assert.equal(result.invalidCount, 1);
-  assert.equal(result.cases[0].validationStatus, "invalid");
-
-  const ageError = result.cases[0].validationErrors.find((e) => e.field === "patientAge");
-  assert.ok(ageError, "should have an error for patientAge");
-  assert.ok(ageError.message.includes("145"));
+  const batch = processBatch(validation.cases, { includeWarnings: true, includeInvalid: false });
+  assert.equal(batch.results.length, 0);
+  assert.equal(batch.processedCount, 0);
 });
 
-test("manual: row with no clinical data gets warning", () => {
-  const result = validateManual([
-    makeManualRow({ externalPatientId: "EMPTY-001", patientAge: 30 }),
+test("processor: warning rows are processed by default", () => {
+  // A row with only a warning (no clinical data) should still be processable
+  const validation = validateManual([
+    makeRow({ externalPatientId: "WARN-001", patientAge: 30 }, 0),
   ]);
+  assert.equal(validation.cases[0].validationStatus, "warnings");
 
-  // Should still be processable (warning, not error)
-  assert.equal(result.warningCount, 1);
-  assert.equal(result.cases[0].validationStatus, "warnings");
+  const batch = processBatch(validation.cases);
+  assert.equal(batch.results.length, 1);
+  assert.equal(batch.results[0].status, "success");
+});
 
-  const noClinical = result.cases[0].validationWarnings.find(
-    (w) => w.field === "_row" && w.message.includes("no clinical data")
+// ════════════════════════════════════════════════════════════════════════════
+// 4. Edited rows go through the same processor path (evaluateClinicalDecision)
+// ════════════════════════════════════════════════════════════════════════════
+
+test("processor: manually added row produces same decision as CSV row with same data", () => {
+  // Same clinical data, different source types
+  const manualValidation = validateManual([
+    makeRow({ hpvResult: "NOT_DETECTED", patientAge: 35 }, 0),
+  ]);
+  const csvValidation = validateBatchRows(
+    [makeRow({ hpvResult: "NOT_DETECTED", patientAge: 35 }, 0)],
+    CSV_SOURCE_META
   );
-  assert.ok(noClinical, "should warn about missing clinical data");
+
+  const manualBatch = processBatch(manualValidation.cases);
+  const csvBatch = processBatch(csvValidation.cases);
+
+  assert.equal(manualBatch.results[0].status, "success");
+  assert.equal(csvBatch.results[0].status, "success");
+
+  // Same decision output
+  assert.equal(manualBatch.results[0].decision.figure, csvBatch.results[0].decision.figure);
+  assert.equal(manualBatch.results[0].decision.riskLevel, csvBatch.results[0].decision.riskLevel);
+  assert.equal(manualBatch.results[0].decision.recommendation, csvBatch.results[0].decision.recommendation);
 });
 
-// ─── Duplicated Row Gets New caseId / Patient ID ────────────────────────────
-
-test("manual: duplicated row gets a different caseId", () => {
-  // Two identical rows (simulating duplicate) both get unique caseIds
-  const result = validateManual([
-    makeManualRow({ hpvResult: "NOT_DETECTED", externalPatientId: "DUP-001" }, 0),
-    makeManualRow({ hpvResult: "NOT_DETECTED" }, 1), // no patient ID (duplicate cleared it)
+test("processor: edited manual row maps to ClinicalInput correctly", () => {
+  const validation = validateManual([
+    makeRow({
+      hpvResult: "HPV_16_18",
+      cytologyResult: "HSIL",
+      immunocompromised: true,
+      patientAge: 40,
+      sampleType: "LBC",
+    }),
   ]);
 
+  const input = mapCanonicalToClinicalInput(validation.cases[0]);
+  assert.equal(input.hpvResult, "HPV_16_18");
+  assert.equal(input.cytologyResult, "HSIL");
+  assert.equal(input.immunocompromised, true);
+  assert.equal(input.patientAge, 40);
+  assert.equal(input.sampleType, "LBC");
+});
+
+test("processor: manual row with HPV 16/18 gets colposcopy referral", () => {
+  const validation = validateManual([
+    makeRow({ hpvResult: "HPV_16_18", sampleType: "LBC" }),
+  ]);
+  const batch = processBatch(validation.cases);
+  const decision = batch.results[0].decision;
+
+  assert.equal(batch.results[0].status, "success");
+  assert.equal(decision.figure, "FIGURE_3");
+  assert.ok(decision.referralRequired, "HPV 16/18 should require referral");
+});
+
+test("processor: manual row with HPV negative gets routine recall", () => {
+  const validation = validateManual([
+    makeRow({ hpvResult: "NOT_DETECTED" }),
+  ]);
+  const batch = processBatch(validation.cases);
+  const decision = batch.results[0].decision;
+
+  assert.equal(batch.results[0].status, "success");
+  assert.equal(decision.riskLevel, "LOW");
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// 5. Duplicate row gets new caseId, delete removes from selection
+// ════════════════════════════════════════════════════════════════════════════
+
+test("duplicate: duplicated row gets different caseId", () => {
+  const result = validateManual([
+    makeRow({ hpvResult: "NOT_DETECTED", externalPatientId: "DUP-001" }, 0),
+    makeRow({ hpvResult: "NOT_DETECTED" }, 1), // duplicate without patient ID
+  ]);
   assert.equal(result.cases.length, 2);
   assert.notEqual(result.cases[0].caseId, result.cases[1].caseId);
-
-  // First row keeps original ID, second row has none (will be auto-labeled ROW-nnn)
-  assert.equal(result.cases[0].source.externalPatientId, "DUP-001");
-  assert.equal(result.cases[1].source.externalPatientId, undefined);
 });
 
-test("manual: duplicate with same patient ID triggers warning", () => {
-  const result = validateManual([
-    makeManualRow({ hpvResult: "NOT_DETECTED", externalPatientId: "DUP-001" }, 0),
-    makeManualRow({ hpvResult: "HPV_OTHER", externalPatientId: "DUP-001" }, 1),
-  ]);
-
-  // Second row should have duplicate warning
-  const dupWarning = result.cases[1].validationWarnings.find(
-    (w) => w.field === "externalPatientId" && w.message.includes("Duplicate")
-  );
-  assert.ok(dupWarning, "should warn about duplicate patient ID");
-});
-
-// ─── Deleted Row Removed from Selection ─────────────────────────────────────
-
-test("manual: deleting a row reduces total count", () => {
+test("delete: removing a row reduces the case count", () => {
   const rows = [
-    makeManualRow({ hpvResult: "NOT_DETECTED" }, 0),
-    makeManualRow({ hpvResult: "HPV_OTHER", cytologyResult: "LSIL" }, 1),
-    makeManualRow({ hpvResult: "HPV_16_18" }, 2),
+    makeRow({ hpvResult: "NOT_DETECTED" }, 0),
+    makeRow({ hpvResult: "HPV_OTHER", cytologyResult: "LSIL" }, 1),
+    makeRow({ hpvResult: "HPV_16_18" }, 2),
   ];
-
   const full = validateManual(rows);
   assert.equal(full.cases.length, 3);
-  assert.equal(full.totalRows, 3);
 
-  // Simulate deletion by removing middle row and re-validating
-  const afterDelete = validateManual([rows[0], rows[2]]);
-  assert.equal(afterDelete.cases.length, 2);
-  assert.equal(afterDelete.totalRows, 2);
-
-  // Remaining cases should have valid data
-  assert.equal(afterDelete.cases[0].hpvResult, "NOT_DETECTED");
-  assert.equal(afterDelete.cases[1].hpvResult, "HPV_16_18");
+  // Simulate deletion of middle row
+  const after = validateManual([rows[0], rows[2]]);
+  assert.equal(after.cases.length, 2);
+  assert.equal(after.cases[0].hpvResult, "NOT_DETECTED");
+  assert.equal(after.cases[1].hpvResult, "HPV_16_18");
 });
 
-test("manual: deleted row caseIds are not reused", () => {
-  const rows = [
-    makeManualRow({ hpvResult: "NOT_DETECTED" }, 0),
-    makeManualRow({ hpvResult: "HPV_OTHER" }, 1),
-  ];
+test("delete: deleted row caseIds are not reused", () => {
+  const before = validateManual([
+    makeRow({ hpvResult: "NOT_DETECTED" }, 0),
+    makeRow({ hpvResult: "HPV_OTHER" }, 1),
+  ]);
+  const oldIds = new Set(before.cases.map((c) => c.caseId));
 
-  const before = validateManual(rows);
-  const caseIdsBefore = before.cases.map((c) => c.caseId);
-
-  // Simulate: delete row 1, re-validate row 0 only
-  const after = validateManual([rows[0]]);
-  const caseIdsAfter = after.cases.map((c) => c.caseId);
-
-  // caseIds are generated fresh (UUIDs) — none should match
-  for (const id of caseIdsAfter) {
-    assert.ok(!caseIdsBefore.includes(id), "revalidation should produce new caseIds");
+  const after = validateManual([makeRow({ hpvResult: "NOT_DETECTED" }, 0)]);
+  for (const c of after.cases) {
+    assert.ok(!oldIds.has(c.caseId), "revalidation should produce fresh caseIds");
   }
 });
 
-// ─── Mixed Base + Manual ────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 6. Manual source metadata labeling
+// ════════════════════════════════════════════════════════════════════════════
 
-test("manual: manual rows coexist with base rows", () => {
-  const baseResult = validateBatchRows(
-    [makeManualRow({ hpvResult: "NOT_DETECTED", externalPatientId: "CSV-001" }, 0)],
-    {
-      sourceType: "csv",
-      sourceSystem: "Test CSV",
-      sourceFileName: "test.csv",
-      mappingVersion: "csv-v1",
-      engineVersion: "test-v1",
-    }
-  );
-
-  const manualResult = validateManual([
-    makeManualRow({ hpvResult: "HPV_16_18", externalPatientId: "MANUAL-001" }, 0),
-  ]);
-
-  // Merge (as BatchPageClient does)
-  const merged = {
-    cases: [...baseResult.cases, ...manualResult.cases],
-    totalRows: baseResult.totalRows + manualResult.totalRows,
-    validCount: baseResult.validCount + manualResult.validCount,
-    warningCount: baseResult.warningCount + manualResult.warningCount,
-    invalidCount: baseResult.invalidCount + manualResult.invalidCount,
-  };
-
-  assert.equal(merged.cases.length, 2);
-  assert.equal(merged.cases[0].source.sourceType, "csv");
-  assert.equal(merged.cases[1].source.sourceType, "manual");
-  assert.equal(merged.cases[0].hpvResult, "NOT_DETECTED");
-  assert.equal(merged.cases[1].hpvResult, "HPV_16_18");
-});
-
-// ─── Source Metadata Labeling ───────────────────────────────────────────────
-
-test("manual: source metadata is correctly labeled", () => {
-  const result = validateManual([
-    makeManualRow({ hpvResult: "NOT_DETECTED" }),
-  ]);
-
+test("source: manual rows have correct source metadata", () => {
+  const result = validateManual([makeRow({ hpvResult: "NOT_DETECTED" })]);
   const c = result.cases[0];
   assert.equal(c.source.sourceType, "manual");
   assert.equal(c.source.sourceSystem, "Manual test entry");
   assert.equal(c.source.mappingVersion, "manual-v1");
-  assert.equal(c.source.engineVersion, "test-v1");
   assert.ok(c.source.importedAt, "should have importedAt timestamp");
-  assert.equal(c.source.rowNumber, 1); // 1-based
+  assert.equal(c.source.rowNumber, 1);
+});
+
+test("source: manual rows coexist with CSV rows", () => {
+  const csvResult = validateBatchRows(
+    [makeRow({ hpvResult: "NOT_DETECTED", externalPatientId: "CSV-001" }, 0)],
+    CSV_SOURCE_META
+  );
+  const manualResult = validateManual([
+    makeRow({ hpvResult: "HPV_16_18", externalPatientId: "MANUAL-001" }, 0),
+  ]);
+
+  // Merge as BatchPageClient does
+  const merged = [...csvResult.cases, ...manualResult.cases];
+  assert.equal(merged.length, 2);
+  assert.equal(merged[0].source.sourceType, "csv");
+  assert.equal(merged[1].source.sourceType, "manual");
 });

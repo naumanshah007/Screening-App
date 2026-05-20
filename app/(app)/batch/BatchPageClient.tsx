@@ -11,6 +11,7 @@ import { BatchActionQueue } from "@/components/batch/BatchActionQueue";
 import { BatchEquityCard } from "@/components/batch/BatchEquityCard";
 import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
 import { ManualCaseForm } from "@/components/batch/ManualCaseForm";
+import { IntegrationReadinessPanel } from "@/components/batch/IntegrationReadinessPanel";
 import { RotateCcw, CheckCircle2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -485,6 +486,11 @@ export function BatchPageClient() {
         </>
       )}
 
+      {/* ── Integration Readiness (visible on upload screen and after results) */}
+      {(state.step === "empty" || state.step === "uploading" || state.step === "results") && (
+        <IntegrationReadinessPanel />
+      )}
+
       {/* ── Detail Slide-Over ─────────────────────────────────────────────── */}
       <BatchResultDetail
         result={detailResult}
@@ -497,6 +503,11 @@ export function BatchPageClient() {
         open={manualFormOpen}
         onClose={() => { setManualFormOpen(false); setEditingCase(null); }}
         editCase={editingCase}
+        validationIssues={
+          editingCase
+            ? [...(editingCase.validationErrors ?? []), ...(editingCase.validationWarnings ?? [])]
+            : undefined
+        }
         onSave={handleSaveManualCase}
       />
     </div>
