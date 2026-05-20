@@ -237,13 +237,13 @@ test("known column does not produce unknown warning", () => {
 
 test("duplicate externalPatientId produces warning", () => {
   const rows = [
-    makeRow({ externalPatientId: "NHI123", hpvResult: "NOT_DETECTED" }, 0, ["externalPatientId", "hpvResult"]),
-    makeRow({ externalPatientId: "NHI123", hpvResult: "HPV_16_18" }, 1, ["externalPatientId", "hpvResult"]),
+    makeRow({ externalPatientId: "ZZZ0001", hpvResult: "NOT_DETECTED" }, 0, ["externalPatientId", "hpvResult"]),
+    makeRow({ externalPatientId: "ZZZ0001", hpvResult: "HPV_16_18" }, 1, ["externalPatientId", "hpvResult"]),
   ];
   const result = validateBatchRows(rows, BASE_SOURCE_META);
   // Second row should have duplicate warning
   const w = result.cases[1].validationWarnings.find(
-    (w) => w.field === "externalPatientId"
+    (w) => w.field === "externalPatientId" && w.message.includes("Duplicate")
   );
   assert.ok(w, "Expected duplicate patient ID warning on second row");
   assert.ok(w.message.includes("Duplicate"));
@@ -251,25 +251,25 @@ test("duplicate externalPatientId produces warning", () => {
 
 test("duplicate detection is case-insensitive", () => {
   const rows = [
-    makeRow({ externalPatientId: "nhi123", hpvResult: "NOT_DETECTED" }, 0, ["externalPatientId", "hpvResult"]),
-    makeRow({ externalPatientId: "NHI123", hpvResult: "HPV_16_18" }, 1, ["externalPatientId", "hpvResult"]),
+    makeRow({ externalPatientId: "zzz0001", hpvResult: "NOT_DETECTED" }, 0, ["externalPatientId", "hpvResult"]),
+    makeRow({ externalPatientId: "ZZZ0001", hpvResult: "HPV_16_18" }, 1, ["externalPatientId", "hpvResult"]),
   ];
   const result = validateBatchRows(rows, BASE_SOURCE_META);
   const w = result.cases[1].validationWarnings.find(
-    (w) => w.field === "externalPatientId"
+    (w) => w.field === "externalPatientId" && w.message.includes("Duplicate")
   );
   assert.ok(w, "Expected duplicate warning even with different case");
 });
 
 test("different patient IDs do not trigger duplicate warning", () => {
   const rows = [
-    makeRow({ externalPatientId: "NHI001", hpvResult: "NOT_DETECTED" }, 0, ["externalPatientId", "hpvResult"]),
-    makeRow({ externalPatientId: "NHI002", hpvResult: "HPV_16_18" }, 1, ["externalPatientId", "hpvResult"]),
+    makeRow({ externalPatientId: "ZZZ0001", hpvResult: "NOT_DETECTED" }, 0, ["externalPatientId", "hpvResult"]),
+    makeRow({ externalPatientId: "ZZZ0002", hpvResult: "HPV_16_18" }, 1, ["externalPatientId", "hpvResult"]),
   ];
   const result = validateBatchRows(rows, BASE_SOURCE_META);
   for (const c of result.cases) {
     const dupeWarnings = c.validationWarnings.filter(
-      (w) => w.field === "externalPatientId"
+      (w) => w.field === "externalPatientId" && w.message.includes("Duplicate")
     );
     assert.equal(dupeWarnings.length, 0);
   }
@@ -395,8 +395,8 @@ test("label is passed through", () => {
 });
 
 test("externalPatientId is trimmed", () => {
-  const result = validateOne({ externalPatientId: "  NHI999  ", hpvResult: "NOT_DETECTED" });
-  assert.equal(result.cases[0].source.externalPatientId, "NHI999");
+  const result = validateOne({ externalPatientId: "  ZZZ9999  ", hpvResult: "NOT_DETECTED" });
+  assert.equal(result.cases[0].source.externalPatientId, "ZZZ9999");
 });
 
 // ─── Empty Batch ─────────────────────────────────────────────────────────────
@@ -408,4 +408,330 @@ test("empty batch produces empty result", () => {
   assert.equal(result.warningCount, 0);
   assert.equal(result.invalidCount, 0);
   assert.equal(result.cases.length, 0);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// NHI Format Validation
+// ════════════════════════════════════════════════════════════════════════════
+
+test("NHI: valid old format (3 letters + 4 digits) passes", () => {
+  const result = validateOne({ externalPatientId: "ZZZ0001", hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 0, "Valid old-format NHI should not produce NHI warning");
+});
+
+test("NHI: valid new format (3 letters + 2 digits + 2 letters) passes", () => {
+  const result = validateOne({ externalPatientId: "ZAB12CD", hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 0, "Valid new-format NHI should not produce NHI warning");
+});
+
+test("NHI: case-insensitive — lowercase accepted", () => {
+  const result = validateOne({ externalPatientId: "zzz0001", hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 0, "Lowercase NHI should be accepted");
+});
+
+test("NHI: letters I and O are rejected", () => {
+  const result = validateOne({ externalPatientId: "ZIO0001", hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 1, "NHI with I/O should be warned");
+  assert.ok(nhiWarns[0].message.includes("I or O"), "Should mention I/O restriction");
+});
+
+test("NHI: wrong length is rejected", () => {
+  const result = validateOne({ externalPatientId: "ZZZ00", hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 1);
+  assert.ok(nhiWarns[0].message.includes("characters"), "Should mention length");
+});
+
+test("NHI: non-NHI format like DEMO-001 is warned", () => {
+  const result = validateOne({ externalPatientId: "DEMO-001", hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 1, "Non-NHI format should be warned");
+});
+
+test("NHI: LAB-001-2026 format is warned", () => {
+  const result = validateOne({ externalPatientId: "LAB-001-2026", hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 1, "Lab format should trigger NHI warning");
+});
+
+test("NHI: empty externalPatientId does not produce NHI warning", () => {
+  const result = validateOne({ hpvResult: "NOT_DETECTED" });
+  const nhiWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "externalPatientId" && w.message.includes("NHI")
+  );
+  assert.equal(nhiWarns.length, 0);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Ethnicity Validation
+// ════════════════════════════════════════════════════════════════════════════
+
+test("ethnicity: valid Level-2 code '21' (Māori) passes", () => {
+  const result = validateOne({ ethnicityPrimary: "21", hpvResult: "NOT_DETECTED" });
+  const ethWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "ethnicityPrimary"
+  );
+  assert.equal(ethWarns.length, 0);
+});
+
+test("ethnicity: valid name 'MAORI' passes", () => {
+  const result = validateOne({ ethnicityPrimary: "MAORI", hpvResult: "NOT_DETECTED" });
+  const ethWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "ethnicityPrimary"
+  );
+  assert.equal(ethWarns.length, 0);
+});
+
+test("ethnicity: valid name 'EUROPEAN' passes", () => {
+  const result = validateOne({ ethnicityPrimary: "EUROPEAN", hpvResult: "NOT_DETECTED" });
+  const ethWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "ethnicityPrimary"
+  );
+  assert.equal(ethWarns.length, 0);
+});
+
+test("ethnicity: invalid value 'MARTIAN' is warned", () => {
+  const result = validateOne({ ethnicityPrimary: "MARTIAN", hpvResult: "NOT_DETECTED" });
+  const ethWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "ethnicityPrimary"
+  );
+  assert.equal(ethWarns.length, 1);
+  assert.ok(ethWarns[0].message.includes("not recognised"));
+});
+
+test("ethnicity: empty value does not produce warning", () => {
+  const result = validateOne({ hpvResult: "NOT_DETECTED" });
+  const ethWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "ethnicityPrimary"
+  );
+  assert.equal(ethWarns.length, 0);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Age Range Warnings (NCSP screening ages)
+// ════════════════════════════════════════════════════════════════════════════
+
+test("age: under 25 produces NCSP screening start warning", () => {
+  const result = validateOne({ patientAge: 22, hpvResult: "NOT_DETECTED" });
+  const ageWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "patientAge" && w.message.includes("below")
+  );
+  assert.equal(ageWarns.length, 1);
+  assert.ok(ageWarns[0].message.includes("25"));
+});
+
+test("age: over 70 produces NCSP screening exit warning", () => {
+  const result = validateOne({ patientAge: 75, hpvResult: "NOT_DETECTED" });
+  const ageWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "patientAge" && w.message.includes("above")
+  );
+  assert.equal(ageWarns.length, 1);
+  assert.ok(ageWarns[0].message.includes("69"));
+});
+
+test("age: 25 does not produce screening range warning", () => {
+  const result = validateOne({ patientAge: 25, hpvResult: "NOT_DETECTED" });
+  const ageWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "patientAge"
+  );
+  assert.equal(ageWarns.length, 0);
+});
+
+test("age: 69 does not produce screening range warning", () => {
+  const result = validateOne({ patientAge: 69, hpvResult: "NOT_DETECTED" });
+  const ageWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "patientAge"
+  );
+  assert.equal(ageWarns.length, 0);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Counter Field Warnings
+// ════════════════════════════════════════════════════════════════════════════
+
+test("counter: non-numeric value produces warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    consecutiveNegativeCoTestCount: "abc",
+  });
+  const counterWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "consecutiveNegativeCoTestCount" && w.message.includes("Non-numeric")
+  );
+  assert.equal(counterWarns.length, 1);
+});
+
+test("counter: negative value produces warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    consecutiveLowGradeCount: -3,
+  });
+  const counterWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "consecutiveLowGradeCount" && w.message.includes("Negative")
+  );
+  assert.equal(counterWarns.length, 1);
+});
+
+test("counter: unusually high value produces warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    unsatisfactoryCytologyCount: 25,
+  });
+  const counterWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "unsatisfactoryCytologyCount" && w.message.includes("Unusually high")
+  );
+  assert.equal(counterWarns.length, 1);
+});
+
+test("counter: value of 5 does not produce warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    consecutiveNegativeCoTestCount: 5,
+  });
+  const counterWarns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "consecutiveNegativeCoTestCount"
+  );
+  assert.equal(counterWarns.length, 0);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Logical Consistency Checks
+// ════════════════════════════════════════════════════════════════════════════
+
+test("consistency: hysterectomyType without isPostHysterectomy produces warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    hysterectomyType: "TOTAL",
+    isPostHysterectomy: false,
+  });
+  const warns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "hysterectomyType" && w.message.includes("isPostHysterectomy")
+  );
+  assert.equal(warns.length, 1);
+});
+
+test("consistency: hysterectomyType with isPostHysterectomy=true does not warn", () => {
+  const result = validateOne({
+    hysterectomyType: "TOTAL",
+    hysterectomyIndication: "BENIGN_GYNAECOLOGICAL_DISEASE",
+    hysterectomySpecimenPathology: "NO_CERVICAL_PATHOLOGY",
+    isPostHysterectomy: true,
+  });
+  const warns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "hysterectomyType" && w.message.includes("isPostHysterectomy")
+  );
+  assert.equal(warns.length, 0);
+});
+
+test("consistency: testOfCureStage without isTestOfCure produces warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    testOfCureStage: "FIRST_TEST",
+    isTestOfCure: false,
+  });
+  const warns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "testOfCureStage" && w.message.includes("isTestOfCure")
+  );
+  assert.equal(warns.length, 1);
+});
+
+test("consistency: abnormalBleedingStage without hasAbnormalVaginalBleeding produces warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    abnormalBleedingStage: "INITIAL_ASSESSMENT",
+    hasAbnormalVaginalBleeding: false,
+  });
+  const warns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "abnormalBleedingStage" && w.message.includes("hasAbnormalVaginalBleeding")
+  );
+  assert.equal(warns.length, 1);
+});
+
+test("consistency: pregnant + immunocompromised produces advisory warning", () => {
+  const result = validateOne({
+    hpvResult: "NOT_DETECTED",
+    isPregnant: true,
+    immunocompromised: true,
+  });
+  const warns = result.cases[0].validationWarnings.filter(
+    (w) => w.field === "isPregnant" && w.message.includes("immunocompromised")
+  );
+  assert.equal(warns.length, 1);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Extended Enum Validation (all 21 fields)
+// ════════════════════════════════════════════════════════════════════════════
+
+test("enum: invalid repeatContext produces error", () => {
+  const result = validateOne({ hpvResult: "NOT_DETECTED", repeatContext: "BANANA" });
+  const err = result.cases[0].validationErrors.find((e) => e.field === "repeatContext");
+  assert.ok(err, "Invalid repeatContext should produce error");
+  assert.ok(err.message.includes("Allowed:"));
+});
+
+test("enum: valid repeatStage accepted", () => {
+  const result = validateOne({ hpvResult: "HPV_OTHER", repeatStage: "SECOND_REPEAT" });
+  const err = result.cases[0].validationErrors.find((e) => e.field === "repeatStage");
+  assert.equal(err, undefined, "Valid repeatStage should not produce error");
+});
+
+test("enum: invalid screeningStatus produces error", () => {
+  const result = validateOne({ screeningStatus: "INVALID_STATUS" });
+  const err = result.cases[0].validationErrors.find((e) => e.field === "screeningStatus");
+  assert.ok(err);
+});
+
+test("enum: valid colposcopicImpression accepted", () => {
+  const result = validateOne({ hpvResult: "HPV_16_18", colposcopicImpression: "HSIL" });
+  const err = result.cases[0].validationErrors.find((e) => e.field === "colposcopicImpression");
+  assert.equal(err, undefined);
+});
+
+test("enum: invalid abnormalBleedingStage produces error", () => {
+  const result = validateOne({
+    hasAbnormalVaginalBleeding: true,
+    abnormalBleedingStage: "PHASE_THREE",
+  });
+  const err = result.cases[0].validationErrors.find((e) => e.field === "abnormalBleedingStage");
+  assert.ok(err, "Invalid bleeding stage should produce error");
+});
+
+test("enum: valid hysterectomyType accepted", () => {
+  const result = validateOne({
+    isPostHysterectomy: true,
+    hysterectomyType: "TOTAL",
+    hysterectomyIndication: "BENIGN_GYNAECOLOGICAL_DISEASE",
+    hysterectomySpecimenPathology: "NO_CERVICAL_PATHOLOGY",
+  });
+  const err = result.cases[0].validationErrors.find((e) => e.field === "hysterectomyType");
+  assert.equal(err, undefined);
+});
+
+test("enum: invalid hysterectomyType produces error", () => {
+  const result = validateOne({
+    isPostHysterectomy: true,
+    hysterectomyType: "PARTIAL",
+  });
+  const err = result.cases[0].validationErrors.find((e) => e.field === "hysterectomyType");
+  assert.ok(err);
+  assert.ok(err.message.includes("TOTAL"));
+  assert.ok(err.message.includes("SUBTOTAL"));
 });

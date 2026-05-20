@@ -23,11 +23,12 @@ const CSV_SOURCE_META: Omit<SourceMetadata, "rowNumber" | "importedAt"> = {
 
 function makeRow(
   overrides: Record<string, unknown> = {},
-  index = 0
+  index = 0,
+  sourceFields?: string[]
 ): ParsedSourceRow {
   return {
     _rowIndex: index,
-    _sourceFields: Object.keys(overrides).filter((k) => !k.startsWith("_")),
+    _sourceFields: sourceFields ?? Object.keys(overrides).filter((k) => !k.startsWith("_")),
     ...overrides,
   };
 }

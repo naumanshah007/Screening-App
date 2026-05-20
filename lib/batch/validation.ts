@@ -232,6 +232,67 @@ interface RowValidationResult {
   warnings: ValidationIssue[];
 }
 
+// ─── NHI Validation ─────────────────────────────────────────────────────────
+
+/**
+ * Validate NZ National Health Index (NHI) number format.
+ *
+ * Old format: 3 uppercase letters + 4 digits (e.g. ZAA1234)
+ * New format: 3 uppercase letters + 2 digits + 2 uppercase letters (e.g. ZAA12AB)
+ *
+ * Letters I and O are excluded to avoid confusion with 1 and 0.
+ * Returns null if valid, or a description of what's wrong.
+ */
+const NHI_OLD_RE = /^[A-HJ-NP-Z]{3}\d{4}$/;
+const NHI_NEW_RE = /^[A-HJ-NP-Z]{3}\d{2}[A-HJ-NP-Z]{2}$/;
+
+function validateNHI(value: string): string | null {
+  const v = value.trim().toUpperCase();
+  if (v.length === 0) return null; // empty is fine (optional field)
+  if (NHI_OLD_RE.test(v) || NHI_NEW_RE.test(v)) return null;
+
+  // Give specific feedback
+  if (v.length !== 7) {
+    return `NHI "${value}" is ${v.length} characters — must be exactly 7 (e.g. ABC1234 or ABC12DE).`;
+  }
+  if (/[IO]/i.test(v)) {
+    return `NHI "${value}" contains I or O which are not allowed in NHI numbers (avoids confusion with 1/0).`;
+  }
+  if (!/^[A-Z]{3}/.test(v)) {
+    return `NHI "${value}" must start with 3 letters (e.g. ABC1234).`;
+  }
+  return `NHI "${value}" does not match the NZ NHI format. Expected: 3 letters + 4 digits (ABC1234) or 3 letters + 2 digits + 2 letters (ABC12DE).`;
+}
+
+// ─── NZ Ethnicity Code Validation ───────────────────────────────────────────
+
+const VALID_ETHNICITY_L1 = new Set([
+  "1", "10", "11", "12",                         // European
+  "2", "21",                                       // Māori
+  "3", "30", "31", "32", "33", "34", "35", "36", "37",  // Pacific
+  "4", "40", "41", "42", "43", "44",              // Asian
+  "5", "51", "52", "53", "54",                    // MELAA/Other
+  "6", "61",                                       // Other
+  "9", "94", "95", "97", "99",                    // Not stated / Unknown
+]);
+
+const VALID_ETHNICITY_NAMES = new Set([
+  "EUROPEAN", "NZ EUROPEAN", "PĀKEHĀ", "PAKEHA",
+  "MĀORI", "MAORI",
+  "PACIFIC", "PASIFIKA", "SAMOAN", "TONGAN", "COOK ISLAND MAORI", "FIJIAN", "NIUEAN", "TOKELAUAN",
+  "ASIAN", "CHINESE", "INDIAN", "KOREAN", "JAPANESE", "FILIPINO", "SOUTHEAST ASIAN",
+  "MELAA", "OTHER", "MIDDLE EASTERN", "LATIN AMERICAN", "AFRICAN",
+  "UNKNOWN",
+]);
+
+function validateEthnicity(value: string): string | null {
+  const v = value.trim().toUpperCase();
+  if (v.length === 0) return null;
+  if (VALID_ETHNICITY_L1.has(v)) return null;
+  if (VALID_ETHNICITY_NAMES.has(v)) return null;
+  return `Ethnicity "${value}" not recognised. Use NZ Level-2 numeric code (e.g. "21" for Māori, "11" for NZ European) or a standard name (e.g. "MĀORI", "PACIFIC", "ASIAN", "EUROPEAN").`;
+}
+
 function validateSingleRow(
   row: ParsedSourceRow,
   rowIndex: number
@@ -240,7 +301,7 @@ function validateSingleRow(
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
 
-  // Check for unknown columns
+  // ── Unknown columns ─────────────────────────────────────────────────────
   const knownFields = getKnownFieldNames();
   for (const key of row._sourceFields ?? []) {
     if (!knownFields.has(key.toLowerCase()) && !key.startsWith("_")) {
@@ -253,14 +314,57 @@ function validateSingleRow(
     }
   }
 
-  // Validate enum values (pre-Zod check for better error messages)
+  // ── NHI validation ──────────────────────────────────────────────────────
+  const rawNhi = normalised.externalPatientId;
+  if (rawNhi !== undefined && rawNhi !== null && rawNhi !== "") {
+    const nhiError = validateNHI(String(rawNhi));
+    if (nhiError) {
+      warnings.push({
+        field: "externalPatientId",
+        message: nhiError,
+        severity: "warning",
+        value: rawNhi,
+      });
+    }
+  }
+
+  // ── Ethnicity validation ────────────────────────────────────────────────
+  const rawEth = normalised.ethnicityPrimary;
+  if (rawEth !== undefined && rawEth !== null && rawEth !== "") {
+    const ethError = validateEthnicity(String(rawEth));
+    if (ethError) {
+      warnings.push({
+        field: "ethnicityPrimary",
+        message: ethError,
+        severity: "warning",
+        value: rawEth,
+      });
+    }
+  }
+
+  // ── Enum validation (ALL enum fields, not just the main 6) ──────────────
   const enumChecks: Array<{ field: string; value: unknown; allowed: readonly string[] }> = [
-    { field: "hpvResult", value: normalised.hpvResult, allowed: HPV_RESULTS },
-    { field: "cytologyResult", value: normalised.cytologyResult, allowed: CYTOLOGY_RESULTS },
-    { field: "histologyResult", value: normalised.histologyResult, allowed: HISTOLOGY_RESULTS },
-    { field: "sampleType", value: normalised.sampleType, allowed: SAMPLE_TYPES },
-    { field: "repeatContext", value: normalised.repeatContext, allowed: REPEAT_CONTEXTS },
-    { field: "repeatStage", value: normalised.repeatStage, allowed: REPEAT_STAGES },
+    { field: "hpvResult",                    value: normalised.hpvResult,                    allowed: HPV_RESULTS },
+    { field: "cytologyResult",               value: normalised.cytologyResult,               allowed: CYTOLOGY_RESULTS },
+    { field: "histologyResult",              value: normalised.histologyResult,              allowed: HISTOLOGY_RESULTS },
+    { field: "sampleType",                   value: normalised.sampleType,                   allowed: SAMPLE_TYPES },
+    { field: "tzType",                       value: normalised.tzType,                       allowed: TZ_TYPES },
+    { field: "repeatContext",                value: normalised.repeatContext,                allowed: REPEAT_CONTEXTS },
+    { field: "repeatStage",                  value: normalised.repeatStage,                  allowed: REPEAT_STAGES },
+    { field: "testOfCureStage",              value: normalised.testOfCureStage,              allowed: TEST_OF_CURE_STAGES },
+    { field: "screeningStatus",              value: normalised.screeningStatus,              allowed: SCREENING_STATUSES },
+    { field: "priorScreeningHistory",        value: normalised.priorScreeningHistory,        allowed: PRIOR_SCREENING_HISTORIES },
+    { field: "hysterectomyType",             value: normalised.hysterectomyType,             allowed: ["TOTAL", "SUBTOTAL"] },
+    { field: "hysterectomyIndication",       value: normalised.hysterectomyIndication,       allowed: HYSTERECTOMY_INDICATIONS },
+    { field: "hysterectomySpecimenPathology", value: normalised.hysterectomySpecimenPathology, allowed: HYSTERECTOMY_SPECIMEN_PATHOLOGIES },
+    { field: "excisionStatus",               value: normalised.excisionStatus,               allowed: EXCISION_STATUSES },
+    { field: "abnormalBleedingStage",        value: normalised.abnormalBleedingStage,        allowed: ABNORMAL_BLEEDING_STAGES },
+    { field: "bleedingType",                 value: normalised.bleedingType,                 allowed: BLEEDING_TYPES },
+    { field: "colposcopicImpression",        value: normalised.colposcopicImpression,        allowed: COLPOSCOPIC_IMPRESSIONS },
+    { field: "transformationZoneState",      value: normalised.transformationZoneState,      allowed: TRANSFORMATION_ZONE_STATES },
+    { field: "biopsyResult",                 value: normalised.biopsyResult,                 allowed: HISTOLOGY_RESULTS },
+    { field: "colposcopyTZType",             value: normalised.colposcopyTZType,             allowed: TZ_TYPES },
+    { field: "postpartumReviewTiming",       value: normalised.postpartumReviewTiming,       allowed: ["SIX_MONTHS", "SIX_TO_TWELVE_WEEKS_POSTPARTUM"] },
   ];
 
   for (const { field, value, allowed } of enumChecks) {
@@ -277,7 +381,7 @@ function validateSingleRow(
     }
   }
 
-  // Age validation
+  // ── Age validation ──────────────────────────────────────────────────────
   if (normalised.patientAge !== undefined && normalised.patientAge !== null && normalised.patientAge !== "") {
     const age = Number(normalised.patientAge);
     if (!Number.isFinite(age) || age < 0 || age > 120) {
@@ -287,14 +391,65 @@ function validateSingleRow(
         severity: "error",
         value: normalised.patientAge,
       });
+    } else if (age < 25) {
+      warnings.push({
+        field: "patientAge",
+        message: `Age ${age} is below the NCSP screening start age of 25. Verify this is correct.`,
+        severity: "warning",
+        value: normalised.patientAge,
+      });
+    } else if (age > 70) {
+      warnings.push({
+        field: "patientAge",
+        message: `Age ${age} is above the NCSP screening exit age of 69. Verify this is correct.`,
+        severity: "warning",
+        value: normalised.patientAge,
+      });
     }
   }
 
-  // Boolean field validation warnings
+  // ── Counter field validation ────────────────────────────────────────────
+  const counterFields = [
+    { field: "consecutiveNegativeCoTestCount", label: "consecutive negative co-test count" },
+    { field: "consecutiveLowGradeCount",       label: "consecutive low-grade count" },
+    { field: "unsatisfactoryCytologyCount",    label: "unsatisfactory cytology count" },
+  ];
+  for (const { field, label } of counterFields) {
+    const val = normalised[field];
+    if (val !== undefined && val !== null && val !== "") {
+      const n = Number(val);
+      if (!Number.isFinite(n)) {
+        warnings.push({
+          field,
+          message: `Non-numeric value "${val}" for ${label}. Defaulting to 0.`,
+          severity: "warning",
+          value: val,
+        });
+      } else if (n < 0) {
+        warnings.push({
+          field,
+          message: `Negative value ${n} for ${label}. Must be 0 or greater. Defaulting to 0.`,
+          severity: "warning",
+          value: val,
+        });
+      } else if (n > 20) {
+        warnings.push({
+          field,
+          message: `Unusually high ${label} (${n}). Verify this is correct.`,
+          severity: "warning",
+          value: val,
+        });
+      }
+    }
+  }
+
+  // ── Boolean field validation ────────────────────────────────────────────
   const booleanFields = [
     "isFirstTimeHPVTransition", "isPostHysterectomy", "immunocompromised",
     "atypicalEndometrialHistory", "isPregnant", "hasAbnormalVaginalBleeding",
-    "isTestOfCure", "hasCancerSymptoms",
+    "isTestOfCure", "hasCancerSymptoms", "abnormalCervix", "suspicionOfCancer",
+    "normalColposcopy", "visibleLesion", "bleedingResolved", "stiIdentified",
+    "previousHSILCIN23", "previousAIS",
   ];
   for (const field of booleanFields) {
     const val = normalised[field];
@@ -310,7 +465,48 @@ function validateSingleRow(
     }
   }
 
-  // Check for minimal data — at least one clinical data point should exist
+  // ── Logical consistency checks ──────────────────────────────────────────
+
+  // Hysterectomy details without the flag
+  if (!coerceBoolean(normalised.isPostHysterectomy) && normalised.hysterectomyType) {
+    warnings.push({
+      field: "hysterectomyType",
+      message: `Hysterectomy type "${normalised.hysterectomyType}" provided but isPostHysterectomy is not set to true. Set isPostHysterectomy = true or remove hysterectomy details.`,
+      severity: "warning",
+      value: normalised.hysterectomyType,
+    });
+  }
+
+  // Test of cure stage without the flag
+  if (!coerceBoolean(normalised.isTestOfCure) && normalised.testOfCureStage) {
+    warnings.push({
+      field: "testOfCureStage",
+      message: `Test of Cure stage "${normalised.testOfCureStage}" provided but isTestOfCure is not set to true. Set isTestOfCure = true or remove the stage.`,
+      severity: "warning",
+      value: normalised.testOfCureStage,
+    });
+  }
+
+  // Bleeding details without the flag
+  if (!coerceBoolean(normalised.hasAbnormalVaginalBleeding) && normalised.abnormalBleedingStage) {
+    warnings.push({
+      field: "abnormalBleedingStage",
+      message: `Bleeding stage "${normalised.abnormalBleedingStage}" provided but hasAbnormalVaginalBleeding is not set to true.`,
+      severity: "warning",
+      value: normalised.abnormalBleedingStage,
+    });
+  }
+
+  // Pregnant + immunocompromised (unusual combination, worth flagging)
+  if (coerceBoolean(normalised.isPregnant) && coerceBoolean(normalised.immunocompromised)) {
+    warnings.push({
+      field: "isPregnant",
+      message: "Patient is both pregnant and immunocompromised — verify both flags are correct.",
+      severity: "warning",
+    });
+  }
+
+  // ── Minimal clinical data check ─────────────────────────────────────────
   const hasClinicalData =
     normalised.hpvResult ||
     normalised.cytologyResult ||
@@ -328,7 +524,7 @@ function validateSingleRow(
     });
   }
 
-  // Parse with Zod (lenient — catches remaining type issues)
+  // ── Parse with Zod ──────────────────────────────────────────────────────
   const parsed = batchRowSchema.safeParse(normalised);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
@@ -339,7 +535,6 @@ function validateSingleRow(
         value: undefined,
       });
     }
-    // Return defaults for failed parse
     return {
       data: batchRowSchema.parse({}),
       errors,

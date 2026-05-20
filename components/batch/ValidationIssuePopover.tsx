@@ -66,6 +66,40 @@ function suggestedFix(issue: ValidationIssue): string | null {
     return "Use a unique patient identifier for each row, or leave blank.";
   }
 
+  // NHI format warning
+  if (issue.field === "externalPatientId" && issue.message.includes("NHI")) {
+    return "NZ NHI format: 3 letters + 4 digits (e.g. ZAA1234) or 3 letters + 2 digits + 2 letters (e.g. ZAA12AB). Letters I and O are not used.";
+  }
+
+  // Ethnicity warning
+  if (issue.field === "ethnicityPrimary" && issue.message.includes("not recognised")) {
+    return 'Use NZ Level-2 code (e.g. "21" for Māori, "11" for NZ European) or a standard name (e.g. MĀORI, PACIFIC, ASIAN, EUROPEAN).';
+  }
+
+  // Age screening range warning
+  if (col.field === "patientAge" && issue.severity === "warning") {
+    return "NCSP screens ages 25–69. Verify the age is correct for this patient.";
+  }
+
+  // Counter warnings
+  if (issue.message.includes("Negative value") || issue.message.includes("Non-numeric")) {
+    return "Enter a whole number 0 or greater.";
+  }
+  if (issue.message.includes("Unusually high")) {
+    return "Verify this count is correct — typical values are under 10.";
+  }
+
+  // Logical consistency warnings
+  if (issue.message.includes("isPostHysterectomy")) {
+    return "Set isPostHysterectomy to true, or remove hysterectomy details.";
+  }
+  if (issue.message.includes("isTestOfCure")) {
+    return "Set isTestOfCure to true, or remove the Test of Cure stage.";
+  }
+  if (issue.message.includes("hasAbnormalVaginalBleeding")) {
+    return "Set hasAbnormalVaginalBleeding to true, or remove bleeding stage.";
+  }
+
   return null;
 }
 

@@ -31,7 +31,7 @@ function demoCase(
       ...DEMO_SOURCE_BASE,
       rowNumber: index + 1,
       importedAt: new Date().toISOString(),
-      externalPatientId: `DEMO-${String(index + 1).padStart(3, "0")}`,
+      externalPatientId: `ZZZ${String(index + 1).padStart(4, "0")}`,
     },
 
     // Required defaults
