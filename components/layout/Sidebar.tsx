@@ -60,7 +60,7 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean; sho
   switch (userRole) {
     case "ADMIN":
       return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
         // Manual pathway is secondary to batch
@@ -69,14 +69,14 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean; sho
       ];
     case "COORDINATOR":
       return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "reference", label: "Reference", links: [link("/guidelines", "Guidelines"), link("/patients", "Patients")] },
       ];
     case "COLPO_CNS":
     case "COLPOSCOPIST":
       return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
         { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway")] },
@@ -84,7 +84,7 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean; sho
     case "GYNAE_GRADER":
     case "SMO_REVIEWER":
       return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
         { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients")] },
@@ -96,12 +96,12 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean; sho
       ];
     case "INTEGRATION_ADMIN":
       return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
         { id: "operations", label: "Operations", links: [...readiness, ...analytics, ...audit, ...admin] },
       ];
     default:
       return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...analytics] },
         { id: "reference", label: "Reference", links: [link("/guidelines", "Guidelines")] },
       ];
