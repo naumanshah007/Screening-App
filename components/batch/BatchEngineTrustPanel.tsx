@@ -15,7 +15,6 @@
 import { ShieldCheck, BookOpen, GitBranch, FlaskConical, AlertTriangle } from "lucide-react";
 import { ENGINE_VERSION } from "@/lib/batch/processor";
 
-const ENGINE_REVIEWED_AT = "2026-05-15";
 const NCSP_GUIDELINE_VERSION = "NCSP Clinical Practice Guidelines — HPV Primary (2023+ updates)";
 const FIGURES_COVERED = "Figures 1–10 + Table 1";
 const TEST_COUNT = 104;
@@ -54,8 +53,8 @@ export function BatchEngineTrustPanel() {
         />
         <Item
           icon={<FlaskConical className="h-4 w-4" />}
-          label="Validation"
-          value={`${TEST_COUNT} automated tests passing · reviewed ${ENGINE_REVIEWED_AT}`}
+          label="Engine Status"
+          value={`${TEST_COUNT} automated tests · guideline-aligned prototype · under clinical validation`}
         />
       </div>
 

@@ -116,6 +116,7 @@ export function BatchEquityCard({ results }: BatchEquityCardProps) {
 
         <p className="text-[10px] text-muted-foreground/80 pt-1 border-t border-border">
           Ethnicity bucketed to NZ Level-1 priority order (Māori → Pacific → Asian → European → MELAA/Other → Unknown).
+          · Illustrative demo data only — not representative of actual population outcomes.
         </p>
       </CardContent>
     </Card>
