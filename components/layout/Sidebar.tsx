@@ -54,34 +54,40 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean; sho
   const audit = isAuthorizedForRoute("/audit", userRole) ? [link("/audit", "Audit")] : [];
   const coordinator = isAuthorizedForRoute("/coordinator", userRole) ? [link("/coordinator", "Coordinator")] : [];
   const admin = isAuthorizedForRoute("/admin", userRole) ? [link("/admin", "Admin")] : [];
-  const batch = showBatch ? [link("/batch", "Batch Demo")] : [];
+  // Batch Processing is the primary product feature — shown first when enabled
+  const batch = showBatch ? [link("/batch", "Batch Processing")] : [];
 
   switch (userRole) {
     case "ADMIN":
       return [
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
-        { id: "legacy", label: "Legacy Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway"), link("/gp", "GP"), ...batch] },
+        // Manual pathway is secondary to batch
+        { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway"), link("/gp", "GP")] },
         { id: "admin", label: "Administration", links: [...admin, ...audit] },
       ];
     case "COORDINATOR":
       return [
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "reference", label: "Reference", links: [link("/guidelines", "Guidelines"), link("/patients", "Patients")] },
       ];
     case "COLPO_CNS":
     case "COLPOSCOPIST":
       return [
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
-        { id: "legacy", label: "Legacy Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway")] },
+        { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway")] },
       ];
     case "GYNAE_GRADER":
     case "SMO_REVIEWER":
       return [
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
         { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
-        { id: "legacy", label: "Legacy Tools", links: [link("/patients", "Patients")] },
+        { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients")] },
       ];
     case "GP":
       return [
@@ -90,17 +96,24 @@ function buildSidebarSections(args: { userRole?: string; showCases: boolean; sho
       ];
     case "INTEGRATION_ADMIN":
       return [
-        { id: "operations", label: "Operations", links: [...readiness, ...analytics, ...batch, ...audit, ...admin] },
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
+        { id: "operations", label: "Operations", links: [...readiness, ...analytics, ...audit, ...admin] },
       ];
     default:
       return [
+        ...(batch.length > 0 ? [{ id: "pipeline", label: "Automated Pipeline", links: batch }] : []),
         { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...analytics] },
         { id: "reference", label: "Reference", links: [link("/guidelines", "Guidelines")] },
       ];
   }
 }
 
-function NavItem({ link, active, collapsed }: { link: NavLink; active: boolean; collapsed: boolean }) {
+function NavItem({ link, active, collapsed, primary }: {
+  link: NavLink;
+  active: boolean;
+  collapsed: boolean;
+  primary?: boolean;
+}) {
   const Icon = link.icon;
   return (
     <li>
@@ -112,7 +125,9 @@ function NavItem({ link, active, collapsed }: { link: NavLink; active: boolean; 
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           active
             ? "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            : primary
+              ? "text-brand-700 dark:text-brand-300 bg-brand-50/50 dark:bg-brand-950/30 hover:bg-brand-100/60 dark:hover:bg-brand-900/40"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
           collapsed && "justify-center px-2"
         )}
       >
@@ -195,14 +210,29 @@ export function Sidebar({
           {sections.map((section) => (
             <div key={section.id}>
               {!collapsed && (
-                <div className="px-2 pb-1.5 text-label text-muted-foreground">{section.label}</div>
+                <div className={cn(
+                  "px-2 pb-1.5 text-label",
+                  section.id === "pipeline"
+                    ? "text-brand-600 dark:text-brand-400 font-semibold"
+                    : "text-muted-foreground"
+                )}>
+                  {section.label}
+                </div>
               )}
               <ul className="space-y-0.5" role="list">
                 {section.links.map((link) => {
                   const active =
                     pathname === link.href ||
                     (link.href !== "/dashboard" && pathname.startsWith(link.href + "/"));
-                  return <NavItem key={link.href} link={link} active={active} collapsed={collapsed} />;
+                  return (
+                    <NavItem
+                      key={link.href}
+                      link={link}
+                      active={active}
+                      collapsed={collapsed}
+                      primary={section.id === "pipeline"}
+                    />
+                  );
                 })}
               </ul>
             </div>

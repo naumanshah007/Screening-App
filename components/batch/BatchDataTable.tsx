@@ -27,7 +27,7 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Row</th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">Patient ID</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Label</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Figure</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Risk</th>
@@ -48,8 +48,10 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
                       isError && "bg-red-50/30 dark:bg-red-950/10"
                     )}
                   >
-                    <td className="px-4 py-2.5 text-muted-foreground tabular-nums">
-                      {r.case.source.rowNumber}
+                    <td className="px-4 py-2.5">
+                      <span className="font-mono text-xs font-semibold text-foreground tracking-wide">
+                        {r.case.source.externalPatientId ?? `ROW-${String(r.case.source.rowNumber).padStart(3, "0")}`}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 font-medium text-foreground max-w-[180px] truncate">
                       {r.case.label || r.case.source.externalPatientId || `Row ${r.case.source.rowNumber}`}

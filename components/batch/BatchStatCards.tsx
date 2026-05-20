@@ -1,8 +1,14 @@
 "use client";
 
 import { StatCard } from "@/components/ui/card";
-import { Users, AlertTriangle, ShieldCheck, Clock, Zap } from "lucide-react";
+import { Users, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
 import type { BatchProcessingResult } from "@/lib/batch/types";
+
+function formatMs(ms: number): string {
+  if (ms < 1)    return `${(ms * 1000).toFixed(0)} µs`;
+  if (ms < 1000) return `${ms.toFixed(2)} ms`;
+  return `${(ms / 1000).toFixed(2)} s`;
+}
 
 interface BatchStatCardsProps {
   result: BatchProcessingResult;
@@ -46,8 +52,8 @@ export function BatchStatCards({ result }: BatchStatCardsProps) {
       />
       <StatCard
         label="Processing Time"
-        value={`${result.totalTimeMs}ms`}
-        subtext={`~${Math.round(result.totalTimeMs / Math.max(result.processedCount, 1))}ms per case`}
+        value={formatMs(result.totalTimeMs)}
+        subtext={`~${formatMs(result.totalTimeMs / Math.max(result.processedCount, 1))} per case`}
         variant="default"
         icon={<Clock className="h-5 w-5" />}
       />

@@ -8,7 +8,8 @@ import { BatchValidationPreview } from "@/components/batch/BatchValidationPrevie
 import { BatchDataTable } from "@/components/batch/BatchDataTable";
 import { BatchStatCards } from "@/components/batch/BatchStatCards";
 import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, CheckCircle2, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type {
   BatchCaseResult,
   BatchProcessingResult,
@@ -170,18 +171,60 @@ export function BatchPageClient() {
 
   const isUploading = state.step === "uploading";
 
+  // Pipeline step index: 0-based
+  const pipelineStep =
+    state.step === "empty" || state.step === "uploading" ? 0
+    : state.step === "loaded" || state.step === "processing" ? 1
+    : 2; // results
+
+  const PIPELINE_STEPS = [
+    { label: "Upload Dataset", desc: "CSV, Excel, or JSON" },
+    { label: "Validate & Select", desc: "Review records" },
+    { label: "Process", desc: "Run decision engine" },
+    { label: "Results", desc: "Batch outcomes" },
+  ] as const;
+
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <PageIntro
         eyebrow="Batch Processing"
         title="Batch Decision Engine"
-        description="Process multiple patient cases through the cervical screening decision engine in a single pass."
+        description="Process multiple patient cases through the cervical screening decision engine in a single automated pass."
         actions={
           state.step !== "empty" && state.step !== "uploading"
             ? [{ label: "Reset", onClick: reset, variant: "outline" as const, icon: <RotateCcw className="h-4 w-4" /> }]
             : []
         }
       />
+
+      {/* Pipeline flow indicator */}
+      <div className="flex items-center gap-1 flex-wrap">
+        {PIPELINE_STEPS.map((s, i) => {
+          const done    = i < pipelineStep || (i === 2 && state.step === "results");
+          const active  = i === pipelineStep && !(i === 2 && state.step === "results");
+          const isLast  = i === PIPELINE_STEPS.length - 1;
+          return (
+            <div key={s.label} className="flex items-center gap-1">
+              <div className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                done   && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+                active && "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-400 ring-1 ring-brand-400/40",
+                !done && !active && "text-muted-foreground"
+              )}>
+                {done
+                  ? <CheckCircle2 className="h-3 w-3" />
+                  : <span className={cn(
+                      "h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold border",
+                      active ? "border-brand-500 text-brand-600" : "border-muted-foreground/30 text-muted-foreground/50"
+                    )}>{i + 1}</span>
+                }
+                {s.label}
+              </div>
+              {!isLast && <ChevronRight className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />}
+            </div>
+          );
+        })}
+      </div>
 
       <BatchDemoBanner />
 
