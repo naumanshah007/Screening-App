@@ -44,6 +44,13 @@ export function SlideOver({ open, onClose, title, subtitle, children, footer, wi
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        aria-hidden={!open}
+        // `inert` removes the off-screen panel from the accessibility tree and
+        // sequential focus navigation while the slide-over is closed. Cast via
+        // any because React's typings lag the HTMLAttribute. Supported in all
+        // current evergreen browsers.
+        {...({ inert: !open ? "" : undefined } as Record<string, unknown>)}
+        tabIndex={open ? undefined : -1}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border flex-shrink-0">

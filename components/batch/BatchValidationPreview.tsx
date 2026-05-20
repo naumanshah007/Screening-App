@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,12 +65,110 @@ export function BatchValidationPreview({
     () => cases.filter((c) => c.validationStatus !== "invalid").map((c) => c.caseId),
     [cases]
   );
-  const [selected, setSelected] = useState<Set<string>>(new Set(processableIds));
-  const allSelected = selected.size === processableIds.length && processableIds.length > 0;
+  // Stable row identity that survives revalidation (caseId is regenerated every
+  // time validateBatchRows runs). We key selection by `{sourceType}::{rowNumber}`
+  // so that editing a row preserves its selection — UNLESS the edit makes the
+  // row invalid, in which case it is automatically deselected.
+  const rowKey = (c: { source: { sourceType: string; rowNumber: number } }) =>
+    `${c.source.sourceType}::${c.source.rowNumber}`;
 
-  function toggleAll() { setSelected(allSelected ? new Set() : new Set(processableIds)); }
-  function toggleOne(id: string) {
-    setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const caseById = useMemo(() => {
+    const m = new Map<string, (typeof cases)[number]>();
+    for (const c of cases) m.set(c.caseId, c);
+    return m;
+  }, [cases]);
+
+  const idsByRowKey = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of cases) m.set(rowKey(c), c.caseId);
+    return m;
+  }, [cases]);
+
+  // Selection stored by stable rowKey, NOT caseId.
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    for (const c of cases) {
+      if (c.validationStatus !== "invalid") initial.add(rowKey(c));
+    }
+    return initial;
+  });
+
+  // Reconcile selection whenever cases change:
+  //  - drop keys whose row no longer exists (deleted)
+  //  - drop keys whose row is now invalid (auto-deselect)
+  //  - auto-select newly-added processable rows
+  //  - auto-select rows that transitioned from invalid → processable (edit fix)
+  const prevKeysRef = useRef<Set<string>>(new Set(idsByRowKey.keys()));
+  const prevStatusByKeyRef = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    const currentKeys = new Set(idsByRowKey.keys());
+    const statusByKey = new Map<string, string>();
+    for (const c of cases) statusByKey.set(rowKey(c), c.validationStatus);
+
+    setSelectedKeys((prev) => {
+      const next = new Set<string>();
+      // 1. Keep previously-selected keys that still exist AND are still processable
+      for (const key of prev) {
+        const caseId = idsByRowKey.get(key);
+        if (!caseId) continue;
+        const c = caseById.get(caseId);
+        if (c && c.validationStatus !== "invalid") next.add(key);
+      }
+      // 2. Auto-select rows that are processable and either:
+      //    (a) newly added (not present in previous render), OR
+      //    (b) were previously invalid and are now processable (edit fix)
+      for (const key of currentKeys) {
+        const caseId = idsByRowKey.get(key);
+        const c = caseId ? caseById.get(caseId) : undefined;
+        if (!c || c.validationStatus === "invalid") continue;
+
+        const wasPresent = prevKeysRef.current.has(key);
+        const prevStatus = prevStatusByKeyRef.current.get(key);
+        const wasInvalid = prevStatus === "invalid";
+
+        if (!wasPresent || wasInvalid) next.add(key);
+      }
+      return next;
+    });
+    prevKeysRef.current = currentKeys;
+    prevStatusByKeyRef.current = statusByKey;
+  }, [cases, idsByRowKey, caseById]);
+
+  // Derive the live caseId selection from rowKey selection
+  const selectedCaseIds = useMemo(() => {
+    const out: string[] = [];
+    for (const key of selectedKeys) {
+      const id = idsByRowKey.get(key);
+      if (!id) continue;
+      const c = caseById.get(id);
+      if (c && c.validationStatus !== "invalid") out.push(id);
+    }
+    return out;
+  }, [selectedKeys, idsByRowKey, caseById]);
+
+  const selectedCount = selectedCaseIds.length;
+  const allSelected = selectedCount === processableIds.length && processableIds.length > 0;
+
+  function toggleAll() {
+    setSelectedKeys(() => {
+      if (allSelected) return new Set();
+      const all = new Set<string>();
+      for (const c of cases) {
+        if (c.validationStatus !== "invalid") all.add(rowKey(c));
+      }
+      return all;
+    });
+  }
+  function toggleOne(c: (typeof cases)[number]) {
+    const key = rowKey(c);
+    setSelectedKeys((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key); else n.add(key);
+      return n;
+    });
+  }
+  function isCaseSelected(c: (typeof cases)[number]) {
+    return selectedKeys.has(rowKey(c));
   }
 
   const sourceSystem = cases[0]?.source?.sourceSystem ?? "Unknown source";
@@ -101,11 +199,18 @@ export function BatchValidationPreview({
           </div>
         </div>
 
+        {/* Provisional / reviewer notice */}
+        <div className="mt-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 leading-snug">
+          <strong>Provisional output — reviewer confirmation required.</strong>{" "}
+          Selected rows generate decision-support recommendations for review.
+          Not for direct clinical action.
+        </div>
+
         {/* Action row */}
         <div className="flex items-center justify-between gap-3 mt-1 flex-wrap">
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              Select records to process through the decision engine. Invalid rows cannot be processed.
+              Select records to generate provisional recommendations. Invalid rows cannot be processed.
             </p>
             {onAddManual && (
               <Button
@@ -120,16 +225,16 @@ export function BatchValidationPreview({
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {selected.size} of {processableIds.length} selected
+              {selectedCount} of {processableIds.length} selected
             </span>
             <Button
               variant="primary"
               size="sm"
-              onClick={() => onProcess(Array.from(selected))}
-              disabled={selected.size === 0 || processing}
+              onClick={() => onProcess(selectedCaseIds)}
+              disabled={selectedCount === 0 || processing}
               loading={processing}
             >
-              Process {selected.size} Row{selected.size !== 1 ? "s" : ""}
+              Process {selectedCount} Row{selectedCount !== 1 ? "s" : ""} for Reviewer
             </Button>
           </div>
         </div>
@@ -166,7 +271,7 @@ export function BatchValidationPreview({
             <tbody>
               {cases.map((c) => {
                 const isInvalid  = c.validationStatus === "invalid";
-                const isSelected = selected.has(c.caseId);
+                const isSelected = isCaseSelected(c);
                 const issues     = [...c.validationErrors, ...c.validationWarnings];
                 const isManual   = c.source.sourceType === "manual";
 
@@ -195,9 +300,9 @@ export function BatchValidationPreview({
                     <td className="px-4 py-2.5">
                       <input
                         type="checkbox"
-                        checked={isSelected}
+                        checked={isSelected && !isInvalid}
                         disabled={isInvalid}
-                        onChange={() => toggleOne(c.caseId)}
+                        onChange={() => toggleOne(c)}
                         className="rounded border-border disabled:opacity-40"
                         aria-label={`Select ${c.source.externalPatientId ?? `row ${c.source.rowNumber}`}`}
                       />

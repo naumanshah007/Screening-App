@@ -12,7 +12,15 @@
 
 // ─── Connector Status ───────────────────────────────────────────────────────
 
-export type ConnectorStatus = "active" | "configuration_ready" | "planned";
+/**
+ * Connector status:
+ *  - "active":             live in this build (CSV/XLSX/JSON upload)
+ *  - "adapter_defined":    adapter interface is defined in code; not connected to any live system.
+ *                          Real connector activation requires endpoint, auth, mapping,
+ *                          testing, governance, and server-side credential handling.
+ *  - "planned":            on the roadmap; no adapter code yet.
+ */
+export type ConnectorStatus = "active" | "adapter_defined" | "planned";
 
 // ─── Connector Catalog ──────────────────────────────────────────────────────
 
@@ -45,7 +53,7 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
     title: "HL7 v2 Lab Feed (ORU/OBX)",
     description: "Receive lab results via HL7 v2.x message feed (MLLP/TCP). Standard for NZ lab-to-EMR messaging. Maps OBX segments to HPV, cytology, and histology results.",
     icon: "Radio",
-    status: "configuration_ready",
+    status: "adapter_defined",
     configurableFields: [
       "Source system",
       "Endpoint (MLLP host:port)",
@@ -63,7 +71,7 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
     title: "FHIR R4 API",
     description: "Pull patient data from FHIR R4 REST endpoints. Maps DiagnosticReport and Observation resources to screening results.",
     icon: "Globe",
-    status: "configuration_ready",
+    status: "adapter_defined",
     configurableFields: [
       "Source system",
       "FHIR endpoint URL",
@@ -122,7 +130,7 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
 export function getStatusLabel(status: ConnectorStatus): string {
   switch (status) {
     case "active": return "Active";
-    case "configuration_ready": return "Configuration Ready";
+    case "adapter_defined": return "Adapter pattern defined · not connected";
     case "planned": return "Planned";
   }
 }
@@ -133,7 +141,7 @@ export function getStatusColor(status: ConnectorStatus): {
   switch (status) {
     case "active":
       return { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", border: "border-emerald-200 dark:border-emerald-800" };
-    case "configuration_ready":
+    case "adapter_defined":
       return { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-400", border: "border-blue-200 dark:border-blue-800" };
     case "planned":
       return { bg: "bg-muted", text: "text-muted-foreground", border: "border-border" };

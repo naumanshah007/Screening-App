@@ -1,10 +1,14 @@
 "use client";
 
 /**
- * Hot list shown at the top of results: urgent cases that need action today.
+ * Hot list shown at the top of results: provisional high-priority cases
+ * flagged for reviewer attention.
  *
  * For the coordinator and CMO, this answers the only question that matters
- * the moment a batch finishes: *what needs to happen now?*
+ * the moment a batch finishes: *which cases should the reviewer look at first?*
+ *
+ * All output is decision-support only — reviewer confirmation is required
+ * before any clinical action.
  */
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,10 +43,10 @@ export function BatchActionQueue({ results, onViewDetail }: BatchActionQueueProp
           </div>
           <div>
             <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-              No urgent action required
+              No high-priority cases flagged
             </div>
             <div className="text-xs text-muted-foreground">
-              All processed cases routed to routine recall or surveillance pathways.
+              Provisional output: all processed cases routed to routine recall or surveillance pathways. Reviewer confirmation still required.
             </div>
           </div>
         </CardContent>
@@ -60,15 +64,15 @@ export function BatchActionQueue({ results, onViewDetail }: BatchActionQueueProp
             </div>
             <div>
               <div className="text-sm font-bold text-red-700 dark:text-red-400">
-                {urgent.length} case{urgent.length !== 1 ? "s" : ""} need action today
+                {urgent.length} case{urgent.length !== 1 ? "s" : ""} flagged as provisional priority for reviewer
               </div>
               <div className="text-xs text-red-700/80 dark:text-red-400/80">
-                Urgent / high-risk findings or referral required
+                High-risk findings or referral suggested — reviewer confirmation required before action
               </div>
             </div>
           </div>
           <Badge variant="urgent" size="sm">
-            Action required
+            Pending reviewer
           </Badge>
         </div>
 

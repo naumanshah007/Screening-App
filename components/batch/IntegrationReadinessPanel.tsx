@@ -36,7 +36,7 @@ function ConnectorCard({ connector }: { connector: ConnectorInfo }) {
   const Icon = ICONS[connector.icon] ?? Cable;
   const colors = getStatusColor(connector.status);
   const isActive = connector.status === "active";
-  const isReady = connector.status === "configuration_ready";
+  const isReady = connector.status === "adapter_defined";
 
   return (
     <div className={cn(
@@ -90,11 +90,19 @@ function ConnectorCard({ connector }: { connector: ConnectorInfo }) {
         {connector.description}
       </p>
 
+      {/* Not connected notice for non-active connectors */}
+      {!isActive && (
+        <div className="rounded-md bg-muted/60 px-2 py-1.5 text-[10px] text-muted-foreground italic leading-snug">
+          Not connected to live systems. Activation would require endpoint, auth, mapping,
+          testing, governance, and server-side credential handling.
+        </div>
+      )}
+
       {/* Configurable fields — shown for non-active connectors */}
       {!isActive && connector.configurableFields.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
-            {isReady ? "Configurable when enabled:" : "Will be configurable:"}
+            {isReady ? "Would be configurable on activation:" : "Will be configurable:"}
           </div>
           <div className="flex flex-wrap gap-1">
             {connector.configurableFields.map((field) => (
@@ -122,7 +130,7 @@ function ConnectorCard({ connector }: { connector: ConnectorInfo }) {
 
 export function IntegrationReadinessPanel() {
   const active = CONNECTOR_CATALOG.filter((c) => c.status === "active");
-  const ready = CONNECTOR_CATALOG.filter((c) => c.status === "configuration_ready");
+  const ready = CONNECTOR_CATALOG.filter((c) => c.status === "adapter_defined");
   const planned = CONNECTOR_CATALOG.filter((c) => c.status === "planned");
 
   return (
@@ -135,7 +143,11 @@ export function IntegrationReadinessPanel() {
               <CardTitle>Data Sources &amp; Integration Readiness</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Current mode: <strong className="text-emerald-700 dark:text-emerald-400">Demo + File Upload</strong>
-                <span className="text-muted-foreground/60"> · {ready.length} connector{ready.length !== 1 ? "s" : ""} configuration-ready · {planned.length} planned</span>
+                <span className="text-muted-foreground/60"> · {ready.length} adapter{ready.length !== 1 ? "s" : ""} defined (not connected) · {planned.length} planned</span>
+              </p>
+              <p className="text-[10px] text-muted-foreground/80 mt-1 leading-snug">
+                <strong>No live hospital systems are connected.</strong>{" "}
+                Only file upload (CSV / XLSX / JSON) is active in this build.
               </p>
             </div>
           </div>

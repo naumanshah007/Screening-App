@@ -404,8 +404,8 @@ export function BatchPageClient() {
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <PageIntro
         eyebrow="Batch Processing"
-        title="Batch Decision Engine"
-        description="Process multiple patient cases through the cervical screening decision engine in a single automated pass."
+        title="Batch Decision Support"
+        description="Generate provisional, guideline-aligned recommendations for multiple cases at once. Outputs are decision-support only — reviewer confirmation is required before any clinical action."
         actions={
           state.step !== "empty" && state.step !== "uploading"
             ? [{ label: "Reset", onClick: reset, variant: "outline" as const, icon: <RotateCcw className="h-4 w-4" /> }]

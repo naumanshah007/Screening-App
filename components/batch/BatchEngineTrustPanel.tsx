@@ -8,7 +8,7 @@
  *   - Engine version + last reviewed date
  *   - NCSP Guideline citation
  *   - Pathway figures covered
- *   - Automated test count
+ *   - Engine test count
  *   - A small but unambiguous "Demo environment" badge
  */
 
@@ -54,7 +54,7 @@ export function BatchEngineTrustPanel() {
         <Item
           icon={<FlaskConical className="h-4 w-4" />}
           label="Engine Status"
-          value={`${TEST_COUNT} automated tests · guideline-aligned prototype · under clinical validation`}
+          value={`${TEST_COUNT} engine tests · guideline-aligned prototype · under clinical validation`}
         />
       </div>
 

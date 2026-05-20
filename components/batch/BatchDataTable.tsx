@@ -19,9 +19,9 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          Processing Results
+          Provisional Recommendations
         </CardTitle>
-        <span className="text-xs text-muted-foreground">{results.length} rows</span>
+        <span className="text-xs text-muted-foreground">{results.length} row{results.length !== 1 ? "s" : ""} · pending reviewer confirmation</span>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">

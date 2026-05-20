@@ -84,6 +84,18 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
     >
       <div className="space-y-7">
 
+        {/* ── Reviewer status banner ──────────────────────────────────────── */}
+        <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20 px-3 py-2 text-xs leading-snug">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-amber-800 dark:text-amber-300">
+              <strong>Provisional recommendation</strong> · Decision-support output · Not for direct clinical action
+            </span>
+            <Badge variant="high" size="sm">
+              Review status: Pending reviewer confirmation
+            </Badge>
+          </div>
+        </div>
+
         {/* ── 1. Source Record ─────────────────────────────────────────────── */}
         <Section title="Source Record" icon={<Database className="h-3.5 w-3.5" />}>
           <Panel>
