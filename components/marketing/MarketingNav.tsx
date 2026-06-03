@@ -18,9 +18,6 @@ const LINKS = [
   { href: "#audiences", label: "Who it's for" },
 ];
 
-const DEMO_MAILTO =
-  "mailto:info@privexa.co?subject=ClinicalTriage%20%E2%80%94%20demo%20request&body=Hi%20Privexa%20team%2C%0A%0AWe'd%20like%20to%20see%20a%20demo%20of%20ClinicalTriage.%0A%0AOrganisation%3A%0ARole%3A%0APreferred%20time%3A%0A";
-
 export function MarketingNav({ authed = false }: { authed?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -72,17 +69,11 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
         <div className="hidden items-center gap-2.5 lg:flex">
           <Link
             href={authed ? "/dashboard" : "/login"}
-            className="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/[0.12]"
-          >
-            {authed ? "Go to dashboard" : "Sign in"}
-          </Link>
-          <a
-            href={DEMO_MAILTO}
             className="group inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-4 py-2 text-sm font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
           >
-            Request a demo
+            {authed ? "Dashboard" : "Access"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </a>
+          </Link>
         </div>
 
         {/* Mobile toggle */}
@@ -114,19 +105,13 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
               ))}
             </div>
             <div className="mt-4 flex flex-col gap-2.5">
-              <a
-                href={DEMO_MAILTO}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-4 py-3 text-sm font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)]"
-              >
-                Request a demo
-                <ArrowRight className="h-4 w-4" />
-              </a>
               <Link
                 href={authed ? "/dashboard" : "/login"}
                 onClick={() => setOpen(false)}
-                className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white"
+                className="group inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-4 py-3 text-sm font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)]"
               >
-                {authed ? "Go to dashboard" : "Sign in"}
+                {authed ? "Dashboard" : "Access"}
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
@@ -135,5 +120,3 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
     </header>
   );
 }
-
-export { DEMO_MAILTO };

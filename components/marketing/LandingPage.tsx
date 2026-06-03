@@ -15,7 +15,7 @@ import {
   Stethoscope, Cable, Database, FlaskConical, Upload, CheckCircle2, Cpu,
   Mail, Sparkles, ChevronRight,
 } from "lucide-react";
-import { MarketingNav, DEMO_MAILTO } from "./MarketingNav";
+import { MarketingNav } from "./MarketingNav";
 import { HeroVisual } from "./HeroVisual";
 import { PrivexaMark, PrivexaLockup } from "./PrivexaMark";
 import { Reveal } from "./Reveal";
@@ -87,13 +87,6 @@ function ProductCard({
       </div>
       <h3 className="font-display mt-4 text-[1.15rem] font-semibold tracking-tight text-slate-900">{title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{body}</p>
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Built by Privexa</span>
-        <a href={DEMO_MAILTO} className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-700 transition-colors hover:text-cyan-800">
-          Request a demo
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-        </a>
-      </div>
     </article>
   );
 }
@@ -193,18 +186,12 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
 
               {/* CTAs */}
               <div className="mt-7 flex flex-wrap items-center gap-3">
-                <a
-                  href={DEMO_MAILTO}
-                  className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-5 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
-                >
-                  Request a demo
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </a>
                 <Link
                   href={authed ? "/dashboard" : "/login"}
-                  className="glass-panel inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-medium text-white transition-colors hover:bg-white/[0.14]"
+                  className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-5 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
                 >
-                  {authed ? "Go to dashboard" : "Sign in"}
+                  {authed ? "Go to dashboard" : "Access"}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
 
@@ -358,25 +345,18 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
           <div className="relative mx-auto max-w-3xl px-5 py-24 text-center sm:px-8">
             <PrivexaMark size={52} uid="cta" className="mx-auto" />
             <h2 className="font-display mt-6 text-[2rem] font-semibold leading-tight tracking-tight text-white sm:text-[2.5rem]">
-              Bring governed screening decision support to your service
+              Your screening decision support is ready
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-300/85">
-              We'll walk your team through the clean demo, the messy real-world sample, the validation
-              flow, and the audit trail — and show exactly where reviewer confirmation sits.
+              Start using ClinicalTriage today. Explore the guided pathway, upload your data, or review sample results to see how it works.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a
-                href={DEMO_MAILTO}
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-6 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
-              >
-                Request a demo
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </a>
               <Link
                 href={authed ? "/dashboard" : "/login"}
-                className="glass-panel inline-flex items-center gap-2 rounded-xl px-6 py-3 text-[15px] font-medium text-white transition-colors hover:bg-white/[0.14]"
+                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-6 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
               >
-                {authed ? "Go to dashboard" : "Sign in"}
+                {authed ? "Go to dashboard" : "Access now"}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
           </div>
@@ -436,9 +416,6 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                     <a href="mailto:info@privexa.co" className="inline-flex items-center gap-2 text-slate-400 transition-colors hover:text-white">
                       <Mail className="h-3.5 w-3.5" /> info@privexa.co
                     </a>
-                  </li>
-                  <li>
-                    <a href={DEMO_MAILTO} className="text-slate-400 transition-colors hover:text-white">Request a demo</a>
                   </li>
                   <li>
                     <Link href={authed ? "/dashboard" : "/login"} className="text-slate-400 transition-colors hover:text-white">
