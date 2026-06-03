@@ -104,7 +104,7 @@ export default function GuidelinesPage() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header + tab bar */}
-      <div className="border-b border-border bg-card px-6 pt-5 flex-shrink-0">
+      <div className="page-aura border-b border-border bg-card px-6 pt-5 flex-shrink-0">
         <PageIntro
           eyebrow="Reference"
           title="Clinical Guidance Library"
@@ -188,7 +188,7 @@ export default function GuidelinesPage() {
                 { label: "P3", sub: "Within 4 months", cls: "bg-success-bg border-success-border text-success" },
                 { label: "P5", sub: "Virtual clinic", cls: "bg-info-bg border-info-border text-info" },
               ].map(({ label, sub, cls }) => (
-                <div key={label} className={cn("rounded-xl border px-4 py-3 text-center", cls)}>
+                <div key={label} className={cn("rounded-xl border px-4 py-3 text-center hover-lift", cls)}>
                   <p className="text-base font-bold">{label}</p>
                   <p className="text-xs mt-1 opacity-80">{sub}</p>
                 </div>

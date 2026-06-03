@@ -161,15 +161,17 @@ export default async function CasesPage({
 
   return (
     <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6 animate-fade-in">
-      <PageIntro
-        eyebrow={workspace.label}
-        title="Referral Cases"
-        description={`Enterprise case queue for colposcopy and gynaecology grading. ${getServiceSlaSummary(selectedServiceLine)}`}
-        actions={[
-          { href: "/cases/new", label: "New case", icon: <Plus className="h-4 w-4" /> },
-          { href: "/analytics", label: "Analytics", variant: "outline" },
-        ]}
-      />
+      <div className="page-aura">
+        <PageIntro
+          eyebrow={workspace.label}
+          title="Referral Cases"
+          description={`Enterprise case queue for colposcopy and gynaecology grading. ${getServiceSlaSummary(selectedServiceLine)}`}
+          actions={[
+            { href: "/cases/new", label: "New case", icon: <Plus className="h-4 w-4" /> },
+            { href: "/analytics", label: "Analytics", variant: "outline" },
+          ]}
+        />
+      </div>
 
       {/* ── Stats strip ── */}
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">

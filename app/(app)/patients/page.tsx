@@ -86,12 +86,14 @@ export default function PatientsPage() {
 
   return (
     <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6 animate-fade-in">
-      <PageIntro
-        eyebrow="Legacy tools"
-        title="Patients"
-        description={hasLoaded ? `${total.toLocaleString()} patients on the cervical screening register.` : "Cervical screening register"}
-        actions={[{ href: "/patients/new", label: "Register patient", icon: <Plus className="h-4 w-4" /> }]}
-      />
+      <div className="page-aura">
+        <PageIntro
+          eyebrow="Legacy tools"
+          title="Patients"
+          description={hasLoaded ? `${total.toLocaleString()} patients on the cervical screening register.` : "Cervical screening register"}
+          actions={[{ href: "/patients/new", label: "Register patient", icon: <Plus className="h-4 w-4" /> }]}
+        />
+      </div>
 
       <Input
         label="Search patients"
@@ -122,10 +124,10 @@ export default function PatientsPage() {
           {patients.map((p, i) => (
             <div key={p.id} className="animate-fade-in" style={{ animationDelay: `${i * 15}ms` }}>
               <Link href={`/patients/${p.id}`}>
-                <Card className="hover:border-border-strong hover:shadow-md transition-all duration-150">
+                <Card className="hover-lift hover:border-border-strong">
                   <CardContent className="py-3.5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-navy-600/10 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-50 to-navy-600/10 ring-1 ring-border/60 flex items-center justify-center flex-shrink-0">
                         <span className="text-navy-700 font-semibold text-sm">
                           {p.firstName.charAt(0)}{p.lastName.charAt(0)}
                         </span>

@@ -41,8 +41,12 @@ function ConcordanceBar({
       <div className="h-2 bg-muted rounded-full overflow-hidden">
         <div
           className={cn(
-            "h-2 rounded-full transition-all",
-            rate >= 85 ? "bg-success" : rate >= 70 ? "bg-warn" : "bg-destructive"
+            "h-2 rounded-full transition-all duration-500",
+            rate >= 85
+              ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+              : rate >= 70
+                ? "bg-gradient-to-r from-amber-500 to-amber-400"
+                : "bg-gradient-to-r from-rose-500 to-red-400"
           )}
           style={{ width: `${rate}%` }}
         />
@@ -78,9 +82,9 @@ function ThroughputChart({
   return (
     <div className="flex items-end gap-1.5 h-24">
       {data.map((d) => (
-        <div key={d.week} className="flex flex-col items-center flex-1 gap-1">
+        <div key={d.week} className="group flex flex-col items-center flex-1 gap-1">
           <div
-            className="w-full rounded-t bg-brand-500 min-h-[2px] transition-all"
+            className="w-full rounded-t-md bg-gradient-to-t from-brand-600 to-teal-400 min-h-[2px] shadow-sm transition-all duration-300 group-hover:from-brand-700 group-hover:to-teal-300"
             style={{ height: `${Math.round((d.count / max) * 88)}px` }}
             title={`${d.week}: ${d.count} graded`}
           />
@@ -116,7 +120,7 @@ function PriorityBreakdownTable({
             </div>
             <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-1 bg-brand-500 rounded-full"
+                className="h-1 bg-gradient-to-r from-brand-600 to-teal-400 rounded-full"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -333,15 +337,17 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <PageIntro
-        eyebrow={workspace.label}
-        title="Analytics"
-        description="Grading throughput, concordance, and backlog across the enterprise workflow."
-        actions={[
-          { href: "/cases", label: "Open cases" },
-          { href: "/rules", label: "Review rules" },
-        ]}
-      />
+      <div className="page-aura">
+        <PageIntro
+          eyebrow={workspace.label}
+          title="Analytics"
+          description="Grading throughput, concordance, and backlog across the enterprise workflow."
+          actions={[
+            { href: "/cases", label: "Open cases" },
+            { href: "/rules", label: "Review rules" },
+          ]}
+        />
+      </div>
 
       {/* ─── KPI strip ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">

@@ -134,7 +134,7 @@ export default function PathwayWizardStartPage() {
 
   return (
     <div className="min-h-full bg-background">
-      <div className="border-b border-border bg-card px-6 py-5">
+      <div className="page-aura border-b border-border bg-card px-6 py-5">
         <div className="max-w-2xl mx-auto space-y-4">
           <PageIntro
             eyebrow="Legacy cervical tool"
@@ -328,8 +328,8 @@ export default function PathwayWizardStartPage() {
         {!patient && !searching && (
           <div className="rounded-2xl border border-dashed border-border-strong bg-card p-12 text-center space-y-3 animate-fade-in">
               <div className="flex justify-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-                <ClipboardList className="h-7 w-7 text-muted-foreground" />
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-50 to-muted ring-1 ring-border/70 before:absolute before:inset-0 before:-z-10 before:rounded-[1.4rem] before:bg-accent-color/10 before:blur-xl">
+                <ClipboardList className="h-7 w-7 text-accent-color" />
               </div>
             </div>
             <div>
@@ -345,8 +345,8 @@ export default function PathwayWizardStartPage() {
                 { icon: CheckCircle2, label: "Get decision" },
               ].map(({ icon: Icon, label }, i) => (
                 <div key={i} className="flex flex-col items-center gap-1.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600/10">
-                    <Icon className="h-4 w-4 text-brand-600" />
+                  <div className="grid h-9 w-9 place-items-center rounded-lg chip-gradient-brand text-white shadow-sm">
+                    <Icon className="h-4 w-4" />
                   </div>
                   <span className="text-xs text-muted-foreground">{label}</span>
                 </div>
