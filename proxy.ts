@@ -11,6 +11,8 @@ const PASSWORD_MANAGEMENT_PATH = "/account/password";
 const PASSWORD_MANAGEMENT_API_PREFIX = "/api/account/password";
 
 function isPublic(pathname: string): boolean {
+  // Public marketing landing — exact match only (every path startsWith "/").
+  if (pathname === "/") return true;
   for (const p of PUBLIC_PATHS) {
     if (pathname.startsWith(p)) return true;
   }

@@ -270,3 +270,100 @@ body {
   aside, nav, header { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; }
 }
+
+/* ============================================================
+   MARKETING / LANDING PAGE SYSTEM (Privexa premium)
+   Scoped utilities used only by components/marketing/*.
+   ============================================================ */
+
+/* ---- Fonts ---- */
+.font-display { font-family: var(--font-fraunces), Georgia, "Times New Roman", serif; }
+.font-body    { font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif; }
+
+/* ---- Surfaces ---- */
+.bg-midnight {
+  background:
+    radial-gradient(1100px 620px at 78% 8%, rgba(34,211,238,0.14), transparent 60%),
+    radial-gradient(900px 600px at 12% 92%, rgba(139,92,246,0.12), transparent 60%),
+    linear-gradient(165deg, #070D1F 0%, #0B1430 45%, #0C1B3C 100%);
+}
+
+.glass-panel {
+  background: linear-gradient(155deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 8px 32px -8px rgba(2,8,23,0.6), inset 0 1px 0 rgba(255,255,255,0.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.grid-overlay {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 52px 52px;
+  -webkit-mask-image: radial-gradient(circle at 50% 40%, black, transparent 78%);
+  mask-image: radial-gradient(circle at 50% 40%, black, transparent 78%);
+}
+
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.06;
+}
+
+.aurora {
+  background:
+    radial-gradient(40% 50% at 20% 20%, rgba(34,211,238,0.20), transparent 60%),
+    radial-gradient(42% 52% at 82% 26%, rgba(139,92,246,0.18), transparent 60%),
+    radial-gradient(52% 52% at 60% 84%, rgba(45,212,191,0.15), transparent 60%);
+  background-size: 200% 200%;
+  animation: auroraShift 16s ease-in-out infinite;
+}
+
+.conic-sweep {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(34,211,238,0.28) 55deg,
+    transparent 140deg,
+    rgba(167,139,250,0.24) 225deg,
+    transparent 320deg
+  );
+}
+
+/* ---- Gradient text ---- */
+.text-gradient-brand {
+  background-image: linear-gradient(100deg, #67E8F9, #22D3EE, #5EEAD4, #818CF8, #A78BFA);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.text-gradient-cyan {
+  background-image: linear-gradient(100deg, #A5F3FC, #22D3EE, #2DD4BF);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ---- Keyframes ---- */
+@keyframes pvxSpin     { to { transform: rotate(360deg); } }
+@keyframes glowPulse   { 0%,100% { transform: scale(1);    opacity: 0.55; } 50% { transform: scale(1.04); opacity: 1; } }
+@keyframes floatSlow   { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes floatSlower { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+@keyframes dashMove    { to { stroke-dashoffset: -100; } }
+@keyframes twinkle     { 0%,100% { opacity: 0.2; } 50% { opacity: 0.9; } }
+@keyframes auroraShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+.animate-spin-slow    { animation: pvxSpin     26s linear      infinite; }
+.animate-glow-pulse   { animation: glowPulse   4.5s ease-in-out infinite; }
+.animate-float-slow   { animation: floatSlow   6s  ease-in-out infinite; }
+.animate-float-slower { animation: floatSlower 8s  ease-in-out infinite; }
+.animate-dash         { animation: dashMove    24s linear      infinite; }
+.animate-twinkle      { animation: twinkle     4s  ease-in-out infinite; }
+
+/* ---- Reduced motion: scoped kill-switch for the landing ---- */
+@media (prefers-reduced-motion: reduce) {
+  .privexa-landing *,
+  .privexa-landing *::before,
+  .privexa-landing *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
