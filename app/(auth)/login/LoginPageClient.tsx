@@ -7,6 +7,7 @@ import { Eye, EyeOff, ShieldCheck, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { PrivexaMark } from "@/components/marketing/PrivexaMark";
 
 const DEMO_ACCOUNTS = [
   { username: "admin",       role: "Platform admin",       color: "bg-purple-50 text-purple-700 border-purple-200" },
@@ -60,24 +61,33 @@ async function handleSubmit(e: React.FormEvent) {
 
   return (
     <div className="min-h-screen flex">
-      {/* Brand panel */}
-      <div className="hidden lg:flex lg:w-[420px] xl:w-[500px] flex-col bg-navy-800 p-10 text-white relative overflow-hidden flex-shrink-0">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 70% 30%, #14b8a6 0%, transparent 60%)" }} aria-hidden />
+      {/* Brand panel — premium midnight gateway (mirrors the public landing) */}
+      <div className="privexa-landing font-body hidden lg:flex lg:w-[440px] xl:w-[520px] flex-col bg-midnight p-10 text-white relative overflow-hidden flex-shrink-0">
+        <div className="aurora pointer-events-none absolute inset-0" aria-hidden />
+        <div className="grid-overlay pointer-events-none absolute inset-0" aria-hidden />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" aria-hidden />
         <div className="relative z-10 flex-1 flex flex-col">
           <div className="flex items-center gap-3 mb-12">
-            <div className="h-10 w-10 rounded-xl bg-brand-600 flex items-center justify-center font-bold text-base">CT</div>
+            <PrivexaMark size={42} uid="login" />
             <div>
               <div className="font-semibold text-sm">ClinicalTriage</div>
-              <div className="text-xs text-navy-200">Health NZ · Counties Manukau</div>
+              <div className="text-xs text-slate-300/80">Health NZ · Counties Manukau</div>
             </div>
           </div>
           <div className="flex-1 flex flex-col justify-center">
-            <h2 className="text-2xl font-bold leading-tight mb-3">Women&apos;s Health<br />Grading Platform</h2>
-            <p className="text-navy-200 text-sm leading-relaxed max-w-xs">
+            <span className="glass-panel mb-5 inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium text-slate-200">
+              <ShieldCheck className="h-3.5 w-3.5 text-cyan-300" aria-hidden />
+              Secure clinical access
+            </span>
+            <h2 className="font-display text-[2.1rem] font-semibold leading-[1.1] tracking-tight mb-3">
+              Women&apos;s Health<br />
+              <span className="text-gradient-brand">Grading Platform</span>
+            </h2>
+            <p className="text-slate-300/85 text-sm leading-relaxed max-w-xs">
               Colposcopy, gynaecology, and cervical pathway support for authorised clinical staff.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-navy-300">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
             <ShieldCheck className="h-4 w-4 flex-shrink-0" aria-hidden />
             Authorised personnel only · All access is audited
           </div>
@@ -89,7 +99,7 @@ async function handleSubmit(e: React.FormEvent) {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="h-9 w-9 rounded-xl bg-brand-600 flex items-center justify-center text-white font-bold text-sm">CT</div>
+            <PrivexaMark size={38} uid="login-m" />
             <div>
               <div className="font-semibold text-sm text-foreground">ClinicalTriage</div>
               <div className="text-xs text-muted-foreground">Health NZ · Counties Manukau</div>

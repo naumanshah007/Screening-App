@@ -121,23 +121,32 @@ function NavItem({ link, active, collapsed, primary }: {
         href={link.href}
         title={collapsed ? link.label : undefined}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+          "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           active
-            ? "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400"
+            ? "bg-gradient-to-r from-brand-50 to-brand-50/20 text-brand-700 dark:from-brand-900/40 dark:to-brand-900/5 dark:text-brand-300"
             : primary
               ? "text-brand-700 dark:text-brand-300 bg-brand-50/50 dark:bg-brand-950/30 hover:bg-brand-100/60 dark:hover:bg-brand-900/40"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           collapsed && "justify-center px-2"
         )}
       >
+        {/* Active left accent bar */}
+        {active && !collapsed && (
+          <span
+            className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-teal-400 to-cyan-600"
+            aria-hidden
+          />
+        )}
         <Icon
-          className={cn("flex-shrink-0 transition-all", active ? "h-4 w-4 text-brand-600" : "h-4 w-4")}
+          className={cn(
+            "h-4 w-4 flex-shrink-0 transition-transform duration-200",
+            active ? "text-brand-600" : "group-hover:scale-110"
+          )}
           strokeWidth={active ? 2.5 : 1.75}
           aria-hidden
         />
         {!collapsed && <span className="truncate">{link.label}</span>}
-        {!collapsed && active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600 flex-shrink-0" aria-hidden />}
       </Link>
     </li>
   );
@@ -183,7 +192,7 @@ export function Sidebar({
       {/* Logo */}
       <div className={cn("flex items-center gap-2.5 px-4 py-4 border-b border-border", collapsed && "justify-center px-2")}>
         <Link href={homeHref} className="flex items-center gap-2.5 min-w-0">
-          <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm ring-1 ring-white/15">
             CT
           </div>
           {!collapsed && (
@@ -243,7 +252,7 @@ export function Sidebar({
       {/* Bottom user section */}
       <div className="border-t border-border p-2 space-y-1">
         <div className={cn("flex items-center gap-2 px-2 py-2", collapsed && "justify-center")}>
-          <div className="h-7 w-7 rounded-full bg-navy-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-navy-600 to-navy-800 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ring-1 ring-white/10">
             {initials}
           </div>
           {!collapsed && (
