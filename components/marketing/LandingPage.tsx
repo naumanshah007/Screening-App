@@ -190,7 +190,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                   href={authed ? "/dashboard" : "/login"}
                   className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-5 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
                 >
-                  {authed ? "Go to dashboard" : "Access"}
+                  {authed ? "Go to dashboard" : "Open ClinicalTriage"}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
@@ -355,7 +355,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                 href={authed ? "/dashboard" : "/login"}
                 className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-6 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
               >
-                {authed ? "Go to dashboard" : "Access now"}
+                {authed ? "Go to dashboard" : "Open ClinicalTriage"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>

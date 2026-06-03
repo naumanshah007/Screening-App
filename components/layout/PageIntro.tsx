@@ -44,9 +44,12 @@ export function PageIntro({
       <div className="flex items-start justify-between gap-4">
         <div>
           {eyebrow && (
-            <div className="text-label text-muted-foreground mb-1">{eyebrow}</div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="eyebrow-rule" aria-hidden />
+              <span className="text-label text-accent-color">{eyebrow}</span>
+            </div>
           )}
-          <h1 className="text-h2 text-foreground">{title}</h1>
+          <h1 className="text-h2 text-foreground tracking-tight">{title}</h1>
           {description && (
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground leading-relaxed">{description}</p>
           )}

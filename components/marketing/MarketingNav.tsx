@@ -71,7 +71,7 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
             href={authed ? "/dashboard" : "/login"}
             className="group inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-4 py-2 text-sm font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
           >
-            {authed ? "Dashboard" : "Access"}
+            {authed ? "Dashboard" : "Sign in"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -110,7 +110,7 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
                 onClick={() => setOpen(false)}
                 className="group inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-4 py-3 text-sm font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)]"
               >
-                {authed ? "Dashboard" : "Access"}
+                {authed ? "Dashboard" : "Sign in"}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

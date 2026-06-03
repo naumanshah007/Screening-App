@@ -36,8 +36,15 @@ export function EmptyState({
   return (
     <div className={cn("flex flex-col items-center justify-center text-center", s.wrapper, className)}>
       {Icon && (
-        <div className={cn("rounded-2xl bg-muted flex items-center justify-center mb-4 flex-shrink-0", s.icon)}>
-          <Icon className={cn(s.iconSize, "text-muted-foreground")} strokeWidth={1.5} />
+        <div
+          className={cn(
+            "relative flex items-center justify-center mb-4 flex-shrink-0 rounded-2xl",
+            "bg-gradient-to-br from-brand-50 to-muted ring-1 ring-border/70",
+            "before:absolute before:inset-0 before:-z-10 before:rounded-[1.4rem] before:bg-accent-color/10 before:blur-xl",
+            s.icon
+          )}
+        >
+          <Icon className={cn(s.iconSize, "text-accent-color")} strokeWidth={1.5} />
         </div>
       )}
       {eyebrow && (

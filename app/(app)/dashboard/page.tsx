@@ -214,12 +214,16 @@ export default async function DashboardPage() {
     <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-8 animate-fade-in">
 
       {/* ── Page header ─────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="page-aura flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-h2 text-foreground">
-            {greeting}, {firstName}
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="eyebrow-rule" aria-hidden />
+            <span className="text-label text-accent-color">Dashboard</span>
+          </div>
+          <h1 className="text-h1 text-foreground tracking-tight">
+            {greeting}, <span className="text-gradient-clinical">{firstName}</span>
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
             {now.toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             {p1Referrals > 0 && (
               <span className="inline-flex items-center gap-1 text-destructive font-medium">

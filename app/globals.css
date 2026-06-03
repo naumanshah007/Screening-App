@@ -272,6 +272,118 @@ body {
 }
 
 /* ============================================================
+   PREMIUM CLINICAL APP SYSTEM
+   Tasteful polish for the authenticated app surface. Token-driven
+   so it works in light + dark, and used across all (app) pages via
+   shared primitives (Card, StatCard, PageIntro, EmptyState) plus a
+   few opt-in utilities. Respects prefers-reduced-motion.
+   ============================================================ */
+
+/* ---- Elevation ---- */
+.card-elevated {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 28px -18px rgba(15, 23, 42, 0.20);
+}
+[data-theme="dark"] .card-elevated {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 14px 34px -18px rgba(0, 0, 0, 0.75);
+}
+
+/* ---- Hover lift (cards, stat cards, interactive rows) ---- */
+.hover-lift {
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms ease;
+  will-change: transform;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 24px 50px -26px rgba(13, 148, 136, 0.34);
+}
+[data-theme="dark"] .hover-lift:hover {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 24px 54px -24px rgba(20, 184, 166, 0.32);
+}
+
+/* ---- Accent hairline that fades in on hover (section cards) ---- */
+.accent-topline { position: relative; }
+.accent-topline::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+  opacity: 0;
+  transition: opacity 260ms ease;
+  pointer-events: none;
+}
+.accent-topline:hover::after { opacity: 0.85; }
+
+/* ---- Gradient text (clinical teal→sky; legible on light + dark) ---- */
+.text-gradient-clinical {
+  background-image: linear-gradient(100deg, #0d9488, #0891b2, #0ea5e9);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+[data-theme="dark"] .text-gradient-clinical {
+  background-image: linear-gradient(100deg, #5eead4, #22d3ee, #38bdf8);
+}
+
+/* ---- Eyebrow rule (mirrors the landing's section eyebrow) ---- */
+.eyebrow-rule {
+  display: inline-block;
+  height: 1px;
+  width: 1.5rem;
+  background: linear-gradient(90deg, #2dd4bf, #0891b2);
+}
+
+/* ---- Soft page-header aura (very subtle brand glow behind headers) ---- */
+.page-aura { position: relative; isolation: isolate; }
+.page-aura::before {
+  content: "";
+  position: absolute;
+  inset: -48px -24px auto -24px;
+  height: 300px;
+  z-index: -1;
+  background:
+    radial-gradient(460px 200px at 10% 0%, rgba(13, 148, 136, 0.13), transparent 70%),
+    radial-gradient(460px 220px at 92% 8%, rgba(99, 102, 241, 0.10), transparent 70%);
+  pointer-events: none;
+}
+[data-theme="dark"] .page-aura::before {
+  background:
+    radial-gradient(460px 200px at 10% 0%, rgba(20, 184, 166, 0.16), transparent 70%),
+    radial-gradient(460px 220px at 92% 8%, rgba(129, 140, 248, 0.13), transparent 70%);
+}
+
+/* ---- Gradient icon chips (variant-colored, for stat cards / features) ---- */
+.chip-gradient-brand   { background-image: linear-gradient(135deg, #2dd4bf, #0891b2); }
+.chip-gradient-urgent  { background-image: linear-gradient(135deg, #fb7185, #dc2626); }
+.chip-gradient-warning { background-image: linear-gradient(135deg, #fcd34d, #f59e0b); }
+.chip-gradient-success { background-image: linear-gradient(135deg, #34d399, #059669); }
+.chip-gradient-info    { background-image: linear-gradient(135deg, #38bdf8, #0284c7); }
+
+/* ---- Staggered rise-in (page-entry reveal) ---- */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-rise { animation: riseIn 540ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift { transition: none; }
+  .hover-lift:hover { transform: none; }
+  .accent-topline::after { transition: none; }
+  .animate-rise { animation: none !important; }
+}
+
+/* ============================================================
    MARKETING / LANDING PAGE SYSTEM (Privexa premium)
    Scoped utilities used only by components/marketing/*.
    ============================================================ */
