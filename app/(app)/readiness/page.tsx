@@ -64,15 +64,17 @@ export default async function ReadinessPage() {
 
   return (
     <div className="space-y-6 p-6 animate-fade-in">
-      <PageIntro
-        eyebrow={workspace.label}
-        title="Launch Readiness"
-        description="This page is the stop line for the product. It shows what is already finished in the repo, what still needs customer or environment input, and which try the project is currently in."
-        actions={[
-          { href: "/cases", label: "Open cases" },
-          { href: "/admin", label: "Open admin" },
-        ]}
-      />
+      <div className="page-aura">
+        <PageIntro
+          eyebrow={workspace.label}
+          title="Launch Readiness"
+          description="This page is the stop line for the product. It shows what is already finished in the repo, what still needs customer or environment input, and which try the project is currently in."
+          actions={[
+            { href: "/cases", label: "Open cases" },
+            { href: "/admin", label: "Open admin" },
+          ]}
+        />
+      </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard

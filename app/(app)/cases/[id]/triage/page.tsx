@@ -108,7 +108,7 @@ export default async function TriagePage({
       />
 
       {/* Two-column triage layout */}
-      <div className="shrink-0 border-b border-border bg-card px-6 py-5 space-y-4">
+      <div className="page-aura shrink-0 border-b border-border bg-card px-6 py-5 space-y-4">
         <Link
           href={`/cases/${id}`}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"

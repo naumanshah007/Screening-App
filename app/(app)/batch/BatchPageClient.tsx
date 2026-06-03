@@ -401,7 +401,7 @@ export function BatchPageClient() {
   ] as const;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="page-aura p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <PageIntro
         eyebrow="Batch Processing"
         title="Batch Decision Support"

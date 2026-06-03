@@ -56,7 +56,7 @@ export default function NewPatientPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl space-y-6">
+    <div className="page-aura p-6 max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/patients" className="text-sm text-[#0D9488] hover:underline">
           ← Patients

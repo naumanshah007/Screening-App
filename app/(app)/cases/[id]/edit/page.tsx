@@ -35,7 +35,7 @@ export default async function EditReferralCasePage({
   const workspace = getWorkspaceContext(user?.role, true);
 
   return (
-    <div className="p-6 max-w-5xl space-y-6 animate-fade-in">
+    <div className="page-aura p-6 max-w-5xl space-y-6 animate-fade-in">
       <Link href={`/cases/${referralCase.id}`} className="text-sm text-brand-600 hover:underline">
         ← Case
       </Link>

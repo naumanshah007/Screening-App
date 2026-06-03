@@ -341,7 +341,7 @@ export default function GPPortalPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="page-aura p-6 space-y-6 animate-fade-in">
       <PageIntro
         eyebrow="Legacy cervical tool"
         title="Cervical Results Entry"

@@ -34,17 +34,19 @@ export default async function RulesPage() {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <PageIntro
-        eyebrow="Governance"
-        title="Case Rule Releases"
-        description="Enterprise release control for colposcopy and gynaecology deterministic rules."
-        trailing={
-          <div className="flex flex-wrap gap-3">
-            <CreateCaseRuleDraftButton serviceLine="COLPOSCOPY" label="New colposcopy draft" />
-            <CreateCaseRuleDraftButton serviceLine="GYNAECOLOGY" label="New gynaecology draft" />
-          </div>
-        }
-      />
+      <div className="page-aura">
+        <PageIntro
+          eyebrow="Governance"
+          title="Case Rule Releases"
+          description="Enterprise release control for colposcopy and gynaecology deterministic rules."
+          trailing={
+            <div className="flex flex-wrap gap-3">
+              <CreateCaseRuleDraftButton serviceLine="COLPOSCOPY" label="New colposcopy draft" />
+              <CreateCaseRuleDraftButton serviceLine="GYNAECOLOGY" label="New gynaecology draft" />
+            </div>
+          }
+        />
+      </div>
 
       {releases.length === 0 ? (
         <Card>

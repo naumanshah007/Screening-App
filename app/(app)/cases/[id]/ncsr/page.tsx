@@ -50,7 +50,7 @@ export default async function NcsrPage({
   const patient = referralCase.patient;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="page-aura p-6 space-y-6 animate-fade-in">
       <Link
         href={`/cases/${id}`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"

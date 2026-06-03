@@ -58,7 +58,7 @@ export default async function CaseRuleReleaseDetailPage({
       : undefined;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="page-aura p-6 space-y-6 animate-fade-in">
       <div className="flex items-center gap-3">
         <Link href="/rules" className="text-sm text-brand-600 hover:underline">
           ← Rule releases

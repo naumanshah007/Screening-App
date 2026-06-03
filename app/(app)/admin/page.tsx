@@ -186,15 +186,17 @@ export default async function AdminPage({
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <PageIntro
-        eyebrow={workspace.label}
-        title="Admin Dashboard"
-        description="System administration, runtime readiness, rule governance, and audit visibility."
-        actions={[
-          { href: "/rules", label: "Open rules" },
-          { href: "/analytics", label: "View analytics" },
-        ]}
-      />
+      <div className="page-aura">
+        <PageIntro
+          eyebrow={workspace.label}
+          title="Admin Dashboard"
+          description="System administration, runtime readiness, rule governance, and audit visibility."
+          actions={[
+            { href: "/rules", label: "Open rules" },
+            { href: "/analytics", label: "View analytics" },
+          ]}
+        />
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">

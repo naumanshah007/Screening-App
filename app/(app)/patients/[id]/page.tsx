@@ -56,7 +56,7 @@ export default async function PatientDetailPage({ params }: Props) {
   const initials = `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="page-aura p-6 space-y-6 animate-fade-in">
       <PageIntro
         eyebrow={`NHI: ${patient.nhi} · ${age} years · DOB: ${formatDate(patient.dateOfBirth)}`}
         title={`${patient.firstName} ${patient.lastName}`}

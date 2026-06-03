@@ -270,7 +270,7 @@ export default function WizardResultPage({
       `}</style>
 
       <div className="min-h-screen bg-background p-6 animate-fade-in">
-        <div className="max-w-3xl mx-auto space-y-5">
+        <div className="page-aura max-w-3xl mx-auto space-y-5">
 
           {/* Nav */}
           <div className="no-print flex items-center justify-between gap-4">

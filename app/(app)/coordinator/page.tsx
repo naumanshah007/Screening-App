@@ -169,7 +169,7 @@ export default function CoordinatorPage() {
   ) : null;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="page-aura p-6 space-y-6 animate-fade-in">
       <PageIntro
         eyebrow="Coordinator Portal — NZ Cervical Screening"
         title="Referral Queue"

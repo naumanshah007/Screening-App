@@ -88,15 +88,17 @@ export default async function AuditPage({
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <PageIntro
-        eyebrow={workspace.label}
-        title="Audit Investigation"
-        description="Saved investigations, filtered audit review, and exportable evidence for security and governance follow-up."
-        actions={[
-          { href: "/analytics", label: "Back to analytics" },
-          { href: "/admin", label: "Open admin" },
-        ]}
-      />
+      <div className="page-aura">
+        <PageIntro
+          eyebrow={workspace.label}
+          title="Audit Investigation"
+          description="Saved investigations, filtered audit review, and exportable evidence for security and governance follow-up."
+          actions={[
+            { href: "/analytics", label: "Back to analytics" },
+            { href: "/admin", label: "Open admin" },
+          ]}
+        />
+      </div>
 
       <Card>
         <CardHeader>
