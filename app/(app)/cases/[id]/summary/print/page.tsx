@@ -87,7 +87,7 @@ export default async function SummaryPrintPage({
                 Health NZ · Counties Manukau
               </div>
               <h1 className="text-2xl font-bold text-foreground">
-                Clinical Triage Summary
+                CerviGrade Referral Summary
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Referral Case · {referralCase.serviceLine === "COLPOSCOPY" ? "Colposcopy" : "Gynaecology"}
@@ -333,7 +333,7 @@ export default async function SummaryPrintPage({
 
         {/* Footer */}
         <div className="border-t border-border pt-4 mt-8 text-xs text-muted-foreground flex justify-between">
-          <span>ClinicalTriage · Health NZ Counties Manukau · CONFIDENTIAL</span>
+          <span>CerviGrade · Health NZ Counties Manukau · CONFIDENTIAL</span>
           <span>{patient.nhi} · {formatDate(new Date())}</span>
         </div>
       </div>

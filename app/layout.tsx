@@ -28,9 +28,9 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "ClinicalTriage by Privexa — Governed Screening Decision Support",
+  title: "CerviGrade by Privexa — Cervical Referral Grading & Screening Decision Support",
   description:
-    "Referral grading and screening decision support for hospital teams. Provisional, reviewer-gated and guideline-aligned to the NCSP HPV Primary pathway. Decision support — a prototype under clinical validation, not a certified medical device.",
+    "Cervical referral grading and screening decision support for hospital teams. Provisional, reviewer-gated and guideline-aligned to the NCSP HPV Primary pathway. Decision support — a prototype under clinical validation, not a certified medical device.",
 };
 
 export default function RootLayout({

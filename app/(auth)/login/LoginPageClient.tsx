@@ -70,7 +70,7 @@ async function handleSubmit(e: React.FormEvent) {
           <div className="flex items-center gap-3 mb-12">
             <PrivexaMark size={42} uid="login" />
             <div>
-              <div className="font-semibold text-sm">ClinicalTriage</div>
+              <div className="font-semibold text-sm">CerviGrade</div>
               <div className="text-xs text-slate-300">Health NZ · Counties Manukau</div>
             </div>
           </div>
@@ -101,7 +101,7 @@ async function handleSubmit(e: React.FormEvent) {
           <div className="flex items-center gap-3 mb-8 lg:hidden">
             <PrivexaMark size={38} uid="login-m" />
             <div>
-              <div className="font-semibold text-sm text-foreground">ClinicalTriage</div>
+              <div className="font-semibold text-sm text-foreground">CerviGrade</div>
               <div className="text-xs text-muted-foreground">Health NZ · Counties Manukau</div>
             </div>
           </div>

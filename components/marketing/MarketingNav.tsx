@@ -47,7 +47,7 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
       ].join(" ")}
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
-        <Link href="/" className="flex items-center" aria-label="ClinicalTriage by Privexa — home">
+        <Link href="/" className="flex items-center" aria-label="CerviGrade by Privexa — home">
           <PrivexaLockup size={30} tone="light" uid="nav" />
         </Link>
 

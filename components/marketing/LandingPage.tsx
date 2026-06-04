@@ -178,7 +178,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
               </h1>
 
               <p className="mt-5 text-[1.05rem] leading-relaxed text-slate-200">
-                ClinicalTriage by Privexa helps hospital screening and colposcopy teams turn referral
+                CerviGrade by Privexa helps hospital screening and colposcopy teams turn referral
                 and lab data into <strong className="font-semibold text-white">provisional, guideline-aligned</strong>{" "}
                 recommendations — each one reviewer-gated, auditable, and mapped to the NCSP HPV Primary
                 pathway. Decision support designed for clinicians, not autonomous care.
@@ -190,7 +190,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                   href={authed ? "/dashboard" : "/login"}
                   className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-5 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
                 >
-                  {authed ? "Go to dashboard" : "Open ClinicalTriage"}
+                  {authed ? "Go to dashboard" : "Open CerviGrade"}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
@@ -215,7 +215,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
         <section className="bg-white">
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-24">
             <SectionHeader
-              eyebrow="Why ClinicalTriage"
+              eyebrow="Why CerviGrade"
               title="Built for clinical trust, not just throughput"
               description="The hard part of screening at scale isn't speed — it's confidence. Every surface in the platform is designed so a clinician can trust, check, and stand behind the output."
             />
@@ -314,7 +314,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
             <SectionHeader
               eyebrow="Who it's for"
               title="Built with every stakeholder in the room"
-              description="A serious screening programme is a team sport. ClinicalTriage gives each role what they need to say yes."
+              description="A serious screening programme is a team sport. CerviGrade gives each role what they need to say yes."
             />
             <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {AUDIENCES.map((a, i) => (
@@ -348,14 +348,14 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
               Your screening decision support is ready
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-300">
-              Start using ClinicalTriage today. Explore the guided pathway, upload your data, or review sample results to see how it works.
+              Start using CerviGrade today. Explore the guided pathway, upload your data, or review sample results to see how it works.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={authed ? "/dashboard" : "/login"}
                 className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-6 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
               >
-                {authed ? "Go to dashboard" : "Open ClinicalTriage"}
+                {authed ? "Go to dashboard" : "Open CerviGrade"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>

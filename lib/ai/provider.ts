@@ -1,5 +1,5 @@
 /**
- * AI provider abstraction for ClinicalTriage.
+ * AI provider abstraction for CerviGrade.
  *
  * Why this exists:
  * Patient clinical summaries contain identifiable health information.

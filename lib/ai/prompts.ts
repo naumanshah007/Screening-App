@@ -1,5 +1,5 @@
 /**
- * AI prompt templates for the ClinicalTriage grading assistance pipeline.
+ * AI prompt templates for the CerviGrade grading assistance pipeline.
  *
  * Each prompt is versioned so that concordance tracking can link AI
  * recommendations back to the exact prompt generation that produced them.
@@ -124,7 +124,7 @@ P5: virtual clinic only
 REJECT: refer back to GP with specific requirements
 DECLINE: redirect to appropriate pathway`;
 
-  return `You are an AI grading assistant for the ClinicalTriage referral management system
+  return `You are an AI grading assistant for the CerviGrade referral management system
 at Health NZ Counties Manukau. You assist specialist graders by reviewing clinical
 summaries and suggesting a booking priority.
 

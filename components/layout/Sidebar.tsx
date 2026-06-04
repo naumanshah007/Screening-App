@@ -178,7 +178,7 @@ export function Sidebar({
   const homeHref = getDefaultAppRouteForRole(userRole);
   const initials = userName
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "CT";
+    : "CG";
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -193,11 +193,11 @@ export function Sidebar({
       <div className={cn("flex items-center gap-2.5 px-4 py-4 border-b border-border", collapsed && "justify-center px-2")}>
         <Link href={homeHref} className="flex items-center gap-2.5 min-w-0">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm ring-1 ring-white/15">
-            CT
+            CG
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <div className="font-semibold text-foreground text-sm leading-tight truncate">ClinicalTriage</div>
+              <div className="font-semibold text-foreground text-sm leading-tight truncate">CerviGrade</div>
               <div className="text-[10px] text-muted-foreground leading-tight">Health NZ · Counties Manukau</div>
             </div>
           )}

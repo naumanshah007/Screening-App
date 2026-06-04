@@ -1,5 +1,5 @@
 /**
- * RBAC permission definitions for ClinicalTriage.
+ * RBAC permission definitions for CerviGrade.
  *
  * Roles are defined in the Prisma UserRole enum.
  * Permissions map actions → allowed roles.

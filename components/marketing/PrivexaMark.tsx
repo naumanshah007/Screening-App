@@ -1,5 +1,5 @@
 /**
- * PrivexaMark — the ClinicalTriage / Privexa brand mark.
+ * PrivexaMark — the CerviGrade / Privexa brand mark.
  *
  * Motif: a governance/privacy SHIELD wrapping a concentric APERTURE / cytology-
  * lens (screening under a lens) with three ascending GRADING tiers at the base.
@@ -29,7 +29,7 @@ export function PrivexaMark({ size = 36, className, uid = "pvx", animated = fals
       fill="none"
       className={className}
       role="img"
-      aria-label="ClinicalTriage by Privexa"
+      aria-label="CerviGrade by Privexa"
     >
       <defs>
         <linearGradient id={g} x1="6" y1="2" x2="42" y2="46" gradientUnits="userSpaceOnUse">
@@ -106,7 +106,7 @@ export function PrivexaLockup({
       <PrivexaMark size={size} uid={uid} />
       <span className="flex flex-col leading-none">
         <span className={`font-display text-[1.02rem] font-semibold tracking-tight ${primary}`}>
-          ClinicalTriage
+          CerviGrade
         </span>
         {showProduct && (
           <span className={`text-[10px] font-medium tracking-[0.16em] uppercase ${secondary}`}>
