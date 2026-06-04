@@ -187,7 +187,7 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
         )}
 
         {/* Download template */}
-        <div className="flex items-center justify-center gap-3 pt-1">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 pt-1 text-center">
           <span className="text-xs text-muted-foreground">Don't have data? Download a template:</span>
           <div className="flex items-center gap-2">
             <a

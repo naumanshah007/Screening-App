@@ -49,6 +49,20 @@ function hpvLabel(v?: string) {
   return map[v] ?? v.replace(/_/g, " ");
 }
 
+/** Clinical flag chips for a case — shared by the desktop table and mobile cards. */
+function rowFlags(c: CanonicalBatchCase): string[] {
+  const flags: string[] = [];
+  if (c.immunocompromised)          flags.push("Immunocompromised");
+  if (c.isPostHysterectomy)         flags.push("Post-hysterectomy");
+  if (c.isFirstTimeHPVTransition)   flags.push("HPV Transition");
+  if (c.isPregnant)                 flags.push("Pregnant");
+  if (c.hasAbnormalVaginalBleeding) flags.push("Abn. Bleeding");
+  if (c.hasCancerSymptoms)          flags.push("Cancer Sx");
+  if (c.isTestOfCure)               flags.push("Test of Cure");
+  if (c.repeatStage === "SECOND_REPEAT") flags.push("2nd Repeat");
+  return flags;
+}
+
 export function BatchValidationPreview({
   cases,
   validCount,
@@ -223,7 +237,7 @@ export function BatchValidationPreview({
               </Button>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto">
             <span className="text-xs text-muted-foreground whitespace-nowrap">
               {selectedCount} of {processableIds.length} selected
             </span>
@@ -241,7 +255,8 @@ export function BatchValidationPreview({
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {/* ── Desktop / tablet: full table (md+) ── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
             <thead>
               <tr className="border-b border-border bg-muted/30 text-left">
@@ -275,16 +290,7 @@ export function BatchValidationPreview({
                 const issues     = [...c.validationErrors, ...c.validationWarnings];
                 const isManual   = c.source.sourceType === "manual";
 
-                const flags: string[] = [];
-                if (c.immunocompromised)          flags.push("Immunocompromised");
-                if (c.isPostHysterectomy)         flags.push("Post-hysterectomy");
-                if (c.isFirstTimeHPVTransition)   flags.push("HPV Transition");
-                if (c.isPregnant)                 flags.push("Pregnant");
-                if (c.hasAbnormalVaginalBleeding) flags.push("Abn. Bleeding");
-                if (c.hasCancerSymptoms)          flags.push("Cancer Sx");
-                if (c.isTestOfCure)               flags.push("Test of Cure");
-                if (c.repeatStage === "SECOND_REPEAT") flags.push("2nd Repeat");
-
+                const flags = rowFlags(c);
                 const hpv = hpvLabel(c.hpvResult);
 
                 return (
@@ -442,6 +448,120 @@ export function BatchValidationPreview({
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* ── Mobile: stacked cards (< md) ── */}
+        <div className="md:hidden divide-y divide-border">
+          {cases.map((c) => {
+            const isInvalid  = c.validationStatus === "invalid";
+            const isSelected = isCaseSelected(c);
+            const issues     = [...c.validationErrors, ...c.validationWarnings];
+            const isManual   = c.source.sourceType === "manual";
+            const flags      = rowFlags(c);
+            const hpv        = hpvLabel(c.hpvResult);
+            const patientId  = c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`;
+            return (
+              <div
+                key={c.caseId}
+                className={cn(
+                  "p-4",
+                  isInvalid && "bg-red-50/30 dark:bg-red-950/10",
+                  !isInvalid && isSelected && "bg-brand-50/20 dark:bg-brand-950/10"
+                )}
+              >
+                {/* Header: checkbox + ID + status */}
+                <div className="flex items-start justify-between gap-2">
+                  <label className="flex min-w-0 items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isSelected && !isInvalid}
+                      disabled={isInvalid}
+                      onChange={() => toggleOne(c)}
+                      className="mt-0.5 flex-shrink-0 rounded border-border disabled:opacity-40"
+                      aria-label={`Select ${patientId}`}
+                    />
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-mono text-xs font-semibold tracking-wide text-foreground">{patientId}</span>
+                        {isManual && (
+                          <span className="inline-flex items-center rounded bg-violet-100 px-1 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">manual</span>
+                        )}
+                      </span>
+                      {c.label && <span className="mt-0.5 block text-xs text-muted-foreground">{c.label}</span>}
+                    </span>
+                  </label>
+                  <Badge variant={statusBadgeVariant[c.validationStatus]} size="sm">
+                    <span className="flex items-center gap-1">
+                      {statusIcon[c.validationStatus]}
+                      {statusLabel[c.validationStatus]}
+                    </span>
+                  </Badge>
+                </div>
+
+                {/* Key clinical fields */}
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 pl-7 text-xs">
+                  <div>
+                    <dt className="text-muted-foreground">Age</dt>
+                    <dd className="font-medium tabular-nums text-foreground">{c.patientAge != null ? `${c.patientAge} yr` : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">HPV</dt>
+                    <dd className={cn(
+                      "font-medium",
+                      c.hpvResult === "HPV_16_18"    && "text-red-600 dark:text-red-400",
+                      c.hpvResult === "HPV_OTHER"    && "text-amber-700 dark:text-amber-400",
+                      c.hpvResult === "NOT_DETECTED" && "text-emerald-700 dark:text-emerald-400",
+                      !hpv && "text-muted-foreground"
+                    )}>{hpv ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Cytology</dt>
+                    <dd className="font-medium text-foreground">{c.cytologyResult?.replace(/_/g, " ") ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Sample</dt>
+                    <dd className="font-medium text-foreground">{c.sampleType ?? "—"}</dd>
+                  </div>
+                </dl>
+
+                {flags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1 pl-7">
+                    {flags.map((f) => (
+                      <span key={f} className="inline-block rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{f}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Issues + actions */}
+                <div className="mt-3 flex items-center justify-between gap-2 pl-7">
+                  <ValidationIssuePopover
+                    issues={issues}
+                    validationStatus={c.validationStatus}
+                    patientId={patientId}
+                  />
+                  {hasRowActions && (
+                    <div className="flex items-center gap-0.5">
+                      {onEditCase && (
+                        <button type="button" onClick={() => onEditCase(c)} className="p-1.5 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Edit" aria-label={`Edit ${patientId}`}>
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      {onDuplicateCase && (
+                        <button type="button" onClick={() => onDuplicateCase(c)} className="p-1.5 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Duplicate" aria-label={`Duplicate ${patientId}`}>
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      )}
+                      {onDeleteCase && (
+                        <button type="button" onClick={() => onDeleteCase(c.caseId)} className="p-1.5 rounded text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-colors" title="Delete" aria-label={`Delete ${patientId}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

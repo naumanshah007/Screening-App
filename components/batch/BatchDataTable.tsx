@@ -24,7 +24,8 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
         <span className="text-xs text-muted-foreground">{results.length} row{results.length !== 1 ? "s" : ""} · pending reviewer confirmation</span>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {/* ── Desktop / tablet: full table (md+) ── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left">
@@ -113,6 +114,63 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* ── Mobile: stacked, tappable cards (< md) ── */}
+        <div className="md:hidden divide-y divide-border">
+          {results.map((r) => {
+            const isError = r.status === "error";
+            const patientId = r.case.source.externalPatientId ?? `ROW-${String(r.case.source.rowNumber).padStart(3, "0")}`;
+            return (
+              <button
+                key={r.case.caseId}
+                type="button"
+                onClick={() => onViewDetail(r)}
+                className={cn(
+                  "w-full p-4 text-left transition-colors hover:bg-muted/30",
+                  isError && "bg-red-50/30 dark:bg-red-950/10"
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="font-mono text-xs font-semibold tracking-wide text-foreground">{patientId}</span>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {r.case.label || r.case.source.externalPatientId || `Row ${r.case.source.rowNumber}`}
+                    </p>
+                  </div>
+                  {isError
+                    ? <Badge variant="urgent" size="sm">Error</Badge>
+                    : <RiskBadge risk={r.decision.riskLevel} size="sm" />}
+                </div>
+
+                {isError ? (
+                  <p className="mt-2 text-xs text-red-600 dark:text-red-400">{r.error}</p>
+                ) : (
+                  <>
+                    <p className="mt-2 text-xs leading-relaxed text-foreground line-clamp-2">
+                      {r.decision.recommendation ?? "—"}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+                      <span><span className="text-muted-foreground/70">Figure:</span> {formatFigureLabel(r.decision.figure)}</span>
+                      {r.decision.nextAction && (
+                        <span className="truncate"><span className="text-muted-foreground/70">Next:</span> {r.decision.nextAction}</span>
+                      )}
+                      {r.decision.referralRequired && (
+                        <Badge variant="high" size="sm">
+                          <ArrowUpRight className="h-3 w-3" />
+                          {r.decision.referralType?.replace(/_/g, " ") ?? "Referral"}
+                        </Badge>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <span className="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-accent-color">
+                  <Eye className="h-3.5 w-3.5" /> View detail
+                </span>
+              </button>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

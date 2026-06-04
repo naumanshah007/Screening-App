@@ -82,32 +82,36 @@ export function BatchActionQueue({ results, onViewDetail }: BatchActionQueueProp
               r.case.source.externalPatientId ??
               `ROW-${String(r.case.source.rowNumber).padStart(3, "0")}`;
             return (
-              <li key={r.case.caseId} className="flex items-center gap-3 pt-1.5 first:pt-0">
-                <span className="font-mono text-xs font-bold text-foreground tracking-wide w-32 flex-shrink-0">
-                  {patientId}
-                </span>
-                <RiskBadge risk={r.decision.riskLevel} size="sm" />
-                <span className="text-xs text-muted-foreground hidden sm:inline-block w-20 flex-shrink-0">
-                  {formatFigureLabel(r.decision.figure)}
-                </span>
+              <li key={r.case.caseId} className="flex flex-col gap-1.5 py-2 first:pt-0 sm:flex-row sm:items-center sm:gap-3 sm:py-0 sm:pt-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold text-foreground tracking-wide sm:w-32 sm:flex-shrink-0">
+                    {patientId}
+                  </span>
+                  <RiskBadge risk={r.decision.riskLevel} size="sm" />
+                  <span className="text-xs text-muted-foreground hidden sm:inline-block w-20 flex-shrink-0">
+                    {formatFigureLabel(r.decision.figure)}
+                  </span>
+                </div>
                 <span className="text-xs text-foreground flex-1 truncate">
                   {r.decision.recommendation}
                 </span>
-                {r.decision.referralRequired && (
-                  <Badge variant="high" size="sm" className="flex-shrink-0">
-                    <ArrowUpRight className="h-3 w-3" />
-                    {r.decision.referralType?.replace(/_/g, " ") ?? "Refer"}
-                  </Badge>
-                )}
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => onViewDetail(r)}
-                  icon={<Eye className="h-3 w-3" />}
-                  className={cn("flex-shrink-0")}
-                >
-                  View
-                </Button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {r.decision.referralRequired && (
+                    <Badge variant="high" size="sm" className="flex-shrink-0">
+                      <ArrowUpRight className="h-3 w-3" />
+                      {r.decision.referralType?.replace(/_/g, " ") ?? "Refer"}
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => onViewDetail(r)}
+                    icon={<Eye className="h-3 w-3" />}
+                    className={cn("flex-shrink-0")}
+                  >
+                    View
+                  </Button>
+                </div>
               </li>
             );
           })}

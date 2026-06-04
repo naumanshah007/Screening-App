@@ -154,8 +154,8 @@ export function ValidationIssuePopover({ issues, validationStatus, patientId }: 
       {open && (
         <div
           className={cn(
-            "absolute z-50 right-0 top-full mt-1",
-            "w-[340px] max-h-96 overflow-y-auto",
+            "absolute z-50 top-full mt-1 left-0 sm:left-auto sm:right-0",
+            "w-[min(340px,calc(100vw-2rem))] max-h-96 overflow-y-auto",
             "rounded-xl border shadow-lg bg-card",
             "animate-in fade-in-0 zoom-in-95 duration-150"
           )}
