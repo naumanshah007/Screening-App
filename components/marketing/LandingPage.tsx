@@ -32,7 +32,7 @@ function SectionHeader({
   align?: "left" | "center";
 }) {
   const titleColor = tone === "dark" ? "text-white" : "text-slate-900";
-  const descColor = tone === "dark" ? "text-slate-300/80" : "text-slate-600";
+  const descColor = tone === "dark" ? "text-slate-300" : "text-slate-600";
   const eyebrowColor = tone === "dark" ? "text-cyan-300" : "text-cyan-700";
   return (
     <div className={align === "center" ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}>
@@ -99,7 +99,7 @@ function GovernanceCard({ icon: Icon, title, body }: { icon: React.ElementType; 
         <Icon className="h-5 w-5 text-cyan-300" />
       </span>
       <h3 className="font-display mt-3.5 text-[1.05rem] font-semibold tracking-tight text-white">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-slate-300/80">{body}</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-slate-300">{body}</p>
     </div>
   );
 }
@@ -172,12 +172,12 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                 Privexa · Aotearoa New Zealand
               </span>
 
-              <h1 className="font-display mt-5 text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.02em] text-white [hyphens:none] sm:text-[3.1rem] lg:text-[3.6rem]">
+              <h1 className="font-display mt-5 text-[2.05rem] font-semibold leading-[1.08] tracking-[-0.02em] text-white [hyphens:none] sm:text-[3.1rem] sm:leading-[1.05] lg:text-[3.6rem]">
                 Referral grading &amp; screening decision support,{" "}
-                <span className="text-gradient-brand">governed end&nbsp;to&nbsp;end</span>.
+                <span className="text-gradient-brand">governed end to end</span>.
               </h1>
 
-              <p className="mt-5 text-[1.05rem] leading-relaxed text-slate-300/90">
+              <p className="mt-5 text-[1.05rem] leading-relaxed text-slate-200">
                 ClinicalTriage by Privexa helps hospital screening and colposcopy teams turn referral
                 and lab data into <strong className="font-semibold text-white">provisional, guideline-aligned</strong>{" "}
                 recommendations — each one reviewer-gated, auditable, and mapped to the NCSP HPV Primary
@@ -253,12 +253,12 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                       <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-cyan-300">
                         <step.icon className="h-4 w-4" />
                       </span>
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
                         Step {i + 1}
                       </span>
                     </div>
                     <h3 className="font-display mt-3 text-[1.05rem] font-semibold tracking-tight text-white">{step.title}</h3>
-                    <p className="mt-1.5 text-[13px] leading-relaxed text-slate-300/80">{step.body}</p>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-slate-300">{step.body}</p>
                     {i < PIPELINE.length - 1 && (
                       <ChevronRight className="absolute -right-3 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-cyan-400/40 lg:block" />
                     )}
@@ -347,7 +347,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
             <h2 className="font-display mt-6 text-[2rem] font-semibold leading-tight tracking-tight text-white sm:text-[2.5rem]">
               Your screening decision support is ready
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-300/85">
+            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-300">
               Start using ClinicalTriage today. Explore the guided pathway, upload your data, or review sample results to see how it works.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -369,7 +369,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
               {/* Brand */}
               <div className="lg:col-span-1">
                 <PrivexaLockup size={32} tone="light" uid="footer" />
-                <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
+                <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-300">
                   Governed referral grading and screening decision support for hospital teams.
                   Built by Privexa in Aotearoa New Zealand.
                 </p>
@@ -377,7 +377,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
 
               {/* Platform */}
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Platform</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Platform</h3>
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {[
                     ["Batch decision support", "live"],
@@ -387,7 +387,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                     ["Integration adapters", "adapter"],
                   ].map(([label, status]) => (
                     <li key={label}>
-                      <a href="#platform" className="inline-flex items-center gap-2 text-slate-400 transition-colors hover:text-white">
+                      <a href="#platform" className="inline-flex items-center gap-2 text-slate-300 transition-colors hover:text-white">
                         {label}
                         <span className={`h-1.5 w-1.5 rounded-full ${status === "live" ? "bg-emerald-400" : "bg-amber-400"}`} />
                       </a>
@@ -398,11 +398,11 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
 
               {/* Governance */}
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Governance &amp; trust</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Governance &amp; trust</h3>
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {["Reviewer-gated by design", "Privacy-first", "Under clinical validation", "Source-to-decision audit"].map((label) => (
                     <li key={label}>
-                      <a href="#governance" className="text-slate-400 transition-colors hover:text-white">{label}</a>
+                      <a href="#governance" className="text-slate-300 transition-colors hover:text-white">{label}</a>
                     </li>
                   ))}
                 </ul>
@@ -410,15 +410,15 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
 
               {/* Reach */}
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Reach</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Reach</h3>
                 <ul className="mt-4 space-y-2.5 text-sm">
                   <li>
-                    <a href="mailto:info@privexa.co" className="inline-flex items-center gap-2 text-slate-400 transition-colors hover:text-white">
+                    <a href="mailto:info@privexa.co" className="inline-flex items-center gap-2 text-slate-300 transition-colors hover:text-white">
                       <Mail className="h-3.5 w-3.5" /> info@privexa.co
                     </a>
                   </li>
                   <li>
-                    <Link href={authed ? "/dashboard" : "/login"} className="text-slate-400 transition-colors hover:text-white">
+                    <Link href={authed ? "/dashboard" : "/login"} className="text-slate-300 transition-colors hover:text-white">
                       {authed ? "Go to dashboard" : "Sign in"}
                     </Link>
                   </li>
@@ -427,7 +427,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
             </div>
 
             {/* Bottom bar */}
-            <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} Privexa. All rights reserved.</span>
               <span className="max-w-xl sm:text-right">
                 Decision support — a prototype under clinical validation, not a certified medical device.

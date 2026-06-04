@@ -39,7 +39,7 @@ function PanelCard({ panel }: { panel: Panel }) {
         </span>
         <span className="text-[13px] font-semibold leading-tight text-white">{panel.label}</span>
       </div>
-      <p className="mt-2 text-[11px] leading-snug text-slate-300/80">{panel.value}</p>
+      <p className="mt-2 text-xs leading-snug text-slate-300">{panel.value}</p>
     </div>
   );
 }

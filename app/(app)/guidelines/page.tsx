@@ -146,8 +146,8 @@ export default function GuidelinesPage() {
               <h2 className="text-h3 text-foreground">Colposcopy referral triage guide</h2>
               <p className="text-sm text-muted-foreground mt-1">Booking priorities by clinical scenario — Health NZ Counties Manukau</p>
             </div>
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-xl border border-border bg-card overflow-x-auto">
+              <table className="w-full min-w-[34rem] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
                     <th scope="col" className="text-left px-4 py-3 text-label text-muted-foreground">Clinical scenario</th>
@@ -194,8 +194,8 @@ export default function GuidelinesPage() {
                 </div>
               ))}
             </div>
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-xl border border-border bg-card overflow-x-auto">
+              <table className="w-full min-w-[34rem] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
                     <th scope="col" className="text-left px-4 py-3 text-label text-muted-foreground w-36">Category</th>

@@ -71,7 +71,7 @@ async function handleSubmit(e: React.FormEvent) {
             <PrivexaMark size={42} uid="login" />
             <div>
               <div className="font-semibold text-sm">ClinicalTriage</div>
-              <div className="text-xs text-slate-300/80">Health NZ · Counties Manukau</div>
+              <div className="text-xs text-slate-300">Health NZ · Counties Manukau</div>
             </div>
           </div>
           <div className="flex-1 flex flex-col justify-center">
@@ -83,11 +83,11 @@ async function handleSubmit(e: React.FormEvent) {
               Women&apos;s Health<br />
               <span className="text-gradient-brand">Grading Platform</span>
             </h2>
-            <p className="text-slate-300/85 text-sm leading-relaxed max-w-xs">
+            <p className="text-slate-300 text-sm leading-relaxed max-w-xs">
               Colposcopy, gynaecology, and cervical pathway support for authorised clinical staff.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-slate-300">
             <ShieldCheck className="h-4 w-4 flex-shrink-0" aria-hidden />
             Authorised personnel only · All access is audited
           </div>
