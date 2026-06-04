@@ -80,8 +80,8 @@ async function handleSubmit(e: React.FormEvent) {
               Secure clinical access
             </span>
             <h2 className="font-display text-[2.1rem] font-semibold leading-[1.1] tracking-tight mb-3">
-              Women&apos;s Health<br />
-              <span className="text-gradient-brand">Grading Platform</span>
+              Cervical Referral<br />
+              <span className="text-gradient-brand">Grading Tool</span>
             </h2>
             <p className="text-slate-300 text-sm leading-relaxed max-w-xs">
               Colposcopy, gynaecology, and cervical pathway support for authorised clinical staff.

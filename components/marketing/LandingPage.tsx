@@ -169,7 +169,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
             <div className="max-w-xl">
               <span className="glass-panel inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium text-slate-200">
                 <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
-                Privexa · Aotearoa New Zealand
+                Cervical Referral Grading Tool · by Privexa
               </span>
 
               <h1 className="font-display mt-5 text-[2.05rem] font-semibold leading-[1.08] tracking-[-0.02em] text-white [hyphens:none] sm:text-[3.1rem] sm:leading-[1.05] lg:text-[3.6rem]">
@@ -370,8 +370,8 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
               <div className="lg:col-span-1">
                 <PrivexaLockup size={32} tone="light" uid="footer" />
                 <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-300">
-                  Governed referral grading and screening decision support for hospital teams.
-                  Built by Privexa in Aotearoa New Zealand.
+                  CerviGrade is a cervical referral grading tool with screening decision
+                  support for hospital teams. Built by Privexa in Aotearoa New Zealand.
                 </p>
               </div>
 
