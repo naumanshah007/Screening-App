@@ -109,8 +109,8 @@ export function PrivexaLockup({
           CerviGrade
         </span>
         {showProduct && (
-          <span className={`text-[10px] font-medium tracking-[0.16em] uppercase ${secondary}`}>
-            by Privexa
+          <span className={`whitespace-nowrap text-[10px] font-medium leading-tight tracking-wide ${secondary}`}>
+            Cervical Referral Grading Tool
           </span>
         )}
       </span>

@@ -198,7 +198,7 @@ export function Sidebar({
           {!collapsed && (
             <div className="min-w-0">
               <div className="font-semibold text-foreground text-sm leading-tight truncate">CerviGrade</div>
-              <div className="text-[10px] text-muted-foreground leading-tight">Health NZ · Counties Manukau</div>
+              <div className="text-[10px] text-muted-foreground leading-tight truncate">Cervical Referral Grading Tool</div>
             </div>
           )}
         </Link>
