@@ -10,6 +10,12 @@ import {
 
 // Cleared on failure so the next request retries rather than re-throwing a stale rejected promise.
 let bootstrapPromise: Promise<void> | null = null;
+const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
+
+function readBooleanEnv(name: string) {
+  const raw = process.env[name];
+  return Boolean(raw && TRUE_ENV_VALUES.has(raw.trim().toLowerCase()));
+}
 
 function shouldBootstrapDatabase(url: string) {
   // Explicit opt-in (set on Vercel for the demo deployment)
@@ -28,7 +34,10 @@ function shouldApplySchemaPatches(url: string) {
   // Vercel demo deployments may point at a persistent libSQL/Turso database.
   // Keep those databases compatible with the checked-in Prisma schema without
   // reseeding demo users unless BOOTSTRAP_DEMO_DB is explicitly enabled.
-  return process.env.VERCEL === "1" && process.env.ENABLE_BATCH_DEMO === "true";
+  return (
+    readBooleanEnv("ENABLE_BATCH_DEMO") &&
+    (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
+  );
 }
 
 function splitSqlStatements(sql: string) {
