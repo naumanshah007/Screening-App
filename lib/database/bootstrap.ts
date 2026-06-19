@@ -20,6 +20,17 @@ function shouldBootstrapDatabase(url: string) {
   return process.env.VERCEL === "1" && url.startsWith("file:") && !isRemoteLibSqlUrl(url);
 }
 
+function shouldApplySchemaPatches(url: string) {
+  if (shouldBootstrapDatabase(url)) {
+    return true;
+  }
+
+  // Vercel demo deployments may point at a persistent libSQL/Turso database.
+  // Keep those databases compatible with the checked-in Prisma schema without
+  // reseeding demo users unless BOOTSTRAP_DEMO_DB is explicitly enabled.
+  return process.env.VERCEL === "1" && process.env.ENABLE_BATCH_DEMO === "true";
+}
+
 function splitSqlStatements(sql: string) {
   return sql
     .split(/;\s*(?:\r?\n|$)/)
@@ -542,7 +553,9 @@ async function databaseHasSchema(url: string) {
 
 export async function ensureDatabaseReady() {
   const url = resolveDatabaseUrl();
-  if (!shouldBootstrapDatabase(url)) {
+  const fullBootstrap = shouldBootstrapDatabase(url);
+
+  if (!shouldApplySchemaPatches(url)) {
     return;
   }
 
@@ -552,8 +565,10 @@ export async function ensureDatabaseReady() {
         await applyCurrentSchema(url);
       }
       await applyCompatibilityPatches(url);
-      await seedDemoUsers(url);
-      await seedDemoPatients(url);
+      if (fullBootstrap) {
+        await seedDemoUsers(url);
+        await seedDemoPatients(url);
+      }
     })().catch((err) => {
       // Clear so the next request retries from scratch
       bootstrapPromise = null;
