@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, Users, GitBranch, BookOpen,
   BarChart2, Activity, Settings, FileSearch,
   Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight,
-  Menu, X, Database, ClipboardCheck, Inbox,
+  Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDefaultAppRouteForRole, isAuthorizedForRoute } from "@/lib/auth/permissions";
@@ -35,6 +35,7 @@ const ICONS: Record<string, React.ElementType> = {
   "/batch":      Database,
   "/batch/runs": ClipboardCheck,
   "/review":     Inbox,
+  "/decisions":  FileCheck2,
 };
 
 function getIcon(href: string): React.ElementType {
@@ -79,6 +80,7 @@ function buildSidebarSections(args: {
     ...authed("/dashboard", "Command Centre"),
     ...(canPullCases ? authed("/batch", "Pull Cases") : []),
     ...(canUseReviewQueue ? authed("/review", "Review Queue") : []),
+    ...authed("/decisions", "Completed Decisions"),
     ...authed("/audit", "Audit Trail"),
   ];
 

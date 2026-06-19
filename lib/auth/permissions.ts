@@ -126,6 +126,11 @@ export const ROUTE_GUARDS: RouteGuard[] = [
     description: "Review queue",
   },
   {
+    prefix: "/decisions",
+    requiredRoles: ["ADMIN", "INTEGRATION_ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
+    description: "Completed decisions",
+  },
+  {
     prefix: "/batch",
     requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "INTEGRATION_ADMIN"],
     description: "Batch processing & worklists",
