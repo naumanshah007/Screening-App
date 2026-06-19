@@ -333,8 +333,8 @@ export default async function CasesPage({
             secondaryAction={{ href: "/cases", label: "Clear filters" }}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" role="grid" aria-label="Referral cases">
+          <div className="max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="min-w-[1080px] w-full text-sm" role="grid" aria-label="Referral cases">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
                   {["Patient", "Service", "Status", "Priority", "Target date", "SLA", "Booked", "Assigned", "Received", ""].map((h) => (

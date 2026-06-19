@@ -303,14 +303,14 @@ export function WorklistClient({
       )}
 
       {/* Worklist table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="min-w-[1120px] w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                   {canReview && (
-                    <th className="px-3 py-2.5 w-10">
+                    <th className="w-10 px-3 py-2.5">
                       <input
                         type="checkbox"
                         checked={allVisibleSelected}
@@ -320,13 +320,13 @@ export function WorklistClient({
                       />
                     </th>
                   )}
-                  <th className="px-3 py-2.5">Patient</th>
-                  {showSource && <th className="px-3 py-2.5">Source</th>}
-                  <th className="px-3 py-2.5">Referral</th>
+                  <th className="min-w-[220px] px-3 py-2.5">Patient</th>
+                  {showSource && <th className="min-w-[170px] px-3 py-2.5">Source</th>}
+                  <th className="min-w-[170px] px-3 py-2.5">Referral</th>
                   <th className="px-3 py-2.5">Risk</th>
                   <th className="px-3 py-2.5">Priority</th>
-                  <th className="px-3 py-2.5 min-w-[240px]">Recommendation</th>
-                  <th className="px-3 py-2.5">Status</th>
+                  <th className="min-w-[280px] px-3 py-2.5">Recommendation</th>
+                  <th className="min-w-[150px] px-3 py-2.5">Status</th>
                   <th className="px-3 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -411,7 +411,7 @@ export function WorklistClient({
                         )}
                       </td>
                       <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-1 justify-end">
+                        <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                           <Button size="xs" variant="ghost" onClick={() => openDetail(item)}>
                             <Eye className="h-3.5 w-3.5" /> View
                           </Button>

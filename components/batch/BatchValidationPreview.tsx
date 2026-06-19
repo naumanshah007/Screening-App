@@ -191,7 +191,7 @@ export function BatchValidationPreview({
   const hasRowActions = !!(onEditCase || onDuplicateCase || onDeleteCase);
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         {/* Title + source info */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -256,8 +256,8 @@ export function BatchValidationPreview({
 
       <CardContent className="p-0">
         {/* ── Desktop / tablet: full table (md+) ── */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm min-w-[900px]">
+        <div className="hidden max-w-full overflow-x-auto overscroll-x-contain md:block">
+          <table className="min-w-[980px] w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30 text-left">
                 <th className="px-4 py-2.5 w-10">

@@ -221,10 +221,10 @@ export function CompletedDecisionsClient({
         </div>
       )}
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="min-w-[1220px] w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-2.5 min-w-[230px]">Patient</th>
@@ -292,7 +292,7 @@ export function CompletedDecisionsClient({
                         <p className="mt-1 text-xs text-muted-foreground">Simulated export</p>
                       </td>
                       <td className="px-3 py-3 align-top">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 whitespace-nowrap">
                           <Link href={`/batch/runs/${row.intakeSessionId}`}>
                             <Button size="xs" variant="ghost" icon={<Eye className="h-3.5 w-3.5" />}>
                               Open

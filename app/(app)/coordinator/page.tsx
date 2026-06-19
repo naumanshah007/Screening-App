@@ -250,9 +250,9 @@ export default function CoordinatorPage() {
         />
       ) : view === "table" ? (
         /* ── Table View ── */
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" role="grid" aria-label="Referral queue">
+        <Card className="overflow-hidden">
+          <div className="max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="min-w-[920px] w-full text-sm" role="grid" aria-label="Referral queue">
               <thead>
                 <tr className="bg-muted/40 border-b border-border">
                   {["Patient", "Priority", "Status", "Type", "Risk", "Referred", "Target", "Actions"].map(h => (

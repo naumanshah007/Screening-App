@@ -59,6 +59,119 @@ function Panel({ children, className }: { children: React.ReactNode; className?:
   );
 }
 
+function formatTraceNode(step: string) {
+  const figure = step.match(/^FIGURE_(\d+)$/);
+  if (figure) return `Figure ${figure[1]}`;
+
+  const acronymTokens = new Set([
+    "AC2",
+    "AG2",
+    "AIS",
+    "ASC",
+    "ASCUS",
+    "CIN",
+    "GP",
+    "HPV",
+    "HSIL",
+    "LSIL",
+    "MDM",
+    "OCP",
+    "STI",
+    "TOC",
+    "TZ",
+  ]);
+
+  return step
+    .split("_")
+    .filter(Boolean)
+    .map((token) => {
+      const upper = token.toUpperCase();
+      if (upper === "NEG") return "Negative";
+      if (acronymTokens.has(upper) || /^[A-Z]+\d+$/.test(upper)) return upper;
+      if (/^\d+M$/.test(upper)) return upper.replace("M", " months");
+      return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+    })
+    .join(" ")
+    .replace(/\b16 18\b/g, "16/18")
+    .replace(/\bASC H\b/g, "ASC-H");
+}
+
+function DecisionNodeTree({
+  decision,
+  figureTitle,
+}: {
+  decision: BatchCaseResult["decision"];
+  figureTitle?: string;
+}) {
+  const rawSteps = decision.branchPath?.length
+    ? decision.branchPath
+    : [decision.figure, decision.recommendationCode].filter((step): step is string => Boolean(step));
+
+  const finalStep = decision.recommendationCode;
+  const steps = rawSteps[rawSteps.length - 1] === finalStep ? rawSteps : [...rawSteps, finalStep];
+
+  return (
+    <Panel className="bg-card/60">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-semibold text-foreground">Rule node tree</p>
+          <p className="text-xs text-muted-foreground">
+            Visual path for reviewer confirmation and audit evidence.
+          </p>
+        </div>
+        <Badge variant="info" size="sm">Reviewer confirmation required</Badge>
+      </div>
+      <ol className="relative space-y-3">
+        {steps.map((step, i) => {
+          const isFirst = i === 0;
+          const isLast = i === steps.length - 1;
+          const kind = isFirst ? "Pathway figure" : isLast ? "Provisional outcome" : "Decision branch";
+          const label = isFirst && figureTitle
+            ? figureTitle
+            : isLast
+              ? decision.recommendation
+              : formatTraceNode(step);
+
+          return (
+            <li key={`${step}-${i}`} className="relative grid grid-cols-[1.5rem_1fr] gap-3">
+              {!isLast && (
+                <span
+                  aria-hidden
+                  className="absolute left-3 top-6 h-[calc(100%+0.75rem)] w-px bg-border"
+                />
+              )}
+              <span
+                className={cn(
+                  "z-10 flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums",
+                  isFirst
+                    ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/60 dark:text-brand-300"
+                    : isLast
+                      ? "border-info/40 bg-info/10 text-foreground"
+                      : "border-border bg-background text-muted-foreground"
+                )}
+              >
+                {i + 1}
+              </span>
+              <div
+                className={cn(
+                  "min-w-0 rounded-md border px-3 py-2",
+                  isLast ? "border-info/30 bg-info/5" : "border-border bg-background"
+                )}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {kind}
+                </div>
+                <div className="mt-0.5 break-words text-sm font-medium text-foreground">{label}</div>
+                <div className="mt-1 break-all font-mono text-[11px] text-muted-foreground">{step}</div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </Panel>
+  );
+}
+
 export function BatchResultDetail({ result, open, onClose }: BatchResultDetailProps) {
   if (!result) return null;
 
@@ -211,12 +324,17 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
               </Section>
             )}
 
+            {/* Decision node tree */}
+            <Section title="Decision Node Tree" icon={<GitBranch className="h-3.5 w-3.5" />}>
+              <DecisionNodeTree decision={decision} figureTitle={citation?.title} />
+            </Section>
+
             {/* Decision trace */}
             {decision.branchPath && decision.branchPath.length > 0 && (
               <Section title="Decision Trace" icon={<GitBranch className="h-3.5 w-3.5" />}>
                 <Panel>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Step-by-step path through <span className="font-mono">evaluateClinicalDecision()</span>
+                    Raw branch path captured from <span className="font-mono">evaluateClinicalDecision()</span>
                   </p>
                   <ol className="space-y-1.5">
                     {decision.branchPath.map((step: string, i: number) => (

@@ -15,7 +15,7 @@ interface BatchDataTableProps {
 
 export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
@@ -25,16 +25,16 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
       </CardHeader>
       <CardContent className="p-0">
         {/* ── Desktop / tablet: full table (md+) ── */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden max-w-full overflow-x-auto overscroll-x-contain md:block">
+          <table className="min-w-[1040px] w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">Patient ID</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Label</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Figure</th>
+                <th className="min-w-[170px] px-3 py-2.5 text-xs font-semibold text-muted-foreground">Label</th>
+                <th className="min-w-[120px] px-3 py-2.5 text-xs font-semibold text-muted-foreground">Figure</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Risk</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Recommendation</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Next Action</th>
+                <th className="min-w-[260px] px-3 py-2.5 text-xs font-semibold text-muted-foreground">Recommendation</th>
+                <th className="min-w-[170px] px-3 py-2.5 text-xs font-semibold text-muted-foreground">Next Action</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">Referral</th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground w-20"></th>
               </tr>
