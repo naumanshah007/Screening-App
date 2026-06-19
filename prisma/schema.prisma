@@ -250,6 +250,28 @@ enum SecurityIncidentStatus {
   RESOLVED
 }
 
+// Source-agnostic ingest provenance for a batch run. The adapter layer
+// (lib/batch/adapters) already anticipates HL7v2 lab feeds, FHIR, and
+// eReferral/ERMS — these map onto the same review workflow.
+enum BatchRunSource {
+  DEMO
+  CSV
+  XLSX
+  JSON
+  MANUAL
+  HL7
+  FHIR
+  ERMS
+  HEALTH_NZ
+}
+
+enum BatchReviewDisposition {
+  PENDING
+  ACCEPTED
+  REJECTED
+  NEEDS_INFO
+}
+
 // ─── Auth / User Models ───────────────────────────────────────────────────────
 
 model User {
@@ -291,6 +313,8 @@ model User {
   integrationValidations    IntegrationValidation[] @relation("IntegrationValidationReviewer")
   openedSecurityIncidents   SecurityIncident[]      @relation("SecurityIncidentOpenedBy")
   assignedSecurityIncidents SecurityIncident[]      @relation("SecurityIncidentAssignedTo")
+  batchRuns                 BatchRun[]              @relation("BatchRunCreator")
+  reviewedBatchItems        BatchReviewItem[]       @relation("BatchItemReviewer")
   createdAt                 DateTime                @default(now())
   updatedAt                 DateTime                @updatedAt
 }
@@ -990,4 +1014,86 @@ model AIRecommendation {
   @@index([caseId, createdAt])
   @@index([suggestedPriority, createdAt])
   @@index([concordantWithRule, concordantWithClinician])
+}
+
+// ─── Batch Run + Review Worklist ──────────────────────────────────────────────
+// Bridges the batch decision engine to the reviewer queue. A BatchRun persists a
+// set of pre-graded cases (from any source — file upload today, HL7v2/ERMS feed
+// later) so a reviewer can bulk accept/reject with the full picture, instead of
+// the in-memory throwaway results the batch screen produced before.
+
+model BatchRun {
+  id             String         @id @default(cuid())
+  source         BatchRunSource
+  sourceSystem   String?
+  sourceFileName String?
+  engineVersion  String
+  totalCases     Int
+  pendingCount   Int            @default(0)
+  acceptedCount  Int            @default(0)
+  rejectedCount  Int            @default(0)
+  needsInfoCount Int            @default(0)
+  // Number of items the engine flagged for mandatory clinician review
+  // (safety stop, insufficient info, external dependency, or processing error).
+  reviewRequiredCount Int       @default(0)
+  createdByUserId String
+  createdBy       User          @relation("BatchRunCreator", fields: [createdByUserId], references: [id])
+  items           BatchReviewItem[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([createdByUserId, createdAt])
+  @@index([source, createdAt])
+}
+
+model BatchReviewItem {
+  id                String   @id @default(cuid())
+  batchRunId        String
+  batchRun          BatchRun @relation(fields: [batchRunId], references: [id], onDelete: Cascade)
+  rowNumber         Int
+  label             String?
+  externalPatientId String?
+  patientAge        Int?
+  ethnicityPrimary  String?
+  // Display identity (demo data is synthetic; in production these come from the
+  // source system's PID/patient resource). Held for the reviewer worklist only.
+  patientName       String?
+  nhi               String?
+  gpPractice        String?
+  receivedDate      DateTime?
+
+  // Engine output snapshot (denormalised for fast worklist sorting/filtering)
+  figure             String
+  riskLevel          String
+  recommendationCode String
+  recommendation     String
+  referralPriority   String?
+  referralType       String?
+  safetyOutcome      String?
+  // True when the engine refused to silently auto-decide and a clinician must
+  // look (safety stop / insufficient info / external dependency / error).
+  reviewRequired     Boolean  @default(false)
+  engineStatus       String   @default("success") // success | error
+
+  // Full payloads so the reviewer drill-in can reconstruct the BatchCaseResult
+  // without re-running the engine. caseJson = CanonicalBatchCase, inputJson =
+  // ClinicalInput, decisionJson = ClinicalDecision.
+  caseJson     String
+  inputJson    String
+  decisionJson String
+
+  // Reviewer disposition
+  disposition      BatchReviewDisposition @default(PENDING)
+  reviewedByUserId String?
+  reviewedBy       User?                  @relation("BatchItemReviewer", fields: [reviewedByUserId], references: [id])
+  reviewedAt       DateTime?
+  reviewNote       String?
+  overrideReason   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([batchRunId, disposition])
+  @@index([batchRunId, reviewRequired])
+  @@index([reviewedByUserId, reviewedAt])
 }

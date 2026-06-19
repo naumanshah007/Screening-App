@@ -59,6 +59,7 @@ export type SourceType =
   | "manual"
   | "hl7"
   | "fhir"
+  | "erms"
   | "health-nz";
 
 export interface SourceMetadata {
@@ -108,6 +109,16 @@ export interface CanonicalBatchCase {
 
   // ── Source metadata ─────────────────────────────────────────────────────
   source: SourceMetadata;
+
+  // ── Display identity (optional; synthetic in demo, from source PID in prod) ─
+  /** Patient display name. Not used by the engine — worklist display only. */
+  patientName?: string;
+  /** NHI (National Health Index) number. Display only. */
+  nhi?: string;
+  /** Referring GP practice name. Display only. */
+  gpPractice?: string;
+  /** ISO-8601 date the referral/result was received by the source system. */
+  receivedDate?: string;
 
   // ── Patient context ─────────────────────────────────────────────────────
   patientAge?: number;

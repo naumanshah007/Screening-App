@@ -137,6 +137,7 @@ export default async function DashboardPage() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const showCasesV2 = isFeatureEnabled("casesV2");
+  const showBatchDemo = isFeatureEnabled("batchDemo");
   const canAccessCases = showCasesV2 && isAuthorizedForRoute("/cases", user?.role);
 
   const enterpriseStats = canAccessCases
@@ -218,7 +219,7 @@ export default async function DashboardPage() {
         <div>
           <div className="mb-1.5 flex items-center gap-2">
             <span className="eyebrow-rule" aria-hidden />
-            <span className="text-label text-accent-color">Dashboard</span>
+            <span className="text-label text-accent-color">Command Centre</span>
           </div>
           <h1 className="text-h1 text-foreground tracking-tight">
             {greeting}, <span className="text-gradient-clinical">{firstName}</span>
@@ -233,8 +234,10 @@ export default async function DashboardPage() {
             )}
           </p>
         </div>
-        <Link href="/pathway">
-          <Button size="md" icon={<GitBranch className="h-4 w-4" />}>New pathway</Button>
+        <Link href={showBatchDemo ? "/batch" : "/pathway"}>
+          <Button size="md" icon={showBatchDemo ? <ClipboardCheck className="h-4 w-4" /> : <GitBranch className="h-4 w-4" />}>
+            {showBatchDemo ? "Pull Cases" : "New pathway"}
+          </Button>
         </Link>
       </div>
 

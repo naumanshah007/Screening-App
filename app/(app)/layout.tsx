@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { isFeatureEnabled } from "@/lib/features";
+import { isAuthorizedForRoute } from "@/lib/auth/permissions";
+import { getReviewQueueCounts } from "@/lib/batch/persistence";
 import { redirect } from "next/navigation";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +12,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const showCases = isFeatureEnabled("casesV2");
   const showBatch = isFeatureEnabled("batchDemo");
 
+  // Live count for the Review Queue nav badge (only when the user can see it).
+  const reviewCounts =
+    showBatch && isAuthorizedForRoute("/review", user.role)
+      ? await getReviewQueueCounts()
+      : { pending: 0, urgent: 0 };
+
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
       <Sidebar
@@ -18,6 +26,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         userEmail={user.email}
         showCases={showCases}
         showBatch={showBatch}
+        reviewPending={reviewCounts.pending}
+        reviewUrgent={reviewCounts.urgent}
       />
       <main
         id="main-content"

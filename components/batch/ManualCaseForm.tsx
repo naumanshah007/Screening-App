@@ -92,53 +92,76 @@ function buildIssuesMaps(issues?: ValidationIssue[]): {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function ManualCaseForm({ open, onClose, editCase, validationIssues, onSave }: ManualCaseFormProps) {
+  const initialState = useMemo(() => {
+    const values: Record<string, string> = {};
+    if (editCase) {
+      for (const col of BATCH_COLUMNS) {
+        const val = extractFieldValue(editCase, col.field);
+        if (val) values[col.field] = val;
+      }
+      if (editCase.source.externalPatientId) {
+        values.externalPatientId = editCase.source.externalPatientId;
+      }
+    }
+
+    const { errors, warnings } = buildIssuesMaps(validationIssues);
+    return { values, errors, warnings };
+  }, [editCase, validationIssues]);
+
+  const issueKey =
+    validationIssues?.map((issue) => `${issue.field}:${issue.severity}:${issue.message}`).join("|") ??
+    "no-issues";
+  const formKey = open ? `${editCase?.caseId ?? "new"}:${issueKey}` : "closed";
+
+  return (
+    <ManualCaseFormContent
+      key={formKey}
+      open={open}
+      onClose={onClose}
+      editCase={editCase}
+      onSave={onSave}
+      initialValues={initialState.values}
+      initialFieldErrors={initialState.errors}
+      initialFieldWarnings={initialState.warnings}
+    />
+  );
+}
+
+function ManualCaseFormContent({
+  open,
+  onClose,
+  editCase,
+  onSave,
+  initialValues,
+  initialFieldErrors,
+  initialFieldWarnings,
+}: {
+  open: boolean;
+  onClose: () => void;
+  editCase?: CanonicalBatchCase | null;
+  onSave: (row: ParsedSourceRow, editCaseId?: string) => void;
+  initialValues: Record<string, string>;
+  initialFieldErrors: Record<string, string>;
+  initialFieldWarnings: Record<string, string>;
+}) {
   const isEdit = !!editCase;
   const grouped = useMemo(() => groupColumns(), []);
 
   // Form state: field name → string value
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [fieldWarnings, setFieldWarnings] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>(initialValues);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>(initialFieldErrors);
+  const [fieldWarnings, setFieldWarnings] = useState<Record<string, string>>(initialFieldWarnings);
 
-  // Track which fields had issues from external validation (to show distinct styling)
-  const [externalIssueFields, setExternalIssueFields] = useState<Set<string>>(new Set());
-
-  // Reset form when opening
+  // Auto-scroll to the first validation error after opening an edit form.
+  const firstErrorField = Object.keys(initialFieldErrors)[0];
   useEffect(() => {
-    if (!open) return;
-    if (editCase) {
-      const v: Record<string, string> = {};
-      for (const col of BATCH_COLUMNS) {
-        const val = extractFieldValue(editCase, col.field);
-        if (val) v[col.field] = val;
-      }
-      // Also restore externalPatientId from source
-      if (editCase.source.externalPatientId) {
-        v.externalPatientId = editCase.source.externalPatientId;
-      }
-      setValues(v);
-
-      // Build initial error/warning state from validation issues
-      const { errors, warnings } = buildIssuesMaps(validationIssues);
-      setFieldErrors(errors);
-      setFieldWarnings(warnings);
-      setExternalIssueFields(new Set([...Object.keys(errors), ...Object.keys(warnings)]));
-
-      // Auto-scroll to first error field after render
-      const firstErrorField = Object.keys(errors)[0];
-      if (firstErrorField) {
-        requestAnimationFrame(() => {
-          const el = document.getElementById(`manual-${firstErrorField}`);
-          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
-      }
-    } else {
-      setValues({});
-      setFieldErrors({});
-      setFieldWarnings({});
-      setExternalIssueFields(new Set());
-    }
-  }, [open, editCase, validationIssues]);
+    if (!open || !firstErrorField) return;
+    const frame = requestAnimationFrame(() => {
+      const el = document.getElementById(`manual-${firstErrorField}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, firstErrorField]);
 
   const setValue = useCallback((field: string, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));

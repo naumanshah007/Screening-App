@@ -5,7 +5,7 @@ import { Badge, RiskBadge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowUpRight, GitBranch, FileText, Database,
-  Stethoscope, AlertTriangle, FlaskConical, Cpu,
+  AlertTriangle, FlaskConical, Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
@@ -59,11 +59,6 @@ function Panel({ children, className }: { children: React.ReactNode; className?:
   );
 }
 
-function formatMs(ms: number) {
-  if (ms < 1) return `${(ms * 1000).toFixed(0)} µs`;
-  return `${ms.toFixed(2)} ms`;
-}
-
 export function BatchResultDetail({ result, open, onClose }: BatchResultDetailProps) {
   if (!result) return null;
 
@@ -71,15 +66,18 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
   const c = result.case;
   const inp = result.input;
 
-  const patientId = c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`;
+  const patientId = c.nhi ?? c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`;
   const citation = getGuidelineCitation(decision?.figure);
+  const receivedDisplay = c.receivedDate
+    ? new Date(c.receivedDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })
+    : null;
 
   return (
     <SlideOver
       open={open}
       onClose={onClose}
-      title={patientId}
-      subtitle={c.label ?? `Row ${c.source.rowNumber} · processed in ${formatMs(result.processingTimeMs)}`}
+      title={c.patientName ?? patientId}
+      subtitle={c.patientName ? `NHI ${patientId}` : (c.label ?? `Row ${c.source.rowNumber}`)}
       width="lg"
     >
       <div className="space-y-7">
@@ -99,7 +97,10 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
         {/* ── 1. Source Record ─────────────────────────────────────────────── */}
         <Section title="Source Record" icon={<Database className="h-3.5 w-3.5" />}>
           <Panel>
-            <Row label="Patient ID"     value={<span className="font-mono font-bold">{patientId}</span>} />
+            {c.patientName && <Row label="Patient" value={<span className="font-semibold">{c.patientName}</span>} />}
+            <Row label="NHI"            value={<span className="font-mono font-bold">{patientId}</span>} />
+            {c.gpPractice && <Row label="Referring GP" value={c.gpPractice} />}
+            {receivedDisplay && <Row label="Received" value={receivedDisplay} />}
             <Row label="Source System"  value={c.source.sourceSystem ?? c.source.sourceType} />
             <Row label="Source Type"    value={<span className="font-mono">{c.source.sourceType}</span>} />
             {c.source.sourceFileName && <Row label="File" value={c.source.sourceFileName} />}

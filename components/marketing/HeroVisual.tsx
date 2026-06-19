@@ -23,7 +23,7 @@ type Panel = {
 };
 
 const PANELS: Panel[] = [
-  { icon: Layers, label: "Batch decision support", value: "Provisional · reviewer-gated", accent: "text-cyan-300" },
+  { icon: Layers, label: "Case intake", value: "Provisional · reviewer-gated", accent: "text-cyan-300" },
   { icon: ShieldCheck, label: "Validation preview", value: "Flags bad data first", accent: "text-emerald-300" },
   { icon: Users, label: "Equity by ethnicity", value: "Outcomes made visible", accent: "text-violet-300" },
   { icon: FileSearch, label: "Source-to-decision audit", value: "Every result traceable", accent: "text-sky-300" },

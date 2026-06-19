@@ -22,9 +22,7 @@ import { cn } from "@/lib/utils";
 import {
   CONNECTOR_CATALOG,
   getStatusLabel,
-  getStatusColor,
   type ConnectorInfo,
-  type ConnectorStatus,
 } from "@/lib/batch/integration-types";
 
 // Map icon names to components
@@ -34,7 +32,6 @@ const ICONS: Record<string, React.ElementType> = {
 
 function ConnectorCard({ connector }: { connector: ConnectorInfo }) {
   const Icon = ICONS[connector.icon] ?? Cable;
-  const colors = getStatusColor(connector.status);
   const isActive = connector.status === "active";
   const isReady = connector.status === "adapter_defined";
 
@@ -121,7 +118,7 @@ function ConnectorCard({ connector }: { connector: ConnectorInfo }) {
       {isActive && (
         <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="h-3 w-3" />
-          <span className="text-xs font-medium">Live — CSV, Excel, and JSON uploads supported</span>
+          <span className="text-xs font-medium">Demo file intake — CSV, Excel, and JSON uploads supported</span>
         </div>
       )}
     </div>
@@ -129,7 +126,6 @@ function ConnectorCard({ connector }: { connector: ConnectorInfo }) {
 }
 
 export function IntegrationReadinessPanel() {
-  const active = CONNECTOR_CATALOG.filter((c) => c.status === "active");
   const ready = CONNECTOR_CATALOG.filter((c) => c.status === "adapter_defined");
   const planned = CONNECTOR_CATALOG.filter((c) => c.status === "planned");
 
@@ -142,12 +138,12 @@ export function IntegrationReadinessPanel() {
             <div>
               <CardTitle>Data Sources &amp; Integration Readiness</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Current mode: <strong className="text-emerald-700 dark:text-emerald-400">Demo + File Upload</strong>
+                Current mode: <strong className="text-emerald-700 dark:text-emerald-400">Demo connectors + File Upload</strong>
                 <span className="text-muted-foreground/60"> · {ready.length} adapter{ready.length !== 1 ? "s" : ""} defined (not connected) · {planned.length} planned</span>
               </p>
               <p className="text-[10px] text-muted-foreground/80 mt-1 leading-snug">
                 <strong>No live hospital systems are connected.</strong>{" "}
-                Only file upload (CSV / XLSX / JSON) is active in this build.
+                Simulated connectors and file upload are active in this build.
               </p>
             </div>
           </div>

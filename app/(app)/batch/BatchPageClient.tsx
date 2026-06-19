@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { BatchEngineTrustPanel } from "@/components/batch/BatchEngineTrustPanel";
 import { BatchUploader } from "@/components/batch/BatchUploader";
+import { SourceConnectors } from "@/components/batch/SourceConnectors";
 import { BatchValidationPreview } from "@/components/batch/BatchValidationPreview";
 import { BatchDataTable } from "@/components/batch/BatchDataTable";
 import { BatchStatCards } from "@/components/batch/BatchStatCards";
@@ -12,7 +14,8 @@ import { BatchEquityCard } from "@/components/batch/BatchEquityCard";
 import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
 import { ManualCaseForm } from "@/components/batch/ManualCaseForm";
 import { IntegrationReadinessPanel } from "@/components/batch/IntegrationReadinessPanel";
-import { RotateCcw, CheckCircle2, ChevronRight } from "lucide-react";
+import { RotateCcw, CheckCircle2, ChevronRight, ClipboardCheck, Loader2, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
   BatchCaseResult,
@@ -33,10 +36,14 @@ type PageState =
 const ENGINE_VERSION = "business-figures-table1-v1";
 
 export function BatchPageClient() {
+  const router = useRouter();
   const [state, setState] = useState<PageState>({ step: "empty" });
   const [detailResult, setDetailResult] = useState<BatchCaseResult | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [savingWorklist, setSavingWorklist] = useState(false);
+  const [worklistError, setWorklistError] = useState("");
+  const [showManual, setShowManual] = useState(false);
 
   // ── Manual case form state ──────────────────────────────────────────────
   const [manualFormOpen, setManualFormOpen] = useState(false);
@@ -53,11 +60,11 @@ export function BatchPageClient() {
   } | null>(null);
 
   // ── Revalidate all rows (base + manual) ─────────────────────────────────
-  async function revalidateAll(
+  const revalidateAll = useCallback(async (
     base: ParsedSourceRow[],
     manual: ParsedSourceRow[],
     meta: { sourceType: "demo" | "csv" | "xlsx" | "json"; sourceSystem: string; sourceFileName?: string }
-  ) {
+  ) => {
     const { validateBatchRows } = await import("@/lib/batch/validation");
 
     // Validate base rows
@@ -93,14 +100,14 @@ export function BatchPageClient() {
     };
 
     setState({ step: "loaded", validation: merged });
-  }
+  }, []);
 
   // ── Shared: validate rows and transition to "loaded" ─────────────────────
-  async function validateAndLoad(
+  const validateAndLoad = useCallback(async (
     rows: ParsedSourceRow[],
     sourceType: "demo" | "csv" | "xlsx" | "json",
     fileName?: string
-  ) {
+  ) => {
     const meta = {
       sourceType,
       sourceSystem: fileName ?? (sourceType === "demo" ? "Privexa Demo Dataset" : "Upload"),
@@ -111,7 +118,30 @@ export function BatchPageClient() {
     // Reset manual rows on new upload
     setManualRows([]);
     await revalidateAll(rows, [], meta);
-  }
+  }, [revalidateAll]);
+
+  // ── Load cases pulled from a connected data source ────────────────────────
+  const loadFromConnector = useCallback(
+    (cases: CanonicalBatchCase[], sourceSystem: string) => {
+      setUploadError("");
+      setBaseRows([]);
+      setManualRows([]);
+      setBaseSourceMeta({
+        sourceType: "demo",
+        sourceSystem,
+        sourceFileName: sourceSystem,
+      });
+      const validation = {
+        cases,
+        totalRows: cases.length,
+        validCount: cases.length,
+        warningCount: 0,
+        invalidCount: 0,
+      };
+      setState({ step: "loaded", validation });
+    },
+    []
+  );
 
   // ── Load demo dataset ─────────────────────────────────────────────────────
   const loadDemo = useCallback(async () => {
@@ -139,7 +169,7 @@ export function BatchPageClient() {
       setUploadError("Failed to load demo dataset.");
       setState({ step: "empty" });
     }
-  }, []);
+  }, [validateAndLoad]);
 
   // ── Load messy "real-world" demo dataset ─────────────────────────────────
   const loadMessyDemo = useCallback(async () => {
@@ -220,7 +250,7 @@ export function BatchPageClient() {
       setUploadError(msg);
       setState({ step: "empty" });
     }
-  }, []);
+  }, [validateAndLoad]);
 
   // ── Manual case: Add / Edit / Duplicate / Delete ──────────────────────────
 
@@ -263,7 +293,7 @@ export function BatchPageClient() {
     if (baseSourceMeta) {
       await revalidateAll(baseRows, newManual, baseSourceMeta);
     }
-  }, [baseRows, manualRows, baseSourceMeta]);
+  }, [baseRows, manualRows, baseSourceMeta, revalidateAll]);
 
   const handleDeleteCase = useCallback(async (caseId: string) => {
     if (state.step !== "loaded" && state.step !== "processing") return;
@@ -290,7 +320,7 @@ export function BatchPageClient() {
         await revalidateAll(newBase, manualRows, baseSourceMeta);
       }
     }
-  }, [state, baseRows, manualRows, baseSourceMeta]);
+  }, [state, baseRows, manualRows, baseSourceMeta, revalidateAll]);
 
   const handleSaveManualCase = useCallback(async (row: ParsedSourceRow, editCaseId?: string) => {
     if (editCaseId && state.step === "loaded") {
@@ -336,7 +366,7 @@ export function BatchPageClient() {
         await revalidateAll([], newManual, meta);
       }
     }
-  }, [state, baseRows, manualRows, baseSourceMeta]);
+  }, [state, baseRows, manualRows, baseSourceMeta, revalidateAll]);
 
   // ── Process selected rows ─────────────────────────────────────────────────
   const processRows = useCallback(
@@ -367,6 +397,40 @@ export function BatchPageClient() {
     [state]
   );
 
+  // ── Save processed results to the persisted review worklist ───────────────
+  const saveToWorklist = useCallback(async () => {
+    if (state.step !== "results") return;
+    setSavingWorklist(true);
+    setWorklistError("");
+    try {
+      // Send the originating canonical cases; the server re-runs the engine so
+      // persisted decisions are authoritative (never trusts the client).
+      const cases = state.result.results.map((r) => r.case);
+      const res = await fetch("/api/batch/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cases,
+          sourceSystem:
+            state.result.results[0]?.case.source.sourceSystem ??
+            state.result.sourceFileName ??
+            undefined,
+          includeWarnings: true,
+          includeInvalid: false,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const { runId } = await res.json();
+      router.push(`/review?added=${runId}`);
+    } catch (err) {
+      setWorklistError(err instanceof Error ? err.message : "Failed to add cases to the Review Queue.");
+      setSavingWorklist(false);
+    }
+  }, [state, router]);
+
   // ── Reset ─────────────────────────────────────────────────────────────────
   const reset = useCallback(() => {
     setState({ step: "empty" });
@@ -394,18 +458,18 @@ export function BatchPageClient() {
     : 2; // results
 
   const PIPELINE_STEPS = [
-    { label: "Upload Dataset", desc: "CSV, Excel, or JSON" },
+    { label: "Pull Cases", desc: "Choose source" },
     { label: "Validate & Select", desc: "Review records" },
-    { label: "Process", desc: "Run decision engine" },
-    { label: "Results", desc: "Batch outcomes" },
+    { label: "Prepare", desc: "Generate recommendations" },
+    { label: "Review Queue", desc: "Add cases" },
   ] as const;
 
   return (
     <div className="page-aura p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <PageIntro
-        eyebrow="Batch Processing"
-        title="Batch Decision Support"
-        description="Generate provisional, guideline-aligned recommendations for multiple cases at once. Outputs are decision-support only — reviewer confirmation is required before any clinical action."
+        eyebrow="Pull Cases"
+        title="Case Intake"
+        description="Pull synthetic NZ-real cases from simulated hospital sources through Batch Decision Support, generate provisional guideline-aligned recommendations, then add them to the Review Queue for clinician confirmation."
         actions={
           state.step !== "empty" && state.step !== "uploading"
             ? [{ label: "Reset", onClick: reset, variant: "outline" as const, icon: <RotateCcw className="h-4 w-4" /> }]
@@ -450,14 +514,32 @@ export function BatchPageClient() {
         </div>
       )}
 
-      {/* ── Uploader (visible when empty or uploading) ───────────────────── */}
+      {/* ── Data source connectors (primary entry) ──────────────────────── */}
       {(state.step === "empty" || state.step === "uploading") && (
-        <BatchUploader
-          onDemoLoad={loadDemo}
-          onMessyDemoLoad={loadMessyDemo}
-          onFileLoad={loadFile}
-          loading={isUploading}
-        />
+        <>
+          <SourceConnectors onLoaded={loadFromConnector} disabled={isUploading} />
+
+          {/* Manual upload / test data — secondary, collapsed by default */}
+          <div className="rounded-xl border border-border bg-card">
+            <button
+              onClick={() => setShowManual((v) => !v)}
+              className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              <span>Manual upload &amp; test data</span>
+              <ChevronDown className={cn("h-4 w-4 transition-transform", showManual && "rotate-180")} />
+            </button>
+            {showManual && (
+              <div className="border-t border-border p-4">
+                <BatchUploader
+                  onDemoLoad={loadDemo}
+                  onMessyDemoLoad={loadMessyDemo}
+                  onFileLoad={loadFile}
+                  loading={isUploading}
+                />
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* ── Validation Preview ────────────────────────────────────────────── */}
@@ -479,6 +561,30 @@ export function BatchPageClient() {
       {/* ── Results ──────────────────────────────────────────────────────── */}
       {state.step === "results" && (
         <>
+          {/* Bridge to the persisted reviewer worklist */}
+          <div className="rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/50 dark:bg-brand-950/20 px-4 py-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <div className="flex items-start gap-3">
+              <ClipboardCheck className="h-5 w-5 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold text-foreground">Add to Review Queue</p>
+                <p className="text-muted-foreground">
+                  Save these {state.result.results.length} prepared cases to the Review Queue so a reviewer can
+                  confirm, reject, or request more information with the full case context.
+                </p>
+                {worklistError && (
+                  <p className="text-red-600 dark:text-red-400 mt-1">{worklistError}</p>
+                )}
+              </div>
+            </div>
+            <Button onClick={saveToWorklist} disabled={savingWorklist} className="shrink-0">
+              {savingWorklist ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
+              ) : (
+                <><ClipboardCheck className="h-4 w-4" /> Add to Review Queue</>
+              )}
+            </Button>
+          </div>
+
           <BatchActionQueue results={state.result.results} onViewDetail={openDetail} />
           <BatchStatCards result={state.result} />
           <BatchEquityCard results={state.result.results} />

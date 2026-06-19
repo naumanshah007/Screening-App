@@ -198,7 +198,7 @@ export function BatchValidationPreview({
           <div className="flex items-center gap-2.5">
             <Database className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div>
-              <CardTitle>Input Dataset</CardTitle>
+              <CardTitle>Pulled Cases</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {cases.length} record{cases.length !== 1 ? "s" : ""} · source:{" "}
                 <strong>{sourceSystem}</strong>{" "}
@@ -224,7 +224,7 @@ export function BatchValidationPreview({
         <div className="flex items-center justify-between gap-3 mt-1 flex-wrap">
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              Select records to generate provisional recommendations. Invalid rows cannot be processed.
+              Select records to prepare for the Review Queue. Invalid rows cannot be processed.
             </p>
             {onAddManual && (
               <Button
@@ -248,7 +248,7 @@ export function BatchValidationPreview({
               disabled={selectedCount === 0 || processing}
               loading={processing}
             >
-              Process {selectedCount} Row{selectedCount !== 1 ? "s" : ""} for Reviewer
+              Prepare {selectedCount} for Review Queue
             </Button>
           </div>
         </div>

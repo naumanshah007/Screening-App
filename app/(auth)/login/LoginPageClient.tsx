@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, ShieldCheck, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,33 @@ const DEMO_ACCOUNTS = [
   { username: "specialist",  role: "Specialist reviewer",  color: "bg-amber-50  text-amber-700  border-amber-200" },
 ];
 
+function getSafeCallbackDestination(callbackUrl: string | null): string | null {
+  if (!callbackUrl || typeof window === "undefined") return null;
+
+  try {
+    const parsed = new URL(callbackUrl, window.location.origin);
+    if (parsed.origin !== window.location.origin) return null;
+    if (parsed.pathname === "/login" || parsed.pathname.startsWith("/api/")) {
+      return null;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+async function getRoleDefaultDestination() {
+  const response = await fetch("/api/app/default-route", {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) return "/dashboard";
+
+  const payload = (await response.json().catch(() => null)) as {
+    route?: unknown;
+  } | null;
+  return typeof payload?.route === "string" ? payload.route : "/dashboard";
+}
+
 export function LoginPageClient({
   passwordUpdated = false,
   reauthRequired = false,
@@ -25,8 +51,6 @@ export function LoginPageClient({
   reauthRequired?: boolean;
   callbackUrl?: string | null;
 }) {
-  const router = useRouter();
-  const destination = callbackUrl || "/dashboard";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -46,7 +70,10 @@ async function handleSubmit(e: React.FormEvent) {
       if (result?.error) {
         setError("Incorrect username or password.");
       } else {
-        window.location.href = destination;
+        const destination =
+          getSafeCallbackDestination(callbackUrl) ??
+          (await getRoleDefaultDestination());
+        window.location.assign(destination);
       }
     } finally {
       setLoading(false);

@@ -106,18 +106,30 @@ type RouteGuard = {
   description: string;
 };
 
+// Land each role where the product flow starts for them: reviewers/graders on
+// the Review Queue, coordinators on Pull Cases.
 const DEFAULT_APP_ROUTE_BY_ROLE: Record<UserRole, string> = {
   ADMIN: "/dashboard",
-  SMO_REVIEWER: "/dashboard",
-  COLPOSCOPIST: "/dashboard",
-  COLPO_CNS: "/dashboard",
-  GYNAE_GRADER: "/dashboard",
-  COORDINATOR: "/dashboard",
+  SMO_REVIEWER: "/review",
+  COLPOSCOPIST: "/review",
+  COLPO_CNS: "/review",
+  GYNAE_GRADER: "/review",
+  COORDINATOR: "/batch",
   GP: "/dashboard",
   INTEGRATION_ADMIN: "/admin",
 };
 
 export const ROUTE_GUARDS: RouteGuard[] = [
+  {
+    prefix: "/review",
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
+    description: "Review queue",
+  },
+  {
+    prefix: "/batch",
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "INTEGRATION_ADMIN"],
+    description: "Batch processing & worklists",
+  },
   {
     prefix: "/readiness",
     requiredRoles: ["ADMIN", "INTEGRATION_ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "COLPO_CNS", "GYNAE_GRADER", "COORDINATOR"],
