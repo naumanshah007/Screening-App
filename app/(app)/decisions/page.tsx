@@ -9,6 +9,7 @@ import {
   type CompletedDecisionRow,
 } from "@/components/decisions/CompletedDecisionsClient";
 import { auth } from "@/lib/auth";
+import { isAuthorizedForRoute } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
 import {
   canViewCompletedDecisions,
@@ -24,6 +25,8 @@ import {
 } from "@/lib/decisions/package-generator";
 
 export const dynamic = "force-dynamic";
+
+const COMPLETED_DECISIONS_LIMIT = 300;
 
 type DecisionsSearchParams = Promise<{
   disposition?: string;
@@ -43,7 +46,7 @@ function cleanFilters(params: Awaited<DecisionsSearchParams>): CompletedDecision
     urgency: params.urgency || undefined,
     dateFrom: params.dateFrom || undefined,
     dateTo: params.dateTo || undefined,
-    q: params.q || undefined,
+    q: params.q?.trim().slice(0, 80) || undefined,
   };
 }
 
@@ -93,8 +96,12 @@ export default async function CompletedDecisionsPage({
   const params = await searchParams;
   const filters = cleanFilters(params);
   const access = getCompletedDecisionAccess(user ?? {});
+  const actions = [
+    { label: "Open Review Queue", href: "/review", variant: "outline" as const },
+    { label: "Pull Cases", href: "/batch", variant: "outline" as const },
+  ].filter((action) => isAuthorizedForRoute(action.href, user?.role));
   const [decisions, filterOptions] = await Promise.all([
-    listCompletedDecisions({ user: user ?? {}, filters }),
+    listCompletedDecisions({ user: user ?? {}, filters, limit: COMPLETED_DECISIONS_LIMIT }),
     getCompletedDecisionFilterOptions(user ?? {}),
   ]);
   const rows = decisions.map(mapRow);
@@ -104,11 +111,8 @@ export default async function CompletedDecisionsPage({
       <PageIntro
         eyebrow="Closed Loop"
         title="Completed Decisions"
-        description="Reviewer-confirmed decisions with simulated write-back previews and integration-ready export packages. These packages are demo-safe and do not update any hospital system."
-        actions={[
-          { label: "Open Review Queue", href: "/review", variant: "outline" as const },
-          { label: "Pull Cases", href: "/batch", variant: "outline" as const },
-        ]}
+        description="Reviewer-confirmed decisions with simulated export package previews and integration-ready export packages. These packages are demo-safe and do not update any hospital system."
+        actions={actions}
       />
 
       {rows.length === 0 && Object.values(filters).every((value) => !value) ? (
@@ -125,6 +129,8 @@ export default async function CompletedDecisionsPage({
           sources={filterOptions.sources}
           reviewers={filterOptions.reviewers}
           canFilterReviewer={access === "all"}
+          resultLimit={COMPLETED_DECISIONS_LIMIT}
+          isLimited={decisions.length >= COMPLETED_DECISIONS_LIMIT}
         />
       )}
 

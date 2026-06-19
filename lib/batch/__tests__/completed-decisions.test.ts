@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildCompletedDecisionForUserWhere,
   buildCompletedDecisionWhere,
   buildUrgencyWhere,
   getCompletedDecisionAccess,
@@ -39,6 +40,42 @@ test("completed decision where clause applies reviewer own-scope", () => {
     AND: [
       { disposition: { in: ["ACCEPTED", "REJECTED", "NEEDS_INFO"] } },
       { reviewedByUserId: "smo-1" },
+    ],
+  });
+});
+
+test("completed decision where clause uses no-access sentinel", () => {
+  assert.deepEqual(buildCompletedDecisionWhere({ id: "gp-1", role: "GP" }), {
+    id: "__no_completed_decision_access__",
+  });
+});
+
+test("completed decision where clause ignores reviewer filter for own-scope users", () => {
+  const where = buildCompletedDecisionWhere(
+    { id: "smo-1", role: "SMO_REVIEWER" },
+    { reviewerId: "other-reviewer" }
+  );
+  const text = JSON.stringify(where);
+
+  assert.ok(text.includes("smo-1"));
+  assert.equal(text.includes("other-reviewer"), false);
+});
+
+test("completed decision detail lookup preserves own-scope IDOR guard", () => {
+  const where = buildCompletedDecisionForUserWhere("item-other-reviewer", {
+    id: "smo-1",
+    role: "SMO_REVIEWER",
+  });
+
+  assert.deepEqual(where, {
+    AND: [
+      {
+        AND: [
+          { disposition: { in: ["ACCEPTED", "REJECTED", "NEEDS_INFO"] } },
+          { reviewedByUserId: "smo-1" },
+        ],
+      },
+      { id: "item-other-reviewer" },
     ],
   });
 });

@@ -10,7 +10,7 @@ import {
   Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getDefaultAppRouteForRole, isAuthorizedForRoute } from "@/lib/auth/permissions";
+import { getDefaultAppRouteForRole, isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { ThemeToggle } from "./ThemeToggle";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -71,9 +71,8 @@ function buildSidebarSections(args: {
 
   const isAdmin = userRole === "ADMIN";
   const isIntegrationAdmin = userRole === "INTEGRATION_ADMIN";
-  const isCoordinator = userRole === "COORDINATOR";
-  const canPullCases = showBatch && (isAdmin || isCoordinator || isIntegrationAdmin);
-  const canUseReviewQueue = showBatch && isAuthorizedForRoute("/review", userRole) && !isIntegrationAdmin;
+  const canPullCases = showBatch && isVisibleInDemoFlow("/batch", userRole);
+  const canUseReviewQueue = showBatch && isVisibleInDemoFlow("/review", userRole);
 
   // ── Demo flow: the product spine ───────────────────────────────────────────
   const demoFlow = [

@@ -96,9 +96,9 @@ function buildSteps(args: WorkflowGuideProps): WorkflowStep[] {
     },
     {
       id: "recommendation",
-      label: "4. Get system recommendation",
+      label: "4. Get provisional recommendation",
       description:
-        "The system compares the case evidence against the published grading rules and proposes a recommended outcome.",
+        "Decision support compares the case evidence against the published grading rules and proposes a provisional outcome.",
       screenLabel: "Triage Workspace",
       href: `/cases/${args.caseId}/triage`,
       status: args.hasRuleDecision
@@ -137,7 +137,7 @@ export function WorkflowGuide(props: WorkflowGuideProps) {
       <CardContent className="space-y-4">
         <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           This product follows the same pattern every time: gather the source files,
-          extract evidence, build a one-page summary, generate a system recommendation,
+          extract evidence, build a one-page summary, generate a provisional recommendation,
           then let a clinician confirm the final outcome.
         </div>
 

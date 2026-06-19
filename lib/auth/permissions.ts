@@ -172,7 +172,7 @@ export const ROUTE_GUARDS: RouteGuard[] = [
   },
   {
     prefix: "/dashboard",
-    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "GP"],
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "GP", "INTEGRATION_ADMIN"],
     description: "Dashboard",
   },
 ];
@@ -198,6 +198,20 @@ export function isAuthorizedForRoute(pathname: string, role: UserRole | string |
   const guard = getRouteGuard(pathname);
   if (!guard) return true; // no guard = public
   return hasAnyRole(role, guard.requiredRoles);
+}
+
+export function isVisibleInDemoFlow(pathname: string, role: UserRole | string | undefined): boolean {
+  if (!isAuthorizedForRoute(pathname, role) || !role) return false;
+
+  if (pathname === "/batch") {
+    return hasAnyRole(role, ["ADMIN", "COORDINATOR", "INTEGRATION_ADMIN"]);
+  }
+
+  if (pathname === "/review") {
+    return !hasAnyRole(role, ["INTEGRATION_ADMIN"]);
+  }
+
+  return true;
 }
 
 /** Returns all permissions for a given role */

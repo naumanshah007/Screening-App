@@ -66,6 +66,8 @@ const USER_ROLES: UserRole[] = [
   "INTEGRATION_ADMIN",
 ];
 
+const MAX_SEARCH_LENGTH = 80;
+
 export const SOURCE_LABELS: Record<string, string> = {
   DEMO: "Demo dataset",
   CSV: "CSV upload",
@@ -202,7 +204,7 @@ export function buildCompletedDecisionWhere(
     });
   }
 
-  const q = filters.q?.trim();
+  const q = filters.q?.trim().slice(0, MAX_SEARCH_LENGTH);
   if (q) {
     clauses.push({
       OR: [
@@ -215,6 +217,18 @@ export function buildCompletedDecisionWhere(
   }
 
   return clauses.length === 1 ? clauses[0] : { AND: clauses };
+}
+
+export function buildCompletedDecisionForUserWhere(
+  id: string,
+  user: DecisionUser
+): Prisma.BatchReviewItemWhereInput {
+  return {
+    AND: [
+      buildCompletedDecisionWhere(user),
+      { id },
+    ],
+  };
 }
 
 export async function listCompletedDecisions(args: {
@@ -239,12 +253,7 @@ export async function getCompletedDecisionForUser(
   if (!canViewCompletedDecisions(user)) return null;
 
   return prisma.batchReviewItem.findFirst({
-    where: {
-      AND: [
-        buildCompletedDecisionWhere(user),
-        { id },
-      ],
-    },
+    where: buildCompletedDecisionForUserWhere(id, user),
     include: completedDecisionInclude,
   });
 }

@@ -1,4 +1,4 @@
-import type { BatchReviewDisposition, Prisma } from "@prisma/client";
+import type { BatchReviewDisposition, Prisma, UserRole } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import {
@@ -19,7 +19,24 @@ export type DecisionSplit = {
   total: number;
 };
 
+export type CommandCentreMetricScope = "organisation" | "own" | "hidden";
+
+export type CommandCentreMetricPolicy = {
+  canViewOperationalMetrics: boolean;
+  queueScope: Exclude<CommandCentreMetricScope, "own">;
+  intakeScope: Exclude<CommandCentreMetricScope, "own">;
+  completedScope: CommandCentreMetricScope;
+  packageScope: Exclude<CommandCentreMetricScope, "own">;
+  queueLabel: string;
+  intakeLabel: string;
+  completedLabel: string;
+  packageLabel: string;
+  showRecentIntakeSessions: boolean;
+  showRecentCompletedDecisions: boolean;
+};
+
 export type CommandCentreMetrics = {
+  policy: CommandCentreMetricPolicy;
   pendingReview: number;
   mandatoryClinicianReview: number;
   urgentClinicalPriority: number;
@@ -46,6 +63,96 @@ export type CommandCentreMetrics = {
   }>;
   recentCompletedDecisions: CompletedDecisionRecord[];
 };
+
+const OPERATIONAL_ROLES: UserRole[] = [
+  "ADMIN",
+  "INTEGRATION_ADMIN",
+  "COORDINATOR",
+  "SMO_REVIEWER",
+  "COLPOSCOPIST",
+  "COLPO_CNS",
+  "GYNAE_GRADER",
+];
+
+const REVIEWER_ROLES: UserRole[] = [
+  "SMO_REVIEWER",
+  "COLPOSCOPIST",
+  "COLPO_CNS",
+  "GYNAE_GRADER",
+];
+
+function isUserRole(role: string | null | undefined): role is UserRole {
+  return Boolean(role && [...OPERATIONAL_ROLES, "GP"].includes(role as UserRole));
+}
+
+export function getCommandCentreMetricPolicy(
+  user: DecisionUser
+): CommandCentreMetricPolicy {
+  if (!isUserRole(user.role) || !OPERATIONAL_ROLES.includes(user.role)) {
+    return {
+      canViewOperationalMetrics: false,
+      queueScope: "hidden",
+      intakeScope: "hidden",
+      completedScope: "hidden",
+      packageScope: "hidden",
+      queueLabel: "Not shown for this role",
+      intakeLabel: "Not shown for this role",
+      completedLabel: "Not shown for this role",
+      packageLabel: "Not shown for this role",
+      showRecentIntakeSessions: false,
+      showRecentCompletedDecisions: false,
+    };
+  }
+
+  if (REVIEWER_ROLES.includes(user.role)) {
+    return {
+      canViewOperationalMetrics: true,
+      queueScope: "organisation",
+      intakeScope: "organisation",
+      completedScope: "own",
+      packageScope: "organisation",
+      queueLabel: "Organisation pending queue",
+      intakeLabel: "Organisation intake",
+      completedLabel: "Your reviewer-confirmed decisions",
+      packageLabel: "Organisation simulated export evidence",
+      showRecentIntakeSessions: true,
+      showRecentCompletedDecisions: true,
+    };
+  }
+
+  return {
+    canViewOperationalMetrics: true,
+    queueScope: "organisation",
+    intakeScope: "organisation",
+    completedScope: "organisation",
+    packageScope: "organisation",
+    queueLabel: "Organisation pending queue",
+    intakeLabel: "Organisation intake",
+    completedLabel: "Organisation completed decisions",
+    packageLabel: "Organisation simulated export evidence",
+    showRecentIntakeSessions: true,
+    showRecentCompletedDecisions: true,
+  };
+}
+
+function emptyMetrics(policy: CommandCentreMetricPolicy): CommandCentreMetrics {
+  return {
+    policy,
+    pendingReview: 0,
+    mandatoryClinicianReview: 0,
+    urgentClinicalPriority: 0,
+    casesPulledToday: 0,
+    casesPulledThisWeek: 0,
+    completedToday: 0,
+    completedThisWeek: 0,
+    decisionSplit: { accepted: 0, rejected: 0, needsInfo: 0, total: 0 },
+    averageIntakeToDecisionMinutes: null,
+    packagePreviewedOrExported: 0,
+    packagePreviewedOrExportedThisWeek: 0,
+    recentIntakeSessions: [],
+    recentCompletedDecisions: [],
+  };
+}
 
 function startOfToday(now = new Date()) {
   const date = new Date(now);
@@ -98,6 +205,11 @@ export async function getCommandCentreMetrics(
   user: DecisionUser,
   now = new Date()
 ): Promise<CommandCentreMetrics> {
+  const policy = getCommandCentreMetricPolicy(user);
+  if (!policy.canViewOperationalMetrics) {
+    return emptyMetrics(policy);
+  }
+
   const today = startOfToday(now);
   const week = startOfCurrentWeek(now);
   const completedWhere = buildCompletedDecisionWhere(user);
@@ -196,6 +308,7 @@ export async function getCommandCentreMetrics(
   ]);
 
   return {
+    policy,
     pendingReview,
     mandatoryClinicianReview,
     urgentClinicalPriority,

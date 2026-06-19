@@ -12,6 +12,8 @@ import { WorklistClient, type WorklistItem } from "@/components/batch/WorklistCl
 
 export const dynamic = "force-dynamic";
 
+const REVIEW_QUEUE_LIMIT = 300;
+
 const SOURCE_LABELS: Record<string, string> = {
   DEMO: "Demo dataset",
   CSV: "CSV upload",
@@ -37,7 +39,7 @@ export default async function ReviewQueuePage() {
   const user = session?.user as { role?: string } | undefined;
   const canReview = hasPermission(user?.role, "cases:grade");
 
-  const queue = await getReviewQueue();
+  const queue = await getReviewQueue(REVIEW_QUEUE_LIMIT);
   const mandatoryReviewCount = queue.filter((i) => i.reviewRequired).length;
   const urgentClinicalCount = queue.filter(isUrgentClinicalPriority).length;
 
@@ -113,7 +115,14 @@ export default async function ReviewQueuePage() {
           action={{ label: "Pull cases", href: "/batch", variant: "primary" }}
         />
       ) : (
-        <WorklistClient initialItems={items} canReview={canReview} showSource removeCompletedOnAction />
+        <>
+          {items.length >= REVIEW_QUEUE_LIMIT && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200">
+              Showing the first {REVIEW_QUEUE_LIMIT.toLocaleString()} pending review items. Use intake-session views for targeted review until full pagination is added.
+            </div>
+          )}
+          <WorklistClient initialItems={items} canReview={canReview} showSource removeCompletedOnAction />
+        </>
       )}
 
       {items.length > 0 && (

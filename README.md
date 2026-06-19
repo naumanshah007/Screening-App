@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CerviGrade Screening App
 
-## Getting Started
+CerviGrade is a cervical-screening decision-support prototype for demo and early pilot conversations. The buyer-demo story is:
 
-First, run the development server:
+Command Centre -> Pull Cases -> Review Queue -> Completed Decisions -> Simulated export package -> Audit Trail
+
+Clinical safety posture: the product shows provisional recommendations only. Reviewer confirmation is required, simulated export packages are integration-ready previews, and demo output is not for direct clinical action.
+
+## Demo Setup
 
 ```bash
+npm install
+cp .env.example .env
+npm run db:seed
+npm run demo:reset
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Demo reset creates deterministic synthetic batch data:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 1 persisted intake session
+- 3 pending review items, including mandatory clinician review and urgent clinical priority examples
+- 1 accepted decision
+- 1 rejected decision with reason
+- 1 needs-information decision
+- 2 simulated package audit events
 
-## Learn More
+Demo users are printed by `npm run demo:reset`. The seeded demo password is intentionally local-demo only.
 
-To learn more about Next.js, take a look at the following resources:
+## Required Environment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Use `.env.example` as the safe template. Do not commit `.env`, database files, `.next`, `node_modules`, browser profiles, smoke artifacts, or generated secrets.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Key flags:
 
-## Deploy on Vercel
+- `ENABLE_BATCH_DEMO=true` enables the buyer-demo flow.
+- `DATABASE_URL=file:./prisma/dev.db` uses the local SQLite/libSQL development database.
+- `AUTH_SECRET` and `NEXTAUTH_SECRET` must be unique per environment.
+- Real HL7, FHIR, PAS, NCSR, and eReferral integrations are not connected in this demo.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run test:engine
+npm run test:batch
+npm run test:all
+npm run build
+npm run demo:reset
+```
+
+`npm test` remains the engine-only test command. Use `npm run test:all` before demo/pilot handoff.
+
+## Deployment Notes
+
+This app uses Next.js 16 and the repo's `proxy.ts` file for request-time route protection. Page and API handlers still enforce role and feature access directly, so authorization does not depend only on the proxy layer.
+
+For hosted demo deployments:
+
+- Use a clean database with synthetic data only.
+- Set `ENABLE_BATCH_DEMO=true`.
+- Set strong auth secrets in the platform secret store.
+- Keep real integration credentials unset unless a separate integration workstream has been approved.
+- Run `npm run demo:reset` after migrations/seeding to make the demo reproducible.
+
+## Demo Script
+
+1. Open Command Centre and show persisted intake, review, completed-decision, simulated export, and audit evidence metrics.
+2. Pull Cases from the demo source and create the Review Queue.
+3. Open Review Queue and confirm mandatory clinician review and urgent clinical priority are surfaced first.
+4. Accept, reject, or mark needs-information with reviewer notes.
+5. Open Completed Decisions and preview the simulated export package.
+6. Download CSV/FHIR-like/HL7-style/JSON package formats if needed.
+7. Open Audit Trail and show package preview/export evidence.
+
+Avoid showing legacy manual pathway tools, raw rules/admin screens, or anything that implies production connectivity unless the buyer is technical and asks directly.

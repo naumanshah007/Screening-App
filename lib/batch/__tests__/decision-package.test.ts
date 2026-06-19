@@ -44,8 +44,8 @@ test("decision package includes required simulated export labels", () => {
   const text = JSON.stringify(pkg);
 
   for (const phrase of [
-    "Simulated write-back",
-    "Integration-ready export package",
+    "Simulated export package",
+    "Integration-ready preview",
     "Demo PAS update",
     "Demo GP/referrer letter",
     "FHIR-like preview",
@@ -85,7 +85,7 @@ test("decision package serialises a CSV export row", () => {
   const pkg = buildSimulatedDecisionPackage(completedItem, "2026-06-19T03:00:00.000Z");
   const csv = serialiseCsvRow(pkg.csvExportRow);
 
-  assert.ok(csv.startsWith("package_status,simulated_write_back"));
+  assert.ok(csv.startsWith("package_status,simulated_export_package"));
   assert.ok(csv.includes("SIMULATED_PACKAGE_READY"));
-  assert.ok(csv.includes("Integration-ready export package"));
+  assert.ok(csv.includes("Integration-ready preview"));
 });

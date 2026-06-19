@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/lib/auth";
+import { isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,15 @@ function splitPercent(value: number, split: DecisionSplit) {
 
 function sourceLabel(source: string, sourceSystem?: string | null) {
   return sourceSystem ?? SOURCE_LABELS[source] ?? source;
+}
+
+function commandCentreActions(role?: string) {
+  return [
+    { label: "Pull Cases", href: "/batch", variant: "primary" as const, icon: <UploadCloud className="h-4 w-4" /> },
+    { label: "Open Review Queue", href: "/review", variant: "outline" as const, icon: <Inbox className="h-4 w-4" /> },
+    { label: "View Completed Decisions", href: "/decisions", variant: "outline" as const, icon: <FileCheck2 className="h-4 w-4" /> },
+    { label: "View Audit Trail", href: "/audit", variant: "outline" as const, icon: <FileSearch className="h-4 w-4" /> },
+  ].filter((action) => isVisibleInDemoFlow(action.href, role));
 }
 
 function MiniBar({
@@ -147,6 +157,8 @@ export default async function DashboardPage() {
   }
 
   const metrics = await getCommandCentreMetrics(user ?? {});
+  const actions = commandCentreActions(user?.role);
+  const canPullCases = isAuthorizedForRoute("/batch", user?.role);
   const split = metrics.decisionSplit;
   const hasAnyBatchActivity =
     metrics.casesPulledThisWeek > 0 ||
@@ -168,85 +180,97 @@ export default async function DashboardPage() {
             {roleNarrative(user?.role)}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/batch">
-            <Button size="sm" icon={<UploadCloud className="h-4 w-4" />}>Pull Cases</Button>
-          </Link>
-          <Link href="/review">
-            <Button size="sm" variant="outline" icon={<Inbox className="h-4 w-4" />}>Open Review Queue</Button>
-          </Link>
-          <Link href="/decisions">
-            <Button size="sm" variant="outline" icon={<FileCheck2 className="h-4 w-4" />}>View Completed Decisions</Button>
-          </Link>
-          <Link href="/audit">
-            <Button size="sm" variant="outline" icon={<FileSearch className="h-4 w-4" />}>View Audit Trail</Button>
-          </Link>
-        </div>
+        {actions.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {actions.map((action) => (
+              <Link key={action.href} href={action.href}>
+                <Button size="sm" variant={action.variant} icon={action.icon}>
+                  {action.label}
+                </Button>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
-      {!hasAnyBatchActivity && (
+      {!metrics.policy.canViewOperationalMetrics && (
+        <EmptyState
+          icon={Database}
+          title="Limited demo view"
+          description="This role does not show organisation-wide intake, review, decision, or simulated export metrics in the demo environment."
+          nextStep="Use an admin, coordinator, reviewer, or integration admin account to present the buyer demo flow."
+        />
+      )}
+
+      {metrics.policy.canViewOperationalMetrics && !hasAnyBatchActivity && (
         <EmptyState
           icon={ClipboardCheck}
           title="No closed-loop activity yet"
           description="Pull simulated cases, add them to the Review Queue, then record reviewer decisions to populate the Command Centre."
-          action={{ label: "Pull cases", href: "/batch", variant: "primary" }}
+          action={
+            canPullCases
+              ? { label: "Pull cases", href: "/batch", variant: "primary" }
+              : undefined
+          }
         />
       )}
 
+      {metrics.policy.canViewOperationalMetrics && (
+        <>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard
           label="Pending review"
           value={metrics.pendingReview.toLocaleString()}
-          subtext="Awaiting reviewer decision"
+          subtext={metrics.policy.queueLabel}
           variant={metrics.pendingReview > 0 ? "info" : "success"}
           icon={<Inbox className="h-5 w-5" />}
         />
         <StatCard
           label="Mandatory clinician review"
           value={metrics.mandatoryClinicianReview.toLocaleString()}
-          subtext="Safety-stop or evidence gap"
+          subtext={`${metrics.policy.queueLabel} · safety-stop or evidence gap`}
           variant={metrics.mandatoryClinicianReview > 0 ? "warning" : "success"}
           icon={<ShieldAlert className="h-5 w-5" />}
         />
         <StatCard
           label="Urgent clinical priority"
           value={metrics.urgentClinicalPriority.toLocaleString()}
-          subtext="Urgent risk or P1 priority"
+          subtext={`${metrics.policy.queueLabel} · urgent risk or P1 priority`}
           variant={metrics.urgentClinicalPriority > 0 ? "urgent" : "success"}
           icon={<Stethoscope className="h-5 w-5" />}
         />
         <StatCard
           label="Avg intake to decision"
           value={formatDuration(metrics.averageIntakeToDecisionMinutes)}
-          subtext="Reviewer-confirmed decisions"
+          subtext={metrics.policy.completedLabel}
           variant="default"
           icon={<Clock className="h-5 w-5" />}
         />
         <StatCard
           label="Cases pulled today"
           value={metrics.casesPulledToday.toLocaleString()}
-          subtext="Persisted intake cases"
+          subtext={metrics.policy.intakeLabel}
           variant="default"
           icon={<Database className="h-5 w-5" />}
         />
         <StatCard
           label="Cases pulled this week"
           value={metrics.casesPulledThisWeek.toLocaleString()}
-          subtext="Monday to today"
+          subtext={`${metrics.policy.intakeLabel} · Monday to today`}
           variant="default"
           icon={<Database className="h-5 w-5" />}
         />
         <StatCard
           label="Completed today"
           value={metrics.completedToday.toLocaleString()}
-          subtext="Accepted, rejected, needs info"
+          subtext={metrics.policy.completedLabel}
           variant="success"
           icon={<FileCheck2 className="h-5 w-5" />}
         />
         <StatCard
           label="Completed this week"
           value={metrics.completedThisWeek.toLocaleString()}
-          subtext={`${metrics.packagePreviewedOrExportedThisWeek} package previews/exports`}
+          subtext={`${metrics.policy.packageLabel}: ${metrics.packagePreviewedOrExportedThisWeek}`}
           variant="success"
           icon={<FileCheck2 className="h-5 w-5" />}
         />
@@ -256,7 +280,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Decision Funnel</CardTitle>
-            <Badge variant="info">Persisted data</Badge>
+            <Badge variant="info">{metrics.policy.intakeLabel}</Badge>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-4">
@@ -282,7 +306,7 @@ export default async function DashboardPage() {
               />
             </div>
             <div className="rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
-              Pull Cases → Review Queue → reviewer decision → Completed Decisions → simulated export/write-back package → audit evidence.
+              Pull Cases → Review Queue → reviewer decision → Completed Decisions → simulated export package → audit evidence.
             </div>
           </CardContent>
         </Card>
@@ -290,7 +314,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Decision Split</CardTitle>
-            <Badge variant="default">{split.total.toLocaleString()} completed</Badge>
+            <Badge variant="default">{metrics.policy.completedLabel}</Badge>
           </CardHeader>
           <CardContent className="space-y-4">
             <MiniBar
@@ -338,7 +362,7 @@ export default async function DashboardPage() {
               {
                 title: "HL7 / FHIR / ERMS",
                 status: "Adapter pattern defined · not connected",
-                detail: "Previews are generated as simulated write-back/export packages.",
+                detail: "Previews are generated as simulated export packages for the demo environment.",
                 badge: "default" as const,
               },
             ].map((connector) => (
@@ -356,9 +380,11 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Recent Intake Sessions</CardTitle>
-            <Link href="/batch/runs" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
-              View all
-            </Link>
+            {isAuthorizedForRoute("/batch/runs", user?.role) && (
+              <Link href="/batch/runs" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
+                View all
+              </Link>
+            )}
           </CardHeader>
           <CardContent>
             {metrics.recentIntakeSessions.length === 0 ? (
@@ -389,9 +415,11 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Recent Completed Decisions</CardTitle>
-            <Link href="/decisions" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
-              View completed
-            </Link>
+            {isAuthorizedForRoute("/decisions", user?.role) && (
+              <Link href="/decisions" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
+                View completed
+              </Link>
+            )}
           </CardHeader>
           <CardContent>
             {metrics.recentCompletedDecisions.length === 0 ? (
@@ -440,6 +468,8 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }

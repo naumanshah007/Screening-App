@@ -65,8 +65,8 @@ export type SimulatedDecisionPackage = {
   hl7StyleMessage: string;
   auditMetadata: {
     simulated: true;
-    marker: "Simulated write-back";
-    packageLabel: "Integration-ready export package";
+    marker: "Simulated export package";
+    packageLabel: "Integration-ready preview";
     itemId: string;
     batchRunId: string;
     sourceSystem: string;
@@ -146,7 +146,7 @@ function gpLetterBody(item: DecisionPackageInput) {
     `Original recommendation: ${item.recommendation}`,
     `Reviewer note: ${reason}`,
     "",
-    "This is a simulated write-back preview prepared from a reviewer-confirmed decision.",
+    "This is a simulated export package preview prepared from a reviewer-confirmed decision.",
     "Reviewer confirmation required. Not for direct clinical action.",
   ]
     .filter(Boolean)
@@ -156,8 +156,8 @@ function gpLetterBody(item: DecisionPackageInput) {
 function csvRow(item: DecisionPackageInput, generatedAt: string) {
   return {
     package_status: PACKAGE_STATUS_LABEL,
-    simulated_write_back: "true",
-    package_label: "Integration-ready export package",
+    simulated_export_package: "true",
+    package_label: "Integration-ready preview",
     csv_export_label: "CSV export",
     batch_review_item_id: item.id,
     intake_session_id: item.batchRunId,
@@ -184,8 +184,8 @@ function fhirLikeJson(item: DecisionPackageInput, generatedAt: string) {
     meta: {
       profile: ["FHIR-like preview"],
       tag: [
-        { system: "https://cervigrade.example/demo", code: "simulated-write-back" },
-        { system: "https://cervigrade.example/demo", code: "integration-ready-export-package" },
+        { system: "https://cervigrade.example/demo", code: "simulated-export-package" },
+        { system: "https://cervigrade.example/demo", code: "integration-ready-preview" },
       ],
     },
     timestamp: generatedAt,
@@ -204,7 +204,7 @@ function fhirLikeJson(item: DecisionPackageInput, generatedAt: string) {
           resourceType: "Task",
           status: "requested",
           intent: "order",
-          description: "FHIR-like preview for simulated write-back. Reviewer confirmation required. Not for direct clinical action.",
+          description: "FHIR-like integration-ready preview for a simulated export package. Reviewer confirmation required. Not for direct clinical action.",
           code: {
             text: `Reviewer decision: ${formatDisposition(item.disposition)}`,
           },
@@ -236,7 +236,7 @@ function hl7StyleMessage(item: DecisionPackageInput, generatedAt: string) {
     `OBX|1|TX|DECISION^Reviewer decision||${decision}`,
     `OBX|2|TX|RECOMMENDATION^Original recommendation||${recommendation}`,
     `OBX|3|TX|NOTE^Reason or note||${note}`,
-    "NTE|1|L|Simulated write-back. Integration-ready export package. Reviewer confirmation required. Not for direct clinical action.",
+    "NTE|1|L|Simulated export package. Integration-ready preview. Reviewer confirmation required. Not for direct clinical action.",
   ].join("\n");
 }
 
@@ -266,14 +266,14 @@ export function buildSimulatedDecisionPackage(
       reviewer: displayReviewer(item),
       reviewedAt: iso(item.reviewedAt),
       safetyNotice: "Reviewer confirmation required. Not for direct clinical action.",
-      packageLabel: "Integration-ready export package prepared from reviewer-confirmed decision.",
+      packageLabel: "Integration-ready preview prepared from reviewer-confirmed decision.",
     },
     pasUpdate: {
       title: "Demo PAS update",
       bookingStatus: bookingStatusFor(disposition),
       priority: item.referralPriority ?? item.riskLevel,
       notes: [
-        "Simulated write-back preview only.",
+        "Simulated export package preview only.",
         `Final reviewer decision: ${decision}.`,
         `Reason or note: ${reason}`,
       ].join(" "),
@@ -288,8 +288,8 @@ export function buildSimulatedDecisionPackage(
     hl7StyleMessage: hl7StyleMessage(item, generatedAt),
     auditMetadata: {
       simulated: true,
-      marker: "Simulated write-back",
-      packageLabel: "Integration-ready export package",
+      marker: "Simulated export package",
+      packageLabel: "Integration-ready preview",
       itemId: item.id,
       batchRunId: item.batchRunId,
       sourceSystem: source,

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/features";
-import { prisma } from "@/lib/prisma";
 import { getCompletedDecisionForUser } from "@/lib/decisions/completed-decisions";
+import { recordDecisionPackageAudit } from "@/lib/decisions/package-audit";
 import {
   buildSimulatedDecisionPackage,
   serialiseCsvRow,
@@ -81,25 +81,15 @@ export async function GET(
   const generatedAt = new Date().toISOString();
   const pkg = buildSimulatedDecisionPackage(decision, generatedAt);
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: "SIMULATED_PACKAGE_EXPORT",
-      entity: "DecisionPackage",
-      entityId: decision.id,
-      exportEvent: true,
-      newValue: JSON.stringify({
-        eventLabel: "Simulated write-back export/download",
-        packageLabel: "Integration-ready export package",
-        simulated: true,
-        actorUserId: user.id,
-        batchReviewItemId: decision.id,
-        batchRunId: decision.batchRunId,
-        format,
-        disposition: decision.disposition,
-        timestamp: generatedAt,
-      }),
-    },
+  await recordDecisionPackageAudit({
+    action: "SIMULATED_PACKAGE_EXPORT",
+    actorUserId: user.id,
+    batchReviewItemId: decision.id,
+    batchRunId: decision.batchRunId,
+    disposition: decision.disposition,
+    format,
+    timestamp: generatedAt,
+    request: req,
   });
 
   return responseForFormat(format, decision.id, pkg);
