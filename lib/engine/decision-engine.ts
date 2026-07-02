@@ -1652,37 +1652,83 @@ export function evaluateClinicalDecision(input: ClinicalInput): ClinicalDecision
 
   if (input.patientAge !== undefined) {
     if (input.patientAge < 25) {
-      return withDefaults({
-        figure: "FIGURE_3",
-        riskLevel: "LOW",
-        recommendation: "Patient is under 25 years old. Routine cervical screening does not apply.",
-        recommendationCode: "AGE-UNDER-25",
-        nextAction: "Do not perform routine screening; investigate symptoms through the appropriate symptomatic pathway.",
-        guidelineReference: "Age eligibility",
-        rationale: "Age gate applies to routine screening only; symptomatic pathways are routed before this gate.",
-      });
-    }
-    if (input.patientAge >= 75) {
-      return withDefaults({
-        figure: "FIGURE_3",
-        riskLevel: "LOW",
-        recommendation: "Patient is 75 or older. Discharge from routine cervical screening programme.",
-        recommendationCode: "AGE-75-DISCHARGE",
-        nextAction: "Discharge from routine cervical screening; investigate symptoms clinically.",
-        guidelineReference: "Age eligibility",
-        rationale: "Routine screening exit applies after symptom/hysterectomy/pregnancy routing.",
-      });
-    }
-    if (input.patientAge >= 70) {
-      return withDefaults({
-        figure: "FIGURE_3",
-        riskLevel: "LOW",
-        recommendation: "Patient is aged 70-74. Deferred exit from routine screening; offer final HPV screen if not recently tested.",
-        recommendationCode: "AGE-70-74-DEFERRED",
-        nextAction: "Offer final HPV screen if indicated and discharge at age 75.",
-        guidelineReference: "Age eligibility",
-        rationale: "Routine screening age gate applies after higher-priority symptomatic/special pathways.",
-      });
+      const under25HasRedFlags =
+        isHighGradeCytology(input.cytologyResult) ||
+        input.hasCancerSymptoms === true ||
+        input.suspicionOfCancer === true;
+      if (!under25HasRedFlags) {
+        return withDefaults({
+          figure: "FIGURE_3",
+          riskLevel: "LOW",
+          recommendation: "Participant is under 25 years old with no symptoms or high-grade result. Routine cervical screening does not apply.",
+          recommendationCode: "AGE-UNDER-25",
+          nextAction: "Do not perform routine screening; investigate any symptoms through the appropriate symptomatic pathway.",
+          guidelineReference: "Age eligibility - under 25 asymptomatic",
+          rationale: "Age gate applies to routine asymptomatic screening only; symptomatic/high-grade/glandular results are routed to their pathway before this gate.",
+          branchPath: ["AGE_UNDER_25", "ASYMPTOMATIC", "NO_ROUTINE_SCREENING"],
+        });
+      }
+      // High-grade cytology or cancer suspicion present: do not reassure.
+      // Fall through to the specialist/high-grade routing below (e.g. Figure 7, Figure 3 colposcopy branch).
+    } else if (input.patientAge >= 75) {
+      const over75HasRedFlags =
+        isHighGradeCytology(input.cytologyResult) ||
+        input.hpvResult === "HPV_16_18" ||
+        input.hasCancerSymptoms === true ||
+        input.suspicionOfCancer === true;
+      if (!over75HasRedFlags) {
+        return withDefaults({
+          figure: "FIGURE_3",
+          riskLevel: "LOW",
+          recommendation: "Participant is 75 or older with no symptoms or abnormal current result. Discharge from routine cervical screening programme.",
+          recommendationCode: "AGE-75-DISCHARGE",
+          nextAction: "Discharge from routine cervical screening; investigate any symptoms clinically.",
+          guidelineReference: "Age eligibility - 75+ asymptomatic",
+          rationale: "Routine screening exit applies only after symptom/high-grade/glandular routing.",
+          branchPath: ["AGE_75_PLUS", "ASYMPTOMATIC", "DISCHARGE"],
+        });
+      }
+      // High-grade cytology, HPV 16/18, or cancer suspicion present: do not discharge.
+      // Fall through to specialist/high-grade routing below.
+    } else if (input.patientAge >= 70) {
+      if (isHighGradeCytology(input.cytologyResult) || input.suspicionOfCancer === true) {
+        // Fall through to specialist/high-grade routing below (e.g. Figure 7, Figure 3 colposcopy branch).
+      } else if (input.hpvResult === undefined) {
+        return insufficient(
+          "FIGURE_3",
+          "AGE-70-74-HPV-REQUIRED",
+          ["hpvResult"],
+          "Enter exit HPV result for the 70-74 exit-testing decision"
+        );
+      } else if (input.hpvResult === "NOT_DETECTED") {
+        return withDefaults({
+          figure: "FIGURE_3",
+          riskLevel: "LOW",
+          recommendation: "Participant aged 70-74 with HPV not detected on exit testing. Discharge from routine cervical screening at exit.",
+          recommendationCode: "AGE-70-74-HPV-NOT-DETECTED-DISCHARGE",
+          nextAction: "Discharge from routine screening after documented exit HPV not detected.",
+          guidelineReference: "Age eligibility - 70-74 exit testing, HPV not detected",
+          rationale: "70-74 exit testing: HPV not detected supports discharge from the programme.",
+          branchPath: ["AGE_70_74", "HPV_NOT_DETECTED", "DISCHARGE"],
+        });
+      } else {
+        return withDefaults({
+          figure: "FIGURE_3",
+          riskLevel: "HIGH",
+          recommendation: "Participant aged 70-74 with HPV detected on exit testing. Refer to colposcopy; clinician review required.",
+          recommendationCode: "AGE-70-74-HPV-DETECTED-COLP",
+          nextAction: "Refer to colposcopy.",
+          referralRequired: true,
+          referralType: "COLPOSCOPY",
+          referralPriority: input.hpvResult === "HPV_16_18" ? "P1" : "P2",
+          referralReason: "HPV detected any type on 70-74 exit testing",
+          safetyOutcome: "CLINICIAN_REVIEW_REQUIRED",
+          validationStatus: "REQUIRES_CLINICAL_CONFIRMATION",
+          guidelineReference: "Age eligibility - 70-74 exit testing, HPV detected any type",
+          rationale: "70-74 exit testing: HPV detected any type is routed to colposcopy, not routine reassurance.",
+          branchPath: ["AGE_70_74", "HPV_DETECTED_ANY_TYPE", "COLPOSCOPY"],
+        });
+      }
     }
   }
 
