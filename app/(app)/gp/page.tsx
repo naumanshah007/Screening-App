@@ -6,7 +6,8 @@ import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge, PriorityBadge } from "@/components/ui/badge";
-import { cn, formatClinicalReferenceText, getFigureLabel } from "@/lib/utils";
+import { cn, formatClinicalReferenceText } from "@/lib/utils";
+import { FigureLink } from "@/components/clinical/FigureLink";
 import type { ClinicalDecision } from "@/lib/engine/types";
 import { Alert } from "@/components/ui/alert";
 import {
@@ -114,7 +115,7 @@ function DecisionPreviewPanel({ decision, isPreview }: { decision: ClinicalDecis
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Active Pathway</p>
-            <p className="font-semibold text-sm text-foreground">{getFigureLabel(decision.figure)}</p>
+            <p className="font-semibold text-sm"><FigureLink figure={decision.figure} showIcon className="text-foreground" /></p>
           </div>
           <RiskBadge risk={riskLevel} size="md" />
         </div>

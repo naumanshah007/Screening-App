@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface CardProps { className?: string; children: React.ReactNode; onClick?: () => void; }
@@ -63,7 +64,7 @@ const statIconChip: Record<string, string> = {
 
 export function StatCard({
   label, value, subtext, delta, deltaDirection = "neutral",
-  variant = "default", icon, onClick,
+  variant = "default", icon, href, onClick,
 }: StatCardProps) {
   const deltaColor = {
     up:      "text-success",
@@ -72,9 +73,10 @@ export function StatCard({
   }[deltaDirection];
   const deltaIcon = { up: "↑", down: "↓", neutral: "" }[deltaDirection];
 
-  return (
+  const interactive = Boolean(href || onClick);
+  const inner = (
     <Card
-      className={cn("group relative overflow-hidden hover-lift", onClick && "cursor-pointer")}
+      className={cn("group relative overflow-hidden hover-lift", interactive && "cursor-pointer")}
       onClick={onClick}
     >
       {/* Variant-colored gradient hairline along the top edge */}
@@ -110,4 +112,13 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }

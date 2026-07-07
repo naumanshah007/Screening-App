@@ -13,6 +13,7 @@ import {
   GitBranch, Bell, Printer
 } from "lucide-react";
 import { FlowDiagram } from "@/components/clinical/FlowDiagram";
+import { FigureLink } from "@/components/clinical/FigureLink";
 import { getFigureById } from "@/lib/decision-trees";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -473,7 +474,7 @@ export default function WizardResultPage({
                 )}
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Pathway</p>
-                  <p className="text-sm text-muted-foreground">{figureLabel}</p>
+                  <p className="text-sm"><FigureLink figure={decision.figure} showIcon className="text-muted-foreground" /></p>
                 </div>
                 {decision.rationale && (
                   <div>

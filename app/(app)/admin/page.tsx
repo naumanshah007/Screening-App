@@ -205,6 +205,7 @@ export default async function AdminPage({
           value={totalPatients.toLocaleString()}
           subtext={`${activePatients} active`}
           icon={<Users className="h-5 w-5" />}
+          href="/patients"
         />
         <StatCard
           label="System Users"
@@ -218,12 +219,14 @@ export default async function AdminPage({
           subtext="Clinical decision rules"
           variant={activeRules === 0 ? "urgent" : "default"}
           icon={<Settings className="h-5 w-5" />}
+          href="/rules"
         />
         <StatCard
           label="Audit Events (30d)"
           value={recentAuditLogs.length.toLocaleString()}
           subtext="System access logged"
           icon={<FileText className="h-5 w-5" />}
+          href="/audit"
         />
         <StatCard
           label="Open Incidents"
@@ -231,6 +234,7 @@ export default async function AdminPage({
           subtext={`${incidentOverview.counts.overdue} overdue · ${incidentOverview.counts.unassigned} unassigned`}
           variant={incidentOverview.counts.overdue > 0 ? "urgent" : incidentOverview.counts.open > 0 ? "warning" : "success"}
           icon={<AlertTriangle className="h-5 w-5" />}
+          href="/analytics"
         />
       </div>
 
@@ -249,6 +253,7 @@ export default async function AdminPage({
             value={count}
             subtext="Referrals awaiting action"
             variant={priority === "P1" ? "urgent" : priority === "P2" ? "warning" : "default"}
+            href="/cases?workflow=PENDING_REVIEW"
           />
         ))}
       </div>

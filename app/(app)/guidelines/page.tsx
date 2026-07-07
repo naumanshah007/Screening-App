@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { BookOpen, Search } from "lucide-react";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { FlowDiagram } from "@/components/clinical/FlowDiagram";
@@ -82,8 +83,22 @@ const TABS = [
 ];
 
 export default function GuidelinesPage() {
-  const [tab, setTab] = useState<GuidelineTab>("colposcopy");
-  const [selectedId, setSelectedId] = useState(ALL_FIGURES[0].id);
+  return (
+    <Suspense fallback={null}>
+      <GuidelinesPageInner />
+    </Suspense>
+  );
+}
+
+function GuidelinesPageInner() {
+  const searchParams = useSearchParams();
+  const figureParam = searchParams.get("figure");
+  const initialFigure = ALL_FIGURES.find((f) => f.id === figureParam)?.id ?? ALL_FIGURES[0].id;
+  // Initialised from the ?figure= URL param (set when arriving from a figure link
+  // elsewhere in the app); the page mounts fresh on cross-route navigation so the
+  // initial state reliably reflects the requested figure.
+  const [tab, setTab] = useState<GuidelineTab>(figureParam ? "pathways" : "colposcopy");
+  const [selectedId, setSelectedId] = useState(initialFigure);
   const [figureSearch, setFigureSearch] = useState("");
   const selected = ALL_FIGURES.find((f) => f.id === selectedId) ?? ALL_FIGURES[0];
   const filteredFigures = figureSearch

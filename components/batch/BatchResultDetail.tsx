@@ -10,6 +10,9 @@ import {
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
 import { getGuidelineCitation } from "@/lib/batch/guideline-citations";
+import { FlowDiagram } from "@/components/clinical/FlowDiagram";
+import { FigureLink } from "@/components/clinical/FigureLink";
+import { getFigureById } from "@/lib/decision-trees";
 
 interface BatchResultDetailProps {
   result: BatchCaseResult | null;
@@ -328,6 +331,28 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
             <Section title="Decision Node Tree" icon={<GitBranch className="h-3.5 w-3.5" />}>
               <DecisionNodeTree decision={decision} figureTitle={citation?.title} />
             </Section>
+
+            {/* Pathway diagram — highlights the exact route taken to this outcome */}
+            {(() => {
+              const fig = decision.figure ? getFigureById(decision.figure) : undefined;
+              if (!fig) return null;
+              return (
+                <Section title="Decision Pathway Diagram" icon={<GitBranch className="h-3.5 w-3.5" />}>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    The highlighted path shows how this case reached its provisional outcome.{" "}
+                    <FigureLink figure={decision.figure} showIcon /> · open the full pathway.
+                  </p>
+                  <div className="rounded-lg border border-border overflow-hidden bg-card">
+                    <FlowDiagram
+                      figure={fig}
+                      activeCode={decision.recommendationCode}
+                      height={360}
+                      className="rounded-none border-0"
+                    />
+                  </div>
+                </Section>
+              );
+            })()}
 
             {/* Decision trace */}
             {decision.branchPath && decision.branchPath.length > 0 && (
