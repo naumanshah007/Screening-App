@@ -17,7 +17,7 @@ import { isFeatureEnabled } from "@/lib/features";
 import { formatDateTime } from "@/lib/utils";
 
 import { RuleReleaseActionButton } from "../RuleReleaseActionButton";
-import { RuleReleaseEditForm } from "./RuleReleaseEditForm";
+import { RuleCardEditor } from "@/components/rules/RuleCardEditor";
 
 export default async function CaseRuleReleaseDetailPage({
   params,
@@ -163,12 +163,12 @@ export default async function CaseRuleReleaseDetailPage({
           </CardHeader>
           <CardContent>
             {isEditableDraft ? (
-              <RuleReleaseEditForm
+              <RuleCardEditor
                 releaseId={release.id}
                 initialName={release.name}
                 initialDescription={release.description ?? ""}
                 initialChangeNotes={release.changeNotes ?? ""}
-                initialDefinitionJson={formatCaseRuleReleaseDefinitionJson(definition)}
+                baseDefinition={definition}
               />
             ) : (
               <div className="space-y-3">
