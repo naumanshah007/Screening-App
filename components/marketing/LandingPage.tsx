@@ -187,7 +187,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
               {/* CTAs */}
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <Link
-                  href={authed ? "/dashboard" : "/login"}
+                  href="/dashboard"
                   className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-5 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
                 >
                   {authed ? "Go to dashboard" : "Open CerviGrade"}
@@ -352,7 +352,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href={authed ? "/dashboard" : "/login"}
+                href="/dashboard"
                 className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-6 py-3 text-[15px] font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
               >
                 {authed ? "Go to dashboard" : "Open CerviGrade"}
@@ -418,7 +418,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                     </a>
                   </li>
                   <li>
-                    <Link href={authed ? "/dashboard" : "/login"} className="text-slate-300 transition-colors hover:text-white">
+                    <Link href="/dashboard" className="text-slate-300 transition-colors hover:text-white">
                       {authed ? "Go to dashboard" : "Sign in"}
                     </Link>
                   </li>
