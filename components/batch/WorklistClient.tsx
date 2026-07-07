@@ -12,8 +12,9 @@ import { Badge, RiskBadge, PriorityBadge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
-import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
+import { BatchResultDetail, type BatchResultDetailFocus } from "@/components/batch/BatchResultDetail";
 import { cn } from "@/lib/utils";
+import { formatFigureLabel } from "@/lib/batch/guideline-citations";
 import type { BatchCaseResult } from "@/lib/batch/types";
 
 export type Disposition = "PENDING" | "ACCEPTED" | "REJECTED" | "NEEDS_INFO";
@@ -48,11 +49,12 @@ export interface WorklistItem {
   runId?: string | null;
 }
 
-type Filter = "all" | "review" | "pending" | "accepted" | "rejected" | "needs_info";
+type Filter = "all" | "review" | "urgent" | "pending" | "accepted" | "rejected" | "needs_info";
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "review", label: "Mandatory clinician review" },
+  { id: "urgent", label: "Urgent clinical priority" },
   { id: "pending", label: "Pending" },
   { id: "accepted", label: "Accepted" },
   { id: "rejected", label: "Rejected" },
@@ -80,6 +82,7 @@ export function WorklistClient({
   engineVersion,
   showSource = false,
   removeCompletedOnAction = false,
+  initialFilter = "all",
 }: {
   /** Per-run worklist passes its run's items; the aggregate queue passes all. */
   runId?: string;
@@ -90,16 +93,19 @@ export function WorklistClient({
   showSource?: boolean;
   /** Aggregate pending queue removes items once a final disposition is recorded. */
   removeCompletedOnAction?: boolean;
+  /** URL-backed starting filter, used when cards link into the queue. */
+  initialFilter?: Filter;
 }) {
   const router = useRouter();
   const [items, setItems] = useState<WorklistItem[]>(initialItems);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const [detail, setDetail] = useState<BatchCaseResult | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailFocus, setDetailFocus] = useState<BatchResultDetailFocus>("summary");
 
   // Reason modal for reject / needs-info
   const [reasonModal, setReasonModal] = useState<{
@@ -110,13 +116,14 @@ export function WorklistClient({
   const [reasonText, setReasonText] = useState("");
 
   const counts = useMemo(() => {
-    const c = { pending: 0, accepted: 0, rejected: 0, needs_info: 0, review: 0 };
+    const c = { pending: 0, accepted: 0, rejected: 0, needs_info: 0, review: 0, urgent: 0 };
     for (const it of items) {
       if (it.disposition === "PENDING") c.pending++;
       else if (it.disposition === "ACCEPTED") c.accepted++;
       else if (it.disposition === "REJECTED") c.rejected++;
       else if (it.disposition === "NEEDS_INFO") c.needs_info++;
       if (it.reviewRequired) c.review++;
+      if (isUrgentClinicalPriority(it)) c.urgent++;
     }
     return c;
   }, [items]);
@@ -124,6 +131,7 @@ export function WorklistClient({
   const visible = useMemo(() => {
     switch (filter) {
       case "review": return items.filter((i) => i.reviewRequired);
+      case "urgent": return items.filter(isUrgentClinicalPriority);
       case "pending": return items.filter((i) => i.disposition === "PENDING");
       case "accepted": return items.filter((i) => i.disposition === "ACCEPTED");
       case "rejected": return items.filter((i) => i.disposition === "REJECTED");
@@ -228,20 +236,77 @@ export function WorklistClient({
 
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
 
-  const openDetail = useCallback((item: WorklistItem) => {
+  const syncUrlFilter = useCallback((nextFilter: Filter) => {
+    if (window.location.pathname !== "/review") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (nextFilter === "all") params.delete("filter");
+    else params.set("filter", nextFilter);
+    params.delete("added");
+
+    const query = params.toString();
+    router.replace(`${window.location.pathname}${query ? `?${query}` : ""}`, { scroll: false });
+  }, [router]);
+
+  const applyFilter = useCallback((nextFilter: Filter) => {
+    setFilter(nextFilter);
+    setSelected(new Set());
+    syncUrlFilter(nextFilter);
+  }, [syncUrlFilter]);
+
+  const openDetail = useCallback((item: WorklistItem, focus: BatchResultDetailFocus = "summary") => {
     setDetail(item.result);
+    setDetailFocus(focus);
     setDetailOpen(true);
   }, []);
 
   return (
     <div className="space-y-4">
       {/* Summary stat strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatCard label={removeCompletedOnAction ? "Pending queue" : "Total"} value={items.length} />
-        <StatCard label="Pending" value={counts.pending} tone="info" />
-        <StatCard label="Accepted" value={counts.accepted} tone="success" />
-        <StatCard label="Rejected" value={counts.rejected} tone="danger" />
-        <StatCard label="Mandatory review" value={counts.review} tone="warn" icon={<ShieldAlert className="h-3.5 w-3.5" />} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <StatCard
+          label={removeCompletedOnAction ? "Pending queue" : "Total"}
+          value={items.length}
+          active={filter === "all"}
+          onClick={() => applyFilter("all")}
+        />
+        <StatCard
+          label="Pending"
+          value={counts.pending}
+          tone="info"
+          active={filter === "pending"}
+          onClick={() => applyFilter("pending")}
+        />
+        <StatCard
+          label="Accepted"
+          value={counts.accepted}
+          tone="success"
+          active={filter === "accepted"}
+          onClick={() => applyFilter("accepted")}
+        />
+        <StatCard
+          label="Rejected"
+          value={counts.rejected}
+          tone="danger"
+          active={filter === "rejected"}
+          onClick={() => applyFilter("rejected")}
+        />
+        <StatCard
+          label="Mandatory review"
+          value={counts.review}
+          tone="warn"
+          icon={<ShieldAlert className="h-3.5 w-3.5" />}
+          active={filter === "review"}
+          onClick={() => applyFilter("review")}
+        />
+        <StatCard
+          label="Urgent priority"
+          value={counts.urgent}
+          tone="danger"
+          icon={<ShieldAlert className="h-3.5 w-3.5" />}
+          active={filter === "urgent"}
+          onClick={() => applyFilter("urgent")}
+        />
       </div>
 
       {/* Filter chips */}
@@ -250,11 +315,12 @@ export function WorklistClient({
           const n =
             f.id === "all" ? items.length
             : f.id === "review" ? counts.review
+            : f.id === "urgent" ? counts.urgent
             : counts[f.id as keyof typeof counts];
           return (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
+              onClick={() => applyFilter(f.id)}
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                 filter === f.id
@@ -398,6 +464,13 @@ export function WorklistClient({
                       <td className="px-3 py-2.5">
                         <p className="text-foreground line-clamp-2">{item.recommendation}</p>
                         <p className="text-xs text-muted-foreground font-mono mt-0.5">{item.recommendationCode}</p>
+                        <button
+                          type="button"
+                          onClick={() => openDetail(item, "figure")}
+                          className="mt-1 inline-flex items-center rounded-md text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
+                        >
+                          {formatFigureLabel(item.figure)}
+                        </button>
                         {item.disposition === "REJECTED" && item.overrideReason && (
                           <p className="text-xs text-destructive mt-0.5">Reason: {item.overrideReason}</p>
                         )}
@@ -452,7 +525,12 @@ export function WorklistClient({
       </p>
 
       {/* Drill-in: full picture (reuses the batch result detail) */}
-      <BatchResultDetail result={detail} open={detailOpen} onClose={() => setDetailOpen(false)} />
+      <BatchResultDetail
+        result={detail}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        initialFocus={detailFocus}
+      />
 
       {/* Reason modal for reject / needs-info */}
       <Dialog
@@ -491,15 +569,17 @@ export function WorklistClient({
 }
 
 function StatCard({
-  label, value, tone, icon,
+  label, value, tone, icon, active, onClick,
 }: {
   label: string;
   value: number;
   tone?: "info" | "success" | "danger" | "warn";
   icon?: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
+  const content = (
+    <>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">{icon}{label}</div>
       <div className={cn(
         "text-2xl font-bold mt-0.5",
@@ -511,6 +591,22 @@ function StatCard({
       )}>
         {value}
       </div>
-    </div>
+    </>
   );
+
+  const className = cn(
+    "rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors",
+    active && "border-brand-300 ring-2 ring-brand-500/20",
+    onClick && "w-full cursor-pointer hover:border-brand-300/60 hover:bg-muted/35"
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
 }

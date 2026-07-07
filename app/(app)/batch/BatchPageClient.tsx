@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { BatchEngineTrustPanel } from "@/components/batch/BatchEngineTrustPanel";
@@ -8,10 +8,10 @@ import { BatchUploader } from "@/components/batch/BatchUploader";
 import { SourceConnectors } from "@/components/batch/SourceConnectors";
 import { BatchValidationPreview } from "@/components/batch/BatchValidationPreview";
 import { BatchDataTable } from "@/components/batch/BatchDataTable";
-import { BatchStatCards } from "@/components/batch/BatchStatCards";
+import { BatchStatCards, type BatchResultFilter } from "@/components/batch/BatchStatCards";
 import { BatchActionQueue } from "@/components/batch/BatchActionQueue";
 import { BatchEquityCard } from "@/components/batch/BatchEquityCard";
-import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
+import { BatchResultDetail, type BatchResultDetailFocus } from "@/components/batch/BatchResultDetail";
 import { ManualCaseForm } from "@/components/batch/ManualCaseForm";
 import { IntegrationReadinessPanel } from "@/components/batch/IntegrationReadinessPanel";
 import { RotateCcw, CheckCircle2, ChevronRight, ClipboardCheck, Loader2, ChevronDown } from "lucide-react";
@@ -40,10 +40,12 @@ export function BatchPageClient() {
   const [state, setState] = useState<PageState>({ step: "empty" });
   const [detailResult, setDetailResult] = useState<BatchCaseResult | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailFocus, setDetailFocus] = useState<BatchResultDetailFocus>("summary");
   const [uploadError, setUploadError] = useState("");
   const [savingWorklist, setSavingWorklist] = useState(false);
   const [worklistError, setWorklistError] = useState("");
   const [showManual, setShowManual] = useState(false);
+  const [resultFilter, setResultFilter] = useState<BatchResultFilter>("all");
 
   // ── Manual case form state ──────────────────────────────────────────────
   const [manualFormOpen, setManualFormOpen] = useState(false);
@@ -388,6 +390,7 @@ export function BatchPageClient() {
           throw new Error(err.error || `HTTP ${res.status}`);
         }
         const result: BatchProcessingResult = await res.json();
+        setResultFilter("all");
         setState({ step: "results", validation, result });
       } catch (err) {
         console.error("Batch processing failed:", err);
@@ -436,7 +439,9 @@ export function BatchPageClient() {
     setState({ step: "empty" });
     setDetailResult(null);
     setDetailOpen(false);
+    setDetailFocus("summary");
     setUploadError("");
+    setResultFilter("all");
     setManualRows([]);
     setBaseRows([]);
     setBaseSourceMeta(null);
@@ -444,10 +449,34 @@ export function BatchPageClient() {
     setEditingCase(null);
   }, []);
 
-  const openDetail = useCallback((result: BatchCaseResult) => {
+  const openDetail = useCallback((result: BatchCaseResult, focus: BatchResultDetailFocus = "summary") => {
     setDetailResult(result);
+    setDetailFocus(focus);
     setDetailOpen(true);
   }, []);
+
+  const visibleResults = useMemo(() => {
+    if (state.step !== "results") return [];
+    switch (resultFilter) {
+      case "urgent":
+        return state.result.results.filter(
+          (r) => r.status === "success" && (r.decision.riskLevel === "URGENT" || r.decision.riskLevel === "HIGH")
+        );
+      case "referrals":
+        return state.result.results.filter((r) => r.status === "success" && r.decision.referralRequired);
+      case "errors":
+        return state.result.results.filter((r) => r.status === "error");
+      default:
+        return state.result.results;
+    }
+  }, [state, resultFilter]);
+
+  const resultFilterLabel = {
+    all: "all processed cases",
+    urgent: "urgent and high-risk cases",
+    referrals: "cases requiring referral",
+    errors: "processing errors",
+  }[resultFilter];
 
   const isUploading = state.step === "uploading";
 
@@ -586,9 +615,27 @@ export function BatchPageClient() {
           </div>
 
           <BatchActionQueue results={state.result.results} onViewDetail={openDetail} />
-          <BatchStatCards result={state.result} />
+          <BatchStatCards
+            result={state.result}
+            activeFilter={resultFilter}
+            onFilterChange={setResultFilter}
+          />
           <BatchEquityCard results={state.result.results} />
-          <BatchDataTable results={state.result.results} onViewDetail={openDetail} />
+          {resultFilter !== "all" && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
+              <span className="text-muted-foreground">
+                Showing {visibleResults.length} {resultFilterLabel}.
+              </span>
+              <button
+                type="button"
+                onClick={() => setResultFilter("all")}
+                className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
+              >
+                Show all cases
+              </button>
+            </div>
+          )}
+          <BatchDataTable results={visibleResults} onViewDetail={openDetail} />
         </>
       )}
 
@@ -602,6 +649,7 @@ export function BatchPageClient() {
         result={detailResult}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
+        initialFocus={detailFocus}
       />
 
       {/* ── Manual Case Form ──────────────────────────────────────────────── */}

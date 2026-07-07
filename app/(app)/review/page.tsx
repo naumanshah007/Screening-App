@@ -14,6 +14,13 @@ export const dynamic = "force-dynamic";
 
 const REVIEW_QUEUE_LIMIT = 300;
 
+type ReviewFilter = "all" | "review" | "urgent" | "pending" | "accepted" | "rejected" | "needs_info";
+
+type ReviewSearchParams = Promise<{
+  filter?: string;
+  added?: string;
+}>;
+
 const SOURCE_LABELS: Record<string, string> = {
   DEMO: "Demo dataset",
   CSV: "CSV upload",
@@ -30,11 +37,22 @@ function isUrgentClinicalPriority(item: { riskLevel: string; referralPriority: s
   return item.riskLevel === "URGENT" || item.referralPriority === "P1" || item.referralPriority === "P1_HSC";
 }
 
-export default async function ReviewQueuePage() {
+function cleanReviewFilter(value?: string): ReviewFilter {
+  const allowed: ReviewFilter[] = ["all", "review", "urgent", "pending", "accepted", "rejected", "needs_info"];
+  return allowed.includes(value as ReviewFilter) ? (value as ReviewFilter) : "all";
+}
+
+export default async function ReviewQueuePage({
+  searchParams,
+}: {
+  searchParams: ReviewSearchParams;
+}) {
   if (!isFeatureEnabled("batchDemo")) {
     notFound();
   }
 
+  const params = await searchParams;
+  const initialFilter = cleanReviewFilter(params.filter);
   const session = await auth();
   const user = session?.user as { role?: string } | undefined;
   const canReview = hasPermission(user?.role, "cases:grade");
@@ -86,18 +104,18 @@ export default async function ReviewQueuePage() {
       {/* Hero counters */}
       {items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          <div className="rounded-xl border border-border bg-card px-4 py-3">
+          <Link href="/review?filter=pending" className="rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-brand-300/60 hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Inbox className="h-3.5 w-3.5" /> Awaiting review</div>
             <div className="text-2xl font-bold text-foreground mt-0.5">{items.length}</div>
-          </div>
-          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 px-4 py-3">
+          </Link>
+          <Link href="/review?filter=review" className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 px-4 py-3 transition-colors hover:border-amber-300 dark:hover:border-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1">
             <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400"><ShieldAlert className="h-3.5 w-3.5" /> Mandatory clinician review</div>
             <div className="text-2xl font-bold text-amber-700 dark:text-amber-400 mt-0.5">{mandatoryReviewCount}</div>
-          </div>
-          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20 px-4 py-3 hidden sm:block">
+          </Link>
+          <Link href="/review?filter=urgent" className="hidden rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20 px-4 py-3 transition-colors hover:border-red-300 dark:hover:border-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:block">
             <div className="flex items-center gap-1.5 text-xs text-red-700 dark:text-red-400"><ShieldAlert className="h-3.5 w-3.5" /> Urgent clinical priority</div>
             <div className="text-2xl font-bold text-red-700 dark:text-red-400 mt-0.5">{urgentClinicalCount}</div>
-          </div>
+          </Link>
           <div className="rounded-xl border border-border bg-card px-4 py-3 hidden lg:block">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><ClipboardCheck className="h-3.5 w-3.5" /> Your role</div>
             <div className="text-sm font-semibold text-foreground mt-1.5">
@@ -121,7 +139,13 @@ export default async function ReviewQueuePage() {
               Showing the first {REVIEW_QUEUE_LIMIT.toLocaleString()} pending review items. Use intake-session views for targeted review until full pagination is added.
             </div>
           )}
-          <WorklistClient initialItems={items} canReview={canReview} showSource removeCompletedOnAction />
+          <WorklistClient
+            initialItems={items}
+            canReview={canReview}
+            showSource
+            removeCompletedOnAction
+            initialFilter={initialFilter}
+          />
         </>
       )}
 

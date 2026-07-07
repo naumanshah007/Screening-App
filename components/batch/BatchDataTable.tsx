@@ -7,10 +7,11 @@ import { Eye, ArrowUpRight, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
 import { formatFigureLabel, getGuidelineCitation } from "@/lib/batch/guideline-citations";
+import type { BatchResultDetailFocus } from "@/components/batch/BatchResultDetail";
 
 interface BatchDataTableProps {
   results: BatchCaseResult[];
-  onViewDetail: (result: BatchCaseResult) => void;
+  onViewDetail: (result: BatchCaseResult, focus?: BatchResultDetailFocus) => void;
 }
 
 export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
@@ -62,12 +63,14 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
                       {isError ? (
                         <span className="text-red-600 dark:text-red-400">Error</span>
                       ) : (
-                        <span
-                          className="text-xs font-medium text-foreground"
+                        <button
+                          type="button"
+                          onClick={() => onViewDetail(r, "figure")}
+                          className="text-left text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
                           title={getGuidelineCitation(r.decision.figure)?.title}
                         >
                           {formatFigureLabel(r.decision.figure)}
-                        </span>
+                        </button>
                       )}
                     </td>
                     <td className="px-3 py-2.5">
@@ -122,12 +125,20 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
             const isError = r.status === "error";
             const patientId = r.case.source.externalPatientId ?? `ROW-${String(r.case.source.rowNumber).padStart(3, "0")}`;
             return (
-              <button
+              <div
                 key={r.case.caseId}
-                type="button"
                 onClick={() => onViewDetail(r)}
+                onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onViewDetail(r);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
                 className={cn(
-                  "w-full p-4 text-left transition-colors hover:bg-muted/30",
+                  "w-full cursor-pointer p-4 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                   isError && "bg-red-50/30 dark:bg-red-950/10"
                 )}
               >
@@ -151,7 +162,19 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
                       {r.decision.recommendation ?? "—"}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
-                      <span><span className="text-muted-foreground/70">Figure:</span> {formatFigureLabel(r.decision.figure)}</span>
+                      <span>
+                        <span className="text-muted-foreground/70">Figure:</span>{" "}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewDetail(r, "figure");
+                          }}
+                          className="font-medium text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
+                        >
+                          {formatFigureLabel(r.decision.figure)}
+                        </button>
+                      </span>
                       {r.decision.nextAction && (
                         <span className="truncate"><span className="text-muted-foreground/70">Next:</span> {r.decision.nextAction}</span>
                       )}
@@ -168,7 +191,7 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
                 <span className="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-accent-color">
                   <Eye className="h-3.5 w-3.5" /> View detail
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>

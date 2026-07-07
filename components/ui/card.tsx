@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface CardProps { className?: string; children: React.ReactNode; onClick?: () => void; }
@@ -43,6 +44,7 @@ interface StatCardProps {
   icon?: React.ReactNode;
   href?: string;
   onClick?: () => void;
+  active?: boolean;
 }
 
 const statTopBar: Record<string, string> = {
@@ -63,7 +65,7 @@ const statIconChip: Record<string, string> = {
 
 export function StatCard({
   label, value, subtext, delta, deltaDirection = "neutral",
-  variant = "default", icon, onClick,
+  variant = "default", icon, href, onClick, active = false,
 }: StatCardProps) {
   const deltaColor = {
     up:      "text-success",
@@ -72,10 +74,14 @@ export function StatCard({
   }[deltaDirection];
   const deltaIcon = { up: "↑", down: "↓", neutral: "" }[deltaDirection];
 
-  return (
+  const card = (
     <Card
-      className={cn("group relative overflow-hidden hover-lift", onClick && "cursor-pointer")}
-      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden hover-lift",
+        (href || onClick) && "cursor-pointer",
+        active && "border-brand-300 ring-2 ring-brand-500/20"
+      )}
+      onClick={href ? undefined : onClick}
     >
       {/* Variant-colored gradient hairline along the top edge */}
       <span
@@ -110,4 +116,18 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+        aria-label={`View ${label}`}
+      >
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
 }

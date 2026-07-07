@@ -68,7 +68,7 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
         {/* Desktop CTAs */}
         <div className="hidden items-center gap-2.5 lg:flex">
           <Link
-            href={authed ? "/dashboard" : "/login"}
+            href="/dashboard"
             className="group inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-4 py-2 text-sm font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)] transition-transform hover:-translate-y-0.5"
           >
             {authed ? "Dashboard" : "Sign in"}
@@ -106,7 +106,7 @@ export function MarketingNav({ authed = false }: { authed?: boolean }) {
             </div>
             <div className="mt-4 flex flex-col gap-2.5">
               <Link
-                href={authed ? "/dashboard" : "/login"}
+                href="/dashboard"
                 onClick={() => setOpen(false)}
                 className="group inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 px-4 py-3 text-sm font-semibold text-[#06121f] shadow-[0_8px_30px_-6px_rgba(34,211,238,0.5)]"
               >
