@@ -14,14 +14,6 @@ interface BatchUploaderProps {
 }
 
 const ACCEPTED_TYPES = [".csv", ".xlsx", ".xls", ".json"];
-const ACCEPTED_MIME = [
-  "text/csv",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-excel",
-  "application/json",
-  "text/plain",
-];
-
 function FileIcon({ ext }: { ext: string }) {
   if (ext === "xlsx" || ext === "xls") return <FileSpreadsheet className="h-5 w-5 text-emerald-600" />;
   if (ext === "csv") return <FileText className="h-5 w-5 text-blue-600" />;
@@ -33,7 +25,7 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState("");
 
-  function validateAndLoad(file: File) {
+  const validateAndLoad = useCallback((file: File) => {
     setFileError("");
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (!ACCEPTED_TYPES.includes(`.${ext}`)) {
@@ -45,7 +37,7 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
       return;
     }
     onFileLoad(file);
-  }
+  }, [onFileLoad]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -54,7 +46,7 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
       const file = e.dataTransfer.files[0];
       if (file) validateAndLoad(file);
     },
-    [onFileLoad]
+    [validateAndLoad]
   );
 
   const onInputChange = useCallback(
@@ -64,7 +56,7 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
       // Reset input so the same file can be re-selected
       if (inputRef.current) inputRef.current.value = "";
     },
-    [onFileLoad]
+    [validateAndLoad]
   );
 
   return (
@@ -188,7 +180,7 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
 
         {/* Download template */}
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 pt-1 text-center">
-          <span className="text-xs text-muted-foreground">Don't have data? Download a template:</span>
+          <span className="text-xs text-muted-foreground">Don&apos;t have data? Download a template:</span>
           <div className="flex items-center gap-2">
             <a
               href="/templates/batch-upload-template.xlsx"

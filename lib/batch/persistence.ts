@@ -1,0 +1,371 @@
+/**
+ * Batch Persistence + Review Worklist
+ *
+ * Bridges the in-memory batch decision engine to a persisted reviewer queue.
+ *
+ * Before this, a batch run computed recommendations and threw them away.
+ * Now a run is saved as a BatchRun + BatchReviewItem[], so a reviewer can
+ * open the worklist, see every pre-graded case with its full picture, and
+ * bulk accept / reject / mark-for-info — with an audit trail on every action.
+ *
+ * The input is a `BatchProcessingResult` (see lib/batch/processor.ts), which is
+ * source-agnostic: it looks the same whether the rows came from a CSV upload,
+ * an HL7v2 lab feed, or an ERMS eReferral. Only the `source` enum differs.
+ */
+
+import type { Prisma, BatchReviewDisposition } from "@prisma/client";
+
+import { prisma } from "@/lib/prisma";
+import type {
+  BatchProcessingResult,
+  BatchCaseResult,
+  SourceType,
+} from "@/lib/batch/types";
+
+// ─── Source mapping ───────────────────────────────────────────────────────────
+
+const SOURCE_TYPE_TO_ENUM: Record<SourceType, Prisma.BatchRunCreateInput["source"]> = {
+  demo: "DEMO",
+  csv: "CSV",
+  xlsx: "XLSX",
+  json: "JSON",
+  manual: "MANUAL",
+  hl7: "HL7",
+  fhir: "FHIR",
+  erms: "ERMS",
+  "health-nz": "HEALTH_NZ",
+};
+
+function mapSourceType(sourceType: SourceType): Prisma.BatchRunCreateInput["source"] {
+  return SOURCE_TYPE_TO_ENUM[sourceType] ?? "MANUAL";
+}
+
+/**
+ * Whether the engine refused to silently auto-decide this case. These are the
+ * cases a reviewer MUST open — the rest can usually be bulk-accepted.
+ */
+export function isReviewRequired(item: BatchCaseResult): boolean {
+  if (item.status === "error") return true;
+  const d = item.decision;
+  if (d.safetyOutcome) return true; // INSUFFICIENT_INFORMATION / EXTERNAL_HISTORY_REQUIRED / CLINICIAN_REVIEW_REQUIRED
+  if (d.validationStatus && d.validationStatus !== "IMPLEMENTED") return true;
+  if ((d.missingInformation?.length ?? 0) > 0) return true;
+  if ((d.externalDependencies?.length ?? 0) > 0) return true;
+  return false;
+}
+
+// ─── Includes ─────────────────────────────────────────────────────────────────
+
+const reviewerSelect = {
+  select: { id: true, name: true, email: true, role: true },
+} satisfies Prisma.UserDefaultArgs;
+
+const batchRunListInclude = {
+  createdBy: reviewerSelect,
+} satisfies Prisma.BatchRunInclude;
+
+const batchRunDetailInclude = {
+  createdBy: reviewerSelect,
+  items: {
+    orderBy: [{ reviewRequired: "desc" }, { rowNumber: "asc" }],
+    include: { reviewedBy: reviewerSelect },
+  },
+} satisfies Prisma.BatchRunInclude;
+
+export type BatchRunListRecord = Prisma.BatchRunGetPayload<{
+  include: typeof batchRunListInclude;
+}>;
+
+export type BatchRunDetailRecord = Prisma.BatchRunGetPayload<{
+  include: typeof batchRunDetailInclude;
+}>;
+
+export type BatchReviewItemRecord = BatchRunDetailRecord["items"][number];
+
+// ─── Save a run ────────────────────────────────────────────────────────────────
+
+export async function saveBatchRun(args: {
+  result: BatchProcessingResult;
+  actorUserId: string;
+  sourceSystem?: string;
+}): Promise<BatchRunDetailRecord> {
+  const { result, actorUserId } = args;
+
+  const reviewRequiredCount = result.results.filter(isReviewRequired).length;
+
+  const itemData: Prisma.BatchReviewItemCreateWithoutBatchRunInput[] =
+    result.results.map((item) => {
+      const c = item.case;
+      const d = item.decision;
+      return {
+        rowNumber: c.source.rowNumber,
+        label: c.label ?? null,
+        externalPatientId: c.source.externalPatientId ?? null,
+        patientAge: c.patientAge ?? null,
+        ethnicityPrimary: c.ethnicityPrimary ?? null,
+        patientName: c.patientName ?? null,
+        nhi: c.nhi ?? c.source.externalPatientId ?? null,
+        gpPractice: c.gpPractice ?? null,
+        receivedDate: c.receivedDate ? new Date(c.receivedDate) : null,
+        figure: d.figure,
+        riskLevel: d.riskLevel,
+        recommendationCode: d.recommendationCode,
+        recommendation: d.recommendation,
+        referralPriority: d.referralPriority ?? null,
+        referralType: d.referralType ?? null,
+        safetyOutcome: d.safetyOutcome ?? null,
+        reviewRequired: isReviewRequired(item),
+        engineStatus: item.status,
+        caseJson: JSON.stringify(c),
+        inputJson: JSON.stringify(item.input),
+        decisionJson: JSON.stringify(d),
+      };
+    });
+
+  const run = await prisma.batchRun.create({
+    data: {
+      source: mapSourceType(result.sourceType),
+      sourceSystem: args.sourceSystem ?? null,
+      sourceFileName: result.sourceFileName ?? null,
+      engineVersion: result.engineVersion,
+      totalCases: result.results.length,
+      pendingCount: result.results.length,
+      reviewRequiredCount,
+      createdByUserId: actorUserId,
+      items: { create: itemData },
+    },
+    include: batchRunDetailInclude,
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: actorUserId,
+      action: "CREATE",
+      entity: "BatchRun",
+      entityId: run.id,
+      newValue: JSON.stringify({
+        source: run.source,
+        sourceSystem: run.sourceSystem,
+        sourceFileName: run.sourceFileName,
+        engineVersion: run.engineVersion,
+        totalCases: run.totalCases,
+        reviewRequiredCount: run.reviewRequiredCount,
+      }),
+    },
+  });
+
+  return run;
+}
+
+// ─── Read ───────────────────────────────────────────────────────────────────
+
+export async function listBatchRuns(limit = 50): Promise<BatchRunListRecord[]> {
+  return prisma.batchRun.findMany({
+    include: batchRunListInclude,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+}
+
+export async function getBatchRunWithItems(
+  id: string
+): Promise<BatchRunDetailRecord | null> {
+  return prisma.batchRun.findUnique({
+    where: { id },
+    include: batchRunDetailInclude,
+  });
+}
+
+/** Reconstruct the BatchCaseResult shape from a stored item for the drill-in UI. */
+export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCaseResult {
+  return {
+    case: JSON.parse(item.caseJson),
+    input: JSON.parse(item.inputJson),
+    decision: JSON.parse(item.decisionJson),
+    processingTimeMs: 0,
+    status: item.engineStatus === "error" ? "error" : "success",
+    error: undefined,
+  };
+}
+
+// ─── Review queue (aggregate, across all runs) ────────────────────────────────
+
+const reviewQueueInclude = {
+  reviewedBy: reviewerSelect,
+  batchRun: {
+    select: { id: true, source: true, sourceSystem: true, sourceFileName: true },
+  },
+} satisfies Prisma.BatchReviewItemInclude;
+
+export type ReviewQueueItemRecord = Prisma.BatchReviewItemGetPayload<{
+  include: typeof reviewQueueInclude;
+}>;
+
+const RISK_RANK: Record<string, number> = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+
+/**
+ * Every case still awaiting a reviewer decision, across all runs — the single
+ * destination a reviewer opens. Sorted so the most clinically pressing surface
+ * first: engine-flagged review-required, then by risk, then most recent.
+ */
+export async function getReviewQueue(limit = 300): Promise<ReviewQueueItemRecord[]> {
+  const items = await prisma.batchReviewItem.findMany({
+    where: { disposition: "PENDING" },
+    include: reviewQueueInclude,
+    take: limit,
+  });
+
+  return items.sort((a, b) => {
+    if (a.reviewRequired !== b.reviewRequired) return a.reviewRequired ? -1 : 1;
+    const rank = (RISK_RANK[a.riskLevel] ?? 9) - (RISK_RANK[b.riskLevel] ?? 9);
+    if (rank !== 0) return rank;
+    const ad = a.receivedDate?.getTime() ?? a.createdAt.getTime();
+    const bd = b.receivedDate?.getTime() ?? b.createdAt.getTime();
+    return bd - ad;
+  });
+}
+
+/** Lightweight counts for the sidebar badge. */
+export async function getReviewQueueCounts(): Promise<{ pending: number; urgent: number }> {
+  const [pending, urgent] = await Promise.all([
+    prisma.batchReviewItem.count({ where: { disposition: "PENDING" } }),
+    prisma.batchReviewItem.count({ where: { disposition: "PENDING", reviewRequired: true } }),
+  ]);
+  return { pending, urgent };
+}
+
+// ─── Review (bulk disposition) ────────────────────────────────────────────────
+
+export class BatchReviewError extends Error {}
+
+async function recomputeRunCounts(
+  tx: Prisma.TransactionClient,
+  runId: string
+) {
+  const grouped = await tx.batchReviewItem.groupBy({
+    by: ["disposition"],
+    where: { batchRunId: runId },
+    _count: { _all: true },
+  });
+  const counts: Record<BatchReviewDisposition, number> = {
+    PENDING: 0,
+    ACCEPTED: 0,
+    REJECTED: 0,
+    NEEDS_INFO: 0,
+  };
+  for (const g of grouped) counts[g.disposition] = g._count._all;
+  await tx.batchRun.update({
+    where: { id: runId },
+    data: {
+      pendingCount: counts.PENDING,
+      acceptedCount: counts.ACCEPTED,
+      rejectedCount: counts.REJECTED,
+      needsInfoCount: counts.NEEDS_INFO,
+    },
+  });
+}
+
+/**
+ * Run-agnostic bulk disposition. Items may span multiple runs (the aggregate
+ * Review Queue); counts are recomputed for every affected run. Returns how many
+ * items were updated.
+ */
+export async function applyDisposition(args: {
+  itemIds: string[];
+  disposition: Exclude<BatchReviewDisposition, "PENDING">;
+  reviewedByUserId: string;
+  note?: string | null;
+  overrideReason?: string | null;
+}): Promise<{ updated: number; affectedRuns: number }> {
+  const { disposition, reviewedByUserId } = args;
+
+  if (args.itemIds.length === 0) {
+    throw new BatchReviewError("No items selected for review.");
+  }
+
+  // A rejection must carry a reason — it's a clinical decision to NOT proceed
+  // on a pre-graded case, and must be defensible in the audit trail.
+  const note = args.note?.trim() || null;
+  const overrideReason = args.overrideReason?.trim() || null;
+  if (disposition === "REJECTED" && !overrideReason && !note) {
+    throw new BatchReviewError("A reason is required when rejecting cases.");
+  }
+
+  const items = await prisma.batchReviewItem.findMany({
+    where: { id: { in: args.itemIds } },
+    select: { id: true, batchRunId: true },
+  });
+  if (items.length === 0) {
+    throw new BatchReviewError("No matching cases found.");
+  }
+  const validIds = items.map((i) => i.id);
+  const runIds = Array.from(new Set(items.map((i) => i.batchRunId)));
+
+  await prisma.$transaction(async (tx) => {
+    await tx.batchReviewItem.updateMany({
+      where: { id: { in: validIds } },
+      data: {
+        disposition,
+        reviewedByUserId,
+        reviewedAt: new Date(),
+        reviewNote: note,
+        overrideReason,
+      },
+    });
+
+    for (const runId of runIds) {
+      await recomputeRunCounts(tx, runId);
+    }
+
+    await tx.auditLog.create({
+      data: {
+        userId: reviewedByUserId,
+        action: "REVIEW",
+        entity: "BatchReviewItem",
+        entityId: runIds[0],
+        newValue: JSON.stringify({
+          runIds,
+          disposition,
+          itemCount: validIds.length,
+          itemIds: validIds,
+          note,
+          overrideReason,
+        }),
+      },
+    });
+  });
+
+  return { updated: validIds.length, affectedRuns: runIds.length };
+}
+
+/** Per-run bulk disposition (validates membership), returns the updated run. */
+export async function reviewBatchItems(args: {
+  runId: string;
+  itemIds: string[];
+  disposition: Exclude<BatchReviewDisposition, "PENDING">;
+  reviewedByUserId: string;
+  note?: string | null;
+  overrideReason?: string | null;
+}): Promise<BatchRunDetailRecord> {
+  const members = await prisma.batchReviewItem.findMany({
+    where: { id: { in: args.itemIds }, batchRunId: args.runId },
+    select: { id: true },
+  });
+  if (members.length === 0) {
+    throw new BatchReviewError("None of the selected items belong to this run.");
+  }
+
+  await applyDisposition({
+    itemIds: members.map((m) => m.id),
+    disposition: args.disposition,
+    reviewedByUserId: args.reviewedByUserId,
+    note: args.note,
+    overrideReason: args.overrideReason,
+  });
+
+  const updated = await getBatchRunWithItems(args.runId);
+  if (!updated) {
+    throw new BatchReviewError("Batch run disappeared during review.");
+  }
+  return updated;
+}

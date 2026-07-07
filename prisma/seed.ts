@@ -936,13 +936,13 @@ async function main() {
       summaryJson: JSON.stringify({
         sections: [
           { id: "referral", title: "Referral overview", bullets: ["Demo clinician override case.", "HPV 16/18 detected with negative cytology."] },
-          { id: "decision", title: "Decision context", bullets: ["System generated a P2 provisional recommendation.", "Clinician changed the final decision and recorded an override reason."] },
+          { id: "decision", title: "Decision context", bullets: ["A P2 provisional recommendation was generated for reviewer confirmation.", "Clinician changed the final decision and recorded an override reason."] },
         ],
         warnings: ["Override is seeded for demonstration of auditable clinician control."],
         nextActions: ["Review override reason and booking/SLA panel."],
         generatedBy: "seeded demo summary",
       }),
-      renderedMarkdown: "## Referral Overview\nDemo clinician override case. HPV 16/18 detected with negative cytology.\n\n## Decision Context\n- Provisional system recommendation differs from final clinician decision\n- Override reason is documented for audit",
+      renderedMarkdown: "## Referral Overview\nDemo clinician override case. HPV 16/18 detected with negative cytology.\n\n## Decision Context\n- Provisional recommendation differs from final clinician decision\n- Override reason is documented for audit",
       generatedBy: "summary-engine-v1",
       approvedByUserId: cnsId,
       approvedAt: daysAgo(3),

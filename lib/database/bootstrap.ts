@@ -10,6 +10,12 @@ import {
 
 // Cleared on failure so the next request retries rather than re-throwing a stale rejected promise.
 let bootstrapPromise: Promise<void> | null = null;
+const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
+
+function readBooleanEnv(name: string) {
+  const raw = process.env[name];
+  return Boolean(raw && TRUE_ENV_VALUES.has(raw.trim().toLowerCase()));
+}
 
 function shouldBootstrapDatabase(url: string) {
   // Explicit opt-in (set on Vercel for the demo deployment)
@@ -18,6 +24,20 @@ function shouldBootstrapDatabase(url: string) {
   }
   // Legacy fallback: auto-bootstrap local SQLite file on Vercel
   return process.env.VERCEL === "1" && url.startsWith("file:") && !isRemoteLibSqlUrl(url);
+}
+
+function shouldApplySchemaPatches(url: string) {
+  if (shouldBootstrapDatabase(url)) {
+    return true;
+  }
+
+  // Vercel demo deployments may point at a persistent libSQL/Turso database.
+  // Keep those databases compatible with the checked-in Prisma schema without
+  // reseeding demo users unless BOOTSTRAP_DEMO_DB is explicitly enabled.
+  return (
+    readBooleanEnv("ENABLE_BATCH_DEMO") &&
+    (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")
+  );
 }
 
 function splitSqlStatements(sql: string) {
@@ -59,6 +79,18 @@ async function getTableColumns(
   return new Set(result.rows.map((row) => String(row.name)));
 }
 
+async function tableExists(
+  client: ReturnType<typeof createClient>,
+  tableName: string
+) {
+  const result = await client.execute({
+    sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+    args: [tableName],
+  });
+
+  return result.rows.length > 0;
+}
+
 async function addColumnIfMissing(
   client: ReturnType<typeof createClient>,
   tableName: string,
@@ -72,6 +104,145 @@ async function addColumnIfMissing(
 
   await client.execute(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${definition}`);
   columns.add(columnName);
+}
+
+async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "BatchRun" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "source" TEXT NOT NULL,
+      "sourceSystem" TEXT,
+      "sourceFileName" TEXT,
+      "engineVersion" TEXT NOT NULL,
+      "totalCases" INTEGER NOT NULL,
+      "pendingCount" INTEGER NOT NULL DEFAULT 0,
+      "acceptedCount" INTEGER NOT NULL DEFAULT 0,
+      "rejectedCount" INTEGER NOT NULL DEFAULT 0,
+      "needsInfoCount" INTEGER NOT NULL DEFAULT 0,
+      "reviewRequiredCount" INTEGER NOT NULL DEFAULT 0,
+      "createdByUserId" TEXT NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "BatchRun_createdByUserId_fkey"
+        FOREIGN KEY ("createdByUserId") REFERENCES "User" ("id")
+        ON DELETE RESTRICT ON UPDATE CASCADE
+    )
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "BatchReviewItem" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "batchRunId" TEXT NOT NULL,
+      "rowNumber" INTEGER NOT NULL,
+      "label" TEXT,
+      "externalPatientId" TEXT,
+      "patientAge" INTEGER,
+      "ethnicityPrimary" TEXT,
+      "patientName" TEXT,
+      "nhi" TEXT,
+      "gpPractice" TEXT,
+      "receivedDate" DATETIME,
+      "figure" TEXT NOT NULL,
+      "riskLevel" TEXT NOT NULL,
+      "recommendationCode" TEXT NOT NULL,
+      "recommendation" TEXT NOT NULL,
+      "referralPriority" TEXT,
+      "referralType" TEXT,
+      "safetyOutcome" TEXT,
+      "reviewRequired" BOOLEAN NOT NULL DEFAULT false,
+      "engineStatus" TEXT NOT NULL DEFAULT 'success',
+      "caseJson" TEXT NOT NULL,
+      "inputJson" TEXT NOT NULL,
+      "decisionJson" TEXT NOT NULL,
+      "disposition" TEXT NOT NULL DEFAULT 'PENDING',
+      "reviewedByUserId" TEXT,
+      "reviewedAt" DATETIME,
+      "reviewNote" TEXT,
+      "overrideReason" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "BatchReviewItem_batchRunId_fkey"
+        FOREIGN KEY ("batchRunId") REFERENCES "BatchRun" ("id")
+        ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT "BatchReviewItem_reviewedByUserId_fkey"
+        FOREIGN KEY ("reviewedByUserId") REFERENCES "User" ("id")
+        ON DELETE SET NULL ON UPDATE CASCADE
+    )
+  `);
+
+  const batchRunColumns = await getTableColumns(client, "BatchRun");
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "reviewRequiredCount",
+    "INTEGER NOT NULL DEFAULT 0"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "sourceSystem",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "sourceFileName",
+    "TEXT"
+  );
+
+  const batchReviewColumns = await getTableColumns(client, "BatchReviewItem");
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "patientName",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "nhi",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "gpPractice",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "receivedDate",
+    "DATETIME"
+  );
+
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "BatchRun_createdByUserId_createdAt_idx"
+     ON "BatchRun"("createdByUserId", "createdAt")`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "BatchRun_source_createdAt_idx"
+     ON "BatchRun"("source", "createdAt")`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "BatchReviewItem_batchRunId_disposition_idx"
+     ON "BatchReviewItem"("batchRunId", "disposition")`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "BatchReviewItem_batchRunId_reviewRequired_idx"
+     ON "BatchReviewItem"("batchRunId", "reviewRequired")`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "BatchReviewItem_reviewedByUserId_reviewedAt_idx"
+     ON "BatchReviewItem"("reviewedByUserId", "reviewedAt")`
+  );
 }
 
 async function applyCompatibilityPatches(url: string) {
@@ -133,6 +304,10 @@ async function applyCompatibilityPatches(url: string) {
       "sessionId",
       "TEXT"
     );
+
+    if (await tableExists(client, "User")) {
+      await applyBatchSchemaPatches(client);
+    }
   } finally {
     client.close();
   }
@@ -387,7 +562,9 @@ async function databaseHasSchema(url: string) {
 
 export async function ensureDatabaseReady() {
   const url = resolveDatabaseUrl();
-  if (!shouldBootstrapDatabase(url)) {
+  const fullBootstrap = shouldBootstrapDatabase(url);
+
+  if (!shouldApplySchemaPatches(url)) {
     return;
   }
 
@@ -397,8 +574,10 @@ export async function ensureDatabaseReady() {
         await applyCurrentSchema(url);
       }
       await applyCompatibilityPatches(url);
-      await seedDemoUsers(url);
-      await seedDemoPatients(url);
+      if (fullBootstrap) {
+        await seedDemoUsers(url);
+        await seedDemoPatients(url);
+      }
     })().catch((err) => {
       // Clear so the next request retries from scratch
       bootstrapPromise = null;

@@ -113,7 +113,7 @@ export function GynaecologyGradeWorkbenchForm({
       <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
         Use this workbench to confirm the core grading context first: what condition this is,
         whether ultrasound support is available, and whether the case needs escalation or SMO
-        review. Save here, then run the system recommendation.
+        review. Save here, then run the provisional recommendation.
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -296,7 +296,7 @@ export function GynaecologyGradeWorkbenchForm({
           Save gynaecology workbench
         </Button>
         <span className="text-sm text-muted-foreground">
-          After saving, re-run the system recommendation if the grading context changed.
+          After saving, re-run the provisional recommendation if the grading context changed.
         </span>
       </div>
 

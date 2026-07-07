@@ -574,6 +574,61 @@ CREATE TABLE "AIRecommendation" (
     CONSTRAINT "AIRecommendation_caseId_fkey" FOREIGN KEY ("caseId") REFERENCES "ReferralCase" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "BatchRun" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "source" TEXT NOT NULL,
+    "sourceSystem" TEXT,
+    "sourceFileName" TEXT,
+    "engineVersion" TEXT NOT NULL,
+    "totalCases" INTEGER NOT NULL,
+    "pendingCount" INTEGER NOT NULL DEFAULT 0,
+    "acceptedCount" INTEGER NOT NULL DEFAULT 0,
+    "rejectedCount" INTEGER NOT NULL DEFAULT 0,
+    "needsInfoCount" INTEGER NOT NULL DEFAULT 0,
+    "reviewRequiredCount" INTEGER NOT NULL DEFAULT 0,
+    "createdByUserId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "BatchRun_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "BatchReviewItem" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "batchRunId" TEXT NOT NULL,
+    "rowNumber" INTEGER NOT NULL,
+    "label" TEXT,
+    "externalPatientId" TEXT,
+    "patientAge" INTEGER,
+    "ethnicityPrimary" TEXT,
+    "patientName" TEXT,
+    "nhi" TEXT,
+    "gpPractice" TEXT,
+    "receivedDate" DATETIME,
+    "figure" TEXT NOT NULL,
+    "riskLevel" TEXT NOT NULL,
+    "recommendationCode" TEXT NOT NULL,
+    "recommendation" TEXT NOT NULL,
+    "referralPriority" TEXT,
+    "referralType" TEXT,
+    "safetyOutcome" TEXT,
+    "reviewRequired" BOOLEAN NOT NULL DEFAULT false,
+    "engineStatus" TEXT NOT NULL DEFAULT 'success',
+    "caseJson" TEXT NOT NULL,
+    "inputJson" TEXT NOT NULL,
+    "decisionJson" TEXT NOT NULL,
+    "disposition" TEXT NOT NULL DEFAULT 'PENDING',
+    "reviewedByUserId" TEXT,
+    "reviewedAt" DATETIME,
+    "reviewNote" TEXT,
+    "overrideReason" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "BatchReviewItem_batchRunId_fkey" FOREIGN KEY ("batchRunId") REFERENCES "BatchRun" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "BatchReviewItem_reviewedByUserId_fkey" FOREIGN KEY ("reviewedByUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -753,6 +808,21 @@ CREATE INDEX "PatientConsent_patientId_purpose_status_idx" ON "PatientConsent"("
 
 -- CreateIndex
 CREATE INDEX "PatientConsent_status_expiresAt_idx" ON "PatientConsent"("status", "expiresAt");
+
+-- CreateIndex
+CREATE INDEX "BatchRun_createdByUserId_createdAt_idx" ON "BatchRun"("createdByUserId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "BatchRun_source_createdAt_idx" ON "BatchRun"("source", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "BatchReviewItem_batchRunId_disposition_idx" ON "BatchReviewItem"("batchRunId", "disposition");
+
+-- CreateIndex
+CREATE INDEX "BatchReviewItem_batchRunId_reviewRequired_idx" ON "BatchReviewItem"("batchRunId", "reviewRequired");
+
+-- CreateIndex
+CREATE INDEX "BatchReviewItem_reviewedByUserId_reviewedAt_idx" ON "BatchReviewItem"("reviewedByUserId", "reviewedAt");
 
 -- CreateIndex
 CREATE INDEX "AIRecommendation_caseId_createdAt_idx" ON "AIRecommendation"("caseId", "createdAt");

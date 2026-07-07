@@ -122,7 +122,7 @@ const PIPELINE = [
 ];
 
 const PRODUCTS = [
-  { icon: Layers, title: "Batch Decision Support", body: "Process many cases at once into provisional recommendations, prioritised for the reviewer.", status: "live" as const, statusLabel: "Live in demo", accent: "from-cyan-400 to-sky-500" },
+  { icon: Layers, title: "Case Intake", body: "Pull many cases at once into provisional recommendations, prioritised for the reviewer.", status: "live" as const, statusLabel: "Live in demo", accent: "from-cyan-400 to-sky-500" },
   { icon: Stethoscope, title: "Manual Pathway", body: "Step a single case through the guideline pathway, question by question.", status: "live" as const, statusLabel: "Live", accent: "from-teal-400 to-emerald-500" },
   { icon: ShieldCheck, title: "Validation & Data Quality", body: "NHI, enum and cross-field consistency checks, with suggested fixes before processing.", status: "live" as const, statusLabel: "Live", accent: "from-emerald-400 to-teal-500" },
   { icon: Users, title: "Equity Analytics", body: "Outcomes disaggregated by ethnicity in NZ Level-1 priority order.", status: "live" as const, statusLabel: "Live", accent: "from-violet-400 to-fuchsia-500" },
@@ -141,7 +141,7 @@ const GOVERNANCE = [
 
 const AUDIENCES = [
   { role: "CMO / Clinical Director", body: "Confidence that recommendations are guideline-aligned and reviewer-gated." },
-  { role: "Screening Coordinator", body: "A clear, prioritised worklist with provisional recommendations for review." },
+  { role: "Screening Coordinator", body: "A clear, prioritised Review Queue with provisional recommendations for clinician confirmation." },
   { role: "CIO / Integration Lead", body: "An adapter architecture with server-side credentials and one clean data contract." },
   { role: "Quality & Safety", body: "Full source-to-decision traceability and a per-import audit trail." },
   { role: "Equity Lead", body: "Outcomes disaggregated by ethnicity, visible from day one." },
@@ -380,7 +380,7 @@ export function LandingPage({ authed = false }: { authed?: boolean }) {
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Platform</h3>
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {[
-                    ["Batch decision support", "live"],
+                    ["Case intake", "live"],
                     ["Manual pathway", "live"],
                     ["Validation & data quality", "live"],
                     ["Equity analytics", "live"],

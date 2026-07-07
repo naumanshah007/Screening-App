@@ -8,7 +8,7 @@
  * (renders immediately, no transform).
  */
 
-import { createElement, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface RevealProps {
   children: React.ReactNode;
@@ -21,6 +21,9 @@ interface RevealProps {
 export function Reveal({ children, className, delay = 0, as = "div" }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);
   const [shown, setShown] = useState(false);
+  const setElement = useCallback((node: HTMLElement | null) => {
+    ref.current = node;
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
@@ -30,8 +33,8 @@ export function Reveal({ children, className, delay = 0, as = "div" }: RevealPro
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
-      setShown(true);
-      return;
+      const frame = requestAnimationFrame(() => setShown(true));
+      return () => cancelAnimationFrame(frame);
     }
 
     const io = new IntersectionObserver(
@@ -49,18 +52,21 @@ export function Reveal({ children, className, delay = 0, as = "div" }: RevealPro
     return () => io.disconnect();
   }, []);
 
-  return createElement(
-    as,
-    {
-      ref,
-      className,
-      style: {
-        opacity: shown ? 1 : 0,
-        transform: shown ? "translateY(0)" : "translateY(24px)",
-        transition: `opacity 700ms cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 700ms cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
-        willChange: "opacity, transform",
-      },
-    },
-    children
-  );
+  const style = {
+    opacity: shown ? 1 : 0,
+    transform: shown ? "translateY(0)" : "translateY(24px)",
+    transition: `opacity 700ms cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 700ms cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
+    willChange: "opacity, transform",
+  };
+
+  if (as === "section") {
+    return <section ref={setElement} className={className} style={style}>{children}</section>;
+  }
+  if (as === "li") {
+    return <li ref={setElement} className={className} style={style}>{children}</li>;
+  }
+  if (as === "article") {
+    return <article ref={setElement} className={className} style={style}>{children}</article>;
+  }
+  return <div ref={setElement} className={className} style={style}>{children}</div>;
 }

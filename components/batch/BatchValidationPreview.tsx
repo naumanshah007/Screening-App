@@ -191,14 +191,14 @@ export function BatchValidationPreview({
   const hasRowActions = !!(onEditCase || onDuplicateCase || onDeleteCase);
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         {/* Title + source info */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2.5">
             <Database className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div>
-              <CardTitle>Input Dataset</CardTitle>
+              <CardTitle>Pulled Cases</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {cases.length} record{cases.length !== 1 ? "s" : ""} · source:{" "}
                 <strong>{sourceSystem}</strong>{" "}
@@ -224,7 +224,7 @@ export function BatchValidationPreview({
         <div className="flex items-center justify-between gap-3 mt-1 flex-wrap">
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              Select records to generate provisional recommendations. Invalid rows cannot be processed.
+              Select records to prepare for the Review Queue. Invalid rows cannot be processed.
             </p>
             {onAddManual && (
               <Button
@@ -248,7 +248,7 @@ export function BatchValidationPreview({
               disabled={selectedCount === 0 || processing}
               loading={processing}
             >
-              Process {selectedCount} Row{selectedCount !== 1 ? "s" : ""} for Reviewer
+              Prepare {selectedCount} for Review Queue
             </Button>
           </div>
         </div>
@@ -256,8 +256,8 @@ export function BatchValidationPreview({
 
       <CardContent className="p-0">
         {/* ── Desktop / tablet: full table (md+) ── */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm min-w-[900px]">
+        <div className="hidden max-w-full overflow-x-auto overscroll-x-contain md:block">
+          <table className="min-w-[980px] w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30 text-left">
                 <th className="px-4 py-2.5 w-10">

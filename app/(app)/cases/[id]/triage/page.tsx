@@ -245,7 +245,7 @@ export default async function TriagePage({
                   <div className="flex items-center justify-between gap-3">
                     <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide font-semibold flex items-center gap-1.5">
                       <GitBranch className="h-3.5 w-3.5" />
-                      System Recommendation
+                      Provisional Recommendation
                     </CardTitle>
                     {ruleDecision?.ruleSetRelease && (
                       <span className="text-xs text-muted-foreground">
@@ -270,7 +270,7 @@ export default async function TriagePage({
                     <p className="text-sm text-muted-foreground">{recommendation.outcome}</p>
                   )}
                   <div className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
-                    The system recommendation is a first pass based on the approved summary,
+                    The provisional recommendation is a first pass based on the approved summary,
                     attached evidence, structured triage fields, and current guideline rules. A
                     clinician still confirms the final outcome.
                   </div>
@@ -309,7 +309,7 @@ export default async function TriagePage({
                 <CardContent className="py-5 flex items-center gap-3 text-sm text-muted-foreground">
                   <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span>
-                    No system recommendation yet.{" "}
+                    No provisional recommendation yet.{" "}
                     {!summaryApproved
                       ? "Approve the clinical summary first, then evaluate rules."
                       : "Use the 'Evaluate Rules' button above to generate the first recommendation."}

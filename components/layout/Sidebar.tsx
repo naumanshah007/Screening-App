@@ -5,18 +5,18 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, GitBranch, BookOpen,
-  BarChart2, Activity, Shield, Settings, UserCog, FileSearch,
+  BarChart2, Activity, Settings, FileSearch,
   Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight,
-  Menu, X, Database,
+  Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getDefaultAppRouteForRole, isAuthorizedForRoute } from "@/lib/auth/permissions";
-import { getWorkspaceContext } from "@/lib/workspace/context";
+import { getDefaultAppRouteForRole, isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { ThemeToggle } from "./ThemeToggle";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-type NavLink = { href: string; label: string; icon: React.ElementType };
+type NavBadge = { count: number; urgent: boolean };
+type NavLink = { href: string; label: string; icon: React.ElementType; badge?: NavBadge };
 type NavSection = { id: string; label: string; links: NavLink[] };
 
 const ICONS: Record<string, React.ElementType> = {
@@ -33,79 +33,91 @@ const ICONS: Record<string, React.ElementType> = {
   "/admin":      Settings,
   "/audit":      FileSearch,
   "/batch":      Database,
+  "/batch/runs": ClipboardCheck,
+  "/review":     Inbox,
+  "/decisions":  FileCheck2,
 };
 
 function getIcon(href: string): React.ElementType {
   return ICONS[href] ?? LayoutDashboard;
 }
 
-function buildSidebarSections(args: { userRole?: string; showCases: boolean; showBatch: boolean }): NavSection[] {
-  const { userRole, showCases, showBatch } = args;
+function buildSidebarSections(args: {
+  userRole?: string;
+  showCases: boolean;
+  showBatch: boolean;
+  reviewPending: number;
+  reviewUrgent: number;
+}): NavSection[] {
+  const { userRole, showCases, showBatch, reviewPending, reviewUrgent } = args;
 
   function link(href: string, label: string): NavLink {
-    return { href, label, icon: getIcon(href) };
+    const badge: NavBadge | undefined =
+      href === "/review" && reviewPending > 0
+        ? { count: reviewPending, urgent: reviewUrgent > 0 }
+        : undefined;
+    return { href, label, icon: getIcon(href), badge };
+  }
+  function authed(href: string, label: string): NavLink[] {
+    return isAuthorizedForRoute(href, userRole) ? [link(href, label)] : [];
   }
 
-  const dash = isAuthorizedForRoute("/dashboard", userRole) ? [link("/dashboard", "Dashboard")] : [];
-  const cases = showCases && isAuthorizedForRoute("/cases", userRole) ? [link("/cases", "Cases")] : [];
-  const rules = showCases && isAuthorizedForRoute("/rules", userRole) ? [link("/rules", "Rules")] : [];
-  const analytics = isAuthorizedForRoute("/analytics", userRole) ? [link("/analytics", "Analytics")] : [];
-  const readiness = isAuthorizedForRoute("/readiness", userRole) ? [link("/readiness", "Readiness")] : [];
-  const audit = isAuthorizedForRoute("/audit", userRole) ? [link("/audit", "Audit")] : [];
-  const coordinator = isAuthorizedForRoute("/coordinator", userRole) ? [link("/coordinator", "Coordinator")] : [];
-  const admin = isAuthorizedForRoute("/admin", userRole) ? [link("/admin", "Admin")] : [];
-  // Batch Processing is the primary product feature — shown first when enabled
-  const batch = showBatch ? [link("/batch", "Batch Processing")] : [];
-
-  switch (userRole) {
-    case "ADMIN":
-      return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
-        { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
-        { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
-        // Manual pathway is secondary to batch
-        { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway"), link("/gp", "GP")] },
-        { id: "admin", label: "Administration", links: [...admin, ...audit] },
-      ];
-    case "COORDINATOR":
-      return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
-        { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
-        { id: "reference", label: "Reference", links: [link("/guidelines", "Guidelines"), link("/patients", "Patients")] },
-      ];
-    case "COLPO_CNS":
-    case "COLPOSCOPIST":
-      return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
-        { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
-        { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
-        { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients"), link("/pathway", "Pathway")] },
-      ];
-    case "GYNAE_GRADER":
-    case "SMO_REVIEWER":
-      return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
-        { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...coordinator, ...analytics, ...readiness] },
-        { id: "governance", label: "Governance", links: [...rules, link("/guidelines", "Guidelines")] },
-        { id: "manual", label: "Manual Tools", links: [link("/patients", "Patients")] },
-      ];
-    case "GP":
-      return [
-        { id: "workspace", label: "Workspace", links: dash },
-        { id: "clinical", label: "Clinical Tools", links: [link("/gp", "GP Referral"), link("/guidelines", "Guidelines"), link("/pathway", "Pathway")] },
-      ];
-    case "INTEGRATION_ADMIN":
-      return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
-        { id: "operations", label: "Operations", links: [...readiness, ...analytics, ...audit, ...admin] },
-      ];
-    default:
-      return [
-        ...(batch.length > 0 ? [{ id: "pipeline", label: "Decision Support", links: batch }] : []),
-        { id: "workspace", label: "Workspace", links: [...dash, ...cases, ...analytics] },
-        { id: "reference", label: "Reference", links: [link("/guidelines", "Guidelines")] },
-      ];
+  // GP keeps a simple referrer-focused layout.
+  if (userRole === "GP") {
+    return [
+      { id: "triage", label: "Workspace", links: [link("/dashboard", "Command Centre")] },
+    ];
   }
+
+  const isAdmin = userRole === "ADMIN";
+  const isIntegrationAdmin = userRole === "INTEGRATION_ADMIN";
+  const canPullCases = showBatch && isVisibleInDemoFlow("/batch", userRole);
+  const canUseReviewQueue = showBatch && isVisibleInDemoFlow("/review", userRole);
+
+  // ── Demo flow: the product spine ───────────────────────────────────────────
+  const demoFlow = [
+    ...authed("/dashboard", "Command Centre"),
+    ...(canPullCases ? authed("/batch", "Pull Cases") : []),
+    ...(canUseReviewQueue ? authed("/review", "Review Queue") : []),
+    ...authed("/decisions", "Completed Decisions"),
+    ...authed("/audit", "Audit Trail"),
+  ];
+
+  const system =
+    isAdmin || isIntegrationAdmin
+      ? [
+          ...(showBatch ? authed("/batch/runs", "Intake Sessions") : []),
+          ...authed("/analytics", "Operational Analytics"),
+          ...authed("/readiness", "Pilot Readiness"),
+          ...authed("/admin", "Admin"),
+        ]
+      : [];
+
+  const governance =
+    isAdmin || isIntegrationAdmin
+      ? [
+          ...(showCases ? authed("/rules", "Rule Governance") : []),
+          link("/guidelines", "Guidelines"),
+        ]
+      : [];
+
+  const legacy =
+    isAdmin
+      ? [
+          ...(showCases ? authed("/cases", "Manual Cases") : []),
+          link("/patients", "Patient Registry"),
+          link("/pathway", "Pathway Wizard"),
+          link("/gp", "GP Referral"),
+          link("/coordinator", "Legacy Referral Queue"),
+        ]
+      : [];
+
+  return [
+    ...(demoFlow.length ? [{ id: "triage", label: "Demo Flow", links: demoFlow }] : []),
+    ...(system.length ? [{ id: "system", label: "System", links: system }] : []),
+    ...(governance.length ? [{ id: "governance", label: "Governance", links: governance }] : []),
+    ...(legacy.length ? [{ id: "legacy", label: "Legacy Tools", links: legacy }] : []),
+  ];
 }
 
 function NavItem({ link, active, collapsed, primary }: {
@@ -147,6 +159,29 @@ function NavItem({ link, active, collapsed, primary }: {
           aria-hidden
         />
         {!collapsed && <span className="truncate">{link.label}</span>}
+        {link.badge && (
+          collapsed ? (
+            <span
+              className={cn(
+                "absolute top-1 right-1 h-2 w-2 rounded-full ring-2 ring-card",
+                link.badge.urgent ? "bg-amber-500" : "bg-brand-500"
+              )}
+              aria-hidden
+            />
+          ) : (
+            <span
+              className={cn(
+                "ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none",
+                link.badge.urgent
+                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  : "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
+              )}
+              aria-label={`${link.badge.count} awaiting review`}
+            >
+              {link.badge.count > 99 ? "99+" : link.badge.count}
+            </span>
+          )
+        )}
       </Link>
     </li>
   );
@@ -158,12 +193,16 @@ export function Sidebar({
   userEmail,
   showCases = false,
   showBatch = false,
+  reviewPending = 0,
+  reviewUrgent = 0,
 }: {
   userRole?: string;
   userName?: string;
   userEmail?: string;
   showCases?: boolean;
   showBatch?: boolean;
+  reviewPending?: number;
+  reviewUrgent?: number;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -171,9 +210,16 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const sections = buildSidebarSections({ userRole, showCases, showBatch })
+  const sections = buildSidebarSections({ userRole, showCases, showBatch, reviewPending, reviewUrgent })
     .map((s) => ({ ...s, links: s.links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i) }))
     .filter((s) => s.links.length > 0);
+
+  // Highlight only the most-specific matching link (so /batch doesn't also light
+  // up when viewing /batch/runs).
+  const activeHref = sections
+    .flatMap((s) => s.links.map((l) => l.href))
+    .filter((h) => pathname === h || (h !== "/dashboard" && pathname.startsWith(h + "/")))
+    .sort((a, b) => b.length - a.length)[0];
 
   const homeHref = getDefaultAppRouteForRole(userRole);
   const initials = userName
@@ -221,7 +267,7 @@ export function Sidebar({
               {!collapsed && (
                 <div className={cn(
                   "px-2 pb-1.5 text-label",
-                  section.id === "pipeline"
+                  section.id === "triage"
                     ? "text-brand-600 dark:text-brand-400 font-semibold"
                     : "text-muted-foreground"
                 )}>
@@ -229,20 +275,15 @@ export function Sidebar({
                 </div>
               )}
               <ul className="space-y-0.5" role="list">
-                {section.links.map((link) => {
-                  const active =
-                    pathname === link.href ||
-                    (link.href !== "/dashboard" && pathname.startsWith(link.href + "/"));
-                  return (
+                {section.links.map((link) => (
                     <NavItem
                       key={link.href}
                       link={link}
-                      active={active}
+                      active={link.href === activeHref}
                       collapsed={collapsed}
-                      primary={section.id === "pipeline"}
+                      primary={section.id === "triage"}
                     />
-                  );
-                })}
+                ))}
               </ul>
             </div>
           ))}
@@ -258,7 +299,7 @@ export function Sidebar({
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-foreground truncate">{userName ?? "User"}</div>
-              <div className="text-xs text-muted-foreground truncate">{userRole ?? "User"}</div>
+              <div className="text-xs text-muted-foreground truncate">{userEmail ?? userRole ?? "User"}</div>
             </div>
           )}
           {!collapsed && <ThemeToggle />}

@@ -103,7 +103,7 @@ export function ColposcopyGradeSheetForm({
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
-        Save the grading sheet here first, then re-run the system recommendation so the rule
+        Save the grading sheet here first, then re-run the provisional recommendation so the rule
         trace reflects the latest colposcopy review context.
       </div>
 
@@ -353,7 +353,7 @@ export function ColposcopyGradeSheetForm({
           Save colposcopy sheet
         </Button>
         <span className="text-sm text-muted-foreground">
-          After saving, re-run the system recommendation if the triage inputs changed.
+          After saving, re-run the provisional recommendation if the triage inputs changed.
         </span>
       </div>
 

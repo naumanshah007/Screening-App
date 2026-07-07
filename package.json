@@ -8,6 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test \"lib/engine/__tests__/*.test.ts\"",
+    "test:engine": "tsx --test \"lib/engine/__tests__/*.test.ts\"",
+    "test:batch": "tsx --test \"lib/batch/__tests__/*.test.ts\"",
+    "test:all": "npm run test:engine && npm run test:batch",
+    "typecheck": "tsc --noEmit",
+    "demo:reset": "tsx scripts/demo-reset.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
