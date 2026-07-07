@@ -7,6 +7,7 @@ import type {
   PathwayFigure,
   RepeatStage,
 } from "./types";
+import { applyGuidelineOverlay, type GuidelineOverlay } from "./overlay";
 
 const RULE_VERSION = "business-figures-table1-v1";
 const THREE_YEARS_MS = 3 * 365.25 * 24 * 60 * 60 * 1000;
@@ -1634,7 +1635,14 @@ function evaluateTable1(input: ClinicalInput): ClinicalDecision {
   return evaluateHysterectomyPathway(input, "TABLE_1");
 }
 
-export function evaluateClinicalDecision(input: ClinicalInput): ClinicalDecision {
+export function evaluateClinicalDecision(
+  input: ClinicalInput,
+  overlay?: GuidelineOverlay
+): ClinicalDecision {
+  return applyGuidelineOverlay(evaluateBase(input), overlay);
+}
+
+function evaluateBase(input: ClinicalInput): ClinicalDecision {
   if (input.hasAbnormalVaginalBleeding || input.currentFigure === "FIGURE_10") {
     return evaluateFigure10(input);
   }
