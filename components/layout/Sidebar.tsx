@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, GitBranch, BookOpen,
   BarChart2, Activity, Settings, FileSearch,
-  Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight,
+  Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight, ChevronDown,
   Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 
 type NavBadge = { count: number; urgent: boolean };
 type NavLink = { href: string; label: string; icon: React.ElementType; badge?: NavBadge };
-type NavSection = { id: string; label: string; links: NavLink[] };
+type NavSection = { id: string; label: string; links: NavLink[]; collapsible?: boolean };
 
 const ICONS: Record<string, React.ElementType> = {
   "/dashboard":  LayoutDashboard,
@@ -74,36 +74,39 @@ function buildSidebarSections(args: {
   const canPullCases = showBatch && isVisibleInDemoFlow("/batch", userRole);
   const canUseReviewQueue = showBatch && isVisibleInDemoFlow("/review", userRole);
 
-  // ── Demo flow: the product spine ───────────────────────────────────────────
-  const demoFlow = [
+  // ── Workspace: the daily spine ─────────────────────────────────────────────
+  const workspace = [
     ...authed("/dashboard", "Command Centre"),
     ...(canPullCases ? authed("/batch", "Pull Cases") : []),
     ...(canUseReviewQueue ? authed("/review", "Review Queue") : []),
     ...authed("/decisions", "Completed Decisions"),
-    ...authed("/audit", "Audit Trail"),
   ];
 
-  const system =
+  // ── Oversight: monitoring & audit ──────────────────────────────────────────
+  const oversight =
     isAdmin || isIntegrationAdmin
       ? [
-          ...(showBatch ? authed("/batch/runs", "Intake Sessions") : []),
+          ...authed("/audit", "Audit Trail"),
           ...authed("/analytics", "Operational Analytics"),
           ...authed("/readiness", "Pilot Readiness"),
-          ...authed("/admin", "Admin"),
         ]
       : [];
 
-  const governance =
+  // ── Configuration: governance & settings ───────────────────────────────────
+  const configuration =
     isAdmin || isIntegrationAdmin
       ? [
           ...(showCases ? authed("/rules", "Rule Governance") : []),
           link("/guidelines", "Guidelines"),
+          ...authed("/admin", "Admin"),
         ]
       : [];
 
-  const legacy =
+  // ── Advanced: legacy tools & session-grouped views (collapsed by default) ───
+  const advanced =
     isAdmin
       ? [
+          ...(showBatch ? authed("/batch/runs", "Intake Sessions") : []),
           ...(showCases ? authed("/cases", "Manual Cases") : []),
           link("/patients", "Patient Registry"),
           link("/pathway", "Pathway Wizard"),
@@ -113,10 +116,10 @@ function buildSidebarSections(args: {
       : [];
 
   return [
-    ...(demoFlow.length ? [{ id: "triage", label: "Demo Flow", links: demoFlow }] : []),
-    ...(system.length ? [{ id: "system", label: "System", links: system }] : []),
-    ...(governance.length ? [{ id: "governance", label: "Governance", links: governance }] : []),
-    ...(legacy.length ? [{ id: "legacy", label: "Legacy Tools", links: legacy }] : []),
+    ...(workspace.length ? [{ id: "triage", label: "Workspace", links: workspace }] : []),
+    ...(oversight.length ? [{ id: "oversight", label: "Oversight", links: oversight }] : []),
+    ...(configuration.length ? [{ id: "configuration", label: "Configuration", links: configuration }] : []),
+    ...(advanced.length ? [{ id: "advanced", label: "Advanced", links: advanced, collapsible: true }] : []),
   ];
 }
 
@@ -209,6 +212,7 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const sections = buildSidebarSections({ userRole, showCases, showBatch, reviewPending, reviewUrgent })
     .map((s) => ({ ...s, links: s.links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i) }))
@@ -262,31 +266,55 @@ export function Sidebar({
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3" aria-label="Main navigation">
         <div className={cn("space-y-4 px-2")}>
-          {sections.map((section) => (
-            <div key={section.id}>
-              {!collapsed && (
-                <div className={cn(
-                  "px-2 pb-1.5 text-label",
-                  section.id === "triage"
-                    ? "text-brand-600 dark:text-brand-400 font-semibold"
-                    : "text-muted-foreground"
-                )}>
-                  {section.label}
-                </div>
-              )}
-              <ul className="space-y-0.5" role="list">
-                {section.links.map((link) => (
-                    <NavItem
-                      key={link.href}
-                      link={link}
-                      active={link.href === activeHref}
-                      collapsed={collapsed}
-                      primary={section.id === "triage"}
-                    />
-                ))}
-              </ul>
-            </div>
-          ))}
+          {sections.map((section) => {
+            const sectionHasActive = section.links.some((l) => l.href === activeHref);
+            // Collapsible groups (Advanced) hide their links until toggled — but
+            // auto-open when the current page is one of them, and always show when
+            // the whole sidebar is icon-collapsed (no label row to toggle).
+            const open = !section.collapsible || collapsed || advancedOpen || sectionHasActive;
+            return (
+              <div key={section.id}>
+                {!collapsed && (
+                  section.collapsible ? (
+                    <button
+                      type="button"
+                      onClick={() => setAdvancedOpen((o) => !o)}
+                      aria-expanded={open}
+                      className="flex w-full items-center gap-1 px-2 pb-1.5 text-label text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ChevronDown
+                        className={cn("h-3 w-3 transition-transform duration-200", !open && "-rotate-90")}
+                        aria-hidden
+                      />
+                      {section.label}
+                    </button>
+                  ) : (
+                    <div className={cn(
+                      "px-2 pb-1.5 text-label",
+                      section.id === "triage"
+                        ? "text-brand-600 dark:text-brand-400 font-semibold"
+                        : "text-muted-foreground"
+                    )}>
+                      {section.label}
+                    </div>
+                  )
+                )}
+                {open && (
+                  <ul className="space-y-0.5" role="list">
+                    {section.links.map((link) => (
+                      <NavItem
+                        key={link.href}
+                        link={link}
+                        active={link.href === activeHref}
+                        collapsed={collapsed}
+                        primary={section.id === "triage"}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       </nav>
 

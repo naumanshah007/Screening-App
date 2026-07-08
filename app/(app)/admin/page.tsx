@@ -1,8 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
 import { StatCard, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,7 +10,6 @@ import { NcsrCertificationManager } from "./NcsrCertificationManager";
 import { IntegrationValidationManager } from "./IntegrationValidationManager";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserAccessManager } from "./UserAccessManager";
-import { formatDate, formatDateTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { listAdminUsers } from "@/lib/admin/user-management";
 import { getDatabaseRuntimeSummary } from "@/lib/config/database";
@@ -56,10 +55,12 @@ function integrationIcon(id: "database" | "storage" | "ai" | "ncsr") {
   }
 }
 
+type AdminTab = "users" | "security" | "integrations";
+
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ focusUser?: string }>;
+  searchParams?: Promise<{ focusUser?: string; tab?: string }>;
 }) {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
@@ -97,10 +98,9 @@ export default async function AdminPage({
   const [
     totalUsers,
     activeRules,
-    recentAuditLogs,
+    recentAuditCount,
     patientStats,
     practices,
-    rulesets,
     sessionsThirtyDays,
     referralStats,
     users,
@@ -109,11 +109,8 @@ export default async function AdminPage({
   ] = await Promise.all([
     prisma.user.count(),
     prisma.clinicalRuleSet.count({ where: { isActive: true } }),
-    prisma.auditLog.findMany({
+    prisma.auditLog.count({
       where: { createdAt: { gte: thirtyDaysAgo } },
-      include: { user: { select: { name: true, role: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 20,
     }),
     prisma.patient.groupBy({ by: ["status"], _count: true }),
     canManageUsers
@@ -126,14 +123,6 @@ export default async function AdminPage({
           orderBy: [{ name: "asc" }],
         })
       : Promise.resolve([]),
-    prisma.clinicalRuleSet.findMany({
-      include: {
-        publishedBy: { select: { name: true } },
-        reviewedBy: { select: { name: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    }),
     prisma.screeningSession.count({
       where: { createdAt: { gte: thirtyDaysAgo } },
     }),
@@ -154,13 +143,6 @@ export default async function AdminPage({
   const activePatients =
     patientStats.find((s: PatientStat) => s.status === "ACTIVE")?._count ?? 0;
 
-  const actionBadgeClass: Record<string, string> = {
-    CREATE: "bg-success/10 text-success",
-    READ:   "bg-info/10 text-info",
-    UPDATE: "bg-warn/10 text-warn",
-    DELETE: "bg-destructive/10 text-destructive",
-  };
-
   // Pending referrals by priority
   type ReferralStat = { priority: string; status: string; _count: number };
   const pendingByPriority = referralStats
@@ -171,18 +153,15 @@ export default async function AdminPage({
     }, {} as Record<string, number>);
   const pendingEntries = Object.entries(pendingByPriority) as [string, number][];
 
-  type AdminRuleSet = Prisma.ClinicalRuleSetGetPayload<{
-    include: {
-      publishedBy: { select: { name: true } };
-      reviewedBy: { select: { name: true } };
-    };
-  }>;
-
-  type AdminAuditLog = Prisma.AuditLogGetPayload<{
-    include: {
-      user: { select: { name: true; role: true } };
-    };
-  }>;
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  const tabs: { id: AdminTab; label: string }[] = [
+    ...(canManageUsers ? [{ id: "users" as const, label: "Users & Access" }] : []),
+    { id: "security" as const, label: "Security" },
+    { id: "integrations" as const, label: "Integrations & Runtime" },
+  ];
+  const defaultTab: AdminTab = canManageUsers ? "users" : "security";
+  const requestedTab = params.tab as AdminTab | undefined;
+  const activeTab: AdminTab = tabs.some((t) => t.id === requestedTab) ? requestedTab! : defaultTab;
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -223,7 +202,7 @@ export default async function AdminPage({
         />
         <StatCard
           label="Audit Events (30d)"
-          value={recentAuditLogs.length.toLocaleString()}
+          value={recentAuditCount.toLocaleString()}
           subtext="System access logged"
           icon={<FileText className="h-5 w-5" />}
           href="/audit"
@@ -258,111 +237,146 @@ export default async function AdminPage({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Rule version history */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-brand-600" />
-              Rule Version History
-            </CardTitle>
-            <Badge variant="info">Two-Person Rule</Badge>
-          </CardHeader>
-          <CardContent className="p-0">
-            {rulesets.length === 0 ? (
-              <EmptyState
-                icon={Database}
-                eyebrow={workspace.label}
-                title="No rule sets published"
-                description="Clinical rules must go through two-person review before publishing."
-                nextStep="Create or review a rules release so the governance trail exists before production use."
-                action={{ href: "/rules", label: "Open rules" }}
-              />
-            ) : (
-              <div className="divide-y divide-border">
-                {rulesets.map((rs: AdminRuleSet) => (
-                  <div key={rs.id} className="px-5 py-4 hover:bg-muted/40 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-foreground text-sm">{rs.name}</p>
-                          {rs.isActive && (
-                            <Badge variant="low">Active</Badge>
-                          )}
-                          <span className="text-xs font-mono text-muted-foreground">v{rs.version}</span>
-                        </div>
-                        {rs.changeNotes && (
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{rs.changeNotes}</p>
-                        )}
-                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                          {rs.publishedBy && (
-                            <span>Published by {rs.publishedBy.name} ({formatDate(rs.publishedAt)})</span>
-                          )}
-                          {rs.reviewedBy && (
-                            <span>· Reviewed by {rs.reviewedBy.name} ({formatDate(rs.reviewedAt)})</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Tab bar */}
+      <div className="flex flex-wrap gap-1 border-b border-border">
+        {tabs.map((t) => (
+          <Link
+            key={t.id}
+            href={`/admin?tab=${t.id}`}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+              activeTab === t.id
+                ? "border-brand-600 text-brand-700 dark:text-brand-300"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             )}
-          </CardContent>
-        </Card>
-
-        {/* Audit log */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-brand-600" />
-              Recent Audit Events
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {recentAuditLogs.length === 0 ? (
-              <EmptyState
-                icon={FileText}
-                eyebrow={workspace.label}
-                title="No audit events"
-                description="System access and changes will be logged here."
-                nextStep="Once users begin viewing or editing data, the enterprise audit trail will populate automatically."
-              />
-            ) : (
-              <div className="overflow-y-auto max-h-[360px] divide-y divide-border">
-                {recentAuditLogs.map((log: AdminAuditLog) => (
-                  <div key={log.id} className="px-5 py-3 flex items-center gap-3 hover:bg-muted/40 transition-colors">
-                    <span className={cn(
-                      "text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0",
-                      actionBadgeClass[log.action] ?? "bg-muted text-muted-foreground"
-                    )}>
-                      {log.action}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-muted-foreground">{log.entity}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {log.user?.name ?? "System"} ({log.user?.role ?? "—"}) · {formatDateTime(log.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          >
+            {t.label}
+          </Link>
+        ))}
       </div>
 
-      <SecurityIncidentAutomationCard
-        secretConfigured={incidentAutomationOverview.config.secretConfigured}
-        secretSource={incidentAutomationOverview.config.secretSource}
-        reminderCooldownHours={incidentAutomationOverview.config.reminderCooldownHours}
-        lastRunAt={incidentAutomationOverview.activity.lastRunAt}
-        runs7d={incidentAutomationOverview.activity.runs7d}
-        automatedReminders7d={incidentAutomationOverview.activity.automatedReminders7d}
-      />
+      {/* ── Users & Access tab ─────────────────────────────────────────────── */}
+      {activeTab === "users" && canManageUsers && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-brand-600" />
+                User Onboarding
+              </CardTitle>
+              <Badge variant="info">Admin only</Badge>
+            </CardHeader>
+            <CardContent>
+              <CreateUserForm practices={practices} />
+            </CardContent>
+          </Card>
 
-      <div id="security-incidents">
-        <Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-brand-600" />
+                User Access Management
+              </CardTitle>
+              <Badge variant="info">Admin only</Badge>
+            </CardHeader>
+            <CardContent>
+              {users.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  eyebrow={workspace.label}
+                  title="No users found"
+                  description="User accounts will appear here once they exist in the system."
+                  nextStep="Create the required clinician, coordinator, and integration accounts before production onboarding."
+                />
+              ) : (
+                <UserAccessManager
+                  users={users}
+                  currentUserId={user?.id}
+                  focusUserId={params.focusUser}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-brand-600" />
+                Restricted Access Governance
+              </CardTitle>
+              <Badge
+                variant={
+                  ncsrCertificationSummary.blockedCount > 0
+                    ? "high"
+                    : ncsrCertificationSummary.warningCount > 0
+                      ? "info"
+                      : "low"
+                }
+              >
+                NCSR
+              </Badge>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                <StatCard
+                  label="Eligible Users"
+                  value={ncsrCertificationSummary.totalEligibleUsers.toLocaleString()}
+                  subtext="Roles that can request NCSR pull"
+                  icon={<Users className="h-5 w-5" />}
+                />
+                <StatCard
+                  label="Certified"
+                  value={ncsrCertificationSummary.readyCount.toLocaleString()}
+                  subtext="Fully current access"
+                  variant="success"
+                  icon={<CheckCircle className="h-5 w-5" />}
+                />
+                <StatCard
+                  label="Expiring Soon"
+                  value={ncsrCertificationSummary.warningCount.toLocaleString()}
+                  subtext="Still active but needs renewal"
+                  variant={ncsrCertificationSummary.warningCount > 0 ? "warning" : "default"}
+                  icon={<AlertTriangle className="h-5 w-5" />}
+                />
+                <StatCard
+                  label="Blocked"
+                  value={ncsrCertificationSummary.blockedCount.toLocaleString()}
+                  subtext="Missing or expired training"
+                  variant={ncsrCertificationSummary.blockedCount > 0 ? "urgent" : "default"}
+                  icon={<Lock className="h-5 w-5" />}
+                />
+              </div>
+
+              {ncsrCertificationSummary.rows.length === 0 ? (
+                <EmptyState
+                  icon={Shield}
+                  eyebrow={workspace.label}
+                  title="No restricted-access users found"
+                  description="There are no users in roles that can access the national colposcopy registry."
+                  nextStep="Create or import the relevant COLPO_CNS, SMO_REVIEWER, ADMIN, or INTEGRATION_ADMIN users before live validation."
+                />
+              ) : (
+                <NcsrCertificationManager rows={ncsrCertificationSummary.rows} />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Security tab ───────────────────────────────────────────────────── */}
+      {activeTab === "security" && (
+        <div className="space-y-6">
+          <SecurityIncidentAutomationCard
+            secretConfigured={incidentAutomationOverview.config.secretConfigured}
+            secretSource={incidentAutomationOverview.config.secretSource}
+            reminderCooldownHours={incidentAutomationOverview.config.reminderCooldownHours}
+            lastRunAt={incidentAutomationOverview.activity.lastRunAt}
+            runs7d={incidentAutomationOverview.activity.runs7d}
+            automatedReminders7d={incidentAutomationOverview.activity.automatedReminders7d}
+          />
+
+          <div id="security-incidents">
+            <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-brand-600" />
@@ -409,75 +423,46 @@ export default async function AdminPage({
         </Card>
       </div>
 
-      {canManageUsers && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-brand-600" />
-              User Onboarding
-            </CardTitle>
-            <Badge variant="info">Admin only</Badge>
-          </CardHeader>
-          <CardContent>
-            <CreateUserForm practices={practices} />
-          </CardContent>
-        </Card>
-      )}
-
-      {canManageUsers && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-brand-600" />
-              User Access Management
-            </CardTitle>
-            <Badge variant="info">Admin only</Badge>
-          </CardHeader>
-          <CardContent>
-            {users.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                eyebrow={workspace.label}
-                title="No users found"
-                description="User accounts will appear here once they exist in the system."
-                nextStep="Create the required clinician, coordinator, and integration accounts before production onboarding."
-              />
-            ) : (
-              <UserAccessManager
-                users={users}
-                currentUserId={user?.id}
-                focusUserId={params.focusUser}
-              />
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Patient register status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-4 w-4 text-brand-600" />
-            Patient Register Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {patientStats.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No patients registered yet.</p>
-          ) : (
-            <div className="flex flex-wrap gap-8">
-              {patientStats.map((s) => (
-                <div key={s.status} className="text-center">
-                  <p className="text-3xl font-bold text-foreground tracking-tight">{s._count.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">{s.status}</p>
+          {/* Security & Compliance (static posture) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-brand-600" />
+                Security &amp; Compliance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-success/5 border border-success/30">
+                  <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Session Security</p>
+                    <p className="text-xs text-success mt-0.5">15-minute idle timeout enforced</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-info/5 border border-info/30">
+                  <Lock className="h-5 w-5 text-info flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Account Lockout</p>
+                    <p className="text-xs text-info mt-0.5">30-min lockout after 5 failed attempts</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-warn/5 border border-warn/30">
+                  <AlertTriangle className="h-5 w-5 text-warn flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Audit Logging</p>
+                    <p className="text-xs text-warn mt-0.5">All read/write access logged</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      {/* Security & Compliance */}
+      {/* ── Integrations & Runtime tab ─────────────────────────────────────── */}
+      {activeTab === "integrations" && (
+        <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -588,69 +573,6 @@ export default async function AdminPage({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-brand-600" />
-            Restricted Access Governance
-          </CardTitle>
-          <Badge
-            variant={
-              ncsrCertificationSummary.blockedCount > 0
-                ? "high"
-                : ncsrCertificationSummary.warningCount > 0
-                  ? "info"
-                  : "low"
-            }
-          >
-            NCSR
-          </Badge>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            <StatCard
-              label="Eligible Users"
-              value={ncsrCertificationSummary.totalEligibleUsers.toLocaleString()}
-              subtext="Roles that can request NCSR pull"
-              icon={<Users className="h-5 w-5" />}
-            />
-            <StatCard
-              label="Certified"
-              value={ncsrCertificationSummary.readyCount.toLocaleString()}
-              subtext="Fully current access"
-              variant="success"
-              icon={<CheckCircle className="h-5 w-5" />}
-            />
-            <StatCard
-              label="Expiring Soon"
-              value={ncsrCertificationSummary.warningCount.toLocaleString()}
-              subtext="Still active but needs renewal"
-              variant={ncsrCertificationSummary.warningCount > 0 ? "warning" : "default"}
-              icon={<AlertTriangle className="h-5 w-5" />}
-            />
-            <StatCard
-              label="Blocked"
-              value={ncsrCertificationSummary.blockedCount.toLocaleString()}
-              subtext="Missing or expired training"
-              variant={ncsrCertificationSummary.blockedCount > 0 ? "urgent" : "default"}
-              icon={<Lock className="h-5 w-5" />}
-            />
-          </div>
-
-          {ncsrCertificationSummary.rows.length === 0 ? (
-            <EmptyState
-              icon={Shield}
-              eyebrow={workspace.label}
-              title="No restricted-access users found"
-              description="There are no users in roles that can access the national colposcopy registry."
-              nextStep="Create or import the relevant COLPO_CNS, SMO_REVIEWER, ADMIN, or INTEGRATION_ADMIN users before live validation."
-            />
-          ) : (
-            <NcsrCertificationManager rows={ncsrCertificationSummary.rows} />
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-brand-600" />
             Enterprise Readiness
           </CardTitle>
@@ -685,40 +607,8 @@ export default async function AdminPage({
           ))}
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-brand-600" />
-            Security &amp; Compliance
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-success/5 border border-success/30">
-              <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Session Security</p>
-                <p className="text-xs text-success mt-0.5">15-minute idle timeout enforced</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-info/5 border border-info/30">
-              <Lock className="h-5 w-5 text-info flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Account Lockout</p>
-                <p className="text-xs text-info mt-0.5">30-min lockout after 5 failed attempts</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-warn/5 border border-warn/30">
-              <AlertTriangle className="h-5 w-5 text-warn flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Audit Logging</p>
-                <p className="text-xs text-warn mt-0.5">All read/write access logged</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }
