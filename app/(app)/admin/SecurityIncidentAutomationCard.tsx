@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ChevronRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function SecurityIncidentAutomationCard({
   secretConfigured,
@@ -23,14 +26,10 @@ export function SecurityIncidentAutomationCard({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   async function runAutomation() {
     setLoading(true);
-    setMessage(null);
-    setError(null);
-
     try {
       const response = await fetch("/api/admin/security-incidents/run", {
         method: "POST",
@@ -49,14 +48,12 @@ export function SecurityIncidentAutomationCard({
         throw new Error(payload.error ?? "Unable to run automation");
       }
 
-      setMessage(
-        `Run complete. ${payload.summary?.overdueReminders ?? 0} overdue and ${payload.summary?.dueSoonReminders ?? 0} due-soon reminder(s) sent.`
+      toast.success(
+        `Run complete — ${payload.summary?.overdueReminders ?? 0} overdue and ${payload.summary?.dueSoonReminders ?? 0} due-soon reminder(s) sent.`
       );
       router.refresh();
     } catch (runError) {
-      setError(
-        runError instanceof Error ? runError.message : "Unable to run automation"
-      );
+      toast.error(runError instanceof Error ? runError.message : "Unable to run automation");
     } finally {
       setLoading(false);
     }
@@ -117,13 +114,22 @@ export function SecurityIncidentAutomationCard({
         <Button type="button" loading={loading} onClick={runAutomation}>
           Run automation now
         </Button>
-        <span className="text-xs text-muted-foreground">
-          Scheduler endpoint: <code>GET /api/admin/security-incidents/run</code>
-        </span>
+        <button
+          type="button"
+          onClick={() => setShowDetails((s) => !s)}
+          aria-expanded={showDetails}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ChevronRight className={cn("h-3 w-3 transition-transform", showDetails && "rotate-90")} />
+          Developer details
+        </button>
       </div>
 
-      {message && <div className="mt-3 text-xs text-success">{message}</div>}
-      {error && <div className="mt-3 text-xs text-destructive">{error}</div>}
+      {showDetails && (
+        <div className="mt-2 text-xs text-muted-foreground">
+          Scheduler endpoint: <code>GET /api/admin/security-incidents/run</code>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
+import { SlideOver } from "@/components/ui/slide-over";
 import type { IntegrationStatus } from "@/lib/ops/integration-status";
 import type {
   EnterpriseIntegrationId,
@@ -51,37 +53,24 @@ function defaultOutcome(kind: IntegrationValidationState["kind"]) {
   }
 }
 
-function ValidationEditor({ row }: { row: ValidationRow }) {
+function ValidationEditor({ row, onDone }: { row: ValidationRow; onDone: () => void }) {
   const router = useRouter();
-  const [outcome, setOutcome] = useState<"PASSED" | "WARNING" | "FAILED">(
-    defaultOutcome(row.validation.kind)
-  );
+  const [outcome, setOutcome] = useState<"PASSED" | "WARNING" | "FAILED">(defaultOutcome(row.validation.kind));
   const [validatedAt, setValidatedAt] = useState(
     toDateInput(row.validation.record?.validatedAt) || new Date().toISOString().slice(0, 10)
   );
-  const [expiresAt, setExpiresAt] = useState(
-    toDateInput(row.validation.record?.expiresAt)
-  );
+  const [expiresAt, setExpiresAt] = useState(toDateInput(row.validation.record?.expiresAt));
   const [summary, setSummary] = useState(row.validation.record?.summary ?? "");
   const [notes, setNotes] = useState(row.validation.record?.notes ?? "");
-  const [environment, setEnvironment] = useState(
-    row.validation.record?.environment ?? "current"
-  );
+  const [environment, setEnvironment] = useState(row.validation.record?.environment ?? "current");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleSave() {
     setLoading(true);
-    setMessage(null);
-    setError(null);
-
     try {
       const response = await fetch("/api/admin/integration-validations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           integrationId: row.id,
           environment,
@@ -92,125 +81,98 @@ function ValidationEditor({ row }: { row: ValidationRow }) {
           expiresAt: expiresAt || null,
         }),
       });
-
       const payload = (await response.json()) as { error?: string; message?: string };
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to record validation");
-      }
-
-      setMessage(payload.message ?? "Validation recorded.");
+      if (!response.ok) throw new Error(payload.error ?? "Unable to record validation");
+      toast.success(payload.message ?? "Validation recorded.");
       router.refresh();
-    } catch (saveError) {
-      setError(
-        saveError instanceof Error ? saveError.message : "Unable to record validation"
-      );
+      onDone();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Unable to record validation");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-foreground">{row.title}</div>
-          <div className="mt-1 flex flex-wrap gap-2">
-            <Badge variant="info">{row.integration.mode}</Badge>
-            <Badge variant={badgeVariant(row.validation.kind)}>
-              {row.validation.label}
-            </Badge>
-          </div>
-        </div>
+    <div className="space-y-5">
+      <div>
+        <Badge variant="info">{row.integration.mode}</Badge>
+        <p className="mt-3 text-sm text-muted-foreground">{row.integration.summary}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{row.integration.detail}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{row.validation.detail}</p>
       </div>
 
-      <div className="mt-3 text-sm text-muted-foreground">{row.integration.summary}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{row.integration.detail}</div>
-      <div className="mt-2 text-xs text-muted-foreground">{row.validation.detail}</div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Select
           label="Outcome"
           value={outcome}
-          onChange={(event) =>
-            setOutcome(event.target.value as "PASSED" | "WARNING" | "FAILED")
-          }
+          onChange={(e) => setOutcome(e.target.value as "PASSED" | "WARNING" | "FAILED")}
           options={[
             { value: "PASSED", label: "Passed" },
             { value: "WARNING", label: "Pass with caution" },
             { value: "FAILED", label: "Failed" },
           ]}
         />
-        <Input
-          label="Validated"
-          type="date"
-          value={validatedAt}
-          onChange={(event) => setValidatedAt(event.target.value)}
-        />
-        <Input
-          label="Review again"
-          type="date"
-          value={expiresAt}
-          onChange={(event) => setExpiresAt(event.target.value)}
-          hint="Optional expiry or review date."
-        />
-        <Input
-          label="Environment"
-          value={environment}
-          onChange={(event) => setEnvironment(event.target.value)}
-          placeholder="current, demo, staging, production"
-        />
-        <div className="xl:col-span-1 flex items-end">
-          <Button
-            type="button"
-            loading={loading}
-            onClick={handleSave}
-            className="w-full"
-          >
-            Record validation
-          </Button>
-        </div>
+        <Input label="Environment" value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="current, demo, staging, production" />
+        <Input label="Validated" type="date" value={validatedAt} onChange={(e) => setValidatedAt(e.target.value)} />
+        <Input label="Review again" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} hint="Optional expiry / review date." />
       </div>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Textarea
-          label="Validation summary"
-          rows={2}
-          value={summary}
-          onChange={(event) => setSummary(event.target.value)}
-          placeholder="What was tested and what was the result?"
-        />
-        <Textarea
-          label="Follow-up notes"
-          rows={2}
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="Any caveats, scope limits, or next step."
-        />
-      </div>
+      <Textarea label="Validation summary" rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="What was tested and what was the result?" />
+      <Textarea label="Follow-up notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any caveats, scope limits, or next step." />
 
-      {message && <div className="mt-3 text-xs text-success">{message}</div>}
-      {error && <div className="mt-3 text-xs text-destructive">{error}</div>}
       {row.validation.recommendedAction && (
-        <div className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Next step:</span>{" "}
-          {row.validation.recommendedAction}
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Next step:</span> {row.validation.recommendedAction}
         </div>
       )}
+
+      <div className="flex justify-end border-t border-border pt-4">
+        <Button type="button" loading={loading} onClick={handleSave}>
+          Record validation
+        </Button>
+      </div>
     </div>
   );
 }
 
 export function IntegrationValidationManager({ rows }: { rows: ValidationRow[] }) {
+  const [selectedId, setSelectedId] = useState<EnterpriseIntegrationId | null>(null);
+  const selected = rows.find((r) => r.id === selectedId) ?? null;
+
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
-        Record the outcome of a controlled integration check here. This is the governance layer
-        that distinguishes “configured” from “validated for use”.
+      <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        Record the outcome of a controlled integration check. This is the governance layer that
+        distinguishes &ldquo;configured&rdquo; from &ldquo;validated for use&rdquo;.
       </div>
 
-      {rows.map((row) => (
-        <ValidationEditor key={row.id} row={row} />
-      ))}
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <div key={row.id} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold text-foreground">{row.title}</div>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                <Badge variant="info">{row.integration.mode}</Badge>
+                <Badge variant={badgeVariant(row.validation.kind)}>{row.validation.label}</Badge>
+              </div>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => setSelectedId(row.id)} className="flex-shrink-0">
+              Manage
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <SlideOver
+        open={selected != null}
+        onClose={() => setSelectedId(null)}
+        title={selected?.title ?? "Integration"}
+        subtitle="Formal integration validation"
+        width="lg"
+      >
+        {selected && <ValidationEditor key={selected.id} row={selected} onDone={() => setSelectedId(null)} />}
+      </SlideOver>
     </div>
   );
 }
