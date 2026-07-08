@@ -297,69 +297,6 @@ export default async function AdminPage({
               )}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-brand-600" />
-                Restricted Access Governance
-              </CardTitle>
-              <Badge
-                variant={
-                  ncsrCertificationSummary.blockedCount > 0
-                    ? "high"
-                    : ncsrCertificationSummary.warningCount > 0
-                      ? "info"
-                      : "low"
-                }
-              >
-                NCSR
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                <StatCard
-                  label="Eligible Users"
-                  value={ncsrCertificationSummary.totalEligibleUsers.toLocaleString()}
-                  subtext="Roles that can request NCSR pull"
-                  icon={<Users className="h-5 w-5" />}
-                />
-                <StatCard
-                  label="Certified"
-                  value={ncsrCertificationSummary.readyCount.toLocaleString()}
-                  subtext="Fully current access"
-                  variant="success"
-                  icon={<CheckCircle className="h-5 w-5" />}
-                />
-                <StatCard
-                  label="Expiring Soon"
-                  value={ncsrCertificationSummary.warningCount.toLocaleString()}
-                  subtext="Still active but needs renewal"
-                  variant={ncsrCertificationSummary.warningCount > 0 ? "warning" : "default"}
-                  icon={<AlertTriangle className="h-5 w-5" />}
-                />
-                <StatCard
-                  label="Blocked"
-                  value={ncsrCertificationSummary.blockedCount.toLocaleString()}
-                  subtext="Missing or expired training"
-                  variant={ncsrCertificationSummary.blockedCount > 0 ? "urgent" : "default"}
-                  icon={<Lock className="h-5 w-5" />}
-                />
-              </div>
-
-              {ncsrCertificationSummary.rows.length === 0 ? (
-                <EmptyState
-                  icon={Shield}
-                  eyebrow={workspace.label}
-                  title="No restricted-access users found"
-                  description="There are no users in roles that can access the national colposcopy registry."
-                  nextStep="Create or import the relevant COLPO_CNS, SMO_REVIEWER, ADMIN, or INTEGRATION_ADMIN users before live validation."
-                />
-              ) : (
-                <NcsrCertificationManager rows={ncsrCertificationSummary.rows} />
-              )}
-            </CardContent>
-          </Card>
         </div>
       )}
 
@@ -567,6 +504,69 @@ export default async function AdminPage({
         </CardHeader>
         <CardContent>
           <IntegrationValidationManager rows={integrationValidationRows} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-brand-600" />
+            Restricted Access Governance
+          </CardTitle>
+          <Badge
+            variant={
+              ncsrCertificationSummary.blockedCount > 0
+                ? "high"
+                : ncsrCertificationSummary.warningCount > 0
+                  ? "info"
+                  : "low"
+            }
+          >
+            NCSR
+          </Badge>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <StatCard
+              label="Eligible Users"
+              value={ncsrCertificationSummary.totalEligibleUsers.toLocaleString()}
+              subtext="Roles that can request NCSR pull"
+              icon={<Users className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Certified"
+              value={ncsrCertificationSummary.readyCount.toLocaleString()}
+              subtext="Fully current access"
+              variant="success"
+              icon={<CheckCircle className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Expiring Soon"
+              value={ncsrCertificationSummary.warningCount.toLocaleString()}
+              subtext="Still active but needs renewal"
+              variant={ncsrCertificationSummary.warningCount > 0 ? "warning" : "default"}
+              icon={<AlertTriangle className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Blocked"
+              value={ncsrCertificationSummary.blockedCount.toLocaleString()}
+              subtext="Missing or expired training"
+              variant={ncsrCertificationSummary.blockedCount > 0 ? "urgent" : "default"}
+              icon={<Lock className="h-5 w-5" />}
+            />
+          </div>
+
+          {ncsrCertificationSummary.rows.length === 0 ? (
+            <EmptyState
+              icon={Shield}
+              eyebrow={workspace.label}
+              title="No restricted-access users found"
+              description="There are no users in roles that can access the national colposcopy registry."
+              nextStep="Create or import the relevant COLPO_CNS, SMO_REVIEWER, ADMIN, or INTEGRATION_ADMIN users before live validation."
+            />
+          ) : (
+            <NcsrCertificationManager rows={ncsrCertificationSummary.rows} />
+          )}
         </CardContent>
       </Card>
 
