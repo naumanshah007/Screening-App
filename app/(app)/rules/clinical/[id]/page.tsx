@@ -77,7 +77,11 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
   const initialComparison = parent && parentDiff
     ? { before: { id: parent.version.id, displayVersion: parent.version.displayVersion }, after: { id: version.id, displayVersion: version.displayVersion }, diff: parentDiff }
     : null;
-  const editable = canPerformClinicalRuleAction(user?.role, "edit") && ["DRAFT", "VALIDATED"].includes(version.status);
+  const evaluatedSnapshotLocked = version._count.evaluations > 0;
+  const editable =
+    canPerformClinicalRuleAction(user?.role, "edit") &&
+    ["DRAFT", "VALIDATED"].includes(version.status) &&
+    !evaluatedSnapshotLocked;
 
   return (
     <div className="space-y-6 p-6 animate-fade-in">
@@ -116,6 +120,18 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
           <div className="break-all rounded-lg border border-border bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">SHA-256 {version.checksum}</div>
         </CardContent>
       </Card>
+
+      {evaluatedSnapshotLocked && (
+        <div role="status" className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+          <div>
+            <p className="font-semibold">Evaluated snapshot locked</p>
+            <p className="mt-1 leading-6">
+              This version has {version._count.evaluations} append-only evaluation{version._count.evaluations === 1 ? "" : "s"}, so its graph and rules are read only. Clone it under a new semantic version before making changes.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Tabs defaultTab="overview" className="rounded-2xl border border-border bg-card shadow-sm">
         <TabList className="px-2">
