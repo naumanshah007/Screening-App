@@ -40,6 +40,7 @@ test("unknown immune status cannot become a three- or five-year routine result",
   const evaluated = evaluateClinicalSnapshot(snapshot, {
     currentPathway: "FIGURE_3",
     hpvResult: "NOT_DETECTED",
+    sampleType: "LBC",
     hasSymptoms: false,
   });
   assert.equal(evaluated.result.clinicianOnly, true);

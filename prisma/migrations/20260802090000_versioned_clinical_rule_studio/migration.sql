@@ -136,15 +136,6 @@ CREATE TABLE "new_BatchReviewItem" (
     "inputJson" TEXT NOT NULL,
     "decisionJson" TEXT NOT NULL,
     "ruleEvaluationId" TEXT,
-    "triagePriority" TEXT,
-    "triageCategory" TEXT,
-    "triageOutcome" TEXT,
-    "triageTargetDays" INTEGER,
-    "triageRuleCode" TEXT,
-    "triageRuleReleaseId" TEXT,
-    "triageRuleVersion" TEXT,
-    "priorDecisionCount" INTEGER NOT NULL DEFAULT 0,
-    "priorItemId" TEXT,
     "disposition" TEXT NOT NULL DEFAULT 'PENDING',
     "reviewedByUserId" TEXT,
     "reviewedAt" DATETIME,
@@ -156,7 +147,7 @@ CREATE TABLE "new_BatchReviewItem" (
     CONSTRAINT "BatchReviewItem_ruleEvaluationId_fkey" FOREIGN KEY ("ruleEvaluationId") REFERENCES "RuleEvaluation" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "BatchReviewItem_reviewedByUserId_fkey" FOREIGN KEY ("reviewedByUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
-INSERT INTO "new_BatchReviewItem" ("batchRunId", "caseJson", "createdAt", "decisionJson", "disposition", "engineStatus", "ethnicityPrimary", "externalPatientId", "figure", "gpPractice", "id", "inputJson", "label", "nhi", "overrideReason", "patientAge", "patientName", "priorDecisionCount", "priorItemId", "receivedDate", "recommendation", "recommendationCode", "referralPriority", "referralType", "reviewNote", "reviewRequired", "reviewedAt", "reviewedByUserId", "riskLevel", "rowNumber", "safetyOutcome", "triageCategory", "triageOutcome", "triagePriority", "triageRuleCode", "triageRuleReleaseId", "triageRuleVersion", "triageTargetDays", "updatedAt") SELECT "batchRunId", "caseJson", "createdAt", "decisionJson", "disposition", "engineStatus", "ethnicityPrimary", "externalPatientId", "figure", "gpPractice", "id", "inputJson", "label", "nhi", "overrideReason", "patientAge", "patientName", "priorDecisionCount", "priorItemId", "receivedDate", "recommendation", "recommendationCode", "referralPriority", "referralType", "reviewNote", "reviewRequired", "reviewedAt", "reviewedByUserId", "riskLevel", "rowNumber", "safetyOutcome", "triageCategory", "triageOutcome", "triagePriority", "triageRuleCode", "triageRuleReleaseId", "triageRuleVersion", "triageTargetDays", "updatedAt" FROM "BatchReviewItem";
+INSERT INTO "new_BatchReviewItem" ("batchRunId", "caseJson", "createdAt", "decisionJson", "disposition", "engineStatus", "ethnicityPrimary", "externalPatientId", "figure", "gpPractice", "id", "inputJson", "label", "nhi", "overrideReason", "patientAge", "patientName", "receivedDate", "recommendation", "recommendationCode", "referralPriority", "referralType", "reviewNote", "reviewRequired", "reviewedAt", "reviewedByUserId", "riskLevel", "rowNumber", "safetyOutcome", "updatedAt") SELECT "batchRunId", "caseJson", "createdAt", "decisionJson", "disposition", "engineStatus", "ethnicityPrimary", "externalPatientId", "figure", "gpPractice", "id", "inputJson", "label", "nhi", "overrideReason", "patientAge", "patientName", "receivedDate", "recommendation", "recommendationCode", "referralPriority", "referralType", "reviewNote", "reviewRequired", "reviewedAt", "reviewedByUserId", "riskLevel", "rowNumber", "safetyOutcome", "updatedAt" FROM "BatchReviewItem";
 DROP TABLE "BatchReviewItem";
 ALTER TABLE "new_BatchReviewItem" RENAME TO "BatchReviewItem";
 
@@ -255,7 +246,6 @@ CREATE UNIQUE INDEX "BatchReviewItem_ruleEvaluationId_key" ON "BatchReviewItem"(
 CREATE INDEX "BatchReviewItem_batchRunId_disposition_idx" ON "BatchReviewItem"("batchRunId", "disposition");
 CREATE INDEX "BatchReviewItem_batchRunId_reviewRequired_idx" ON "BatchReviewItem"("batchRunId", "reviewRequired");
 CREATE INDEX "BatchReviewItem_reviewedByUserId_reviewedAt_idx" ON "BatchReviewItem"("reviewedByUserId", "reviewedAt");
-CREATE INDEX "BatchReviewItem_nhi_createdAt_idx" ON "BatchReviewItem"("nhi", "createdAt");
 CREATE INDEX "BatchRun_createdByUserId_createdAt_idx" ON "BatchRun"("createdByUserId", "createdAt");
 CREATE INDEX "BatchRun_source_createdAt_idx" ON "BatchRun"("source", "createdAt");
 CREATE UNIQUE INDEX "ClinicalRuleSet_key_key" ON "ClinicalRuleSet"("key");
