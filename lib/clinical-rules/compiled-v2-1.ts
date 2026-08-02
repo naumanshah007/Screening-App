@@ -26,6 +26,7 @@ const exists = (name: string) => fact(name, "EXISTS");
 const missing = (name: string) => fact(name, "MISSING");
 const lt = (name: string, value: number) => fact(name, "LT", value);
 const lte = (name: string, value: number) => fact(name, "LTE", value);
+const gt = (name: string, value: number) => fact(name, "GT", value);
 const gte = (name: string, value: number) => fact(name, "GTE", value);
 const all = (...expressions: ConditionExpression[]): ConditionExpression => ({ type: "ALL", expressions });
 const any = (...expressions: ConditionExpression[]): ConditionExpression => ({ type: "ANY", expressions });
@@ -64,13 +65,13 @@ const C: Record<string, GovernedRuleCompilation> = {
   "F2-02": { conditionExpression: all(eq("currentPathway", "FIGURE_2"), eq("previousAis", true), neq("hysterectomyType", "TOTAL")) },
 
   // Figure 3 primary HPV screening and repeat-stage safety overlays.
-  "F3-01": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("hpvResult", "NOT_DETECTED"), eq("immuneClassification", "IMMUNE_COMPETENT"), eq("hasSymptoms", false)) },
-  "F3-02": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("hpvResult", "NOT_DETECTED"), eq("immuneClassification", "IMMUNE_DEFICIENT")) },
+  "F3-01": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("hpvResult", "NOT_DETECTED"), exists("sampleType"), eq("immuneClassification", "IMMUNE_COMPETENT"), eq("hasSymptoms", false)) },
+  "F3-02": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("hpvResult", "NOT_DETECTED"), exists("sampleType"), eq("immuneClassification", "IMMUNE_DEFICIENT")) },
   "F3-03": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), oneOf("hpvResult", HPV_16_18), exists("sampleType"), gte("ageYears", 25), lte("ageYears", 74)), boundaryCases: [
     { idSuffix: "AGE-25-INCLUSIVE", facts: { currentPathway: "FIGURE_3", hpvResult: "HPV_16", sampleType: "LBC", ageYears: 25 }, expected: "TRUE" },
     { idSuffix: "AGE-74-INCLUSIVE", facts: { currentPathway: "FIGURE_3", hpvResult: "HPV_18", sampleType: "SWAB", ageYears: 74 }, expected: "TRUE" },
   ] },
-  "F3-05": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", HIGH_GRADE_CYTOLOGY.filter((value) => ![...INVASIVE_CERVICAL_CYTOLOGY, ...ENDOMETRIAL_CYTOLOGY].includes(value)))) },
+  "F3-05": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "INITIAL"), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", HIGH_GRADE_CYTOLOGY.filter((value) => ![...INVASIVE_CERVICAL_CYTOLOGY, ...ENDOMETRIAL_CYTOLOGY].includes(value)))) },
   "F3-09": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "FIRST_REPEAT"), oneOf("hpvResult", HPV_16_18)) },
   "F3-10": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "FIRST_REPEAT"), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", HIGH_GRADE_CYTOLOGY)) },
   "F3-11": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "FIRST_REPEAT"), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY), gte("ageYears", 50)), boundaryCases: [
@@ -204,7 +205,7 @@ const C: Record<string, GovernedRuleCompilation> = {
     { idSuffix: "EARLY-VAULT-COTESTS-EXCLUDED", facts: { currentPathway: "FIGURE_8", hysterectomyType: "TOTAL", sampleSite: "VAGINAL_VAULT", consecutiveQualifyingNegativeVaultCoTests: 2, monthsBetweenQualifyingVaultCoTests: 11 }, expected: "FALSE" },
   ] },
   "F8-12": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), eq("sampleSite", "VAGINAL_VAULT"), any(oneOf("vaultHpvResult", HPV_DETECTED), neq("vaultCytologyResult", "NEGATIVE"))) },
-  "F8-13": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), any(missing("hysterectomyType"), missing("operativeReportStatus"), missing("priorScreeningHistoryGroup"), missing("specimenPathologyClass"), missing("excisionCompleteness"))) },
+  "F8-13": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), any(missing("hysterectomyType"), all(eq("hysterectomyType", "TOTAL"), any(missing("operativeReportStatus"), missing("priorScreeningHistoryGroup"), missing("specimenPathologyClass"), missing("excisionCompleteness"))))) },
   "F8-14": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), eq("hysterectomyType", "TOTAL"), eq("hasAbnormalVaginalBleeding", true)) },
 
   // Figure 9 pregnancy-specific pathway and timing gates.
@@ -254,7 +255,126 @@ const C: Record<string, GovernedRuleCompilation> = {
   "A26-13": { conditionExpression: all(eq("cin2ActiveSurveillance", true), eq("currentHistology", "CIN2"), lt("surveillanceDurationMonths", 24), eq("followUpMdmReviewDue", true)) },
   "A26-14": { conditionExpression: all(eq("cin2ActiveSurveillance", true), eq("currentHistology", "CIN2"), eq("participantTreatmentPreference", "TREATMENT")) },
   "IMM-01": { conditionExpression: all(eq("immuneClassificationChangedOrAssigned", true), exists("immuneClassifierVersion"), exists("immuneClassificationDate"), exists("immuneSourceConditionOrMedication"), exists("immuneClassificationRationale"), exists("immuneStatusSentOnLaboratoryRequest")) },
+
+  // Remaining MEDIUM/LOW rules, classified and compiled for full-rulebook coverage.
+  "GR-11": { conditionExpression: all(eq("routingStage", "BEFORE_PATHWAY_SELECTION"), eq("isFirstCytologyToHpvTransition", true)) },
+  "GR-12": { conditionExpression: all(eq("routingStage", "BEFORE_PATHWAY_SELECTION"), eq("hasSymptoms", false), eq("cervixPresent", true), gte("ageYears", 25), lte("ageYears", 74), exists("hpvResult"), exists("sampleType")) },
+
+  "F1-01": { conditionExpression: all(eq("currentPathway", "FIGURE_1"), eq("screeningStatus", "NEVER_SCREENED")) },
+  "F1-02": { conditionExpression: all(eq("currentPathway", "FIGURE_1"), eq("screeningStatus", "UNDER_SCREENED")) },
+  "F1-03": { conditionExpression: all(eq("currentPathway", "FIGURE_1"), eq("screeningStatus", "OVERDUE")) },
+  "F1-04": { conditionExpression: all(eq("currentPathway", "FIGURE_1"), eq("screeningStatus", "REGULAR_SCREENING"), eq("priorScreeningHistoryGroup", "NEGATIVE_OR_RESOLVED_LOW_GRADE"), eq("priorLowGradeResolved", false)) },
+  "F1-05": { conditionExpression: all(eq("currentPathway", "FIGURE_1"), eq("priorScreeningHistoryGroup", "NEGATIVE_OR_RESOLVED_LOW_GRADE"), eq("priorLowGradeResolved", true)) },
+  "F1-06": { conditionExpression: all(eq("currentPathway", "FIGURE_1"), eq("priorHighGradeHistory", true), eq("tocStatus", "COMPLETE")) },
+  "F1-X": { conditionExpression: all(eq("currentPathway", "FIGURE_1"), eq("priorHighGradeOrGlandularHistoryStatus", "UNRESOLVED")) },
+
+  "F2-03": { conditionExpression: all(eq("currentPathway", "FIGURE_2"), eq("previousAtypicalEndometrialCells", true), gt("monthsSinceAtypicalEndometrialReport", 36)), boundaryCases: [
+    { idSuffix: "MONTH-36-EXCLUDED", facts: { currentPathway: "FIGURE_2", previousAtypicalEndometrialCells: true, monthsSinceAtypicalEndometrialReport: 36 }, expected: "FALSE" },
+    { idSuffix: "MONTH-37-INCLUDED", facts: { currentPathway: "FIGURE_2", previousAtypicalEndometrialCells: true, monthsSinceAtypicalEndometrialReport: 37 }, expected: "TRUE" },
+  ] },
+  "F2-04": { conditionExpression: all(eq("currentPathway", "FIGURE_2"), eq("previousAtypicalEndometrialCells", true), eq("specialistAssessmentCompleted", true), eq("specialistDischargedToPrimaryCare", true)) },
+  "F2-05": { conditionExpression: all(eq("currentPathway", "FIGURE_2"), eq("previousAtypicalEndometrialCells", true), lte("monthsSinceAtypicalEndometrialReport", 36), eq("specialistDischargedToPrimaryCare", false)) },
+  "F2-X": { conditionExpression: all(eq("currentPathway", "FIGURE_2"), eq("priorHighGradeHistory", true), eq("tocStatus", "COMPLETE")) },
+
+  "F3-04": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("hpvResult", "HPV_OTHER"), eq("sampleType", "SWAB")) },
+  "F3-06": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("hpvResult", "HPV_OTHER"), eq("cytologyResult", "ATYPICAL_ENDOMETRIAL"), eq("hasOtherCervicalColposcopyIndication", false)) },
+  "F3-07": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "INITIAL"), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY), eq("sampleType", "LBC")) },
+  "F3-08": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "FIRST_REPEAT"), eq("hpvResult", "NOT_DETECTED"), exists("immuneClassification")) },
+  "F3-12": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "FIRST_REPEAT"), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY), lt("ageYears", 50)), boundaryCases: [
+    { idSuffix: "AGE-49-INCLUDED", facts: { currentPathway: "FIGURE_3", eventStage: "FIRST_REPEAT", hpvResult: "HPV_OTHER", cytologyResult: "NEGATIVE", ageYears: 49 }, expected: "TRUE" },
+    { idSuffix: "AGE-50-EXCLUDED", facts: { currentPathway: "FIGURE_3", eventStage: "FIRST_REPEAT", hpvResult: "HPV_OTHER", cytologyResult: "NEGATIVE", ageYears: 50 }, expected: "FALSE" },
+  ] },
+  "F3-13": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), eq("eventStage", "SECOND_REPEAT"), eq("hpvResult", "NOT_DETECTED"), exists("immuneClassification")) },
+  "F3-17": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), gte("ageYears", 75), eq("hasSymptoms", false)), boundaryCases: [
+    { idSuffix: "AGE-74-EXCLUDED", facts: { currentPathway: "FIGURE_3", ageYears: 74, hasSymptoms: false }, expected: "FALSE" },
+    { idSuffix: "AGE-75-INCLUDED", facts: { currentPathway: "FIGURE_3", ageYears: 75, hasSymptoms: false }, expected: "TRUE" },
+  ] },
+  "F3-18": { conditionExpression: all(eq("currentPathway", "FIGURE_3"), oneOf("hpvValidity", ["INVALID", "UNSUITABLE"]), eq("technicalIssueAssessmentComplete", true), eq("cytologyAvailabilityKnown", true)) },
+
+  "F4-01": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("eventStage", "INITIAL"), oneOf("hpvResult", HPV_DETECTED), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY), eq("colposcopyResult", "NORMAL")) },
+  "F4-02": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("eventStage", "TWELVE_MONTH_REPEAT"), eq("hpvResult", "NOT_DETECTED"), exists("immuneClassification")) },
+  "F4-06": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("eventStage", "TWELVE_MONTH_REPEAT"), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY), eq("immuneClassification", "IMMUNE_COMPETENT")) },
+  "F4-07": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("eventStage", "TWENTY_FOUR_MONTH_REPEAT"), eq("hpvResult", "NOT_DETECTED"), exists("immuneClassification")) },
+  "F4-09": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("transformationZoneType", "TYPE_3"), oneOf("hpvResult", HPV_DETECTED), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY), eq("colposcopyResult", "NORMAL")) },
+  "F4-10": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("transformationZoneType", "TYPE_3"), eq("cytologicalHighGradeEvidence", false), eq("colposcopicHighGradeEvidence", false), eq("histologicalHighGradeEvidence", false)) },
+  "F4-11": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("transformationZoneType", "TYPE_3"), any(eq("completedChildBearing", true), eq("clinicallySignificantAnxiety", true), gt("ageYears", 50), eq("attendanceUncertain", true)), eq("sharedDecisionRequired", true)), boundaryCases: [
+    { idSuffix: "AGE-50-ALONE-EXCLUDED", facts: { currentPathway: "FIGURE_4", transformationZoneType: "TYPE_3", completedChildBearing: false, clinicallySignificantAnxiety: false, ageYears: 50, attendanceUncertain: false, sharedDecisionRequired: true }, expected: "FALSE" },
+    { idSuffix: "AGE-51-INCLUDED", facts: { currentPathway: "FIGURE_4", transformationZoneType: "TYPE_3", completedChildBearing: false, clinicallySignificantAnxiety: false, ageYears: 51, attendanceUncertain: false, sharedDecisionRequired: true }, expected: "TRUE" },
+  ] },
+  "F4-12": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("persistentLowGradeCytology", true), eq("transformationZoneType", "TYPE_3")) },
+
+  "F5-02": { conditionExpression: all(eq("currentPathway", "FIGURE_5"), oneOf("mdmOutcome", ["DOWNGRADED_NEGATIVE", "DOWNGRADED_LSIL", "DOWNGRADED_ASC_US_LSIL"])) },
+  "F5-04": { conditionExpression: all(eq("currentPathway", "FIGURE_5"), eq("reviewedCytology", "CONFIRMED_ASC_H"), oneOf("transformationZoneType", ["TYPE_1", "TYPE_2"]), eq("visibleLesion", false)) },
+  "F5-08": { conditionExpression: all(eq("currentPathway", "FIGURE_5"), eq("observationStage", "SIX_MONTH"), eq("hpvResult", "NOT_DETECTED"), eq("cytologyResult", "NEGATIVE"), eq("visibleLesion", false), eq("colposcopicImpressionUnchanged", true)) },
+
+  "F6-02": { conditionExpression: all(eq("currentPathway", "FIGURE_6"), eq("isTestOfCureEvent", true), eq("tocEventTiming", "SIX_MONTH_POST_TREATMENT"), eq("hpvResult", "NOT_DETECTED"), eq("cytologyResult", "NEGATIVE")) },
+  "F6-06": { conditionExpression: all(eq("currentPathway", "FIGURE_6"), eq("isTestOfCureEvent", true), eq("tocEventOrdinal", 1), eq("hpvResult", "NOT_DETECTED"), oneOf("cytologyResult", ["ASC_US", "LSIL"])) },
+
+  "T1-01": { conditionExpression: all(eq("currentPathway", "TABLE_1"), eq("priorScreeningHistoryGroup", "NEGATIVE_OR_RESOLVED_LOW_GRADE"), eq("hysterectomyIndication", "BENIGN_GYNAECOLOGICAL_DISEASE"), eq("specimenPathologyDetail", "NO_CERVICAL_PATHOLOGY")) },
+  "T1-02": { conditionExpression: all(eq("currentPathway", "TABLE_1"), eq("priorScreeningHistoryGroup", "NEGATIVE_OR_RESOLVED_LOW_GRADE"), eq("hysterectomyIndication", "BENIGN_GYNAECOLOGICAL_DISEASE"), eq("specimenPathologyDetail", "LSIL_CIN1")) },
+  "T1-05": { conditionExpression: all(eq("currentPathway", "TABLE_1"), eq("priorScreeningHistoryGroup", "LOW_GRADE_NOT_RETURNED_TO_REGULAR"), eq("hysterectomyIndication", "BENIGN_GYNAECOLOGICAL_DISEASE"), eq("specimenPathologyDetail", "NO_CERVICAL_PATHOLOGY")) },
+  "T1-06": { conditionExpression: all(eq("currentPathway", "TABLE_1"), eq("priorScreeningHistoryGroup", "LOW_GRADE_NOT_RETURNED_TO_REGULAR"), eq("hysterectomyIndication", "BENIGN_GYNAECOLOGICAL_DISEASE"), eq("specimenPathologyDetail", "LSIL_CIN1")) },
+  "T1-09": { conditionExpression: all(eq("currentPathway", "TABLE_1"), eq("priorScreeningHistoryGroup", "TREATED_HSIL_TOC_COMPLETE"), eq("hysterectomyIndication", "BENIGN_GYNAECOLOGICAL_DISEASE"), eq("specimenPathologyDetail", "NO_CERVICAL_PATHOLOGY")) },
+  "T1-10": { conditionExpression: all(eq("currentPathway", "TABLE_1"), eq("priorScreeningHistoryGroup", "TREATED_HSIL_TOC_COMPLETE"), eq("hysterectomyIndication", "BENIGN_GYNAECOLOGICAL_DISEASE"), eq("specimenPathologyDetail", "LSIL_CIN1")) },
+  "T1-19": { conditionExpression: all(eq("currentPathway", "TABLE_1"), eq("priorScreeningHistoryGroup", "NO_KNOWN_SCREENING_HISTORY"), eq("hysterectomyIndication", "BENIGN_GYNAECOLOGICAL_DISEASE"), eq("specimenPathologyClass", "NO_OR_LOW_GRADE")) },
+
+  "F8-01": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), eq("hysterectomyType", "TOTAL"), oneOf("priorScreeningHistoryGroup", ["NEGATIVE_OR_RESOLVED_LOW_GRADE", "TREATED_HSIL_TOC_COMPLETE"]), eq("specimenPathologyDetail", "NO_CERVICAL_PATHOLOGY")) },
+  "F8-02": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), eq("hysterectomyType", "TOTAL"), oneOf("priorScreeningHistoryGroup", ["NEGATIVE_OR_RESOLVED_LOW_GRADE", "TREATED_HSIL_TOC_COMPLETE"]), eq("specimenPathologyDetail", "LSIL_CIN1")) },
+  "F8-05": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), eq("hysterectomyType", "TOTAL"), eq("priorScreeningHistoryGroup", "LOW_GRADE_NOT_RETURNED_TO_REGULAR"), eq("specimenPathologyClass", "NO_OR_LOW_GRADE")) },
+  "F8-09": { conditionExpression: all(eq("currentPathway", "FIGURE_8"), eq("hysterectomyType", "SUBTOTAL")) },
+
+  "F9-03": { conditionExpression: all(eq("currentPathway", "FIGURE_9"), eq("isPregnant", true), eq("mdmOutcome", "DOWNGRADED_NEGATIVE")) },
+  "F9-04": { conditionExpression: all(eq("currentPathway", "FIGURE_9"), eq("isPregnant", true), oneOf("mdmOutcome", ["DOWNGRADED_LSIL", "DOWNGRADED_ASC_US_LSIL"])) },
+  "F9-09": { conditionExpression: all(eq("currentPathway", "FIGURE_9"), eq("isPregnant", true), eq("hpvResult", "HPV_OTHER"), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY)) },
+
+  "F10-02": { conditionExpression: all(eq("currentPathway", "FIGURE_10"), eq("hasAbnormalVaginalBleeding", true), eq("bleedingAssessmentComplete", false)) },
+  "F10-04": { conditionExpression: all(eq("currentPathway", "FIGURE_10"), eq("abnormalCervix", true), eq("suspicionOfCancer", false)) },
+  "F10-05": { conditionExpression: all(eq("currentPathway", "FIGURE_10"), eq("abnormalCervix", false), eq("suspectOralContraceptiveProblem", true)) },
+  "F10-06": { conditionExpression: all(eq("currentPathway", "FIGURE_10"), eq("bleedingReviewStage", "SIX_TO_EIGHT_WEEK_REVIEW"), eq("bleedingResolved", true)) },
+  "F10-07": { conditionExpression: all(eq("currentPathway", "FIGURE_10"), eq("bleedingReviewStage", "SIX_TO_EIGHT_WEEK_REVIEW"), eq("bleedingResolved", false)) },
+  "F10-08": { conditionExpression: all(eq("currentPathway", "FIGURE_10"), eq("abnormalCervix", false), eq("suspectOralContraceptiveProblem", false), eq("stiIdentified", true)) },
+  "F10-09": { conditionExpression: all(eq("currentPathway", "FIGURE_10"), eq("abnormalCervix", false), eq("suspectOralContraceptiveProblem", false), eq("stiAssessmentComplete", true), eq("stiIdentified", false)) },
+
+  "DES-03": { conditionExpression: all(eq("desExposureStatus", "KNOWN_EXPOSED"), eq("specialistAssessmentCompleted", true), eq("vaginalAdenosisPresent", false)) },
+  "A26-01": { conditionExpression: all(eq("currentPathway", "FIGURE_4"), eq("transformationZoneType", "TYPE_3"), oneOf("hpvResult", HPV_DETECTED), oneOf("cytologyResult", LOW_GRADE_CYTOLOGY), eq("colposcopyResult", "NORMAL")) },
+  "A26-07": { conditionExpression: all(oneOf("hpvResult", HPV_DETECTED), eq("treatedHistology", "AIS"), eq("marginStatus", "CLEAR")) },
+  "A26-10": { conditionExpression: eq("hasOtherPriorCervicalOrVaginalCancer", true) },
+  "A26-11": { conditionExpression: all(eq("priorHsil", true), eq("tocStatusBeforeHysterectomy", "INCOMPLETE"), eq("gynaecologicalCancerType", "NON_CERVICAL"), eq("hysterectomyType", "TOTAL")) },
+  "A26-12": { conditionExpression: all(eq("hasGynaecologicalCancer", true), eq("hysterectomyType", "SUBTOTAL")) },
 };
+
+export type RemainingRuleClassification =
+  | "EXECUTABLE_ROUTING"
+  | "EXECUTABLE_VALIDATION"
+  | "CLINICIAN_ONLY_INFORMATION"
+  | "DISPLAY_ONLY"
+  | "SOURCE_PROVENANCE_ONLY"
+  | "SUPERSEDED";
+
+const CLINICIAN_ONLY_INFORMATION = new Set([
+  "F4-10", "F4-11", "F4-12", "F5-04", "F10-02", "F10-04",
+  "F10-05", "F10-08", "F10-09", "DES-03", "A26-10",
+]);
+
+export const REMAINING_RULE_CLASSIFICATION: Record<string, RemainingRuleClassification> =
+  Object.fromEntries(
+    [
+      "GR-11", "GR-12", "F1-01", "F1-02", "F1-03", "F1-04", "F1-05", "F1-06", "F1-X",
+      "F2-03", "F2-04", "F2-05", "F2-X", "F3-04", "F3-06", "F3-07", "F3-08", "F3-12",
+      "F3-13", "F3-17", "F3-18", "F4-01", "F4-02", "F4-06", "F4-07", "F4-09", "F4-10",
+      "F4-11", "F4-12", "F5-02", "F5-04", "F5-08", "F6-02", "F6-06", "T1-01", "T1-02",
+      "T1-05", "T1-06", "T1-09", "T1-10", "T1-19", "F8-01", "F8-02", "F8-05", "F8-09",
+      "F9-03", "F9-04", "F9-09", "F10-02", "F10-04", "F10-05", "F10-06", "F10-07", "F10-08",
+      "F10-09", "DES-03", "A26-01", "A26-07", "A26-10", "A26-11", "A26-12",
+    ].map((ruleId) => [
+      ruleId,
+      ruleId === "A26-01"
+        ? "EXECUTABLE_VALIDATION"
+        : CLINICIAN_ONLY_INFORMATION.has(ruleId)
+          ? "CLINICIAN_ONLY_INFORMATION"
+          : "EXECUTABLE_ROUTING",
+    ])
+  ) as Record<string, RemainingRuleClassification>;
 
 function expressionFactNames(expression: ConditionExpression): string[] {
   switch (expression.type) {
@@ -410,12 +530,16 @@ export function compileGovernedHighRiskRule(rule: RuleDefinition): RuleDefinitio
     requiredFacts:
       compilation.requiredFacts ?? expressionFactNames(compilation.conditionExpression),
     executableTestIds: conformanceTestIdsForRule(rule.stableRuleId),
+    governedClassification: REMAINING_RULE_CLASSIFICATION[rule.stableRuleId],
   };
 }
 
-export function compiledHighRiskRuleIds() {
+export function compiledRuleIds() {
   return Object.keys(C);
 }
+
+/** @deprecated Use compiledRuleIds; retained for compatibility with revision-3 callers. */
+export const compiledHighRiskRuleIds = compiledRuleIds;
 
 const EXPLICIT_PRECEDENCE: Record<string, number> = {
   // Missing-data and clinician-only stops outrank every terminal route.
@@ -444,6 +568,77 @@ const EXPLICIT_PRECEDENCE: Record<string, number> = {
   "F10-15": 1050,
   "F3-15": 900,
   "F3-16": 900,
+  "F3-17": 900,
+  "F3-18": 1250,
+  "F3-08": 500,
+  "F3-13": 500,
+  "F8-09": 1250,
+  "A26-10": 1100,
+  "F10-04": 500,
+  "F10-05": 500,
+  "F10-06": 500,
+  "F10-07": 500,
+  "F10-08": 500,
+  "F10-09": 500,
+  // Entry/MDM routers remain matched for traceability; downstream decisions
+  // control once their more-specific facts are present.
+  "F5-01": 600,
+  "F5-02": 700,
+  "F5-03": 700,
+  "F5-04": 700,
+  "F5-05": 700,
+  "F5-06": 700,
+  "F5-07": 700,
+  "F5-08": 700,
+  "F5-09": 700,
+  "F5-10": 700,
+  "F5-11": 700,
+  "F5-12": 700,
+  "F6-01": 300,
+  "F6-02": 800,
+  "F6-03": 800,
+  "F6-04": 800,
+  "F6-05": 800,
+  "F6-06": 800,
+  "F6-07": 800,
+  "F6-08": 800,
+  "F6-09": 500,
+  "F6-10": 500,
+  "F6-11": 500,
+  "F6-14": 100,
+  "F7-01": 600,
+  "F7-02": 600,
+  "F7-03": 650,
+  "F7-04": 700,
+  "F7-05": 700,
+  "F7-06": 700,
+  "F7-07": 700,
+  "F7-09": 700,
+  "F7-10": 700,
+  "F7-11": 700,
+  "F7-12": 700,
+  "F7-13": 700,
+  "F7-14": 700,
+  "F7-15": 700,
+  "F7-16": 700,
+  "F7-18": 675,
+  "F9-01": 675,
+  "F9-02": 650,
+  "F9-03": 700,
+  "F9-04": 700,
+  "F9-05": 700,
+  "F9-06": 700,
+  "F9-07": 700,
+  "F9-08": 700,
+  "F9-09": 700,
+  "F9-10": 700,
+  "F9-11": 700,
+  // A known DES exposure selects the overlay; its more specific outcomes then
+  // control within that overlay instead of being hidden by the entry rule.
+  "DES-01": 600,
+  "DES-02": 700,
+  "DES-03": 700,
+  "DES-04": 700,
   // Remaining global routers select the pathway before pathway-local rules.
   "GR-02": 1000,
   "GR-03": 1000,
@@ -453,7 +648,10 @@ const EXPLICIT_PRECEDENCE: Record<string, number> = {
   "GR-08": 1000,
   "GR-09": 1000,
   "GR-10": 1000,
-  "GR-13": 1000,
+  "GR-11": 1000,
+  "GR-12": 1000,
+  // GR-13 is the intake fallback, not a peer of the specific global routers.
+  "GR-13": 850,
 };
 
 export function governedRulePrecedence(rule: RuleDefinition): number {

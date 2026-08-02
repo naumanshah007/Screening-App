@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  compiledRuleIds,
   compiledHighRiskRuleIds,
   conformanceTestIdsForRule,
   EXECUTABLE_CONFORMANCE_TEST_IDS,
   factsForExpressionTruth,
   governedCompilationForRule,
   missingFactCaseForExpression,
+  REMAINING_RULE_CLASSIFICATION,
 } from "../compiled-v2-1";
 import {
   evaluateClinicalSnapshot,
@@ -18,7 +20,7 @@ import { validateClinicalRuleSnapshot } from "../validation";
 
 const builtPromise = buildSnapshotFromV21Package();
 
-test("governed compilation covers every HIGH and CRITICAL v2.1 rule exactly once", async () => {
+test("governed compilation covers all 203 v2.1 rules exactly once", async () => {
   const { snapshot } = await builtPromise;
   const highRiskRuleIds = snapshot.rules
     .filter((rule) => ["HIGH", "CRITICAL"].includes(rule.safetyPriority))
@@ -29,14 +31,13 @@ test("governed compilation covers every HIGH and CRITICAL v2.1 rule exactly once
     .filter((ruleId) => highRiskRuleIds.includes(ruleId))
     .sort();
   assert.deepEqual(compiledHighRiskIds, highRiskRuleIds);
-  assert.deepEqual(
-    compiledHighRiskRuleIds().filter((ruleId) => !highRiskRuleIds.includes(ruleId)).sort(),
-    ["F3-01", "F3-02", "F3-15"]
-  );
-  assert.equal(EXECUTABLE_CONFORMANCE_TEST_IDS.size, 462);
+  assert.deepEqual(compiledRuleIds().slice().sort(), snapshot.rules.map((rule) => rule.stableRuleId).sort());
+  assert.equal(compiledRuleIds().length, 203);
+  assert.equal(Object.keys(REMAINING_RULE_CLASSIFICATION).length, 61);
+  assert.equal(EXECUTABLE_CONFORMANCE_TEST_IDS.size, 653);
 });
 
-for (const ruleId of compiledHighRiskRuleIds()) {
+for (const ruleId of compiledRuleIds()) {
   test(`CG-V21-${ruleId}-POSITIVE`, async () => {
     const { snapshot } = await builtPromise;
     const rule = snapshot.rules.find((candidate) => candidate.stableRuleId === ruleId);

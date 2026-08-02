@@ -58,6 +58,23 @@ function canonicalPathology(value: ClinicalInput["hysterectomySpecimenPathology"
   return undefined;
 }
 
+function canonicalTocStatus(value: ClinicalInput["testOfCureStatus"]) {
+  if (["COMPLETE", "SUCCESSFULLY_COMPLETED"].includes(value ?? "")) return "COMPLETE";
+  if (["REQUIRED", "INCOMPLETE"].includes(value ?? "")) return "INCOMPLETE";
+  return value;
+}
+
+function completedMonthsSince(value: string | Date | undefined) {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  const today = new Date();
+  let months = (today.getUTCFullYear() - date.getUTCFullYear()) * 12;
+  months += today.getUTCMonth() - date.getUTCMonth();
+  if (today.getUTCDate() < date.getUTCDate()) months -= 1;
+  return Math.max(0, months);
+}
+
 function canonicalEventStage(input: Partial<ClinicalInput>) {
   if (input.currentFigure === "FIGURE_4") {
     if (input.repeatStage === "FIRST_REPEAT") return "TWELVE_MONTH_REPEAT";
@@ -79,6 +96,13 @@ export function normalizeClinicalFactMap(rawFacts: ClinicalFactMap): ClinicalFac
 
   assignIfAbsent(facts, "currentPathway", input.currentFigure);
   assignIfAbsent(facts, "ageYears", input.patientAge);
+  assignIfAbsent(facts, "isFirstCytologyToHpvTransition", input.isFirstTimeHPVTransition);
+  assignIfAbsent(facts, "screeningStatus", input.screeningStatus);
+  assignIfAbsent(
+    facts,
+    "cervixPresent",
+    input.hysterectomyType === "TOTAL" ? false : input.isPostHysterectomy === false || input.hysterectomyType === "SUBTOTAL" ? true : undefined
+  );
   const normalizedHpvResult = canonicalHpvResult(input.hpvResult);
   if (normalizedHpvResult !== undefined) facts.hpvResult = normalizedHpvResult;
   const normalizedCytologyResult = canonicalCytologyResult(input.cytologyResult);
@@ -102,8 +126,9 @@ export function normalizeClinicalFactMap(rawFacts: ClinicalFactMap): ClinicalFac
   assignIfAbsent(facts, "hysterectomyIndication", input.hysterectomyIndication === "HSIL_CIN23_OR_AIS" ? "HSIL_AIS_WITH_OR_WITHOUT_BENIGN_DISEASE" : input.hysterectomyIndication);
   assignIfAbsent(facts, "priorScreeningHistoryGroup", canonicalHistoryGroup(input.priorScreeningHistory));
   assignIfAbsent(facts, "specimenPathologyClass", canonicalPathology(input.hysterectomySpecimenPathology));
+  assignIfAbsent(facts, "specimenPathologyDetail", input.hysterectomySpecimenPathology);
   assignIfAbsent(facts, "excisionCompleteness", input.excisionStatus);
-  assignIfAbsent(facts, "tocStatus", input.testOfCureStatus);
+  assignIfAbsent(facts, "tocStatus", canonicalTocStatus(input.testOfCureStatus));
   assignIfAbsent(facts, "isTestOfCureEvent", input.isTestOfCure);
   assignIfAbsent(facts, "isActiveHsilTestOfCure", input.isTestOfCure || ["REQUIRED", "INCOMPLETE"].includes(input.testOfCureStatus ?? ""));
   assignIfAbsent(facts, "treatmentDate", input.treatmentDate);
@@ -114,6 +139,44 @@ export function normalizeClinicalFactMap(rawFacts: ClinicalFactMap): ClinicalFac
   assignIfAbsent(facts, "hpvValidity", input.hpvResult === "INADEQUATE" ? "INVALID" : input.hpvResult ? "VALID" : undefined);
   assignIfAbsent(facts, "cytologyAdequacy", input.cytologyResult === "UNSATISFACTORY" ? "UNSATISFACTORY" : input.cytologyResult ? "SATISFACTORY" : undefined);
   assignIfAbsent(facts, "colposcopyResult", input.normalColposcopy === true ? "NORMAL" : undefined);
+  assignIfAbsent(facts, "priorLowGradeResolved", input.priorScreeningHistory === "LOW_GRADE_RETURNED_TO_REGULAR" ? true : input.priorScreeningHistory === "NEGATIVE_OR_NORMAL" ? false : undefined);
+  assignIfAbsent(facts, "priorHighGradeHistory", input.priorHighGradeResult ?? input.previousHSILCIN23);
+  assignIfAbsent(facts, "previousAtypicalEndometrialCells", input.previousAtypicalEndometrialCells);
+  assignIfAbsent(facts, "monthsSinceAtypicalEndometrialReport", completedMonthsSince(input.ag2ReportDate));
+  assignIfAbsent(facts, "specialistAssessmentCompleted", input.specialistDischargedToPrimaryCare === true ? true : undefined);
+  assignIfAbsent(facts, "specialistDischargedToPrimaryCare", input.specialistDischargedToPrimaryCare);
+  assignIfAbsent(facts, "suspectOralContraceptiveProblem", input.suspectOralContraceptiveProblem);
+  assignIfAbsent(facts, "stiIdentified", input.stiIdentified);
+  assignIfAbsent(facts, "bleedingResolved", input.bleedingResolved);
+  assignIfAbsent(facts, "bleedingReviewStage", input.abnormalBleedingStage);
+  assignIfAbsent(
+    facts,
+    "tocEventOrdinal",
+    input.testOfCureStage === "FIRST_TEST" ? 1 : input.testOfCureStage === "SECOND_TEST" ? 2 : undefined
+  );
+  assignIfAbsent(
+    facts,
+    "tocEventTiming",
+    input.testOfCureStage === "FIRST_TEST"
+      ? "SIX_MONTH_POST_TREATMENT"
+      : input.testOfCureStage === "SECOND_TEST"
+        ? "EIGHTEEN_MONTH_POST_TREATMENT"
+        : undefined
+  );
+
+  const assessmentFacts = [
+    input.menstrualHistoryCaptured,
+    input.contraceptiveHistoryCaptured,
+    input.sexualHistoryCaptured,
+    input.speculumExamCompleted,
+    input.pelvicExamCompleted,
+    input.coTestCompleted,
+  ];
+  if (assessmentFacts.every((value) => value === true)) {
+    assignIfAbsent(facts, "bleedingAssessmentComplete", true);
+  } else if (assessmentFacts.some((value) => value === false)) {
+    assignIfAbsent(facts, "bleedingAssessmentComplete", false);
+  }
 
   if (input.currentFigure === "FIGURE_3" && input.patientAge !== undefined) {
     assignIfAbsent(facts, "isExitTest", input.patientAge >= 70 && input.patientAge <= 74);

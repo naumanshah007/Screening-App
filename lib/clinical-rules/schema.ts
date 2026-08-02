@@ -89,6 +89,16 @@ export const SourceReferenceSchema = z.object({
 });
 export type SourceReference = z.infer<typeof SourceReferenceSchema>;
 
+export const GovernedRuleClassificationSchema = z.enum([
+  "EXECUTABLE_ROUTING",
+  "EXECUTABLE_VALIDATION",
+  "CLINICIAN_ONLY_INFORMATION",
+  "DISPLAY_ONLY",
+  "SOURCE_PROVENANCE_ONLY",
+  "SUPERSEDED",
+]);
+export type GovernedRuleClassification = z.infer<typeof GovernedRuleClassificationSchema>;
+
 export const RuleDefinitionSchema = z.object({
   stableRuleId: z.string().trim().regex(/^[A-Z0-9][A-Z0-9-]*$/),
   section: z.string().trim().min(1),
@@ -107,6 +117,8 @@ export const RuleDefinitionSchema = z.object({
   implementationNote: z.string().trim().min(1),
   safetyPriority: SafetyPrioritySchema,
   executableTestIds: z.array(z.string().trim().min(1)),
+  governedClassification: GovernedRuleClassificationSchema.optional(),
+  supersededByRuleId: z.string().trim().min(1).optional(),
 });
 export type RuleDefinition = z.infer<typeof RuleDefinitionSchema>;
 
