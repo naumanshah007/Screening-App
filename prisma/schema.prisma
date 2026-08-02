@@ -272,51 +272,88 @@ enum BatchReviewDisposition {
   NEEDS_INFO
 }
 
+enum ClinicalRuleScope {
+  GLOBAL
+  ORGANISATION
+}
+
+enum ClinicalRuleVersionStatus {
+  DRAFT
+  VALIDATING
+  VALIDATED
+  PUBLISHED
+  ACTIVE
+  RETIRED
+  ARCHIVED
+}
+
+enum ClinicalRuleChangeClassification {
+  DISPLAY_ONLY
+  OPERATIONAL
+  CLINICAL_LOGIC
+}
+
+enum RuleActivationEnvironment {
+  DEMO
+  TEST
+  VALIDATION
+  PRODUCTION
+}
+
+enum RuleEvaluationMode {
+  LIVE_DEMO
+  SHADOW
+  SIMULATION
+}
+
 // ─── Auth / User Models ───────────────────────────────────────────────────────
 
 model User {
-  id                        String                  @id @default(cuid())
-  name                      String?
-  email                     String                  @unique
-  emailVerified             DateTime?
-  image                     String?
-  passwordHash              String?
-  passwordChangeRequired    Boolean                 @default(false)
-  passwordChangedAt         DateTime?
-  passwordExpiresAt         DateTime?
-  role                      UserRole                @default(GP)
-  twoFASecret               String?
-  twoFAEnabled              Boolean                 @default(false)
-  twoFARecoveryCodesJson    String?
-  failedAttempts            Int                     @default(0)
-  lockedUntil               DateTime?
-  lastLoginAt               DateTime?
-  gpPracticeId              String?
-  gpPractice                GPPractice?             @relation(fields: [gpPracticeId], references: [id])
-  accounts                  Account[]
-  sessions                  Session[]
-  auditLogs                 AuditLog[]
-  createdCases              ReferralCase[]          @relation("CaseCreator")
-  assignedCases             ReferralCase[]          @relation("CaseAssignee")
-  clinicianDecisions        ClinicianDecision[]     @relation("CaseDecisionMaker")
-  uploadedDocuments         ReferralDocument[]      @relation("DocumentUploader")
-  approvedSummaries         ClinicalSummary[]       @relation("CaseSummaryApprover")
-  reviewedCaseRules         CaseRuleSetRelease[]    @relation("CaseRuleReviewer")
-  publishedCaseRules        CaseRuleSetRelease[]    @relation("CaseRulePublisher")
-  createdSessions           ScreeningSession[]
-  reviewedRules             ClinicalRuleSet[]       @relation("RuleReviewer")
-  publishedRules            ClinicalRuleSet[]       @relation("RulePublisher")
-  pathwayHistory            PathwayStateHistory[]
-  colposcopyFindings        ColposcopyFinding[]
-  wizardSessions            WizardSession[]
-  accessCertifications      AccessCertification[]
-  integrationValidations    IntegrationValidation[] @relation("IntegrationValidationReviewer")
-  openedSecurityIncidents   SecurityIncident[]      @relation("SecurityIncidentOpenedBy")
-  assignedSecurityIncidents SecurityIncident[]      @relation("SecurityIncidentAssignedTo")
-  batchRuns                 BatchRun[]              @relation("BatchRunCreator")
-  reviewedBatchItems        BatchReviewItem[]       @relation("BatchItemReviewer")
-  createdAt                 DateTime                @default(now())
-  updatedAt                 DateTime                @updatedAt
+  id                            String                  @id @default(cuid())
+  name                          String?
+  email                         String                  @unique
+  emailVerified                 DateTime?
+  image                         String?
+  passwordHash                  String?
+  passwordChangeRequired        Boolean                 @default(false)
+  passwordChangedAt             DateTime?
+  passwordExpiresAt             DateTime?
+  role                          UserRole                @default(GP)
+  twoFASecret                   String?
+  twoFAEnabled                  Boolean                 @default(false)
+  twoFARecoveryCodesJson        String?
+  failedAttempts                Int                     @default(0)
+  lockedUntil                   DateTime?
+  lastLoginAt                   DateTime?
+  gpPracticeId                  String?
+  gpPractice                    GPPractice?             @relation(fields: [gpPracticeId], references: [id])
+  accounts                      Account[]
+  sessions                      Session[]
+  auditLogs                     AuditLog[]
+  createdCases                  ReferralCase[]          @relation("CaseCreator")
+  assignedCases                 ReferralCase[]          @relation("CaseAssignee")
+  clinicianDecisions            ClinicianDecision[]     @relation("CaseDecisionMaker")
+  uploadedDocuments             ReferralDocument[]      @relation("DocumentUploader")
+  approvedSummaries             ClinicalSummary[]       @relation("CaseSummaryApprover")
+  reviewedCaseRules             CaseRuleSetRelease[]    @relation("CaseRuleReviewer")
+  publishedCaseRules            CaseRuleSetRelease[]    @relation("CaseRulePublisher")
+  createdSessions               ScreeningSession[]
+  createdClinicalRuleVersions   ClinicalRuleVersion[]   @relation("ClinicalRuleVersionCreator")
+  approvedClinicalRuleVersions  ClinicalRuleVersion[]   @relation("ClinicalRuleVersionApprover")
+  publishedClinicalRuleVersions ClinicalRuleVersion[]   @relation("ClinicalRuleVersionPublisher")
+  clinicalRuleActivations       RuleSetActivation[]     @relation("ClinicalRuleActivationActor")
+  clinicalRuleAuditEvents       RuleVersionAuditEvent[] @relation("ClinicalRuleAuditActor")
+  pathwayHistory                PathwayStateHistory[]
+  colposcopyFindings            ColposcopyFinding[]
+  wizardSessions                WizardSession[]
+  accessCertifications          AccessCertification[]
+  integrationValidations        IntegrationValidation[] @relation("IntegrationValidationReviewer")
+  openedSecurityIncidents       SecurityIncident[]      @relation("SecurityIncidentOpenedBy")
+  assignedSecurityIncidents     SecurityIncident[]      @relation("SecurityIncidentAssignedTo")
+  batchRuns                     BatchRun[]              @relation("BatchRunCreator")
+  reviewedBatchItems            BatchReviewItem[]       @relation("BatchItemReviewer")
+  createdAt                     DateTime                @default(now())
+  updatedAt                     DateTime                @updatedAt
 }
 
 model AccessCertification {
@@ -542,8 +579,9 @@ model ReferralCase {
   deletedAt       DateTime?
   deletedByUserId String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  ruleEvaluations RuleEvaluation[]
 
   @@index([serviceLine, status, receivedAt])
   @@index([patientId, serviceLine, createdAt])
@@ -867,44 +905,172 @@ model Recall {
   @@index([dueDate, status])
 }
 
-// ─── Clinical Rule Set (Consolidated Engine) ──────────────────────────────────
+// ─── Versioned National Clinical Rule Graph ──────────────────────────────────
 
 model ClinicalRuleSet {
-  id            String    @id @default(cuid())
-  version       String    @unique
-  name          String
-  description   String?
-  rulesJson     String // JSON schema for all figures 1-10 + Table 1
-  schemaVersion String    @default("1.0")
-  isActive      Boolean   @default(false)
-  publishedAt   DateTime?
-  publishedById String?
-  publishedBy   User?     @relation("RulePublisher", fields: [publishedById], references: [id])
-  reviewedById  String?
-  reviewedBy    User?     @relation("RuleReviewer", fields: [reviewedById], references: [id])
-  reviewedAt    DateTime?
-  changeNotes   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String                  @id @default(cuid())
+  key             String                  @unique
+  name            String
+  description     String?
+  scope           ClinicalRuleScope       @default(GLOBAL)
+  // The application does not yet have a general tenant model. This stable key
+  // is intentionally nullable until a governed organisation boundary exists.
+  organisationKey String?
+  versions        ClinicalRuleVersion[]
+  activations     RuleSetActivation[]
+  evaluations     RuleEvaluation[]
+  auditEvents     RuleVersionAuditEvent[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([scope, organisationKey])
+}
+
+model ClinicalRuleVersion {
+  id                     String                           @id @default(cuid())
+  ruleSetId              String
+  ruleSet                ClinicalRuleSet                  @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+  versionMajor           Int
+  versionMinor           Int
+  versionPatch           Int
+  displayVersion         String
+  status                 ClinicalRuleVersionStatus        @default(DRAFT)
+  parentVersionId        String?
+  parentVersion          ClinicalRuleVersion?             @relation("ClinicalRuleVersionParent", fields: [parentVersionId], references: [id], onDelete: Restrict)
+  childVersions          ClinicalRuleVersion[]            @relation("ClinicalRuleVersionParent")
+  sourcePackageVersion   String?
+  sourceGuidelineSummary String
+  snapshotJson           String
+  checksum               String?
+  revision               Int                              @default(1)
+  changeSummary          String?
+  changeClassification   ClinicalRuleChangeClassification @default(CLINICAL_LOGIC)
+  validationJson         String?
+  createdById            String?
+  createdBy              User?                            @relation("ClinicalRuleVersionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedById           String?
+  approvedBy             User?                            @relation("ClinicalRuleVersionApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  publishedById          String?
+  publishedBy            User?                            @relation("ClinicalRuleVersionPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  validatedAt            DateTime?
+  publishedAt            DateTime?
+  activatedAt            DateTime?
+  retiredAt              DateTime?
+  activations            RuleSetActivation[]
+  evaluations            RuleEvaluation[]
+  auditEvents            RuleVersionAuditEvent[]
+  pinnedBatchRuns        BatchRun[]                       @relation("PinnedClinicalRuleVersion")
+  createdAt              DateTime                         @default(now())
+  updatedAt              DateTime                         @updatedAt
+
+  @@unique([ruleSetId, displayVersion])
+  @@index([ruleSetId, status, createdAt])
+  @@index([parentVersionId])
+  @@index([checksum])
+}
+
+model RuleSetActivation {
+  id              String                    @id @default(cuid())
+  ruleSetId       String
+  ruleSet         ClinicalRuleSet           @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+  ruleVersionId   String
+  ruleVersion     ClinicalRuleVersion       @relation(fields: [ruleVersionId], references: [id], onDelete: Restrict)
+  organisationKey String?
+  environment     RuleActivationEnvironment @default(DEMO)
+  isDefault       Boolean                   @default(true)
+  activatedById   String?
+  activatedBy     User?                     @relation("ClinicalRuleActivationActor", fields: [activatedById], references: [id], onDelete: SetNull)
+  activatedAt     DateTime                  @default(now())
+  deactivatedAt   DateTime?
+  reason          String
+
+  @@index([ruleSetId, organisationKey, environment, deactivatedAt])
+  @@index([ruleVersionId, activatedAt])
+}
+
+model RuleEvaluation {
+  id                            String              @id @default(cuid())
+  caseId                        String?
+  referralCase                  ReferralCase?       @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  batchRunId                    String?
+  batchRun                      BatchRun?           @relation(fields: [batchRunId], references: [id], onDelete: SetNull)
+  batchReviewItem               BatchReviewItem?
+  wizardSession                 WizardSession?
+  ruleSetId                     String
+  ruleSet                       ClinicalRuleSet     @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+  ruleVersionId                 String
+  ruleVersion                   ClinicalRuleVersion @relation(fields: [ruleVersionId], references: [id], onDelete: Restrict)
+  ruleVersionDisplay            String
+  rulesetChecksum               String
+  engineVersion                 String
+  evaluationMode                RuleEvaluationMode  @default(LIVE_DEMO)
+  evaluatedAt                   DateTime            @default(now())
+  canonicalInputSnapshot        String
+  matchedRuleIds                String
+  branchPath                    String
+  provisionalRecommendation     String
+  riskLevel                     String
+  urgency                       String?
+  referralDestination           String?
+  repeatInterval                String?
+  missingInformation            String
+  reviewerRequirement           String
+  mandatoryReviewerConfirmation Boolean             @default(true)
+  clinicianOnly                 Boolean             @default(false)
+  sourceReferences              String
+  evaluationTrace               String
+  previousEvaluationId          String?
+  previousEvaluation            RuleEvaluation?     @relation("RuleEvaluationRegrade", fields: [previousEvaluationId], references: [id], onDelete: Restrict)
+  subsequentEvaluations         RuleEvaluation[]    @relation("RuleEvaluationRegrade")
+  regradeReason                 String?
+  createdAt                     DateTime            @default(now())
+
+  @@index([caseId, evaluatedAt])
+  @@index([batchRunId, evaluatedAt])
+  @@index([ruleVersionId, evaluatedAt])
+  @@index([previousEvaluationId])
+}
+
+model RuleVersionAuditEvent {
+  id            String               @id @default(cuid())
+  ruleSetId     String
+  ruleSet       ClinicalRuleSet      @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+  ruleVersionId String?
+  ruleVersion   ClinicalRuleVersion? @relation(fields: [ruleVersionId], references: [id], onDelete: Restrict)
+  actorUserId   String?
+  actorUser     User?                @relation("ClinicalRuleAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  eventType     String
+  reason        String?
+  beforeJson    String?
+  afterJson     String?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime             @default(now())
+
+  @@index([ruleSetId, createdAt])
+  @@index([ruleVersionId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 // ─── Wizard Session ───────────────────────────────────────────────────────────
 
 model WizardSession {
-  id                 String         @id @default(cuid())
+  id                 String          @id @default(cuid())
   patientId          String
-  patient            Patient        @relation(fields: [patientId], references: [id])
+  patient            Patient         @relation(fields: [patientId], references: [id])
   createdById        String
-  createdBy          User           @relation(fields: [createdById], references: [id])
-  status             WizardStatus   @default(IN_PROGRESS)
+  createdBy          User            @relation(fields: [createdById], references: [id])
+  status             WizardStatus    @default(IN_PROGRESS)
   determinedFigure   PathwayFigure?
   decisionJson       String? // JSON blob of final ClinicalDecision
-  screeningSessionId String?        @unique
+  ruleEvaluationId   String?         @unique
+  ruleEvaluation     RuleEvaluation? @relation(fields: [ruleEvaluationId], references: [id], onDelete: SetNull)
+  screeningSessionId String?         @unique
   answers            WizardAnswer[]
-  startedAt          DateTime       @default(now())
+  startedAt          DateTime        @default(now())
   completedAt        DateTime?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   @@index([patientId, status])
   @@index([createdById])
@@ -1023,24 +1189,29 @@ model AIRecommendation {
 // the in-memory throwaway results the batch screen produced before.
 
 model BatchRun {
-  id             String         @id @default(cuid())
-  source         BatchRunSource
-  sourceSystem   String?
-  sourceFileName String?
-  engineVersion  String
-  totalCases     Int
-  pendingCount   Int            @default(0)
-  acceptedCount  Int            @default(0)
-  rejectedCount  Int            @default(0)
-  needsInfoCount Int            @default(0)
+  id                       String               @id @default(cuid())
+  source                   BatchRunSource
+  sourceSystem             String?
+  sourceFileName           String?
+  engineVersion            String
+  pinnedRuleVersionId      String?
+  pinnedRuleVersion        ClinicalRuleVersion? @relation("PinnedClinicalRuleVersion", fields: [pinnedRuleVersionId], references: [id], onDelete: Restrict)
+  pinnedRuleVersionDisplay String?
+  pinnedRulesetChecksum    String?
+  totalCases               Int
+  pendingCount             Int                  @default(0)
+  acceptedCount            Int                  @default(0)
+  rejectedCount            Int                  @default(0)
+  needsInfoCount           Int                  @default(0)
   // Number of items the engine flagged for mandatory clinician review
   // (safety stop, insufficient info, external dependency, or processing error).
-  reviewRequiredCount Int       @default(0)
-  createdByUserId String
-  createdBy       User          @relation("BatchRunCreator", fields: [createdByUserId], references: [id])
-  items           BatchReviewItem[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  reviewRequiredCount      Int                  @default(0)
+  createdByUserId          String
+  createdBy                User                 @relation("BatchRunCreator", fields: [createdByUserId], references: [id])
+  items                    BatchReviewItem[]
+  ruleEvaluations          RuleEvaluation[]
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
 
   @@index([createdByUserId, createdAt])
   @@index([source, createdAt])
@@ -1078,6 +1249,8 @@ model BatchReviewItem {
   // Full payloads so the reviewer drill-in can reconstruct the BatchCaseResult
   // without re-running the engine. caseJson = CanonicalBatchCase, inputJson =
   // ClinicalInput, decisionJson = ClinicalDecision.
+  ruleEvaluationId String?         @unique
+  ruleEvaluation   RuleEvaluation? @relation(fields: [ruleEvaluationId], references: [id], onDelete: SetNull)
   caseJson     String
   inputJson    String
   decisionJson String

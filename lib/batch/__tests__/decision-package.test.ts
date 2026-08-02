@@ -35,6 +35,10 @@ const completedItem: DecisionPackageInput = {
     source: "DEMO",
     sourceSystem: "Awanui Labs demo connector",
     sourceFileName: null,
+    engineVersion: "business-figures-table1-v1",
+    pinnedRuleVersionId: "rule-version-3",
+    pinnedRuleVersionDisplay: "CG-NCSP-3.0.0",
+    pinnedRulesetChecksum: "9b28840075916585962e7c6e7da6970ee6572bc0b2c1fddf3cf8fb3ad91466ab",
     createdAt: new Date("2026-06-19T01:00:00.000Z"),
   },
 };
@@ -88,4 +92,19 @@ test("decision package serialises a CSV export row", () => {
   assert.ok(csv.startsWith("package_status,simulated_export_package"));
   assert.ok(csv.includes("SIMULATED_PACKAGE_READY"));
   assert.ok(csv.includes("Integration-ready preview"));
+});
+
+test("completed-decision exports visibly preserve pinned ruleset provenance", () => {
+  const pkg = buildSimulatedDecisionPackage(completedItem, "2026-06-19T03:00:00.000Z");
+  const checksum = completedItem.batchRun.pinnedRulesetChecksum!;
+
+  assert.equal(pkg.summary.ruleVersion, "CG-NCSP-3.0.0");
+  assert.equal(pkg.summary.rulesetChecksum, checksum);
+  assert.equal(pkg.csvExportRow.clinical_rule_version, "CG-NCSP-3.0.0");
+  assert.equal(pkg.csvExportRow.clinical_ruleset_checksum, checksum);
+  assert.ok(JSON.stringify(pkg.fhirLikeJson).includes("CG-NCSP-3.0.0"));
+  assert.ok(JSON.stringify(pkg.fhirLikeJson).includes(checksum));
+  assert.ok(pkg.hl7StyleMessage.includes("RULEVERSION^Clinical rule version||CG-NCSP-3.0.0"));
+  assert.ok(pkg.hl7StyleMessage.includes(`RULECHECKSUM^Ruleset checksum||${checksum}`));
+  assert.ok(pkg.gpLetter.body.includes("Clinical rule version: CG-NCSP-3.0.0"));
 });

@@ -12,6 +12,8 @@ import {
 } from "@/lib/batch/persistence";
 import { formatDateTime } from "@/lib/utils";
 import { WorklistClient, type WorklistItem } from "@/components/batch/WorklistClient";
+import { ClinicalRuleRegradeButton } from "@/components/clinical-rules/ClinicalRuleRegradeButton";
+import { resolveActiveClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +42,19 @@ export default async function BatchRunDetailPage({
   const session = await auth();
   const user = session?.user as { role?: string } | undefined;
   const canReview = hasPermission(user?.role, "cases:grade");
+  const canClinicalRegrade = hasPermission(user?.role, "rules:simulate");
 
   const run = await getBatchRunWithItems(id);
   if (!run) {
     notFound();
   }
+  const activeClinicalVersion = await resolveActiveClinicalRuleVersion({ environment: "DEMO" });
+  const versionTuple = (value?: string | null) =>
+    value?.match(/(\d+)\.(\d+)\.(\d+)/)?.slice(1).map(Number) ?? [0, 0, 0];
+  const [activeMajor, activeMinor, activePatch] = versionTuple(activeClinicalVersion?.displayVersion);
+  const [pinnedMajor, pinnedMinor, pinnedPatch] = versionTuple(run.pinnedRuleVersionDisplay);
+  const activeIsNewer = activeMajor > pinnedMajor || (activeMajor === pinnedMajor && activeMinor > pinnedMinor) || (activeMajor === pinnedMajor && activeMinor === pinnedMinor && activePatch > pinnedPatch);
+
 
   const items: WorklistItem[] = run.items.map((item) => ({
     id: item.id,
@@ -90,9 +100,16 @@ export default async function BatchRunDetailPage({
         title="Review Queue Intake"
         description={`${run.totalCases} pre-graded cases${
           run.sourceFileName ? ` from ${run.sourceFileName}` : ""
-        } · saved ${formatDateTime(run.createdAt)}. Review decisions are decision-support only and require clinician confirmation.`}
+        } · saved ${formatDateTime(run.createdAt)}. Legacy engine ${run.engineVersion}; versioned shadow ${run.pinnedRuleVersionDisplay ?? "not configured"}${run.pinnedRulesetChecksum ? ` (${run.pinnedRulesetChecksum.slice(0, 12)}…)` : ""}. Review decisions are provisional decision-support only and require clinician confirmation.`}
       />
 
+
+      {canClinicalRegrade && activeClinicalVersion && activeClinicalVersion.id !== run.pinnedRuleVersionId && (
+        <ClinicalRuleRegradeButton runId={run.id} targetVersionId={activeClinicalVersion.id} targetVersionDisplay={activeClinicalVersion.displayVersion} pinnedVersionDisplay={run.pinnedRuleVersionDisplay} newer={activeIsNewer} />
+      )}
+      {!activeClinicalVersion && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">No governed clinical version is active in the demo environment. This run retains its original versioned-shadow pin; clinical regrading is unavailable until a validated version is published and activated.</div>
+      )}
       <WorklistClient
         runId={run.id}
         initialItems={items}

@@ -31,6 +31,10 @@ export type DecisionPackageInput = {
     source: string;
     sourceSystem: string | null;
     sourceFileName: string | null;
+    engineVersion?: string;
+    pinnedRuleVersionId?: string | null;
+    pinnedRuleVersionDisplay?: string | null;
+    pinnedRulesetChecksum?: string | null;
     createdAt: Date | string;
   };
 };
@@ -48,6 +52,9 @@ export type SimulatedDecisionPackage = {
     reviewedAt: string | null;
     safetyNotice: string;
     packageLabel: string;
+    ruleVersion: string;
+    rulesetChecksum: string;
+    engineVersion: string;
   };
   pasUpdate: {
     title: "Demo PAS update";
@@ -144,6 +151,8 @@ function gpLetterBody(item: DecisionPackageInput) {
     displayNhi(item) ? `NHI/source identifier: ${displayNhi(item)}` : null,
     `Reviewer decision: ${decision}`,
     `Original recommendation: ${item.recommendation}`,
+    `Clinical rule version: ${item.batchRun.pinnedRuleVersionDisplay ?? "Legacy unversioned clinical path"}`,
+    `Ruleset checksum: ${item.batchRun.pinnedRulesetChecksum ?? "Not available for legacy evaluation"}`,
     `Reviewer note: ${reason}`,
     "",
     "This is a simulated export package preview prepared from a reviewer-confirmed decision.",
@@ -168,6 +177,10 @@ function csvRow(item: DecisionPackageInput, generatedAt: string) {
     gp_referrer: item.gpPractice ?? "",
     original_recommendation_code: item.recommendationCode,
     original_recommendation: item.recommendation,
+    clinical_rule_version: item.batchRun.pinnedRuleVersionDisplay ?? "legacy-unversioned",
+    clinical_rule_version_id: item.batchRun.pinnedRuleVersionId ?? "",
+    clinical_ruleset_checksum: item.batchRun.pinnedRulesetChecksum ?? "",
+    engine_version: item.batchRun.engineVersion ?? "business-figures-table1-v1",
     final_reviewer_decision: formatDisposition(item.disposition),
     reviewer: displayReviewer(item),
     reviewed_at: iso(item.reviewedAt) ?? "",
@@ -213,6 +226,8 @@ function fhirLikeJson(item: DecisionPackageInput, generatedAt: string) {
           },
           note: [
             { text: `Original recommendation: ${item.recommendation}` },
+            { text: `Clinical rule version: ${item.batchRun.pinnedRuleVersionDisplay ?? "Legacy unversioned clinical path"}` },
+            { text: `Ruleset checksum: ${item.batchRun.pinnedRulesetChecksum ?? "Not available for legacy evaluation"}` },
             { text: item.overrideReason ?? item.reviewNote ?? "No reviewer note recorded." },
           ],
         },
@@ -236,6 +251,8 @@ function hl7StyleMessage(item: DecisionPackageInput, generatedAt: string) {
     `OBX|1|TX|DECISION^Reviewer decision||${decision}`,
     `OBX|2|TX|RECOMMENDATION^Original recommendation||${recommendation}`,
     `OBX|3|TX|NOTE^Reason or note||${note}`,
+    `OBX|4|TX|RULEVERSION^Clinical rule version||${(item.batchRun.pinnedRuleVersionDisplay ?? "legacy-unversioned").replaceAll("|", " ")}`,
+    `OBX|5|TX|RULECHECKSUM^Ruleset checksum||${(item.batchRun.pinnedRulesetChecksum ?? "").replaceAll("|", " ")}`,
     "NTE|1|L|Simulated export package. Integration-ready preview. Reviewer confirmation required. Not for direct clinical action.",
   ].join("\n");
 }
@@ -267,6 +284,9 @@ export function buildSimulatedDecisionPackage(
       reviewedAt: iso(item.reviewedAt),
       safetyNotice: "Reviewer confirmation required. Not for direct clinical action.",
       packageLabel: "Integration-ready preview prepared from reviewer-confirmed decision.",
+      ruleVersion: item.batchRun.pinnedRuleVersionDisplay ?? "Legacy unversioned clinical path",
+      rulesetChecksum: item.batchRun.pinnedRulesetChecksum ?? "Not available for legacy evaluation",
+      engineVersion: item.batchRun.engineVersion ?? "business-figures-table1-v1",
     },
     pasUpdate: {
       title: "Demo PAS update",

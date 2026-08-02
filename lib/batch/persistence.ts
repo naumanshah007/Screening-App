@@ -21,6 +21,8 @@ import type {
   BatchCaseResult,
   SourceType,
 } from "@/lib/batch/types";
+import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
+import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 
 // ─── Source mapping ───────────────────────────────────────────────────────────
 
@@ -92,6 +94,7 @@ export async function saveBatchRun(args: {
   const { result, actorUserId } = args;
 
   const reviewRequiredCount = result.results.filter(isReviewRequired).length;
+  const shadowRuleVersion = await resolveShadowClinicalRuleVersion().catch(() => null);
 
   const itemData: Prisma.BatchReviewItemCreateWithoutBatchRunInput[] =
     result.results.map((item) => {
@@ -128,6 +131,9 @@ export async function saveBatchRun(args: {
       sourceSystem: args.sourceSystem ?? null,
       sourceFileName: result.sourceFileName ?? null,
       engineVersion: result.engineVersion,
+      pinnedRuleVersionId: shadowRuleVersion?.id ?? null,
+      pinnedRuleVersionDisplay: shadowRuleVersion?.displayVersion ?? null,
+      pinnedRulesetChecksum: shadowRuleVersion?.checksum ?? null,
       totalCases: result.results.length,
       pendingCount: result.results.length,
       reviewRequiredCount,
@@ -153,6 +159,43 @@ export async function saveBatchRun(args: {
       }),
     },
   });
+
+  if (shadowRuleVersion) {
+    const resultByRow = new Map(
+      result.results.map((item) => [item.case.source.rowNumber, item])
+    );
+    for (const reviewItem of run.items) {
+      const sourceResult = resultByRow.get(reviewItem.rowNumber);
+      if (!sourceResult) continue;
+      try {
+        const shadow = await evaluateClinicalCase({
+          facts: sourceResult.input as unknown as Record<string, unknown>,
+          ruleVersionId: shadowRuleVersion.id,
+          evaluationMode: "SHADOW",
+          legacyInput: sourceResult.input,
+          batchRunId: run.id,
+        });
+        await prisma.batchReviewItem.update({
+          where: { id: reviewItem.id },
+          data: { ruleEvaluationId: shadow.evaluationId },
+        });
+      } catch (error) {
+        await prisma.auditLog.create({
+          data: {
+            userId: actorUserId,
+            action: "CLINICAL_RULE_SHADOW_FAILED",
+            entity: "BatchReviewItem",
+            entityId: reviewItem.id,
+            severity: "ERROR",
+            newValue: JSON.stringify({
+              ruleVersionId: shadowRuleVersion.id,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          },
+        });
+      }
+    }
+  }
 
   return run;
 }
