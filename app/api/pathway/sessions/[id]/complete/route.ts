@@ -26,6 +26,8 @@ import type { ClinicalInput } from "@/lib/engine/types";
 import { addMonths } from "date-fns";
 import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
+import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
+import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
 
 // Priority → target working days mapping
 const PRIORITY_DAYS: Record<string, number> = {
@@ -125,9 +127,24 @@ export async function POST(
   // ── Evaluate decision ─────────────────────────────────────────────────────
   const decision = evaluateClinicalDecision(clinicalInput);
   const shadowVersion = await resolveShadowClinicalRuleVersion();
+  const canonicalWizardInput = { ...clinicalInput } as Record<string, unknown>;
+  // A suspected OCP contribution or an identified STI does not prove that a
+  // clinician adjusted treatment. Those completion facts remain absent until
+  // explicitly documented.
+  delete canonicalWizardInput.oralContraceptiveAdjusted;
+  delete canonicalWizardInput.stiTreated;
+  const canonicalFactsV2 = canonicalClinicalFactsV2FromFlatFacts({
+    subjectReference: patient.id,
+    facts: normalizeClinicalFactMap({
+      ...canonicalWizardInput,
+      currentPathway: decision.figure,
+    }),
+    source: "REVIEWER_ENTRY",
+    enteredBy: actorUserId,
+  });
   const versionedShadow = shadowVersion
     ? await evaluateClinicalCase({
-        facts: clinicalInput as unknown as Record<string, unknown>,
+        canonicalFactsV2,
         ruleVersionId: shadowVersion.id,
         evaluationMode: "SHADOW",
         legacyInput: clinicalInput,

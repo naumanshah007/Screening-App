@@ -26,6 +26,22 @@ export type DecisionPackageInput = {
     email?: string | null;
     role?: string | null;
   } | null;
+  ruleEvaluation?: {
+    id: string;
+    evaluationMode: string;
+    ruleVersionDisplay: string;
+    rulesetChecksum: string;
+    engineVersion: string;
+    matchedRuleIds: string;
+    branchPath: string;
+    provisionalRecommendation: string;
+    missingInformation: string;
+    reviewerRequirement: string;
+    clinicianOnly: boolean;
+    sourceReferences: string;
+    evaluationTrace: string;
+    canonicalInputSnapshot: string;
+  } | null;
   batchRun: {
     id: string;
     source: string;
@@ -80,6 +96,23 @@ export type SimulatedDecisionPackage = {
     disposition: Exclude<BatchReviewDisposition, "PENDING">;
     generatedAt: string;
   };
+  canonicalShadow: {
+    authority: "SHADOW_ONLY";
+    evaluationId: string;
+    evaluationMode: string;
+    ruleVersion: string;
+    rulesetChecksum: string;
+    engineVersion: string;
+    provisionalRecommendation: string;
+    matchedRuleIds: string[];
+    branchPath: string[];
+    sourceReferences: Array<{ document: string; reference: string }>;
+    missingInformation: string[];
+    reviewerRequirement: string;
+    clinicianOnly: boolean;
+    inputSnapshotStored: true;
+    legacyComparisonStored: boolean;
+  } | null;
 };
 
 export const PACKAGE_STATUS_LABEL = "SIMULATED_PACKAGE_READY";
@@ -129,6 +162,45 @@ function sourceSystem(item: DecisionPackageInput) {
   return item.batchRun.sourceSystem ?? item.batchRun.sourceFileName ?? item.batchRun.source;
 }
 
+function parseJsonArray<T>(value: string | undefined): T[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as T[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function canonicalShadow(item: DecisionPackageInput): SimulatedDecisionPackage["canonicalShadow"] {
+  const evaluation = item.ruleEvaluation;
+  if (!evaluation) return null;
+  let legacyComparisonStored = false;
+  try {
+    const trace = JSON.parse(evaluation.evaluationTrace) as { legacyComparison?: unknown };
+    legacyComparisonStored = trace.legacyComparison != null;
+  } catch {
+    legacyComparisonStored = false;
+  }
+  return {
+    authority: "SHADOW_ONLY",
+    evaluationId: evaluation.id,
+    evaluationMode: evaluation.evaluationMode,
+    ruleVersion: evaluation.ruleVersionDisplay,
+    rulesetChecksum: evaluation.rulesetChecksum,
+    engineVersion: evaluation.engineVersion,
+    provisionalRecommendation: evaluation.provisionalRecommendation,
+    matchedRuleIds: parseJsonArray<string>(evaluation.matchedRuleIds),
+    branchPath: parseJsonArray<string>(evaluation.branchPath),
+    sourceReferences: parseJsonArray<{ document: string; reference: string }>(evaluation.sourceReferences),
+    missingInformation: parseJsonArray<string>(evaluation.missingInformation),
+    reviewerRequirement: evaluation.reviewerRequirement,
+    clinicianOnly: evaluation.clinicianOnly,
+    inputSnapshotStored: true,
+    legacyComparisonStored,
+  };
+}
+
 function bookingStatusFor(disposition: Exclude<BatchReviewDisposition, "PENDING">) {
   switch (disposition) {
     case "ACCEPTED":
@@ -163,6 +235,7 @@ function gpLetterBody(item: DecisionPackageInput) {
 }
 
 function csvRow(item: DecisionPackageInput, generatedAt: string) {
+  const shadow = canonicalShadow(item);
   return {
     package_status: PACKAGE_STATUS_LABEL,
     simulated_export_package: "true",
@@ -187,10 +260,19 @@ function csvRow(item: DecisionPackageInput, generatedAt: string) {
     reason_or_note: item.overrideReason ?? item.reviewNote ?? "",
     generated_at: generatedAt,
     safety_notice: "Reviewer confirmation required. Not for direct clinical action.",
+    canonical_shadow_authority: shadow?.authority ?? "not-recorded",
+    canonical_shadow_evaluation_id: shadow?.evaluationId ?? "",
+    canonical_shadow_rule_version: shadow?.ruleVersion ?? "",
+    canonical_shadow_checksum: shadow?.rulesetChecksum ?? "",
+    canonical_shadow_matched_rules: shadow?.matchedRuleIds.join(";") ?? "",
+    canonical_shadow_branch_path: shadow?.branchPath.join(" > ") ?? "",
+    canonical_shadow_missing_facts: shadow?.missingInformation.join(";") ?? "",
+    canonical_shadow_reviewer_requirement: shadow?.reviewerRequirement ?? "",
   };
 }
 
 function fhirLikeJson(item: DecisionPackageInput, generatedAt: string) {
+  const shadow = canonicalShadow(item);
   return {
     resourceType: "Bundle",
     type: "collection",
@@ -228,6 +310,8 @@ function fhirLikeJson(item: DecisionPackageInput, generatedAt: string) {
             { text: `Original recommendation: ${item.recommendation}` },
             { text: `Clinical rule version: ${item.batchRun.pinnedRuleVersionDisplay ?? "Legacy unversioned clinical path"}` },
             { text: `Ruleset checksum: ${item.batchRun.pinnedRulesetChecksum ?? "Not available for legacy evaluation"}` },
+            { text: shadow ? `Canonical shadow: ${shadow.ruleVersion}; ${shadow.rulesetChecksum}; matched ${shadow.matchedRuleIds.join(", ") || "governance stop"}` : "Canonical shadow: not recorded" },
+            { text: shadow ? `Canonical branch path: ${shadow.branchPath.join(" > ")}` : "Canonical branch path: not recorded" },
             { text: item.overrideReason ?? item.reviewNote ?? "No reviewer note recorded." },
           ],
         },
@@ -243,6 +327,7 @@ function hl7StyleMessage(item: DecisionPackageInput, generatedAt: string) {
   const recommendation = item.recommendation.replaceAll("|", " ");
   const note = (item.overrideReason ?? item.reviewNote ?? "No reviewer note recorded.").replaceAll("|", " ");
   const timestamp = generatedAt.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "");
+  const shadow = canonicalShadow(item);
 
   return [
     `MSH|^~\\&|CERVIGRADE|DEMO|PAS|DEMO|${timestamp}||ORU^R01|${item.id}|P|2.4`,
@@ -253,6 +338,8 @@ function hl7StyleMessage(item: DecisionPackageInput, generatedAt: string) {
     `OBX|3|TX|NOTE^Reason or note||${note}`,
     `OBX|4|TX|RULEVERSION^Clinical rule version||${(item.batchRun.pinnedRuleVersionDisplay ?? "legacy-unversioned").replaceAll("|", " ")}`,
     `OBX|5|TX|RULECHECKSUM^Ruleset checksum||${(item.batchRun.pinnedRulesetChecksum ?? "").replaceAll("|", " ")}`,
+    `OBX|6|TX|SHADOWRULES^Canonical shadow rules||${(shadow?.matchedRuleIds.join(",") ?? "").replaceAll("|", " ")}`,
+    `OBX|7|TX|SHADOWPATH^Canonical shadow branch path||${(shadow?.branchPath.join(" > ") ?? "").replaceAll("|", " ")}`,
     "NTE|1|L|Simulated export package. Integration-ready preview. Reviewer confirmation required. Not for direct clinical action.",
   ].join("\n");
 }
@@ -270,6 +357,7 @@ export function buildSimulatedDecisionPackage(
   const decision = formatDisposition(disposition);
   const source = sourceSystem(item);
   const reason = item.overrideReason ?? item.reviewNote ?? "No additional note recorded.";
+  const shadow = canonicalShadow(item);
 
   return {
     status: PACKAGE_STATUS_LABEL,
@@ -316,15 +404,18 @@ export function buildSimulatedDecisionPackage(
       disposition,
       generatedAt,
     },
+    canonicalShadow: shadow,
   };
 }
 
 export function serialiseCsvRow(row: Record<string, string>) {
   const headers = Object.keys(row);
-  const escape = (value: string) =>
-    value.includes(",") || value.includes('"') || value.includes("\n")
-      ? `"${value.replaceAll('"', '""')}"`
-      : value;
+  const escape = (value: string) => {
+    const neutralised = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+    return neutralised.includes(",") || neutralised.includes('"') || neutralised.includes("\n")
+      ? `"${neutralised.replaceAll('"', '""')}"`
+      : neutralised;
+  };
 
   return [
     headers.join(","),

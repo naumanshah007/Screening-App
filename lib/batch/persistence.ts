@@ -70,7 +70,7 @@ const batchRunDetailInclude = {
   createdBy: reviewerSelect,
   items: {
     orderBy: [{ reviewRequired: "desc" }, { rowNumber: "asc" }],
-    include: { reviewedBy: reviewerSelect },
+    include: { reviewedBy: reviewerSelect, ruleEvaluation: true },
   },
 } satisfies Prisma.BatchRunInclude;
 
@@ -169,7 +169,9 @@ export async function saveBatchRun(args: {
       if (!sourceResult) continue;
       try {
         const shadow = await evaluateClinicalCase({
-          facts: sourceResult.input as unknown as Record<string, unknown>,
+          ...(sourceResult.canonicalFactsV2
+            ? { canonicalFactsV2: sourceResult.canonicalFactsV2 }
+            : { facts: sourceResult.input as unknown as Record<string, unknown> }),
           ruleVersionId: shadowRuleVersion.id,
           evaluationMode: "SHADOW",
           legacyInput: sourceResult.input,
@@ -221,10 +223,42 @@ export async function getBatchRunWithItems(
 
 /** Reconstruct the BatchCaseResult shape from a stored item for the drill-in UI. */
 export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCaseResult {
+  const evaluationTrace = item.ruleEvaluation
+    ? JSON.parse(item.ruleEvaluation.evaluationTrace) as {
+        factDiagnostics?: BatchCaseResult["canonicalShadow"] extends infer T
+          ? T extends { factDiagnostics?: infer D }
+            ? D
+            : never
+          : never;
+        legacyComparison?: unknown;
+      }
+    : undefined;
   return {
     case: JSON.parse(item.caseJson),
     input: JSON.parse(item.inputJson),
     decision: JSON.parse(item.decisionJson),
+    ...(item.ruleEvaluation
+      ? {
+          canonicalFactsV2: JSON.parse(item.ruleEvaluation.canonicalInputSnapshot),
+          canonicalShadow: {
+            reviewItemId: item.id,
+            evaluationId: item.ruleEvaluation.id,
+            evaluationMode: item.ruleEvaluation.evaluationMode,
+            ruleVersionDisplay: item.ruleEvaluation.ruleVersionDisplay,
+            rulesetChecksum: item.ruleEvaluation.rulesetChecksum,
+            engineVersion: item.ruleEvaluation.engineVersion,
+            provisionalRecommendation: item.ruleEvaluation.provisionalRecommendation,
+            reviewerRequirement: item.ruleEvaluation.reviewerRequirement,
+            clinicianOnly: item.ruleEvaluation.clinicianOnly,
+            matchedRuleIds: JSON.parse(item.ruleEvaluation.matchedRuleIds),
+            branchPath: JSON.parse(item.ruleEvaluation.branchPath),
+            missingInformation: JSON.parse(item.ruleEvaluation.missingInformation),
+            sourceReferences: JSON.parse(item.ruleEvaluation.sourceReferences),
+            factDiagnostics: evaluationTrace?.factDiagnostics,
+            legacyComparison: evaluationTrace?.legacyComparison,
+          },
+        }
+      : {}),
     processingTimeMs: 0,
     status: item.engineStatus === "error" ? "error" : "success",
     error: undefined,
@@ -235,6 +269,7 @@ export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCa
 
 const reviewQueueInclude = {
   reviewedBy: reviewerSelect,
+  ruleEvaluation: true,
   batchRun: {
     select: { id: true, source: true, sourceSystem: true, sourceFileName: true },
   },

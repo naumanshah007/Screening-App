@@ -30,6 +30,22 @@ const completedItem: DecisionPackageInput = {
     email: "smo@example.test",
     role: "SMO_REVIEWER",
   },
+  ruleEvaluation: {
+    id: "evaluation-shadow-1",
+    evaluationMode: "SHADOW",
+    ruleVersionDisplay: "CG-NCSP-3.1.0",
+    rulesetChecksum: "3ab8657a13e73bb0080f18399d9165c20e9af5796bdcf594bdc71170309c824a",
+    engineVersion: "canonical-clinical-rules-v2",
+    matchedRuleIds: JSON.stringify(["F3-16"]),
+    branchPath: JSON.stringify(["node:root", "node:section:figure-3", "node:rule:F3-16", "node:outcome:F3-16"]),
+    provisionalRecommendation: "Refer to colposcopy.",
+    missingInformation: JSON.stringify([]),
+    reviewerRequirement: "CLINICIAN_REVIEW",
+    clinicianOnly: false,
+    sourceReferences: JSON.stringify([{ document: "NCSP June 2023 v1.1", reference: "Figure 3; R4.14" }]),
+    evaluationTrace: JSON.stringify({ legacyComparison: { differences: {} } }),
+    canonicalInputSnapshot: JSON.stringify({ schemaId: "canonical-clinical-facts-v2", facts: {} }),
+  },
   batchRun: {
     id: "run-1",
     source: "DEMO",
@@ -107,4 +123,15 @@ test("completed-decision exports visibly preserve pinned ruleset provenance", ()
   assert.ok(pkg.hl7StyleMessage.includes("RULEVERSION^Clinical rule version||CG-NCSP-3.0.0"));
   assert.ok(pkg.hl7StyleMessage.includes(`RULECHECKSUM^Ruleset checksum||${checksum}`));
   assert.ok(pkg.gpLetter.body.includes("Clinical rule version: CG-NCSP-3.0.0"));
+  assert.equal(pkg.canonicalShadow?.authority, "SHADOW_ONLY");
+  assert.equal(pkg.canonicalShadow?.ruleVersion, "CG-NCSP-3.1.0");
+  assert.deepEqual(pkg.canonicalShadow?.matchedRuleIds, ["F3-16"]);
+  assert.ok(pkg.csvExportRow.canonical_shadow_branch_path.includes("node:rule:F3-16"));
+  assert.ok(JSON.stringify(pkg.fhirLikeJson).includes("Canonical branch path"));
+  assert.ok(pkg.hl7StyleMessage.includes("SHADOWPATH^Canonical shadow branch path"));
+});
+
+test("CSV exports neutralise spreadsheet formulas", () => {
+  const csv = serialiseCsvRow({ patient_name: "=HYPERLINK(\"https://example.test\")" });
+  assert.equal(csv.split("\n")[1], "\"'=HYPERLINK(\"\"https://example.test\"\")\"");
 });

@@ -7,9 +7,11 @@ import {
   evaluateClinicalCase,
   evaluateWithActiveClinicalRuleVersion,
 } from "@/lib/clinical-rules/evaluator";
+import { CanonicalClinicalFactsV2Schema } from "@/lib/clinical-rules/canonical-facts-v2";
 
-const BodySchema = z.object({
-  facts: z.record(z.string(), z.unknown()),
+export const ClinicalRulesEvaluationBodySchema = z.object({
+  facts: z.record(z.string(), z.unknown()).optional(),
+  canonicalFactsV2: CanonicalClinicalFactsV2Schema.optional(),
   ruleVersionId: z.string().trim().min(1).optional(),
   organisationKey: z.string().trim().min(1).optional(),
   evaluationMode: z.enum(["LIVE_DEMO", "SHADOW", "SIMULATION"]).default("SIMULATION"),
@@ -18,6 +20,21 @@ const BodySchema = z.object({
   batchRunId: z.string().trim().min(1).optional(),
   previousEvaluationId: z.string().trim().min(1).optional(),
   regradeReason: z.string().trim().min(1).optional(),
+}).superRefine((body, context) => {
+  if (Boolean(body.facts) === Boolean(body.canonicalFactsV2)) {
+    context.addIssue({
+      code: "custom",
+      path: ["canonicalFactsV2"],
+      message: "Provide exactly one of facts or canonicalFactsV2.",
+    });
+  }
+  if (body.canonicalFactsV2 && !body.ruleVersionId) {
+    context.addIssue({
+      code: "custom",
+      path: ["ruleVersionId"],
+      message: "CanonicalClinicalFactsV2 simulation requires an explicitly pinned ruleVersionId.",
+    });
+  }
 });
 
 export async function POST(request: Request) {
@@ -25,7 +42,7 @@ export async function POST(request: Request) {
   const user = session?.user as { id?: string; role?: string } | undefined;
   const permissionError = getApiPermissionError(user, "rules:simulate");
   if (permissionError) return NextResponse.json(permissionError.body, { status: permissionError.status });
-  const parsed = BodySchema.safeParse(await request.json().catch(() => null));
+  const parsed = ClinicalRulesEvaluationBodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid evaluation request", issues: parsed.error.issues }, { status: 400 });
   }
@@ -34,6 +51,7 @@ export async function POST(request: Request) {
     const result = input.ruleVersionId
       ? await evaluateClinicalCase({
           facts: input.facts,
+          canonicalFactsV2: input.canonicalFactsV2,
           ruleVersionId: input.ruleVersionId,
           evaluationMode: input.evaluationMode,
           organisationKey: input.organisationKey,
@@ -44,7 +62,7 @@ export async function POST(request: Request) {
           regradeReason: input.regradeReason,
         })
       : await evaluateWithActiveClinicalRuleVersion({
-          facts: input.facts,
+          facts: input.facts!,
           organisationKey: input.organisationKey,
           evaluationMode: input.evaluationMode,
           legacyInput: input.legacyInput as never,

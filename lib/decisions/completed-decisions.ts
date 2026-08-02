@@ -86,6 +86,7 @@ const reviewerSelect = {
 
 const completedDecisionInclude = {
   reviewedBy: reviewerSelect,
+  ruleEvaluation: true,
   batchRun: {
     select: {
       id: true,
