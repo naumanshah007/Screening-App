@@ -245,8 +245,11 @@ function downloadBlob(blob: Blob, filename: string) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function sanitiseGraphExportMarkup(markup: string) {
@@ -296,6 +299,7 @@ function ClinicalRuleGraphStudioInner({
   const [collapsed, setCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [exporting, setExporting] = useState<"svg" | "png" | null>(null);
   const [auditEvents, setAuditEvents] = useState<Array<Record<string, unknown>>>([]);
   const { fitView, setCenter } = useReactFlow();
 
@@ -660,33 +664,60 @@ function ClinicalRuleGraphStudioInner({
 
   const exportCurrentView = useCallback(
     async (format: "svg" | "png") => {
-      const viewport = flowRef.current?.querySelector(".react-flow__viewport") as HTMLElement | null;
-      if (!viewport) return;
-      const bounds = viewport.getBoundingClientRect();
-      const serialised = sanitiseGraphExportMarkup(
-        new XMLSerializer().serializeToString(viewport)
-      );
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(bounds.width)}" height="${Math.ceil(bounds.height)}"><rect width="100%" height="100%" fill="#f8fafc"/><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${serialised}</div></foreignObject></svg>`;
-      if (format === "svg") {
-        downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${currentView.key}.svg`);
+      const graph = flowRef.current;
+      const viewport = graph?.querySelector(".react-flow__viewport") as HTMLElement | null;
+      if (!graph || !viewport) {
+        toast.error("The graph is not ready to export yet.");
         return;
       }
-      const image = new Image();
-      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
-      image.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.ceil(bounds.width * 2);
-        canvas.height = Math.ceil(bounds.height * 2);
-        const context = canvas.getContext("2d")!;
-        context.scale(2, 2);
-        context.drawImage(image, 0, 0);
-        canvas.toBlob((blob) => blob && downloadBlob(blob, `${currentView.key}.png`), "image/png");
-        URL.revokeObjectURL(url);
-      };
-      image.src = url;
+
+      setExporting(format);
+      try {
+        if (format === "svg") {
+          const bounds = viewport.getBoundingClientRect();
+          const serialised = sanitiseGraphExportMarkup(
+            new XMLSerializer().serializeToString(viewport)
+          );
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(bounds.width)}" height="${Math.ceil(bounds.height)}"><rect width="100%" height="100%" fill="#f8fafc"/><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${serialised}</div></foreignObject></svg>`;
+          downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${currentView.key}.svg`);
+          return;
+        }
+
+        // Rasterise the rendered graph directly. Drawing an SVG foreignObject to a
+        // canvas taints it in WebKit and some hardened Chromium environments.
+        const { default: html2canvas } = await import("html2canvas");
+        const canvas = await html2canvas(graph, {
+          backgroundColor: "#f8fafc",
+          logging: false,
+          scale: 2,
+          useCORS: true,
+        });
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((result) => {
+            if (result) resolve(result);
+            else reject(new Error("The browser could not create the PNG file."));
+          }, "image/png");
+        });
+        downloadBlob(blob, `${currentView.key}.png`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : `Unable to export ${format.toUpperCase()}.`);
+      } finally {
+        setExporting(null);
+      }
     },
     [currentView.key]
   );
+
+  const openFullscreen = useCallback(async () => {
+    try {
+      if (!wrapperRef.current?.requestFullscreen) {
+        throw new Error("Fullscreen is unavailable in this browser.");
+      }
+      await wrapperRef.current.requestFullscreen();
+    } catch {
+      toast.error("Fullscreen is unavailable in this browser.");
+    }
+  }, []);
 
   const validateDraft = useCallback(async () => {
     if (dirtyRef.current) await saveDraft(true);
@@ -734,10 +765,10 @@ function ClinicalRuleGraphStudioInner({
                 <Button size="sm" variant="warning" onClick={() => void validateDraft()} loading={validating} icon={<FileCheck2 className="h-4 w-4" />}>Validate</Button>
               </>
             )}
-            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("svg")} icon={<Download className="h-4 w-4" />}>SVG</Button>
-            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("png")} icon={<Download className="h-4 w-4" />}>PNG</Button>
+            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("svg")} loading={exporting === "svg"} disabled={exporting !== null} icon={<Download className="h-4 w-4" />}>SVG</Button>
+            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("png")} loading={exporting === "png"} disabled={exporting !== null} icon={<Download className="h-4 w-4" />}>PNG</Button>
             <Button size="icon" variant="outline" aria-label="Print current view" onClick={() => window.print()}><Printer className="h-4 w-4" /></Button>
-            <Button size="icon" variant="outline" aria-label="Open full screen" onClick={() => wrapperRef.current?.requestFullscreen()}><Maximize2 className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" aria-label="Open full screen" onClick={() => void openFullscreen()}><Maximize2 className="h-4 w-4" /></Button>
           </div>
         </div>
       </div>
