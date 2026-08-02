@@ -15,6 +15,8 @@ import { ClinicalRuleGraphStudio } from "@/components/clinical-rules/ClinicalRul
 import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { ClinicalRuleSimulationPanel } from "@/components/clinical-rules/ClinicalRuleSimulationPanel";
 import { ClinicalRuleDiffPanel } from "@/components/clinical-rules/ClinicalRuleDiffPanel";
+import { ClinicalGovernanceReviewWorkspace } from "@/components/clinical-rules/ClinicalGovernanceReviewWorkspace";
+import { CLINICAL_GOVERNANCE_CASES } from "@/lib/clinical-rules/governance-review";
 import { formatDateTime } from "@/lib/utils";
 
 export default async function ClinicalRuleVersionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +35,35 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
     include: { actorUser: { select: { name: true, email: true } } },
     orderBy: { createdAt: "desc" },
     take: 100,
+  });
+  const governanceCases = CLINICAL_GOVERNANCE_CASES.map((item) => {
+    const latest = auditEvents.find((event) => {
+      if (!event.eventType.startsWith("GOVERNANCE_INTERPRETATION_")) return false;
+      try {
+        return (JSON.parse(event.afterJson ?? "{}") as { caseId?: string }).caseId === item.caseId;
+      } catch {
+        return false;
+      }
+    });
+    let details: { disposition?: string; approvalStatus?: string } = {};
+    try {
+      details = JSON.parse(latest?.afterJson ?? "{}");
+    } catch {
+      details = {};
+    }
+    return {
+      ...item,
+      rules: snapshot.rules
+        .filter((rule) => (item.affectedRuleIds as readonly string[]).includes(rule.stableRuleId))
+        .map((rule) => ({
+          stableRuleId: rule.stableRuleId,
+          conditionExpression: rule.conditionExpression,
+          provisionalOutcome: rule.provisionalOutcome,
+        })),
+      approvalStatus: details.approvalStatus ?? "EVIDENCE_RESOLVED_GOVERNANCE_PENDING",
+      recordedDisposition: details.disposition ?? null,
+      reviewerComment: latest?.reason ?? null,
+    };
   });
   const parent = version.parentVersionId
     ? await getClinicalRuleVersionSnapshot(version.parentVersionId).catch(() => null)
@@ -88,7 +119,7 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
 
       <Tabs defaultTab="overview" className="rounded-2xl border border-border bg-card shadow-sm">
         <TabList className="px-2">
-          <Tab id="overview">Overview</Tab><Tab id="master">Master Tree</Tab><Tab id="views">Pathway Views</Tab><Tab id="rules">Rules</Tab><Tab id="sources">Sources</Tab><Tab id="validation">Validation</Tab><Tab id="simulation">Simulation</Tab><Tab id="diff">Diff</Tab><Tab id="audit">Audit History</Tab>
+          <Tab id="overview">Overview</Tab><Tab id="master">Master Tree</Tab><Tab id="views">Pathway Views</Tab><Tab id="rules">Rules</Tab><Tab id="sources">Sources</Tab><Tab id="validation">Validation</Tab><Tab id="governance">Clinical Review</Tab><Tab id="simulation">Simulation</Tab><Tab id="diff">Diff</Tab><Tab id="audit">Audit History</Tab>
         </TabList>
 
         <TabPanel id="overview" className="p-6">
@@ -117,6 +148,17 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
 
         <TabPanel id="validation" className="p-6">
           {!validation ? <div className="rounded-xl border border-dashed border-border p-8 text-center"><AlertTriangle className="mx-auto h-8 w-8 text-amber-600" /><h3 className="mt-3 font-semibold">Not validated</h3><p className="mt-2 text-sm text-muted-foreground">Run validation before approval or publication.</p></div> : <div><div className="grid gap-3 sm:grid-cols-4"><Metric label="Errors" value={validation.counts.errors} /><Metric label="Warnings" value={validation.counts.warnings} /><Metric label="Rules" value={validation.counts.rules} /><Metric label="Views" value={validation.counts.views} /></div><div className="mt-5 max-h-[640px] space-y-2 overflow-y-auto">{validation.issues.map((issue, index) => <div key={`${issue.code}-${issue.ruleId ?? index}`} className={issue.severity === "ERROR" ? "rounded-lg border border-red-200 bg-red-50 p-3 text-xs" : "rounded-lg border border-border p-3 text-xs"}><div className="flex flex-wrap gap-2 font-bold"><span>{issue.severity}</span><span>·</span><span>{issue.code}</span>{issue.ruleId && <Badge>{issue.ruleId}</Badge>}</div><p className="mt-2 leading-5">{issue.message}</p></div>)}</div></div>}
+        </TabPanel>
+
+        <TabPanel id="governance" className="p-6">
+          <ClinicalGovernanceReviewWorkspace
+            versionId={version.id}
+            initialRevision={version.revision}
+            status={version.status}
+            canPropose={canPerformClinicalRuleAction(user?.role, "validate")}
+            canApprove={canPerformClinicalRuleAction(user?.role, "approve")}
+            cases={governanceCases}
+          />
         </TabPanel>
 
         <TabPanel id="simulation" className="p-6"><ClinicalRuleSimulationPanel versionId={version.id} /></TabPanel>

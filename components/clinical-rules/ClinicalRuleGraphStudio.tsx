@@ -249,6 +249,24 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function sanitiseGraphExportMarkup(markup: string) {
+  const parsed = new DOMParser().parseFromString(`<div>${markup}</div>`, "text/html");
+  parsed.querySelectorAll("script, iframe, object, embed, link, meta").forEach((element) => element.remove());
+  parsed.querySelectorAll("*").forEach((element) => {
+    for (const attribute of [...element.attributes]) {
+      const value = attribute.value.trim();
+      if (
+        /^on/i.test(attribute.name) ||
+        (/^(href|src|xlink:href)$/i.test(attribute.name) && /^javascript:/i.test(value)) ||
+        (attribute.name === "style" && /(?:javascript:|expression\s*\()/i.test(value))
+      ) {
+        element.removeAttribute(attribute.name);
+      }
+    }
+  });
+  return parsed.body.firstElementChild?.innerHTML ?? "";
+}
+
 function ClinicalRuleGraphStudioInner({
   versionId,
   initialSnapshot,
@@ -645,7 +663,9 @@ function ClinicalRuleGraphStudioInner({
       const viewport = flowRef.current?.querySelector(".react-flow__viewport") as HTMLElement | null;
       if (!viewport) return;
       const bounds = viewport.getBoundingClientRect();
-      const serialised = new XMLSerializer().serializeToString(viewport);
+      const serialised = sanitiseGraphExportMarkup(
+        new XMLSerializer().serializeToString(viewport)
+      );
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(bounds.width)}" height="${Math.ceil(bounds.height)}"><rect width="100%" height="100%" fill="#f8fafc"/><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${serialised}</div></foreignObject></svg>`;
       if (format === "svg") {
         downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${currentView.key}.svg`);
@@ -742,6 +762,12 @@ function ClinicalRuleGraphStudioInner({
       </div>
 
       <div className="grid min-h-[720px] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <p id="clinical-graph-summary" className="sr-only" aria-live="polite">
+          {currentView.title}. {nodes.length} visible nodes and {edges.length} visible edges.
+          {selectedNode ? ` Selected node ${selectedNode.shortLabel}.` : " No node selected."}
+          {selectedEdge ? ` Selected edge ${selectedEdge.label}.` : ""}
+          Use Tab to move through graph elements and Enter or Space to select one.
+        </p>
         <div ref={flowRef} className="relative h-[720px] min-h-[720px] w-full bg-slate-50 print:h-[900px] print:min-h-[900px]">
           <ReactFlow
             nodes={nodes}
@@ -754,6 +780,22 @@ function ClinicalRuleGraphStudioInner({
             onReconnect={onReconnect}
             onNodeClick={(_event, node) => { setSelectedNodeId(node.id); setSelectedEdgeId(null); }}
             onEdgeClick={(_event, edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(null); }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                const target = event.target as HTMLElement;
+                const node = target.closest<HTMLElement>(".react-flow__node[data-id]");
+                const edge = target.closest<HTMLElement>(".react-flow__edge[data-id]");
+                if (node?.dataset.id) {
+                  event.preventDefault();
+                  setSelectedNodeId(node.dataset.id);
+                  setSelectedEdgeId(null);
+                } else if (edge?.dataset.id) {
+                  event.preventDefault();
+                  setSelectedEdgeId(edge.dataset.id);
+                  setSelectedNodeId(null);
+                }
+              }
+            }}
             onPaneClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); }}
             minZoom={currentView.minimumZoom}
             maxZoom={currentView.maximumZoom}
@@ -763,6 +805,7 @@ function ClinicalRuleGraphStudioInner({
             elementsSelectable
             proOptions={{ hideAttribution: true }}
             aria-label={`${currentView.title} interactive clinical rule graph`}
+            aria-describedby="clinical-graph-summary"
           >
             <Background variant={BackgroundVariant.Dots} gap={18} size={1.2} color="#cbd5e1" />
             <Controls showInteractive position="bottom-left" />
