@@ -68,6 +68,17 @@ The importer independently verified the supplied package, including its manifest
 | Snapshot checksum | `2997a909b98f9d8960cc3697cf125d5b0e106d4f0be9a0ee789404e54486a96b` |
 | Source JSON SHA-256 | `ffd329502683b2ba9b308e9309e4c6cc970b3954ce1067bfdc5b82869ef886b1` |
 
+### Existing local draft boundary
+
+The repository's pre-existing local demo database is intentionally different from the fresh-checkout database. It contains `CG-NCSP-3.0.0` revision 3 with checksum prefix `f6d75166bc2ba78f`, one prior evaluation, and three audit events. A source re-import of the new `2997a909…` snapshot was attempted after clean verification and was rejected before mutation by the governed importer:
+
+```text
+CG-NCSP-3.0.0 already exists with different content. Create a new semantic
+version; never overwrite an edited, evaluated, or published version identity.
+```
+
+That is the expected safety behavior. The existing local draft and its evaluation were not deleted or rewritten, and its activation count remains zero. Moving that particular developer database to the newly compiled snapshot requires a separately governed semantic-version clone; it must not be achieved by bypassing the identity guard. This does not affect clean-checkout reproducibility, but it is an explicit existing-data upgrade boundary.
+
 ## Quality gates
 
 | Command | Result |
