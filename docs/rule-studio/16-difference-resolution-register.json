@@ -1,0 +1,1814 @@
+{
+  "generatedAt": "2026-08-03",
+  "successorVersion": "CG-NCSP-3.1.0",
+  "successorChecksum": "3ab8657a13e73bb0080f18399d9165c20e9af5796bdcf594bdc71170309c824a",
+  "priorNonConcordantCaseCount": 36,
+  "openEngineeringCaseCount": 0,
+  "categoryCounts": {
+    "CANONICAL_INPUT_CONTRACT_GAP": 18,
+    "ENGINEERING_METADATA_DEFECT": 11,
+    "ENGINEERING_PRECEDENCE_DEFECT": 4,
+    "ORACLE_EXPECTATION_DEFECT": 3
+  },
+  "rows": [
+    {
+      "caseId": "F2-AIS-NO-TOTAL-HYSTERECTOMY-R208",
+      "sourceArea": "Figure 2",
+      "sourceRuleIds": [
+        "F2-02"
+      ],
+      "sourceRecommendationReferences": [
+        "R2.03",
+        "R2.04",
+        "R2.05",
+        "R2.06",
+        "R2.07",
+        "R2.08"
+      ],
+      "sourcePages": {
+        "printed": 19,
+        "pdfIndex": 21
+      },
+      "expected": {
+        "actionClass": "AIS_FOLLOW_UP",
+        "timing": "6 and 18 months when HPV-detected AIS has clear margins",
+        "referralDestination": "colposcopy or primary/community care according to current R9.14",
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F2-02"
+        ],
+        "controllingRuleId": "F2-02",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "referralDestination"
+        ],
+        "reason": "Matching source-area rule(s) F2-02 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "UNMAPPED_ACTUAL:F2-AIS-R208-FOLLOWUP",
+        "recommendationCode": "F2-AIS-R208-FOLLOWUP",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F2-02",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F2-AIS-NO-TOTAL-HYSTERECTOMY-R208"
+      ],
+      "successorVersionChangeId": "CG31-F2-AIS-NO-TOTAL-HYSTERECTOMY-R208"
+    },
+    {
+      "caseId": "F3-UNSUITABLE-HPV-REPEAT-ASAP",
+      "sourceArea": "Figure 3",
+      "sourceRuleIds": [
+        "F3-18",
+        "F3-22"
+      ],
+      "sourceRecommendationReferences": [
+        "R3.04-R3.06"
+      ],
+      "sourcePages": {
+        "printed": 24,
+        "pdfIndex": 26
+      },
+      "expected": {
+        "actionClass": "REPEAT_ASAP",
+        "timing": "as soon as practicable",
+        "referralDestination": null,
+        "reviewerBoundary": false,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput collapses invalid/unsuitable into one INADEQUATE HPV value and cannot encode leakage/unsuitable separately."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F3-18",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F3-UNSUITABLE-HPV-REPEAT-ASAP"
+      ],
+      "successorVersionChangeId": "CG31-F3-UNSUITABLE-HPV-REPEAT-ASAP"
+    },
+    {
+      "caseId": "F3-HPV-OTHER-FIRST-UNSAT-CYTOLOGY-REPEAT",
+      "sourceArea": "Figure 3",
+      "sourceRuleIds": [
+        "F3-19"
+      ],
+      "sourceRecommendationReferences": [
+        "R3.04-R3.06"
+      ],
+      "sourcePages": {
+        "printed": 24,
+        "pdfIndex": 26
+      },
+      "expected": {
+        "actionClass": "REPEAT_CYTOLOGY",
+        "timing": "within 3 months",
+        "referralDestination": null,
+        "reviewerBoundary": false,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F3-22",
+          "F3-19"
+        ],
+        "controllingRuleId": "F3-22",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "controllingRule"
+        ],
+        "reason": "Matching source-area rule(s) F3-19 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "UNMAPPED_ACTUAL:F3-UNMAPPED-COMBINATION",
+        "recommendationCode": "F3-UNMAPPED-COMBINATION",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_PRECEDENCE_DEFECT",
+      "proposedEngineeringResolution": "Apply source-supported specificity ordering so the exact branch controls while the broader overlay remains available.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F3-19",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F3-HPV-OTHER-FIRST-UNSAT-CYTOLOGY-REPEAT"
+      ],
+      "successorVersionChangeId": "CG31-F3-HPV-OTHER-FIRST-UNSAT-CYTOLOGY-REPEAT"
+    },
+    {
+      "caseId": "F3-HPV-OTHER-SECOND-UNSAT-CYTOLOGY-COLPOSCOPY",
+      "sourceArea": "Figure 3",
+      "sourceRuleIds": [
+        "F3-19"
+      ],
+      "sourceRecommendationReferences": [
+        "R3.04-R3.06"
+      ],
+      "sourcePages": {
+        "printed": 24,
+        "pdfIndex": 26
+      },
+      "expected": {
+        "actionClass": "COLPOSCOPY",
+        "timing": null,
+        "referralDestination": "colposcopy",
+        "reviewerBoundary": false,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F3-22",
+          "F3-19"
+        ],
+        "controllingRuleId": "F3-22",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "referralDestination"
+        ],
+        "reason": "Matching source-area rule(s) F3-19 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "UNMAPPED_ACTUAL:F3-UNMAPPED-COMBINATION",
+        "recommendationCode": "F3-UNMAPPED-COMBINATION",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_PRECEDENCE_DEFECT",
+      "proposedEngineeringResolution": "Apply source-supported specificity ordering so the exact branch controls while the broader overlay remains available.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F3-19",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F3-HPV-OTHER-SECOND-UNSAT-CYTOLOGY-COLPOSCOPY"
+      ],
+      "successorVersionChangeId": "CG31-F3-HPV-OTHER-SECOND-UNSAT-CYTOLOGY-COLPOSCOPY"
+    },
+    {
+      "caseId": "F5-CONFIRMED-ASC-H-TREATMENT-RECOMMENDED",
+      "sourceArea": "Figure 5",
+      "sourceRuleIds": [
+        "F5-04",
+        "F5-01"
+      ],
+      "sourceRecommendationReferences": [
+        "R6.08-R6.16"
+      ],
+      "sourcePages": {
+        "printed": 47,
+        "pdfIndex": 49
+      },
+      "expected": {
+        "actionClass": "SPECIALIST_TREATMENT_DECISION_REQUIRED",
+        "timing": null,
+        "referralDestination": "colposcopy/specialist decision service",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F5-01"
+        ],
+        "controllingRuleId": "F5-01",
+        "disposition": "CANONICAL_PATHWAY_GAP",
+        "mismatchingFields": [
+          "referralDestination"
+        ],
+        "reason": "Matched F5-01, but none expressed TREATMENT."
+      },
+      "legacy": {
+        "outcome": "COLPOSCOPY",
+        "recommendationCode": "F5-CONFIRMED-ASCH-TREAT",
+        "disposition": "SOURCE_AMBIGUITY"
+      },
+      "resolutionCategory": "ORACLE_EXPECTATION_DEFECT",
+      "proposedEngineeringResolution": "Correct the independent oracle to the primary recommendation prose, retain the specialist/reviewer boundary, and never infer that treatment occurred.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_FROM_PRIMARY_SOURCE_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F5-04",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F5-CONFIRMED-ASC-H-TREATMENT-RECOMMENDED"
+      ],
+      "successorVersionChangeId": "CG31-F5-CONFIRMED-ASC-H-TREATMENT-RECOMMENDED"
+    },
+    {
+      "caseId": "F5-TREATMENT-DEFERRED-ABNORMAL-TREATMENT",
+      "sourceArea": "Figure 5",
+      "sourceRuleIds": [
+        "F5-06",
+        "F5-05",
+        "F5-01"
+      ],
+      "sourceRecommendationReferences": [
+        "R6.08-R6.16"
+      ],
+      "sourcePages": {
+        "printed": 47,
+        "pdfIndex": 49
+      },
+      "expected": {
+        "actionClass": "TREATMENT",
+        "timing": null,
+        "referralDestination": "colposcopy/specialist treatment service",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F5-05",
+          "F5-06",
+          "F5-01"
+        ],
+        "controllingRuleId": "F5-05",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "controllingRule"
+        ],
+        "reason": "Matching source-area rule(s) F5-06 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "COLPOSCOPY",
+        "recommendationCode": "F5-CONFIRMED-ASCH-TREAT",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_PRECEDENCE_DEFECT",
+      "proposedEngineeringResolution": "Apply source-supported specificity ordering so the exact branch controls while the broader overlay remains available.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F5-06",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F5-TREATMENT-DEFERRED-ABNORMAL-TREATMENT"
+      ],
+      "successorVersionChangeId": "CG31-F5-TREATMENT-DEFERRED-ABNORMAL-TREATMENT"
+    },
+    {
+      "caseId": "F5-TREATMENT-DEFERRED-HPV-NOT-DETECTED-TOC",
+      "sourceArea": "Figure 5",
+      "sourceRuleIds": [
+        "F5-08",
+        "F5-04",
+        "F5-05"
+      ],
+      "sourceRecommendationReferences": [
+        "R6.08-R6.16"
+      ],
+      "sourcePages": {
+        "printed": 47,
+        "pdfIndex": 49
+      },
+      "expected": {
+        "actionClass": "FIGURE_5_COTEST_SURVEILLANCE",
+        "timing": "12 months after the first reassuring six-month co-test",
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F5-05",
+          "F5-06",
+          "F5-04"
+        ],
+        "controllingRuleId": "F5-05",
+        "disposition": "CANONICAL_PATHWAY_GAP",
+        "mismatchingFields": [
+          "actionClass"
+        ],
+        "reason": "Matched F5-05, F5-06, F5-04, but none expressed TEST_OF_CURE."
+      },
+      "legacy": {
+        "outcome": "TEST_OF_CURE",
+        "recommendationCode": "F5-CONFIRMED-ASCH-HPV-NEG-NO-LESION-TOC",
+        "disposition": "SOURCE_AMBIGUITY"
+      },
+      "resolutionCategory": "ORACLE_EXPECTATION_DEFECT",
+      "proposedEngineeringResolution": "Correct the independent oracle to the primary recommendation prose, retain the specialist/reviewer boundary, and never infer that treatment occurred.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_FROM_PRIMARY_SOURCE_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F5-08",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F5-TREATMENT-DEFERRED-HPV-NOT-DETECTED-TOC"
+      ],
+      "successorVersionChangeId": "CG31-F5-TREATMENT-DEFERRED-HPV-NOT-DETECTED-TOC"
+    },
+    {
+      "caseId": "F6-CIN2-UNDER30-ELIGIBLE-ACTIVE-SURVEILLANCE",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "A26-02"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.03"
+      ],
+      "sourcePages": {
+        "printed": 4,
+        "pdfIndex": 4
+      },
+      "expected": {
+        "actionClass": "CIN2_ACTIVE_SURVEILLANCE",
+        "timing": "6-monthly for no more than 24 months",
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "No source-to-engine probe mapper for F6-CIN2-UNDER30-ELIGIBLE-ACTIVE-SURVEILLANCE."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-02",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-CIN2-UNDER30-ELIGIBLE-ACTIVE-SURVEILLANCE"
+      ],
+      "successorVersionChangeId": "CG31-F6-CIN2-UNDER30-ELIGIBLE-ACTIVE-SURVEILLANCE"
+    },
+    {
+      "caseId": "F6-CIN2-SURVEILLANCE-CIN3-TREAT",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "A26-05"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.03"
+      ],
+      "sourcePages": {
+        "printed": 4,
+        "pdfIndex": 4
+      },
+      "expected": {
+        "actionClass": "TREATMENT",
+        "timing": "at detection",
+        "referralDestination": "specialist treatment service",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "No source-to-engine probe mapper for F6-CIN2-SURVEILLANCE-CIN3-TREAT."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-05",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-CIN2-SURVEILLANCE-CIN3-TREAT"
+      ],
+      "successorVersionChangeId": "CG31-F6-CIN2-SURVEILLANCE-CIN3-TREAT"
+    },
+    {
+      "caseId": "F6-CIN2-PERSISTS-24M-TREAT",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "A26-05"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.03"
+      ],
+      "sourcePages": {
+        "printed": 4,
+        "pdfIndex": 4
+      },
+      "expected": {
+        "actionClass": "TREATMENT",
+        "timing": "24 months",
+        "referralDestination": "specialist treatment service",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "No source-to-engine probe mapper for F6-CIN2-PERSISTS-24M-TREAT."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-05",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-CIN2-PERSISTS-24M-TREAT"
+      ],
+      "successorVersionChangeId": "CG31-F6-CIN2-PERSISTS-24M-TREAT"
+    },
+    {
+      "caseId": "F6-CIN2-REGRESSION-TOC",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "A26-04"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.03"
+      ],
+      "sourcePages": {
+        "printed": 4,
+        "pdfIndex": 4
+      },
+      "expected": {
+        "actionClass": "TEST_OF_CURE",
+        "timing": "after documented regression",
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "No source-to-engine probe mapper for F6-CIN2-REGRESSION-TOC."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-04",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-CIN2-REGRESSION-TOC"
+      ],
+      "successorVersionChangeId": "CG31-F6-CIN2-REGRESSION-TOC"
+    },
+    {
+      "caseId": "F6-18M-HPV-NOT-DETECTED-LOW-GRADE-REPEAT",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "F6-06",
+        "F6-09",
+        "F6-01",
+        "F6-14"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.04-R8.08"
+      ],
+      "sourcePages": {
+        "printed": 56,
+        "pdfIndex": 58
+      },
+      "expected": {
+        "actionClass": "REPEAT_COTEST",
+        "timing": "12 months",
+        "referralDestination": null,
+        "reviewerBoundary": false,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F6-09",
+          "F6-01",
+          "F6-14"
+        ],
+        "controllingRuleId": "F6-09",
+        "disposition": "CANONICAL_PATHWAY_GAP",
+        "mismatchingFields": [
+          "actionClass"
+        ],
+        "reason": "Matched F6-09, F6-01, F6-14, but none expressed REPEAT_COTEST."
+      },
+      "legacy": {
+        "outcome": "COLPOSCOPY",
+        "recommendationCode": "F6-REPEAT-HPV-NEG-CYTOLOGY-ABNORMAL-COLP",
+        "disposition": "SOURCE_AMBIGUITY"
+      },
+      "resolutionCategory": "ORACLE_EXPECTATION_DEFECT",
+      "proposedEngineeringResolution": "Correct the independent oracle to the primary recommendation prose, retain the specialist/reviewer boundary, and never infer that treatment occurred.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_FROM_PRIMARY_SOURCE_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F6-06",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-18M-HPV-NOT-DETECTED-LOW-GRADE-REPEAT"
+      ],
+      "successorVersionChangeId": "CG31-F6-18M-HPV-NOT-DETECTED-LOW-GRADE-REPEAT"
+    },
+    {
+      "caseId": "F6-AFTER-LOW-GRADE-NEGATIVE-CONTINUE-TOC",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "F6-08",
+        "F6-09",
+        "F6-01",
+        "F6-14"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.04-R8.08"
+      ],
+      "sourcePages": {
+        "printed": 56,
+        "pdfIndex": 58
+      },
+      "expected": {
+        "actionClass": "CONTINUE_TOC",
+        "timing": "12 months between qualifying co-tests",
+        "referralDestination": null,
+        "reviewerBoundary": false,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F6-08",
+          "F6-09",
+          "F6-01",
+          "F6-14"
+        ],
+        "controllingRuleId": "F6-08",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F6-08, F6-09, F6-01 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "CONTINUE_TOC",
+        "recommendationCode": "F6-CONTINUE-TOC-UNTIL-COMPLETE",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F6-08",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-AFTER-LOW-GRADE-NEGATIVE-CONTINUE-TOC"
+      ],
+      "successorVersionChangeId": "CG31-F6-AFTER-LOW-GRADE-NEGATIVE-CONTINUE-TOC"
+    },
+    {
+      "caseId": "F6-POSITIVE-MARGINS-UNDER50-COMMUNITY-TOC",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "F6-10",
+        "F6-14"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.06"
+      ],
+      "sourcePages": {
+        "printed": 56,
+        "pdfIndex": 58
+      },
+      "expected": {
+        "actionClass": "COMMUNITY_TOC",
+        "timing": "6 and 18 months post-treatment",
+        "referralDestination": null,
+        "reviewerBoundary": false,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput has no HSIL excision-margin field, so updated R8.06 cannot be represented."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F6-10",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-POSITIVE-MARGINS-UNDER50-COMMUNITY-TOC"
+      ],
+      "successorVersionChangeId": "CG31-F6-POSITIVE-MARGINS-UNDER50-COMMUNITY-TOC"
+    },
+    {
+      "caseId": "F6-POSITIVE-MARGINS-AGE50PLUS-SPECIALIST",
+      "sourceArea": "Figure 6",
+      "sourceRuleIds": [
+        "F6-11",
+        "F6-14"
+      ],
+      "sourceRecommendationReferences": [
+        "R8.06"
+      ],
+      "sourcePages": {
+        "printed": 56,
+        "pdfIndex": 58
+      },
+      "expected": {
+        "actionClass": "SPECIALIST_FOLLOW_UP",
+        "timing": null,
+        "referralDestination": "colposcopy/specialist service",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput has no HSIL excision-margin field, so updated R8.06 cannot be represented."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "ACTION_EQUIVALENT_PRESENTATION_ALIAS",
+        "controllingRuleId": "F6-11",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F6-POSITIVE-MARGINS-AGE50PLUS-SPECIALIST"
+      ],
+      "successorVersionChangeId": "CG31-F6-POSITIVE-MARGINS-AGE50PLUS-SPECIALIST"
+    },
+    {
+      "caseId": "F7-AC1-COLPOSCOPY",
+      "sourceArea": "Figure 7",
+      "sourceRuleIds": [
+        "F7-02"
+      ],
+      "sourceRecommendationReferences": [
+        "R9.04-R9.10"
+      ],
+      "sourcePages": {
+        "printed": 59,
+        "pdfIndex": 61
+      },
+      "expected": {
+        "actionClass": "COLPOSCOPY",
+        "timing": "urgent",
+        "referralDestination": "colposcopy",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F7-02"
+        ],
+        "controllingRuleId": "F7-02",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F7-02 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "COLPOSCOPY",
+        "recommendationCode": "F7-GLANDULAR-COLPOSCOPY",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F7-02",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F7-AC1-COLPOSCOPY"
+      ],
+      "successorVersionChangeId": "CG31-F7-AC1-COLPOSCOPY"
+    },
+    {
+      "caseId": "F7-AC3-COLPOSCOPY",
+      "sourceArea": "Figure 7",
+      "sourceRuleIds": [
+        "F7-02"
+      ],
+      "sourceRecommendationReferences": [
+        "R9.04-R9.10"
+      ],
+      "sourcePages": {
+        "printed": 59,
+        "pdfIndex": 61
+      },
+      "expected": {
+        "actionClass": "COLPOSCOPY",
+        "timing": "urgent",
+        "referralDestination": "colposcopy",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F7-02"
+        ],
+        "controllingRuleId": "F7-02",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F7-02 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "COLPOSCOPY",
+        "recommendationCode": "F7-GLANDULAR-COLPOSCOPY",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F7-02",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F7-AC3-COLPOSCOPY"
+      ],
+      "successorVersionChangeId": "CG31-F7-AC3-COLPOSCOPY"
+    },
+    {
+      "caseId": "F7-AC4-COLPOSCOPY",
+      "sourceArea": "Figure 7",
+      "sourceRuleIds": [
+        "F7-02"
+      ],
+      "sourceRecommendationReferences": [
+        "R9.04-R9.10"
+      ],
+      "sourcePages": {
+        "printed": 59,
+        "pdfIndex": 61
+      },
+      "expected": {
+        "actionClass": "COLPOSCOPY",
+        "timing": "urgent",
+        "referralDestination": "colposcopy",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F7-02"
+        ],
+        "controllingRuleId": "F7-02",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F7-02 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "COLPOSCOPY",
+        "recommendationCode": "F7-GLANDULAR-COLPOSCOPY",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F7-02",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F7-AC4-COLPOSCOPY"
+      ],
+      "successorVersionChangeId": "CG31-F7-AC4-COLPOSCOPY"
+    },
+    {
+      "caseId": "F7-VISIBLE-LESION-BIOPSY-AIS-TYPE3",
+      "sourceArea": "Figure 7",
+      "sourceRuleIds": [
+        "F7-07",
+        "F7-02"
+      ],
+      "sourceRecommendationReferences": [
+        "R9.04-R9.13"
+      ],
+      "sourcePages": {
+        "printed": 59,
+        "pdfIndex": 61
+      },
+      "expected": {
+        "actionClass": "TYPE3_EXCISION",
+        "timing": null,
+        "referralDestination": "specialist excision service",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F7-07",
+          "F7-02"
+        ],
+        "controllingRuleId": "F7-07",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "referralDestination"
+        ],
+        "reason": "Matching source-area rule(s) F7-07 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "COLPOSCOPY",
+        "recommendationCode": "F7-BIOPSY-AIS-TYPE3-EXCISION",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F7-07",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F7-VISIBLE-LESION-BIOPSY-AIS-TYPE3"
+      ],
+      "successorVersionChangeId": "CG31-F7-VISIBLE-LESION-BIOPSY-AIS-TYPE3"
+    },
+    {
+      "caseId": "F7-AIS-CLEAR-MARGINS-PRIMARY-CARE-6-18M",
+      "sourceArea": "Figure 7",
+      "sourceRuleIds": [
+        "F7-09",
+        "A26-07"
+      ],
+      "sourceRecommendationReferences": [
+        "R9.14"
+      ],
+      "sourcePages": {
+        "printed": 59,
+        "pdfIndex": 61
+      },
+      "expected": {
+        "actionClass": "COMMUNITY_TOC",
+        "timing": "6 and 18 months post-treatment",
+        "referralDestination": "primary/community care",
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode AIS pre-treatment HPV status plus excision margin status and treatment date for updated R9.14."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F7-09",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F7-AIS-CLEAR-MARGINS-PRIMARY-CARE-6-18M"
+      ],
+      "successorVersionChangeId": "CG31-F7-AIS-CLEAR-MARGINS-PRIMARY-CARE-6-18M"
+    },
+    {
+      "caseId": "F8-CANCER-STAGE1A1-LOCAL-EXCISION-TOC-COMPLETE-REGULAR",
+      "sourceArea": "Figure 8",
+      "sourceRuleIds": [
+        "A26-08"
+      ],
+      "sourceRecommendationReferences": [
+        "Screening after gynaecological cancer update"
+      ],
+      "sourcePages": {
+        "printed": 5,
+        "pdfIndex": 5
+      },
+      "expected": {
+        "actionClass": "ROUTINE_SCREENING",
+        "timing": null,
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode cancer type/stage, NCSP enrolment status, or the addendum's cancer-treatment follow-up state."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "ACTION_EQUIVALENT_PRESENTATION_ALIAS",
+        "controllingRuleId": "A26-08",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F8-CANCER-STAGE1A1-LOCAL-EXCISION-TOC-COMPLETE-REGULAR"
+      ],
+      "successorVersionChangeId": "CG31-F8-CANCER-STAGE1A1-LOCAL-EXCISION-TOC-COMPLETE-REGULAR"
+    },
+    {
+      "caseId": "F8-CANCER-STAGE1A1-TOC-ABNORMAL-COLPOSCOPY",
+      "sourceArea": "Figure 8",
+      "sourceRuleIds": [
+        "A26-08"
+      ],
+      "sourceRecommendationReferences": [
+        "Screening after gynaecological cancer update"
+      ],
+      "sourcePages": {
+        "printed": 5,
+        "pdfIndex": 5
+      },
+      "expected": {
+        "actionClass": "COLPOSCOPY",
+        "timing": null,
+        "referralDestination": "colposcopy",
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode cancer type/stage, NCSP enrolment status, or the addendum's cancer-treatment follow-up state."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-08",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F8-CANCER-STAGE1A1-TOC-ABNORMAL-COLPOSCOPY"
+      ],
+      "successorVersionChangeId": "CG31-F8-CANCER-STAGE1A1-TOC-ABNORMAL-COLPOSCOPY"
+    },
+    {
+      "caseId": "F8-CANCER-STAGE1A1-POST-TOC-HPV-FIG3",
+      "sourceArea": "Figure 8",
+      "sourceRuleIds": [
+        "A26-08"
+      ],
+      "sourceRecommendationReferences": [
+        "Screening after gynaecological cancer update"
+      ],
+      "sourcePages": {
+        "printed": 5,
+        "pdfIndex": 5
+      },
+      "expected": {
+        "actionClass": "ROUTE_FIGURE_3",
+        "timing": null,
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode cancer type/stage, NCSP enrolment status, or the addendum's cancer-treatment follow-up state."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-08",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F8-CANCER-STAGE1A1-POST-TOC-HPV-FIG3"
+      ],
+      "successorVersionChangeId": "CG31-F8-CANCER-STAGE1A1-POST-TOC-HPV-FIG3"
+    },
+    {
+      "caseId": "F8-CANCER-TOTAL-HYSTERECTOMY-TOC-COMPLETE-CEASE",
+      "sourceArea": "Figure 8",
+      "sourceRuleIds": [
+        "A26-09"
+      ],
+      "sourceRecommendationReferences": [
+        "Screening after gynaecological cancer update"
+      ],
+      "sourcePages": {
+        "printed": 5,
+        "pdfIndex": 5
+      },
+      "expected": {
+        "actionClass": "NO_FURTHER_SCREENING",
+        "timing": null,
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode cancer type/stage, NCSP enrolment status, or the addendum's cancer-treatment follow-up state."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-09",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F8-CANCER-TOTAL-HYSTERECTOMY-TOC-COMPLETE-CEASE"
+      ],
+      "successorVersionChangeId": "CG31-F8-CANCER-TOTAL-HYSTERECTOMY-TOC-COMPLETE-CEASE"
+    },
+    {
+      "caseId": "F8-OTHER-GYNAECOLOGICAL-CANCER-OUTSIDE-NCSP",
+      "sourceArea": "Figure 8",
+      "sourceRuleIds": [
+        "A26-10"
+      ],
+      "sourceRecommendationReferences": [
+        "Screening after gynaecological cancer update"
+      ],
+      "sourcePages": {
+        "printed": 5,
+        "pdfIndex": 5
+      },
+      "expected": {
+        "actionClass": "CLINICIAN_REVIEW_REQUIRED",
+        "timing": null,
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode cancer type/stage, NCSP enrolment status, or the addendum's cancer-treatment follow-up state."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "A26-10",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F8-OTHER-GYNAECOLOGICAL-CANCER-OUTSIDE-NCSP"
+      ],
+      "successorVersionChangeId": "CG31-F8-OTHER-GYNAECOLOGICAL-CANCER-OUTSIDE-NCSP"
+    },
+    {
+      "caseId": "F8-NONCERVICAL-CANCER-HYSTERECTOMY-HSIL-INCOMPLETE-TOC",
+      "sourceArea": "Figure 8",
+      "sourceRuleIds": [
+        "A26-11"
+      ],
+      "sourceRecommendationReferences": [
+        "Screening after gynaecological cancer update"
+      ],
+      "sourcePages": {
+        "printed": 5,
+        "pdfIndex": 5
+      },
+      "expected": {
+        "actionClass": "CONTINUE_TOC",
+        "timing": "two negative co-tests 12 months apart",
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode cancer type/stage, NCSP enrolment status, or the addendum's cancer-treatment follow-up state."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "ACTION_EQUIVALENT_PRESENTATION_ALIAS",
+        "controllingRuleId": "A26-11",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F8-NONCERVICAL-CANCER-HYSTERECTOMY-HSIL-INCOMPLETE-TOC"
+      ],
+      "successorVersionChangeId": "CG31-F8-NONCERVICAL-CANCER-HYSTERECTOMY-HSIL-INCOMPLETE-TOC"
+    },
+    {
+      "caseId": "F9-ABNORMAL-TZ-LSIL-HSIL-AIS-REVIEW",
+      "sourceArea": "Figure 9",
+      "sourceRuleIds": [
+        "F9-06",
+        "F9-01"
+      ],
+      "sourceRecommendationReferences": [
+        "R11.01-R11.11"
+      ],
+      "sourcePages": {
+        "printed": 71,
+        "pdfIndex": 73
+      },
+      "expected": {
+        "actionClass": "PREGNANCY_COLPOSCOPY_REVIEW",
+        "timing": "6 months or 6–12 weeks postpartum",
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F9-06",
+          "F9-01"
+        ],
+        "controllingRuleId": "F9-06",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "controllingRule"
+        ],
+        "reason": "Matching source-area rule(s) F9-01 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "PREGNANCY_COLPOSCOPY_REVIEW",
+        "recommendationCode": "F9-ABNORMAL-TZ-REVIEW",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_PRECEDENCE_DEFECT",
+      "proposedEngineeringResolution": "Apply source-supported specificity ordering so the exact branch controls while the broader overlay remains available.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "ACTION_EQUIVALENT_PRESENTATION_ALIAS",
+        "controllingRuleId": "F9-06",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F9-ABNORMAL-TZ-LSIL-HSIL-AIS-REVIEW"
+      ],
+      "successorVersionChangeId": "CG31-F9-ABNORMAL-TZ-LSIL-HSIL-AIS-REVIEW"
+    },
+    {
+      "caseId": "F10-SINGLE-PREMENOPAUSAL-PCB-REASSURING-NO-COLPOSCOPY",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-10"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.02"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "NO_COLPOSCOPY",
+        "timing": null,
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": false
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode menopausal status, episode count/persistence, or the full reassuring co-test combination required by R15.02/R15.05/R15.06."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-10",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-SINGLE-PREMENOPAUSAL-PCB-REASSURING-NO-COLPOSCOPY"
+      ],
+      "successorVersionChangeId": "CG31-F10-SINGLE-PREMENOPAUSAL-PCB-REASSURING-NO-COLPOSCOPY"
+    },
+    {
+      "caseId": "F10-RECURRENT-PERSISTENT-PCB-GYNAECOLOGY",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-11"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.02"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "GYNAECOLOGY",
+        "timing": "as appropriate without routine-screening reassurance",
+        "referralDestination": "gynaecology",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode menopausal status, episode count/persistence, or the full reassuring co-test combination required by R15.02/R15.05/R15.06."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-11",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-RECURRENT-PERSISTENT-PCB-GYNAECOLOGY"
+      ],
+      "successorVersionChangeId": "CG31-F10-RECURRENT-PERSISTENT-PCB-GYNAECOLOGY"
+    },
+    {
+      "caseId": "F10-PERSISTENT-UNEXPLAINED-IMB-GYNAECOLOGY",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-12"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.05"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "GYNAECOLOGY",
+        "timing": "without allowing screening results to cancel referral",
+        "referralDestination": "specialist gynaecology",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode menopausal status, episode count/persistence, or the full reassuring co-test combination required by R15.02/R15.05/R15.06."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-12",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-PERSISTENT-UNEXPLAINED-IMB-GYNAECOLOGY"
+      ],
+      "successorVersionChangeId": "CG31-F10-PERSISTENT-UNEXPLAINED-IMB-GYNAECOLOGY"
+    },
+    {
+      "caseId": "F10-POSTMENOPAUSAL-BLEEDING-EXAM-COTEST-GYNAECOLOGY",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-13"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.06"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "URGENT_GYNAECOLOGY",
+        "timing": "referral must not wait for co-test results",
+        "referralDestination": "specialist gynaecology",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "disposition": "SOURCE_ORACLE_CASE_NOT_REPRESENTABLE_BY_LEGACY_INPUT",
+        "mismatchingFields": [
+          "inputRepresentation"
+        ],
+        "reason": "ClinicalInput cannot encode menopausal status, episode count/persistence, or the full reassuring co-test combination required by R15.02/R15.05/R15.06."
+      },
+      "legacy": {
+        "outcome": null,
+        "recommendationCode": null,
+        "disposition": "UNSUPPORTED_LEGACY_STATE"
+      },
+      "resolutionCategory": "CANONICAL_INPUT_CONTRACT_GAP",
+      "proposedEngineeringResolution": "Represent the source state natively with status and provenance in CanonicalClinicalFactsV2; retain the legacy state as unsupported.",
+      "clinicalGovernanceApprovalRequired": false,
+      "implementationStatus": "CLOSED_BY_CANONICAL_CLINICAL_FACTS_V2",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-13",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-POSTMENOPAUSAL-BLEEDING-EXAM-COTEST-GYNAECOLOGY"
+      ],
+      "successorVersionChangeId": "CG31-F10-POSTMENOPAUSAL-BLEEDING-EXAM-COTEST-GYNAECOLOGY"
+    },
+    {
+      "caseId": "F10-CANCER-SIGNS-URGENT-GYNAECOLOGY",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-01"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.01-R15.06"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "URGENT_GYNAECOLOGY",
+        "timing": "without delay",
+        "referralDestination": "gynaecology",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F10-01"
+        ],
+        "controllingRuleId": "F10-01",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "referralDestination"
+        ],
+        "reason": "Matching source-area rule(s) F10-01 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "URGENT_GYNAECOLOGY",
+        "recommendationCode": "F10-CANCER-SYMPTOMS-URGENT-GYN",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-01",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-CANCER-SIGNS-URGENT-GYNAECOLOGY"
+      ],
+      "successorVersionChangeId": "CG31-F10-CANCER-SIGNS-URGENT-GYNAECOLOGY"
+    },
+    {
+      "caseId": "F10-ABNORMAL-CERVIX-NO-CANCER-LOCAL-REVIEW",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-04"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.01-R15.06"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "LOCAL_PATHWAY_REVIEW",
+        "timing": "6–8 weeks",
+        "referralDestination": "gynaecology if indicated",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F10-04"
+        ],
+        "controllingRuleId": "F10-04",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F10-04 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "LOCAL_PATHWAY_REVIEW",
+        "recommendationCode": "F10-ABNORMAL-CERVIX-NO-CANCER-REVIEW",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-04",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-ABNORMAL-CERVIX-NO-CANCER-LOCAL-REVIEW"
+      ],
+      "successorVersionChangeId": "CG31-F10-ABNORMAL-CERVIX-NO-CANCER-LOCAL-REVIEW"
+    },
+    {
+      "caseId": "F10-NORMAL-CERVIX-STI-TREAT-REVIEW",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-08"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.01-R15.06"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "STI_REVIEW",
+        "timing": "6–8 weeks",
+        "referralDestination": null,
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F10-08"
+        ],
+        "controllingRuleId": "F10-08",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F10-08 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "TREATMENT",
+        "recommendationCode": "F10-STI-TREAT-REVIEW",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-08",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-NORMAL-CERVIX-STI-TREAT-REVIEW"
+      ],
+      "successorVersionChangeId": "CG31-F10-NORMAL-CERVIX-STI-TREAT-REVIEW"
+    },
+    {
+      "caseId": "F10-NORMAL-CERVIX-NO-STI-LOCAL-PATHWAY",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-09"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.01-R15.06"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "LOCAL_PATHWAY_REVIEW",
+        "timing": "6–8 weeks if treated locally",
+        "referralDestination": "gynaecology if indicated",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F10-09"
+        ],
+        "controllingRuleId": "F10-09",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F10-09 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "LOCAL_PATHWAY_REVIEW",
+        "recommendationCode": "F10-NO-STI-HEALTHCARE-PATHWAYS",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-09",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-NORMAL-CERVIX-NO-STI-LOCAL-PATHWAY"
+      ],
+      "successorVersionChangeId": "CG31-F10-NORMAL-CERVIX-NO-STI-LOCAL-PATHWAY"
+    },
+    {
+      "caseId": "F10-REVIEW-BLEEDING-PERSISTS-GYNAECOLOGY",
+      "sourceArea": "Figure 10",
+      "sourceRuleIds": [
+        "F10-07"
+      ],
+      "sourceRecommendationReferences": [
+        "R15.01-R15.06"
+      ],
+      "sourcePages": {
+        "printed": 83,
+        "pdfIndex": 85
+      },
+      "expected": {
+        "actionClass": "GYNAECOLOGY",
+        "timing": "after 6–8 week review",
+        "referralDestination": "gynaecology",
+        "reviewerBoundary": true,
+        "clinicianOnly": true
+      },
+      "priorCanonical": {
+        "matchedRuleIds": [
+          "F10-07"
+        ],
+        "controllingRuleId": "F10-07",
+        "disposition": "CANONICAL_MATCH_WITH_METADATA_OR_PRECEDENCE_DIFFERENCE",
+        "mismatchingFields": [
+          "timing"
+        ],
+        "reason": "Matching source-area rule(s) F10-07 were present but did not control."
+      },
+      "legacy": {
+        "outcome": "GYNAECOLOGY",
+        "recommendationCode": "F10-REVIEW-UNRESOLVED-GYNAECOLOGY",
+        "disposition": "UNRESOLVED_CLINICAL_REVIEW"
+      },
+      "resolutionCategory": "ENGINEERING_METADATA_DEFECT",
+      "proposedEngineeringResolution": "Add the source-supported timing, urgency, destination, reviewer or clinician-only metadata to the successor rule/branch.",
+      "clinicalGovernanceApprovalRequired": true,
+      "implementationStatus": "CLOSED_IN_CG_NCSP_3_1_0",
+      "successorResult": {
+        "disposition": "EXACT_AGREEMENT",
+        "controllingRuleId": "F10-07",
+        "mismatchingFields": []
+      },
+      "testIds": [
+        "CV2-F10-REVIEW-BLEEDING-PERSISTS-GYNAECOLOGY"
+      ],
+      "successorVersionChangeId": "CG31-F10-REVIEW-BLEEDING-PERSISTS-GYNAECOLOGY"
+    }
+  ]
+}
