@@ -83,11 +83,11 @@ function PreviewBlock({ children }: { children: string }) {
   );
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
     <div>
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="mt-1 text-sm text-foreground">{value || "—"}</dd>
+      <dd className={cn("mt-1 text-sm text-foreground", mono && "break-all font-mono text-xs")}>{value || "—"}</dd>
     </div>
   );
 }
@@ -383,6 +383,9 @@ export function CompletedDecisionsClient({
             <TabPanel id="summary">
               <dl className="grid gap-4 sm:grid-cols-2">
                 <Field label="Package label" value={preview.summary.packageLabel} />
+                <Field label="Clinical rule version" value={preview.summary.ruleVersion} />
+                <Field label="Ruleset checksum" value={preview.summary.rulesetChecksum} mono />
+                <Field label="Engine version" value={preview.summary.engineVersion} mono />
                 <Field label="Patient" value={preview.summary.patientDisplay} />
                 <Field label="Source system" value={preview.summary.sourceSystem} />
                 <Field label="Intake session" value={preview.summary.intakeSessionId} />
