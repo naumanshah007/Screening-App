@@ -8,6 +8,11 @@ import {
 } from "./constants";
 import { ClinicalRuleSnapshotSchema } from "./schema";
 import {
+  buildSuccessorSnapshotFromV21Package,
+  SUCCESSOR_PRODUCT_VERSION,
+  SUCCESSOR_PRODUCT_VERSION_PARTS,
+} from "./successor-v3-1";
+import {
   buildSnapshotFromV21Package,
   type SourcePackageVerification,
 } from "./source-package";
@@ -176,6 +181,157 @@ export async function importNcspRulebookV21(args: {
           displayVersion: version.displayVersion,
           checksum,
           sourcePackageVersion: snapshot.sourcePackage.version,
+        }),
+      },
+    });
+
+    return {
+      action: "CREATED" as const,
+      ruleSetId: ruleSet.id,
+      ruleVersionId: version.id,
+      displayVersion: version.displayVersion,
+      checksum,
+      revision: version.revision,
+      status: version.status,
+      verification: built.verification,
+      validation,
+    };
+  });
+}
+
+export async function importNcspRulebookV21Successor(args: {
+  sourceDirectory?: string;
+  actorUserId?: string;
+  reason?: string;
+} = {}): Promise<RulebookImportResult> {
+  const built = await buildSuccessorSnapshotFromV21Package(args.sourceDirectory);
+  const snapshot = ClinicalRuleSnapshotSchema.parse(built.snapshot);
+  const checksum = calculateRuleSnapshotChecksum(snapshot);
+  const snapshotJson = deterministicJson(snapshot);
+  const validation = validateClinicalRuleSnapshot(snapshot);
+  const reason =
+    args.reason?.trim() ||
+    "Create protected release-hardening successor with canonical facts v2, source-supported metadata closure, and explicit ambiguity dispositions.";
+
+  return prisma.$transaction(async (tx) => {
+    const ruleSet = await tx.clinicalRuleSet.findUnique({
+      where: { key: NATIONAL_RULE_SET_KEY },
+    });
+    if (!ruleSet) {
+      throw new Error(
+        "Import the protected CG-NCSP-3.0.0 parent before creating its successor."
+      );
+    }
+    const parent = await tx.clinicalRuleVersion.findUnique({
+      where: {
+        ruleSetId_displayVersion: {
+          ruleSetId: ruleSet.id,
+          displayVersion: IMPORTED_PRODUCT_VERSION,
+        },
+      },
+    });
+    if (!parent) {
+      throw new Error("The protected CG-NCSP-3.0.0 parent version was not found.");
+    }
+
+    const existing = await tx.clinicalRuleVersion.findUnique({
+      where: {
+        ruleSetId_displayVersion: {
+          ruleSetId: ruleSet.id,
+          displayVersion: SUCCESSOR_PRODUCT_VERSION,
+        },
+      },
+    });
+    if (existing) {
+      if (
+        existing.checksum !== checksum ||
+        existing.snapshotJson !== snapshotJson ||
+        existing.parentVersionId !== parent.id
+      ) {
+        throw new Error(
+          `${SUCCESSOR_PRODUCT_VERSION} already exists with different content or parentage. Create another semantic version; never overwrite a governed successor identity.`
+        );
+      }
+      return {
+        action: "UNCHANGED" as const,
+        ruleSetId: ruleSet.id,
+        ruleVersionId: existing.id,
+        displayVersion: existing.displayVersion,
+        checksum,
+        revision: existing.revision,
+        status: existing.status,
+        verification: built.verification,
+        validation,
+      };
+    }
+
+    const version = await tx.clinicalRuleVersion.create({
+      data: {
+        ruleSetId: ruleSet.id,
+        versionMajor: SUCCESSOR_PRODUCT_VERSION_PARTS.major,
+        versionMinor: SUCCESSOR_PRODUCT_VERSION_PARTS.minor,
+        versionPatch: SUCCESSOR_PRODUCT_VERSION_PARTS.patch,
+        displayVersion: SUCCESSOR_PRODUCT_VERSION,
+        status: "DRAFT",
+        parentVersionId: parent.id,
+        sourcePackageVersion: snapshot.sourcePackage.version,
+        sourceGuidelineSummary:
+          "NCSP June 2023 final v1.1 with February 2026 addendum and March 2026 immune-deficiency guidance v1.0.1; primary-source ambiguity review and canonical facts v2 engineering evidence attached; governed clinical review remains required.",
+        snapshotJson,
+        checksum,
+        revision: 1,
+        changeSummary: reason,
+        changeClassification: "CLINICAL_LOGIC",
+        validationJson: JSON.stringify({
+          ...validation,
+          releaseSubStatus:
+            "ENGINEERING_VALIDATION_PASSED_CLINICAL_GOVERNANCE_PENDING",
+          publicationPermitted: false,
+        }),
+        createdById: args.actorUserId,
+      },
+    });
+    await tx.ruleVersionAuditEvent.create({
+      data: {
+        ruleSetId: ruleSet.id,
+        ruleVersionId: version.id,
+        actorUserId: args.actorUserId,
+        eventType: "SUCCESSOR_CREATED",
+        reason,
+        beforeJson: JSON.stringify({
+          parentVersionId: parent.id,
+          parentDisplayVersion: parent.displayVersion,
+          parentChecksum: parent.checksum,
+          parentRevision: parent.revision,
+        }),
+        afterJson: JSON.stringify({
+          displayVersion: version.displayVersion,
+          checksum,
+          status: version.status,
+          sourcePackageVersion: snapshot.sourcePackage.version,
+          schemaVersion: snapshot.schemaVersion,
+          engineContractVersion: snapshot.engineContractVersion,
+          ruleCount: snapshot.rules.length,
+          nodeCount: snapshot.nodes.length,
+          edgeCount: snapshot.edges.length,
+          viewCount: snapshot.views.length,
+          validationPassed: validation.valid,
+          publicationPermitted: false,
+        }),
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        userId: args.actorUserId,
+        action: "SUCCESSOR_CREATED",
+        entity: "ClinicalRuleVersion",
+        entityId: version.id,
+        oldValue: JSON.stringify({ parentVersionId: parent.id }),
+        newValue: JSON.stringify({
+          displayVersion: version.displayVersion,
+          checksum,
+          parentVersionId: parent.id,
+          status: "DRAFT",
         }),
       },
     });

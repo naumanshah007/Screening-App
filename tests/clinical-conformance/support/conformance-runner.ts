@@ -277,6 +277,8 @@ export function equivalent(expected: string, actual: string): boolean {
     SPECIALIST_FOLLOW_UP: ["COLPOSCOPY", "SPECIALIST_FOLLOW_UP"],
     NO_MDM_CONTINUE_F4: ["REPEAT_HPV", "SECOND_REPEAT_HPV", "NO_MDM_CONTINUE_F4"],
     NO_COLPOSCOPY: ["ROUTINE_SCREENING", "ROUTINE_RECALL", "NO_COLPOSCOPY"],
+    SPECIALIST_TREATMENT_DECISION_REQUIRED: ["TREATMENT", "COLPOSCOPY"],
+    FIGURE_5_COTEST_SURVEILLANCE: ["TEST_OF_CURE", "REPEAT_COTEST"],
   };
   return expected === actual || aliases[expected]?.includes(actual) === true;
 }

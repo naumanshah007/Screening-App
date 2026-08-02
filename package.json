@@ -13,6 +13,8 @@
     "test:rules": "tsx --test \"lib/clinical-rules/__tests__/*.test.ts\"",
     "test:all": "npm run test:engine && npm run test:batch && npm run test:rules",
     "rules:import:v2.1": "tsx scripts/import-ncsp-rulebook-v2-1.ts",
+    "rules:import:v2.1:successor": "tsx scripts/import-ncsp-rulebook-v2-1-successor.ts",
+    "rules:simulate:v2-input-gaps": "tsx scripts/rule-studio/persist-canonical-v2-input-gap-simulations.ts",
     "typecheck": "tsc --noEmit",
     "demo:reset": "tsx scripts/demo-reset.ts",
     "db:seed": "tsx prisma/seed.ts",

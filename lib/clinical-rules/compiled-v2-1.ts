@@ -656,6 +656,7 @@ const EXPLICIT_PRECEDENCE: Record<string, number> = {
 
 export function governedRulePrecedence(rule: RuleDefinition): number {
   return (
+    rule.evaluationPriority ??
     EXPLICIT_PRECEDENCE[rule.stableRuleId] ??
     (rule.safetyPriority === "CRITICAL" ? 800 : rule.safetyPriority === "HIGH" ? 600 : 200)
   );

@@ -1,0 +1,2 @@
+row_number,subject_reference,fact_name,severity,message
+2,SYNTHETIC-EXAMPLE,ageYears,error,KNOWN NUMBER value is not finite

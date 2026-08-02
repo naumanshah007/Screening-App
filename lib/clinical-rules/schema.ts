@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const CLINICAL_RULE_SNAPSHOT_SCHEMA_VERSION = "3.0" as const;
 export const CLINICAL_RULE_ENGINE_CONTRACT_VERSION = "canonical-graph-v1" as const;
+export const CLINICAL_RULE_SUCCESSOR_SNAPSHOT_SCHEMA_VERSION = "3.1" as const;
+export const CLINICAL_RULE_ENGINE_CONTRACT_V2 = "canonical-graph-v2" as const;
 
 export const SafetyPrioritySchema = z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW"]);
 export type SafetyPriority = z.infer<typeof SafetyPrioritySchema>;
@@ -119,6 +121,24 @@ export const RuleDefinitionSchema = z.object({
   executableTestIds: z.array(z.string().trim().min(1)),
   governedClassification: GovernedRuleClassificationSchema.optional(),
   supersededByRuleId: z.string().trim().min(1).optional(),
+  evaluationPriority: z.number().int().min(0).max(10_000).optional(),
+  clinicianOnly: z.boolean().optional(),
+  outcomeBranches: z
+    .array(
+      z.object({
+        id: z.string().trim().regex(/^[a-z0-9][a-z0-9-]*$/),
+        conditionExpression: ConditionExpressionSchema,
+        provisionalOutcome: z.string().trim().min(1),
+        timingDestination: z.string(),
+        careSetting: z.string().trim().min(1),
+        urgency: z.string().trim().min(1).optional(),
+        reviewerRequirement: ReviewerRequirementSchema,
+        clinicianOnly: z.boolean(),
+        sourceReferences: z.array(SourceReferenceSchema).min(1),
+      })
+    )
+    .max(25)
+    .optional(),
 });
 export type RuleDefinition = z.infer<typeof RuleDefinitionSchema>;
 
@@ -232,8 +252,14 @@ export const ImmuneClassifierEntrySchema = z.object({
 });
 
 export const ClinicalRuleSnapshotSchema = z.object({
-  schemaVersion: z.literal(CLINICAL_RULE_SNAPSHOT_SCHEMA_VERSION),
-  engineContractVersion: z.literal(CLINICAL_RULE_ENGINE_CONTRACT_VERSION),
+  schemaVersion: z.enum([
+    CLINICAL_RULE_SNAPSHOT_SCHEMA_VERSION,
+    CLINICAL_RULE_SUCCESSOR_SNAPSHOT_SCHEMA_VERSION,
+  ]),
+  engineContractVersion: z.enum([
+    CLINICAL_RULE_ENGINE_CONTRACT_VERSION,
+    CLINICAL_RULE_ENGINE_CONTRACT_V2,
+  ]),
   productRuleSet: z.object({
     key: z.string().trim().min(1),
     displayVersion: z.string().trim().min(1),
@@ -246,12 +272,12 @@ export const ClinicalRuleSnapshotSchema = z.object({
     sourceJsonSha256: z.string().regex(/^[a-f0-9]{64}$/),
   }),
   safetyNotices: z.array(z.string().trim().min(1)).min(5),
-  rules: z.array(RuleDefinitionSchema).min(1),
-  nodes: z.array(GraphNodeSchema).min(1),
-  edges: z.array(GraphEdgeSchema).min(1),
-  views: z.array(GraphViewSchema).min(1),
-  sources: z.array(ClinicalSourceSchema).min(1),
-  immuneClassifier: z.array(ImmuneClassifierEntrySchema),
+  rules: z.array(RuleDefinitionSchema).min(1).max(2_000),
+  nodes: z.array(GraphNodeSchema).min(1).max(10_000),
+  edges: z.array(GraphEdgeSchema).min(1).max(20_000),
+  views: z.array(GraphViewSchema).min(1).max(100),
+  sources: z.array(ClinicalSourceSchema).min(1).max(100),
+  immuneClassifier: z.array(ImmuneClassifierEntrySchema).max(5_000),
   sourcePageRegister: z.array(
     z.object({
       sourceItem: z.string().trim().min(1),

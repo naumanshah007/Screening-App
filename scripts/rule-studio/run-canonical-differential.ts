@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { factsForExpressionTruth } from "../../lib/clinical-rules/compiled-v2-1";
 import { evaluateClinicalSnapshot } from "../../lib/clinical-rules/evaluator";
@@ -58,7 +59,7 @@ function sourceAreaForSection(section: string) {
   return match?.[1] ?? section;
 }
 
-function enrichOracleFacts(rule: GuidelineRule, raw: Record<string, unknown>) {
+export function enrichOracleFacts(rule: GuidelineRule, raw: Record<string, unknown>) {
   const facts = normalizeClinicalFactMap({ ...raw, currentPathway: pathwayFor(rule) });
   facts.currentPathway = pathwayFor(rule);
 
@@ -187,7 +188,7 @@ function enrichOracleFacts(rule: GuidelineRule, raw: Record<string, unknown>) {
   return facts;
 }
 
-function canonicalActionClasses(text: string, timing: string, careSetting: string) {
+export function canonicalActionClasses(text: string, timing: string, careSetting: string) {
   const value = `${text} ${timing} ${careSetting}`;
   const classes = new Set<string>();
   if (/insufficient|obtain (the )?missing|obtain records|stop|do not issue a terminal/i.test(value)) classes.add("SAFETY_STOP");
@@ -230,6 +231,8 @@ function canonicalActionClasses(text: string, timing: string, careSetting: strin
   if (/urgent referral for investigation/i.test(value)) classes.add("URGENT_GYNAECOLOGY");
   if (/active surveillance/i.test(value)) classes.add("CIN2_ACTIVE_SURVEILLANCE");
   if (/MDM.*not required|observation is appropriate/i.test(value)) classes.add("NO_MDM_CONTINUE_F4");
+  if (/consider diagnostic excision.*observation is an option/i.test(value)) classes.add("SPECIALIST_TREATMENT_DECISION_REQUIRED");
+  if (/specialist surveillance sequence/i.test(value)) classes.add("FIGURE_5_COTEST_SURVEILLANCE");
   return classes;
 }
 
@@ -245,6 +248,8 @@ function actionEquivalent(expected: string, actual: Set<string>) {
     REPEAT_COLPOSCOPY_COTEST: ["REPEAT_COLPOSCOPY", "REPEAT_COTEST", "COLPOSCOPY"],
     INCOMPLETE_RESULT: ["SAFETY_STOP"],
     CONTINUE_TOC: ["TEST_OF_CURE"],
+    SPECIALIST_TREATMENT_DECISION_REQUIRED: ["TREATMENT", "CLINICIAN_REVIEW_REQUIRED", "COLPOSCOPY"],
+    FIGURE_5_COTEST_SURVEILLANCE: ["TEST_OF_CURE", "REPEAT_COTEST", "REPEAT_COLPOSCOPY"],
   };
   return actual.has(expected) || aliases[expected]?.some((candidate) => actual.has(candidate)) === true;
 }
@@ -490,7 +495,9 @@ console.log(JSON.stringify({
 }, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

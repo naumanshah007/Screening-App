@@ -5,6 +5,12 @@ import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
 import type { ClinicalInput } from "@/lib/engine/types";
 
 import { calculateRuleSnapshotChecksum, deterministicJson } from "./checksum";
+import {
+  canonicalClinicalFactsV2ToFactMap,
+  normalizedCanonicalFactsV2Snapshot,
+  type CanonicalClinicalFactsV2,
+  type CanonicalFactsDiagnostics,
+} from "./canonical-facts-v2";
 import { governedRulePrecedence } from "./compiled-v2-1";
 import { CANONICAL_ENGINE_VERSION } from "./constants";
 import { getClinicalRuleVersion, resolveActiveClinicalRuleVersion } from "./lifecycle";
@@ -20,6 +26,7 @@ import {
 
 export type ClinicalFactMap = Record<string, unknown>;
 type TruthValue = "TRUE" | "FALSE" | "UNKNOWN";
+export const MAX_CONDITION_EVALUATION_DEPTH = 64;
 
 export type ClinicalEvaluationResult = {
   ruleSetId: string;
@@ -36,9 +43,11 @@ export type ClinicalEvaluationResult = {
   repeatInterval?: string;
   missingInformation: string[];
   mandatoryReviewerConfirmation: boolean;
+  reviewerRequirement: RuleDefinition["reviewerRequirement"];
   clinicianOnly: boolean;
   sourceReferences: SourceReference[];
   safetyNotices: string[];
+  factDiagnostics?: CanonicalFactsDiagnostics;
 };
 
 export type EvaluationTraceEntry = {
@@ -70,15 +79,19 @@ function equal(left: unknown, right: ScalarFactValue) {
 
 export function evaluateConditionExpression(
   expression: ConditionExpression,
-  facts: ClinicalFactMap
+  facts: ClinicalFactMap,
+  depth = 0
 ): { result: TruthValue; missingFacts: string[] } {
+  if (depth > MAX_CONDITION_EVALUATION_DEPTH) {
+    throw new Error("Clinical rule condition exceeds the governed evaluation depth limit.");
+  }
   switch (expression.type) {
     case "SOURCE_TEXT":
       return { result: "UNKNOWN", missingFacts: [] };
     case "ALWAYS":
       return { result: "TRUE", missingFacts: [] };
     case "NOT": {
-      const child = evaluateConditionExpression(expression.expression, facts);
+      const child = evaluateConditionExpression(expression.expression, facts, depth + 1);
       return {
         result: child.result === "TRUE" ? "FALSE" : child.result === "FALSE" ? "TRUE" : "UNKNOWN",
         missingFacts: child.missingFacts,
@@ -86,7 +99,7 @@ export function evaluateConditionExpression(
     }
     case "ALL": {
       const children = expression.expressions.map((child) =>
-        evaluateConditionExpression(child, facts)
+        evaluateConditionExpression(child, facts, depth + 1)
       );
       const missingFacts = [...new Set(children.flatMap((child) => child.missingFacts))];
       if (children.some((child) => child.result === "FALSE")) return { result: "FALSE", missingFacts };
@@ -95,7 +108,7 @@ export function evaluateConditionExpression(
     }
     case "ANY": {
       const children = expression.expressions.map((child) =>
-        evaluateConditionExpression(child, facts)
+        evaluateConditionExpression(child, facts, depth + 1)
       );
       const missingFacts = [...new Set(children.flatMap((child) => child.missingFacts))];
       if (children.some((child) => child.result === "TRUE")) return { result: "TRUE", missingFacts };
@@ -172,6 +185,39 @@ function inferRepeatInterval(rule: RuleDefinition | undefined) {
   return rule.timingDestination || undefined;
 }
 
+type OutcomeBranch = NonNullable<RuleDefinition["outcomeBranches"]>[number];
+
+function selectOutcomeBranch(
+  rule: RuleDefinition,
+  facts: ClinicalFactMap
+): OutcomeBranch | undefined {
+  return rule.outcomeBranches?.find(
+    (branch) =>
+      evaluateConditionExpression(branch.conditionExpression, facts).result === "TRUE"
+  );
+}
+
+function hasKnownPositiveEvidence(
+  expression: ConditionExpression,
+  facts: ClinicalFactMap
+): boolean {
+  switch (expression.type) {
+    case "FACT":
+      return evaluateConditionExpression(expression, facts).result === "TRUE";
+    case "ALL":
+    case "ANY":
+      return expression.expressions.some((child) =>
+        hasKnownPositiveEvidence(child, facts)
+      );
+    case "NOT":
+      return evaluateConditionExpression(expression, facts).result === "TRUE";
+    case "ALWAYS":
+      return true;
+    case "SOURCE_TEXT":
+      return false;
+  }
+}
+
 export function evaluateClinicalSnapshot(
   snapshot: ClinicalRuleSnapshot,
   facts: ClinicalFactMap
@@ -227,6 +273,7 @@ export function evaluateClinicalSnapshot(
         riskLevel,
         missingInformation: [...missingInformation],
         mandatoryReviewerConfirmation: true,
+        reviewerRequirement: "CLINICIAN_REVIEW",
         clinicianOnly: true,
         sourceReferences: unresolvedHighRisk.flatMap((rule) => rule.sourceReferences),
         safetyNotices: snapshot.safetyNotices,
@@ -234,11 +281,18 @@ export function evaluateClinicalSnapshot(
     };
   }
 
+  const outcomeBranch = selectOutcomeBranch(controllingRule, facts);
+  const outcome = outcomeBranch?.provisionalOutcome ?? controllingRule.provisionalOutcome;
+  const timing = outcomeBranch?.timingDestination ?? controllingRule.timingDestination;
+  const careSetting = outcomeBranch?.careSetting ?? controllingRule.careSetting;
+
   const clinicianOnly =
-    controllingRule.conditionExpression.type === "SOURCE_TEXT" ||
-    /clinician|mdm|specialist/i.test(
-      `${controllingRule.automationBoundary} ${controllingRule.reviewerRequirement}`
-    );
+    outcomeBranch?.clinicianOnly ??
+    controllingRule.clinicianOnly ??
+    (controllingRule.conditionExpression.type === "SOURCE_TEXT" ||
+      /clinician|mdm|specialist/i.test(
+        `${controllingRule.automationBoundary} ${controllingRule.reviewerRequirement}`
+      ));
   return {
     matchedRules,
     trace,
@@ -248,18 +302,135 @@ export function evaluateClinicalSnapshot(
         "node:root",
         `node:section:${controllingRule.section.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
         `node:rule:${controllingRule.stableRuleId}`,
+        ...(outcomeBranch ? [`branch:${outcomeBranch.id}`] : []),
         `node:outcome:${controllingRule.stableRuleId}`,
       ],
-      provisionalRecommendation: controllingRule.provisionalOutcome,
+      provisionalRecommendation: outcome,
       riskLevel: controllingRule.safetyPriority,
-      urgency: inferUrgency(controllingRule),
-      referralDestination: controllingRule.careSetting || undefined,
-      repeatInterval: inferRepeatInterval(controllingRule),
+      urgency:
+        outcomeBranch?.urgency ??
+        inferUrgency({
+          ...controllingRule,
+          provisionalOutcome: outcome,
+          timingDestination: timing,
+        }),
+      referralDestination: careSetting || undefined,
+      repeatInterval: timing || inferRepeatInterval(controllingRule),
       missingInformation: [...missingInformation],
       mandatoryReviewerConfirmation: true,
+      reviewerRequirement:
+        outcomeBranch?.reviewerRequirement ?? controllingRule.reviewerRequirement,
       clinicianOnly,
-      sourceReferences: controllingRule.sourceReferences,
+      sourceReferences:
+        outcomeBranch?.sourceReferences ?? controllingRule.sourceReferences,
       safetyNotices: snapshot.safetyNotices,
+    },
+  };
+}
+
+export function evaluateCanonicalClinicalFactsV2(
+  snapshot: ClinicalRuleSnapshot,
+  input: CanonicalClinicalFactsV2
+): SnapshotEvaluation {
+  const converted = canonicalClinicalFactsV2ToFactMap(input, snapshot);
+  const evaluated = evaluateClinicalSnapshot(snapshot, converted.factMap);
+  const explicitlyUnresolved = new Set(converted.diagnostics.factsMissing);
+  const relevantUnknownTrace = evaluated.trace.filter((entry) => {
+    if (entry.result !== "UNKNOWN" || entry.missingFacts.length === 0) {
+      return false;
+    }
+    if (!entry.missingFacts.some((fact) => explicitlyUnresolved.has(fact))) {
+      return false;
+    }
+    const rule = snapshot.rules.find(
+      (candidate) => candidate.stableRuleId === entry.ruleId
+    );
+    return Boolean(
+      rule && hasKnownPositiveEvidence(rule.conditionExpression, converted.factMap)
+    );
+  });
+  const diagnostics: CanonicalFactsDiagnostics = {
+    ...converted.diagnostics,
+    factsMissing: [
+      ...new Set([
+        ...converted.diagnostics.factsMissing,
+        ...relevantUnknownTrace.flatMap((entry) => entry.missingFacts),
+        ...(evaluated.matchedRules[0]?.requiredFacts.filter(
+          (fact) => converted.factMap[fact] == null
+        ) ?? []),
+      ]),
+    ].sort(),
+  };
+
+  if (diagnostics.factsConflicting.length > 0) {
+    return {
+      ...evaluated,
+      result: {
+        ...evaluated.result,
+        matchedRuleIds: [],
+        branchPath: ["node:root", "node:clinician-review:conflicting-canonical-facts"],
+        provisionalRecommendation:
+          "Conflicting canonical clinical facts require governed clinician review before a pathway can be selected.",
+        riskLevel: "HIGH",
+        urgency: undefined,
+        referralDestination: undefined,
+        repeatInterval: undefined,
+        missingInformation: diagnostics.factsMissing,
+        mandatoryReviewerConfirmation: true,
+        reviewerRequirement: "SPECIALIST_REVIEW",
+        clinicianOnly: true,
+        sourceReferences: [],
+        factDiagnostics: diagnostics,
+      },
+    };
+  }
+
+  const controlling = evaluated.matchedRules[0];
+  const unresolvedHigherRisk = relevantUnknownTrace
+    .map((entry) => snapshot.rules.find((rule) => rule.stableRuleId === entry.ruleId))
+    .filter((rule): rule is RuleDefinition => Boolean(rule))
+    .filter(
+      (rule) =>
+        ["HIGH", "CRITICAL"].includes(rule.safetyPriority) &&
+        (!controlling ||
+          governedRulePrecedence(rule) >= governedRulePrecedence(controlling))
+    );
+
+  if (unresolvedHigherRisk.length > 0) {
+    return {
+      ...evaluated,
+      result: {
+        ...evaluated.result,
+        matchedRuleIds: [],
+        branchPath: ["node:root", "node:clinician-review:missing-canonical-facts"],
+        provisionalRecommendation:
+          "Required canonical clinical facts are unknown or not recorded. Stop automated routing and obtain the identified information.",
+        riskLevel: unresolvedHigherRisk.some(
+          (rule) => rule.safetyPriority === "CRITICAL"
+        )
+          ? "CRITICAL"
+          : "HIGH",
+        urgency: undefined,
+        referralDestination: undefined,
+        repeatInterval: undefined,
+        missingInformation: diagnostics.factsMissing,
+        mandatoryReviewerConfirmation: true,
+        reviewerRequirement: "SPECIALIST_REVIEW",
+        clinicianOnly: true,
+        sourceReferences: unresolvedHigherRisk.flatMap(
+          (rule) => rule.sourceReferences
+        ),
+        factDiagnostics: diagnostics,
+      },
+    };
+  }
+
+  return {
+    ...evaluated,
+    result: {
+      ...evaluated.result,
+      missingInformation: diagnostics.factsMissing,
+      factDiagnostics: diagnostics,
     },
   };
 }
@@ -283,7 +454,8 @@ function compareLegacyResult(
 }
 
 export async function evaluateClinicalCase(args: {
-  facts: ClinicalFactMap;
+  facts?: ClinicalFactMap;
+  canonicalFactsV2?: CanonicalClinicalFactsV2;
   ruleVersionId: string;
   evaluationMode: RuleEvaluationMode;
   organisationKey?: string;
@@ -305,14 +477,24 @@ export async function evaluateClinicalCase(args: {
   const snapshot = parseSnapshot(JSON.parse(version.snapshotJson));
   const checksum = calculateRuleSnapshotChecksum(snapshot);
   if (version.checksum !== checksum) throw new Error("Clinical rule snapshot checksum mismatch.");
-  const normalizedFacts = normalizeClinicalFactMap(args.facts);
-  const evaluated = evaluateClinicalSnapshot(snapshot, normalizedFacts);
+  if (!args.facts && !args.canonicalFactsV2) {
+    throw new Error("Canonical facts or a legacy-compatible fact map is required.");
+  }
+  if (args.facts && args.canonicalFactsV2) {
+    throw new Error("Provide one canonical input representation, not both.");
+  }
+  const normalizedFacts = args.canonicalFactsV2
+    ? canonicalClinicalFactsV2ToFactMap(args.canonicalFactsV2, snapshot).factMap
+    : normalizeClinicalFactMap(args.facts ?? {});
+  const evaluated = args.canonicalFactsV2
+    ? evaluateCanonicalClinicalFactsV2(snapshot, args.canonicalFactsV2)
+    : evaluateClinicalSnapshot(snapshot, normalizedFacts);
   const result: ClinicalEvaluationResult = {
     ruleSetId: version.ruleSetId,
     ruleVersionId: version.id,
     ruleVersionDisplay: version.displayVersion,
     ruleSetChecksum: checksum,
-    engineVersion: CANONICAL_ENGINE_VERSION,
+    engineVersion: snapshot.engineContractVersion ?? CANONICAL_ENGINE_VERSION,
     ...evaluated.result,
   };
   const legacyComparison =
@@ -328,9 +510,13 @@ export async function evaluateClinicalCase(args: {
       ruleVersionId: version.id,
       ruleVersionDisplay: version.displayVersion,
       rulesetChecksum: checksum,
-      engineVersion: CANONICAL_ENGINE_VERSION,
+      engineVersion: result.engineVersion,
       evaluationMode: args.evaluationMode,
-      canonicalInputSnapshot: deterministicJson(normalizedFacts),
+      canonicalInputSnapshot: deterministicJson(
+        args.canonicalFactsV2
+          ? normalizedCanonicalFactsV2Snapshot(args.canonicalFactsV2)
+          : normalizedFacts
+      ),
       matchedRuleIds: JSON.stringify(result.matchedRuleIds),
       branchPath: JSON.stringify(result.branchPath),
       provisionalRecommendation: result.provisionalRecommendation,
@@ -340,12 +526,16 @@ export async function evaluateClinicalCase(args: {
       repeatInterval: result.repeatInterval,
       missingInformation: JSON.stringify(result.missingInformation),
       reviewerRequirement: result.clinicianOnly
-        ? "CLINICIAN_ONLY"
-        : "MANDATORY_CLINICIAN_CONFIRMATION",
+        ? `CLINICIAN_ONLY:${result.reviewerRequirement}`
+        : result.reviewerRequirement,
       mandatoryReviewerConfirmation: result.mandatoryReviewerConfirmation,
       clinicianOnly: result.clinicianOnly,
       sourceReferences: JSON.stringify(result.sourceReferences),
-      evaluationTrace: JSON.stringify({ trace: evaluated.trace, legacyComparison }),
+      evaluationTrace: JSON.stringify({
+        trace: evaluated.trace,
+        factDiagnostics: evaluated.result.factDiagnostics,
+        legacyComparison,
+      }),
       previousEvaluationId: args.previousEvaluationId,
       regradeReason: args.regradeReason,
     },
