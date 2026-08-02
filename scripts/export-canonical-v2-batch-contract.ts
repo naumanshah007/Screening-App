@@ -5,10 +5,13 @@ import {
   CANONICAL_FACT_FIELD_CATALOG_V2,
   canonicalClinicalFactsV2JsonSchema,
 } from "../lib/clinical-rules/canonical-facts-v2";
-import {
-  CANONICAL_V2_BATCH_SCHEMA_ID,
-  protectCsvCell,
-} from "../lib/batch/canonical-v2-import";
+
+const CANONICAL_V2_BATCH_SCHEMA_ID =
+  "cervigrade-canonical-facts-batch-v2" as const;
+
+function protectCsvCell(value: string) {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
 
 const outputDirectory = resolve(process.cwd(), "public/templates");
 mkdirSync(outputDirectory, { recursive: true });
