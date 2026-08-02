@@ -108,7 +108,7 @@ export default async function AdminPage({
     incidentAutomationOverview,
   ] = await Promise.all([
     prisma.user.count(),
-    prisma.clinicalRuleSet.count({ where: { isActive: true } }),
+    prisma.clinicalRuleVersion.count({ where: { status: "ACTIVE" } }),
     prisma.auditLog.findMany({
       where: { createdAt: { gte: thirtyDaysAgo } },
       include: { user: { select: { name: true, role: true } } },
@@ -126,10 +126,11 @@ export default async function AdminPage({
           orderBy: [{ name: "asc" }],
         })
       : Promise.resolve([]),
-    prisma.clinicalRuleSet.findMany({
+    prisma.clinicalRuleVersion.findMany({
       include: {
+        ruleSet: { select: { name: true, scope: true } },
         publishedBy: { select: { name: true } },
-        reviewedBy: { select: { name: true } },
+        approvedBy: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -171,10 +172,11 @@ export default async function AdminPage({
     }, {} as Record<string, number>);
   const pendingEntries = Object.entries(pendingByPriority) as [string, number][];
 
-  type AdminRuleSet = Prisma.ClinicalRuleSetGetPayload<{
+  type AdminRuleSet = Prisma.ClinicalRuleVersionGetPayload<{
     include: {
+      ruleSet: { select: { name: true; scope: true } };
       publishedBy: { select: { name: true } };
-      reviewedBy: { select: { name: true } };
+      approvedBy: { select: { name: true } };
     };
   }>;
 
@@ -280,21 +282,21 @@ export default async function AdminPage({
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-foreground text-sm">{rs.name}</p>
-                          {rs.isActive && (
+                          <p className="font-semibold text-foreground text-sm">{rs.ruleSet.name}</p>
+                          {rs.status === "ACTIVE" && (
                             <Badge variant="low">Active</Badge>
                           )}
-                          <span className="text-xs font-mono text-muted-foreground">v{rs.version}</span>
+                          <span className="text-xs font-mono text-muted-foreground">{rs.displayVersion}</span>
                         </div>
-                        {rs.changeNotes && (
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{rs.changeNotes}</p>
+                        {rs.changeSummary && (
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{rs.changeSummary}</p>
                         )}
                         <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
                           {rs.publishedBy && (
                             <span>Published by {rs.publishedBy.name} ({formatDate(rs.publishedAt)})</span>
                           )}
-                          {rs.reviewedBy && (
-                            <span>· Reviewed by {rs.reviewedBy.name} ({formatDate(rs.reviewedAt)})</span>
+                          {rs.approvedBy && (
+                            <span>· Approved by {rs.approvedBy.name} ({formatDate(rs.validatedAt)})</span>
                           )}
                         </div>
                       </div>
