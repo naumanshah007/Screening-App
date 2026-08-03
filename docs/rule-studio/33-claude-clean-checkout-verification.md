@@ -168,6 +168,62 @@ change engine semantics autonomously are recorded in
   the isolated database are 18 `SIMULATION` records.
 - No clinical snapshot checksum changed during dependency remediation.
 
+## Browser QA against the isolated clean database
+
+The production build was served from the clean worktree
+(`npx next start`, Next.js 16.2.12) against the isolated verification database.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Server start on production build | PASS — ready in 185 ms |
+| `/login` renders | PASS — HTTP 200, full layout, demo-account panel |
+| Console messages on `/login` | **zero** — no warnings, no errors |
+| Protected route gating after the `next-auth` upgrade | PASS — `/dashboard`, `/rules`, `/rules/clinical`, `/review`, `/batch`, `/patients`, `/decisions` all return **307** to `/login` with a correctly encoded `callbackUrl` |
+| Unauthenticated API rejection | PASS — `/api/clinical-rules/versions` **401**, `/api/case-rules` **401** |
+| Unauthenticated governance approval attempt | PASS — `POST /api/clinical-rules/versions/{id}/governance-review` with `action: "APPROVE"` returns **401**; the two-person governance gate is not reachable without a session |
+
+This is the material regression evidence for the authentication upgrade
+(`next-auth` 5.0.0-beta.30 → 5.0.0-beta.32, `@auth/prisma-adapter` 2.11.1 →
+2.11.3): middleware gating, callback URL construction and API authorisation all
+behave correctly on the upgraded stack, and no cross-role privilege increase is
+reachable while unauthenticated.
+
+### Not performed in this session — requires a human operator
+
+Interactive signed-in QA was **not** carried out. The agent does not enter
+passwords into login forms, including the self-published demo seed credentials
+shown on the login page. The following therefore remain **unverified in this
+session** and must not be read as passed:
+
+- version list and `CG-NCSP-3.1.0` DRAFT status/full checksum in the UI
+- master graph, all 12 synchronized views, 422-node master tree
+- search by rule ID / source / label; branch highlighting
+- keyboard node and edge selection; minimap; zoom; pan; inspector
+- evaluated-snapshot read-only state in the editor
+- clinical-review tab and proposal/approval separation in the UI
+- SVG export, PNG export (including observed PNG export time for the 422-node
+  master), print dispatch
+- responsive widths and visible safety wording in authenticated views
+- console cleanliness on authenticated pages
+
+The equivalent guarantees were verified non-interactively where possible: the
+graph structure (422 nodes / 421 edges / 12 views) was verified against the
+compiled snapshot, and the DRAFT status, checksum and zero-activation state were
+verified directly against the isolated database.
+
+Prior authenticated QA evidence for these surfaces exists in
+`27-accessibility-performance-qa.md` and `28-release-hardening-clean-checkout.md`
+at commit `d1e2dce`. Because the Next.js runtime and authentication packages have
+since been upgraded, that evidence should be **re-taken by a human operator**
+before it is relied upon. Reproduction steps are in the final handoff summary.
+
+Known environmental limitations that persist regardless of operator: the host
+browser can deny native fullscreen, native print preview is not visible to
+automation, and the operating-system download shelf is not visible to automation.
+No claim is made that those native shells were visually inspected.
+
 ## Release boundary
 
 - `CG-NCSP-3.0.0` and `CG-NCSP-3.1.0` remain DRAFT, unpublished and inactive.
