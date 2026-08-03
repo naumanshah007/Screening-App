@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-08-03",
+  "target": "https://screening.privexa.co",
+  "reconnaissance": {
+    "method": "read-only HTTP",
+    "rateLimit": "approximately 1 request per second",
+    "authenticationAttempted": false,
+    "authenticationBypassAttempted": false,
+    "pathEnumerationAggressive": false,
+    "vulnerabilityExploitation": false,
+    "caseDataSubmitted": false,
+    "patientDataUsed": false
+  },
+  "identity": {
+    "buildId": { "value": "HZKNUX6TfkW88sakoDj6n", "confidence": "VERIFIED" },
+    "hosting": { "value": "Vercel", "confidence": "VERIFIED", "evidence": "server header, x-vercel-id syd1::bom1" },
+    "framework": { "value": "Next.js App Router", "confidence": "VERIFIED", "evidence": "x-powered-by, RSC payload" },
+    "authFramework": { "value": "Auth.js / NextAuth v5", "confidence": "VERIFIED", "evidence": "__Host-authjs.csrf-token, __Secure-authjs.callback-url" },
+    "gitCommit": { "value": "418e3b8", "confidence": "STRONGLY_INFERRED", "subject": "feat(batch): rebase demo dataset across NZ regions" },
+    "branchLineage": { "value": "origin/codex/versioned-clinical-rule-studio", "confidence": "VERIFIED", "evidence": "git branch -r --contains 418e3b8" },
+    "correspondsToOriginMain": { "value": false, "confidence": "VERIFIED", "evidence": "git merge-base --is-ancestor 418e3b8 origin/main => false; origin/main is 578b4b0" },
+    "buildEraUtc": { "value": "2026-08-02T09:14:01Z", "confidence": "VERIFIED_ASSET_TIMESTAMP", "caveat": "content-hashed immutable chunk; records asset creation, not guaranteed current deploy time" },
+    "applicationVersion": { "value": null, "confidence": "UNKNOWN" },
+    "engineVersion": { "value": null, "confidence": "UNKNOWN" },
+    "rulesetVersion": { "value": null, "confidence": "STRONGLY_INFERRED", "note": "no CG-NCSP versioned ruleset exists in the inferred build" },
+    "rulesetChecksum": { "value": null, "confidence": "STRONGLY_INFERRED" },
+    "schemaGeneration": { "value": null, "confidence": "UNKNOWN" },
+    "migrationCount": { "value": null, "confidence": "UNKNOWN" },
+    "canonicalRuleStudioPresent": { "value": false, "confidence": "STRONGLY_INFERRED" },
+    "authorityStatus": { "value": "legacy-only", "confidence": "STRONGLY_INFERRED" },
+    "evaluationMode": { "value": "legacy direct; no SHADOW/SIMULATION concept", "confidence": "STRONGLY_INFERRED" },
+    "featureFlags": { "value": null, "confidence": "UNKNOWN" },
+    "tenantDemoStatus": { "value": "landing page 'Live in demo' badge; login publishes demo accounts; no documented dedicated test tenant", "confidence": "WEAKLY_INFERRED" },
+    "writesPermitted": { "value": false, "confidence": "UNKNOWN_TREATED_AS_NOT_PERMITTED" }
+  },
+  "timelineUtc": [
+    { "time": "2026-06-19T21:22:19Z", "commit": "578b4b0", "note": "current origin/main HEAD" },
+    { "time": "2026-08-02T09:06:44Z", "commit": "418e3b8", "note": "last commit before deployed asset; inferred deployed build" },
+    { "time": "2026-08-02T09:14:01Z", "commit": null, "note": "deployed static chunk last-modified" },
+    { "time": "2026-08-02T09:22:40Z", "commit": "30e8dfb", "note": "first Rule Studio commit; parent is 418e3b8" }
+  ],
+  "structuralEvidence": {
+    "firstRuleStudioCommitParent": "418e3b8",
+    "clinicalRulesFilesAt418e3b8": 0,
+    "clinicalRulesFilesAtHead": 48
+  },
+  "routeProbes": {
+    "middlewareGatesAllPaths": true,
+    "controlTestNonexistentPathsRedirect": true,
+    "routeExistenceProvableUnauthenticated": false,
+    "rootIsMarketingLandingPage": true,
+    "publicVersionOrHealthEndpoint": false,
+    "apiUnauthenticatedStatus": 401
+  },
+  "bundleAnalysis": {
+    "chunksDownloaded": 13,
+    "totalBytesApprox": 770048,
+    "engineMarkersFound": 0,
+    "ruleIdPatternsFound": 0,
+    "sourceMapsExposed": false,
+    "buildManifestEnumeratesAppRoutes": false,
+    "interpretationLimit": "clinical engine executes server-side; absence from public client bundles is expected and is not evidence of absence from the deployment"
+  },
+  "securityObservations": {
+    "publicDemoCredentialExposure": {
+      "present": true,
+      "location": "unauthenticated /login HTML",
+      "detail": "demo account buttons for admin, clinician, coordinator, specialist reviewer with a shared published password",
+      "verifiedBy": "direct read of public HTML",
+      "signInAttempted": false,
+      "alsoPresentInLocalCandidate": true,
+      "regressionIntroducedByRuleStudio": false,
+      "routeTo": "security/product risk owner",
+      "inExistingRetainedRiskRegister": false
+    },
+    "headers": {
+      "hsts": true,
+      "cspPresent": true,
+      "cspWeaknesses": ["script-src 'unsafe-inline'", "script-src 'unsafe-eval'"],
+      "xFrameOptions": "DENY",
+      "xContentTypeOptions": "nosniff",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "permissionsPolicy": "camera=(), microphone=(), geolocation=(), payment=()"
+    }
+  },
+  "releaseSafetyImplication": {
+    "deployedHostnameAppearsToTrackBranch": "origin/codex/versioned-clinical-rule-studio",
+    "risk": "pushing the branch could auto-deploy the unreviewed Rule Studio programme to production, bypassing authenticated QA, GOV-01..GOV-04 and R1..R5",
+    "confidence": "INFERRED",
+    "requiredHumanAction": "confirm Vercel project Git integration and production branch configuration before any push"
+  },
+  "conclusion": "COMPARISON_INCOMPLETE_DUE_TO_DEPLOYMENT_ACCESS"
+}
