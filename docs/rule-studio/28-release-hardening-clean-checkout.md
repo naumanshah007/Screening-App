@@ -1,6 +1,6 @@
 # Release-hardening clean-checkout verification
 
-Verification date: 2026-08-03. Clean worktree: `/tmp/cervigrade-release-hardening-bCY2Ym/worktree`. The source package was copied into the temporary checkout without being added to Git. Application logic was verified at `5c07f54`; the final documentation-only commit may advance HEAD without changing these results.
+Verification date: 2026-08-03. Clean worktree: `/tmp/cervigrade-release-hardening-bCY2Ym/worktree`. The source package was copied into the temporary checkout without being added to Git. Application code and reproducibility helpers were verified at `d1e2dce`; the final documentation-only commit may advance HEAD without changing these results.
 
 ## Reproduction result
 
@@ -17,9 +17,9 @@ Verification date: 2026-08-03. Clean worktree: `/tmp/cervigrade-release-hardenin
 | TypeScript | PASS. |
 | Lint | PASS with 0 errors and 19 existing warnings in the clean checkout. |
 | Engine tests | PASS 104/104. |
-| Batch tests | PASS 205/205. |
+| Batch tests | PASS 208/208, including 3 canonical V2 row-import and formula-neutralisation tests. |
 | Rule Studio/conformance tests | PASS 910/910. |
-| Total | PASS 1,219/1,219. |
+| Total | PASS 1,222/1,222. |
 | Production build | PASS; one existing Turbopack file-tracing warning for document storage. |
 | Prisma validation/status | PASS; schema valid and all 7 migrations applied. |
 | Schema diff | PASS; fresh migration schema and `lib/database/current-schema.sql` produced no SQL difference. |
