@@ -5,6 +5,17 @@ Date: 3 August 2026. Base commit: `d1e2dce`. Remediation commit: `e2bf41d`.
 Software-security evidence for an unpublished, source-derived draft. Not clinical
 validation and not a production-readiness claim.
 
+> ## ⚠ Retained risks are NOT accepted risks
+>
+> The five retained risk groups R1–R5 described in this report are **unsigned**
+> and remain **release blockers**. Their formal acceptance record is:
+>
+> ### → [`30a-retained-risk-acceptance-register.md`](30a-retained-risk-acceptance-register.md)
+>
+> An entry with an empty Decision, Approver or Approval date is **pending**, not
+> accepted. Sign-off belongs to the designated security/product risk owner — not
+> the developer, and not an AI. As of commit `a033d84`: **accepted 0, unsigned 5**.
+
 ## Outcome
 
 | Severity | Before | After | Change |
@@ -124,6 +135,11 @@ Non-breaking transitive fixes applied in the same pass: `ws`, `tmp`, `picomatch`
 
 None of the following is a critical finding. Each is retained deliberately, with
 the exact constraint that blocks it.
+
+**These are documented, not accepted.** The signable acceptance record for R1–R5
+is [`30a-retained-risk-acceptance-register.md`](30a-retained-risk-acceptance-register.md);
+all five entries are currently unsigned and remain release blockers. Note that
+`tmp` was remediated in `e2bf41d` and is therefore **not** a retained risk.
 
 ### R1 — `nodemailer` HIGH, `GHSA-p6gq-j5cr-w38f` (range `<=9.0.0`)
 
