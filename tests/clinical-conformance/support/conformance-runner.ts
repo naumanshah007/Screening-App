@@ -272,14 +272,47 @@ export function actualActionClass(decision: ClinicalDecision): string {
 export function equivalent(expected: string, actual: string): boolean {
   const aliases: Record<string, string[]> = {
     AIS_FOLLOW_UP: ["SAFETY_STOP", "TEST_OF_CURE", "COLPOSCOPY"],
-    GLANDULAR_SPECIALIST_ROUTE: ["COLPOSCOPY", "GYNAECOLOGY", "URGENT_GYNAECOLOGY"],
+    // Figure 7 glandular routing. `URGENT_GYNAECOLOGY` removed: ordinary and
+    // urgent gynaecology are different clinical dispositions and must not be
+    // treated as interchangeable.
+    GLANDULAR_SPECIALIST_ROUTE: ["COLPOSCOPY", "GYNAECOLOGY"],
     COMMUNITY_TOC: ["TEST_OF_CURE", "CONTINUE_TOC", "COMMUNITY_TOC"],
     SPECIALIST_FOLLOW_UP: ["COLPOSCOPY", "SPECIALIST_FOLLOW_UP"],
     NO_MDM_CONTINUE_F4: ["REPEAT_HPV", "SECOND_REPEAT_HPV", "NO_MDM_CONTINUE_F4"],
     NO_COLPOSCOPY: ["ROUTINE_SCREENING", "ROUTINE_RECALL", "NO_COLPOSCOPY"],
     SPECIALIST_TREATMENT_DECISION_REQUIRED: ["TREATMENT", "COLPOSCOPY"],
-    FIGURE_5_COTEST_SURVEILLANCE: ["TEST_OF_CURE", "REPEAT_COTEST"],
+    // Figure 5 post-colposcopy co-test surveillance. `TEST_OF_CURE` removed:
+    // Figure 5 surveillance carries no post-treatment provenance — no HSIL
+    // treatment and no treatment date are implied — whereas Figure 6 Test of
+    // Cure is only reachable once post-treatment facts exist. Accepting one for
+    // the other masks precisely the Figure 5 / Figure 6 confusion this
+    // programme distinguishes. `REPEAT_COTEST` is retained: it is the same
+    // action, timing, destination and pathway provenance under another name.
+    FIGURE_5_COTEST_SURVEILLANCE: ["REPEAT_COTEST"],
   };
+
+  // Guard: these pairs are clinically distinct and must never be collapsed by
+  // an alias. Asserted at call time so a future edit cannot silently reintroduce
+  // one. See docs/integration/01-admin-page-conflict-resolution.md and
+  // docs/deployed-comparison/06-three-way-comparison.md §Alias registry.
+  const FORBIDDEN_EQUIVALENCES: [string, string][] = [
+    ["FIGURE_5_COTEST_SURVEILLANCE", "TEST_OF_CURE"],
+    ["FIGURE_5_COTEST_SURVEILLANCE", "CONTINUE_TOC"],
+    ["FIGURE_5_COTEST_SURVEILLANCE", "TOC_COMPLETE"],
+    ["GYNAECOLOGY", "URGENT_GYNAECOLOGY"],
+    ["GLANDULAR_SPECIALIST_ROUTE", "URGENT_GYNAECOLOGY"],
+    ["COLPOSCOPY", "URGENT_COLPOSCOPY"],
+    ["TREATMENT", "TOC_COMPLETE"],
+    ["ROUTINE_RECALL", "NO_FURTHER_SCREENING"],
+  ];
+  for (const [from, to] of FORBIDDEN_EQUIVALENCES) {
+    if (aliases[from]?.includes(to)) {
+      throw new Error(
+        `Conformance alias registry collapses a required non-equivalence: ${from} -> ${to}`
+      );
+    }
+  }
+
   return expected === actual || aliases[expected]?.includes(actual) === true;
 }
 
