@@ -8,13 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { PrivexaMark } from "@/components/marketing/PrivexaMark";
 
-const DEMO_ACCOUNTS = [
-  { username: "admin",       role: "Platform admin",       color: "bg-purple-50 text-purple-700 border-purple-200" },
-  { username: "clinician",   role: "GP / Cervical tools",  color: "bg-teal-50   text-teal-700   border-teal-200" },
-  { username: "coordinator", role: "Coordinator",           color: "bg-sky-50    text-sky-700    border-sky-200" },
-  { username: "specialist",  role: "Specialist reviewer",  color: "bg-amber-50  text-amber-700  border-amber-200" },
-];
-
 function getSafeCallbackDestination(callbackUrl: string | null): string | null {
   if (!callbackUrl || typeof window === "undefined") return null;
 
@@ -78,12 +71,6 @@ async function handleSubmit(e: React.FormEvent) {
     } finally {
       setLoading(false);
     }
-  }
-
-  function quickFill(acct: (typeof DEMO_ACCOUNTS)[number]) {
-    setUsername(acct.username);
-    setPassword("admin123");
-    setError("");
   }
 
   return (
@@ -185,26 +172,24 @@ async function handleSubmit(e: React.FormEvent) {
             </Button>
           </form>
 
-          {/* Demo accounts */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-2">Demo accounts — click to fill:</p>
-            <div className="flex flex-wrap gap-2">
-              {DEMO_ACCOUNTS.map((acct) => (
-                <button
-                  key={acct.username}
-                  type="button"
-                  onClick={() => quickFill(acct)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-80 ${acct.color}`}
-                >
-                  <span className="font-mono font-semibold">{acct.username}</span>
-                  <span className="opacity-60">· {acct.role}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2 font-mono">
-              All demo accounts · password: <strong>admin123</strong>
-            </p>
-          </div>
+          {/*
+            R6 remediation (4 August 2026).
+
+            This surface previously rendered a role-account quick-fill block
+            with a shared credential shown in plain text, on an unauthenticated
+            route. On the production custom domain that route is publicly
+            reachable — Vercel Standard Protection exempts custom production
+            domains — so anyone loading the page could sign in at administrator
+            level with no prior access.
+
+            The block, the account list and the quick-fill handler have been
+            removed. Credential material must never render on an
+            unauthenticated surface, and this must not be reintroduced as a
+            convenience. tests/security/login-no-credential-exposure.test.ts
+            fails if it is.
+
+            See docs/rule-studio/30a-retained-risk-acceptance-register.md §R6.
+          */}
         </div>
       </div>
     </div>
