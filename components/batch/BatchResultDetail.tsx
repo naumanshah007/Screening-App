@@ -2,6 +2,7 @@
 
 import { SlideOver } from "@/components/ui/slide-over";
 import { Badge, RiskBadge } from "@/components/ui/badge";
+import { CanonicalShadowEvidence } from "@/components/batch/CanonicalShadowEvidence";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowUpRight, GitBranch, FileText, Database,
@@ -18,6 +19,8 @@ interface BatchResultDetailProps {
   result: BatchCaseResult | null;
   open: boolean;
   onClose: () => void;
+  reviewItemId?: string;
+  canCorrectCanonicalFacts?: boolean;
 }
 
 function Section({ title, icon, children, accent }: {
@@ -175,7 +178,13 @@ function DecisionNodeTree({
   );
 }
 
-export function BatchResultDetail({ result, open, onClose }: BatchResultDetailProps) {
+export function BatchResultDetail({
+  result,
+  open,
+  onClose,
+  reviewItemId,
+  canCorrectCanonicalFacts = false,
+}: BatchResultDetailProps) {
   if (!result) return null;
 
   const { decision } = result;
@@ -384,6 +393,12 @@ export function BatchResultDetail({ result, open, onClose }: BatchResultDetailPr
         )}
 
         {/* ── 4. Validation Issues (if any) ────────────────────────────────── */}
+        <CanonicalShadowEvidence
+          result={result}
+          reviewItemId={reviewItemId}
+          canCorrectCanonicalFacts={canCorrectCanonicalFacts}
+        />
+
         {(c.validationErrors.length > 0 || c.validationWarnings.length > 0) && (
           <Section title="Validation Issues" icon={<FileText className="h-3.5 w-3.5" />}>
             <ul className="space-y-1.5">

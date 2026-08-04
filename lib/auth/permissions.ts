@@ -26,7 +26,13 @@ export type Permission =
   // Rules
   | "rules:view"
   | "rules:edit"
+  | "rules:validate"
+  | "rules:approve"
   | "rules:publish"
+  | "rules:activate"
+  | "rules:rollback"
+  | "rules:simulate"
+  | "rules:export"
   // Analytics
   | "analytics:view"
   // Admin
@@ -43,7 +49,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ADMIN: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book", "cases:smo_grade",
     "documents:upload", "documents:ingest", "summary:generate", "summary:approve",
-    "rules:view", "rules:edit", "rules:publish",
+    "rules:view", "rules:edit", "rules:validate", "rules:approve", "rules:publish",
+    "rules:activate", "rules:rollback", "rules:simulate", "rules:export",
     "analytics:view",
     "admin:users", "admin:settings",
     "ai:recommend",
@@ -52,7 +59,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   SMO_REVIEWER: [
     "cases:view", "cases:grade", "cases:smo_grade", "cases:book",
     "documents:upload", "summary:generate", "summary:approve",
-    "rules:view",
+    "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
     "ai:recommend",
     "integration:ncsr_pull",
@@ -60,14 +67,14 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   COLPOSCOPIST: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book",
     "documents:upload", "documents:ingest", "summary:generate", "summary:approve",
-    "rules:view",
+    "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
     "ai:recommend",
   ],
   COLPO_CNS: [
     "cases:view", "cases:create", "cases:edit", "cases:book",
     "documents:upload", "documents:ingest", "summary:generate",
-    "rules:view",
+    "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
     "ai:recommend",
     "integration:ncsr_pull",
@@ -75,7 +82,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   GYNAE_GRADER: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book",
     "documents:upload", "documents:ingest", "summary:generate", "summary:approve",
-    "rules:view",
+    "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
     "ai:recommend",
   ],
@@ -90,7 +97,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   INTEGRATION_ADMIN: [
     "cases:view",
-    "rules:view",
+    "rules:view", "rules:export",
     "analytics:view",
     "admin:settings",
     "integration:ncsr_pull",

@@ -1,0 +1,43 @@
+feature,production_fb933c3,candidate_8eed086,classification,evidence,notes
+Landing / marketing page,present,present,PRESENT_IN_BOTH_SAME,app/page.tsx unchanged across both,Public marketing landing served at /
+Login gateway,present,present,PRESENT_IN_BOTH_SAME,app/login unchanged,Auth.js v5; demo-credential block present in BOTH — see R6
+Public demo credential block,present,present,PRESENT_IN_BOTH_SAME,R6 finding,Pre-existing product behaviour; not a candidate regression
+Onboarding,present,ABSENT,PRODUCTION_ONLY,fb933c3 Admin UX phase 2+3,Candidate forked before this work landed
+NCSR certification management,present,ABSENT,PRODUCTION_ONLY,app/(app)/admin/NcsrCertificationManager.tsx changed on main only,Candidate has the pre-phase-2+3 version
+Integration validation manager,present,ABSENT,PRODUCTION_ONLY,app/(app)/admin/IntegrationValidationManager.tsx main-only,Candidate has the pre-phase-2+3 version
+Security incident automation,present,ABSENT,PRODUCTION_ONLY,app/(app)/admin/SecurityIncidentAutomationCard.tsx main-only,Cron-backed automation card
+Admin list-and-detail pattern (phase 1),present,ABSENT,PRODUCTION_ONLY,f6e2f89 Users and Incidents,Candidate has older admin layout
+Admin tabbed navigation,present,ABSENT,PRODUCTION_ONLY,2715baa,Candidate has pre-tab navigation
+NCSR governance in Integrations tab,present,ABSENT,PRODUCTION_ONLY,b4bff62 INTEGRATION_ADMIN visibility,Role-visibility change
+Guideline-figure overlay engine,present,ABSENT,PRODUCTION_ONLY,lib/engine/overlay.ts + overlay.test.ts main-only,Mechanism-only phase 2
+Engine rule catalog,present,ABSENT,PRODUCTION_ONLY,lib/engine/rule-catalog.ts main-only,
+R1 age-gate safety fix,present,ABSENT,CANDIDATE_REGRESSION,ea4e7e3 + 9/12 router probes differ,SAFETY CRITICAL — resolved by integration onto current main
+Clickable figure links,present,ABSENT,PRODUCTION_ONLY,components/clinical/FigureLink.tsx main-only,
+Stat-card drill-down in batch view,present,ABSENT,PRODUCTION_ONLY,c9f4a25,
+Pathway diagram in batch view,present,ABSENT,PRODUCTION_ONLY,c9f4a25,
+Guideline pathway diagram node layout fix,present,ABSENT,PRODUCTION_ONLY,11e0def all 10 diagrams,
+Booking-rule side-by-side form editor,present,ABSENT,PRODUCTION_ONLY,aeb77c1 + components/rules/RuleCardEditor.tsx,
+Dashboard,present,present,PRESENT_IN_BOTH_CHANGED,lib/decisions/dashboard-metrics.ts candidate-modified,Candidate adds rule-version metrics
+Cases workspace,present,present,PRESENT_IN_BOTH_SAME,91 shared routes,
+New Referral,present,present,PRESENT_IN_BOTH_SAME,,
+Batch upload,present,present,PRESENT_IN_BOTH_SAME,,
+Batch column mapping,present,present,PRESENT_IN_BOTH_SAME,,
+Batch validation,present,present,PRESENT_IN_BOTH_SAME,,
+Batch processing,present,present,PRESENT_IN_BOTH_CHANGED,lib/batch/processor.ts candidate-modified,Candidate adds canonical fact capture
+Review Queue,present,present,PRESENT_IN_BOTH_CHANGED,components/batch/WorklistClient.tsx candidate-modified,
+Completed decisions,present,present,PRESENT_IN_BOTH_CHANGED,lib/decisions/completed-decisions.ts candidate-modified,
+Decision package export,present,present,PRESENT_IN_BOTH_CHANGED,lib/decisions/package-generator.ts candidate-modified,Candidate adds ruleset provenance to the package
+User and role administration,present,present,PRESENT_IN_BOTH_CHANGED,main changed UserAccessManager; candidate changed lib/auth/permissions.ts,Both sides touched adjacent code — integration attention
+Audit history,present,present,PRESENT_IN_BOTH_CHANGED,,Candidate adds RuleVersionAuditEvent
+Ruleset versions (legacy CaseRuleSetRelease),present,present,PRESENT_IN_BOTH_SAME,,Legacy release model unchanged
+Rule Studio (/rules/clinical),ABSENT,present,CANDIDATE_ONLY,2 candidate-only page routes,
+Clinical rule version API,ABSENT,present,CANDIDATE_ADDS_GOVERNANCE,13 candidate-only api/clinical-rules routes,publish/approve/activate/retire/rollback/archive/audit/diff/export/validate
+Governance review workspace,ABSENT,present,CANDIDATE_ADDS_GOVERNANCE,lib/clinical-rules/governance-review.ts,
+Immutable evaluated snapshots,ABSENT,present,CANDIDATE_ADDS_PROVENANCE,20260803143000_clinical_evidence_immutability + 3 DB triggers,Enforced at storage layer
+Version + checksum provenance,ABSENT,present,CANDIDATE_ADDS_PROVENANCE,ClinicalRuleVersion.checksum; RuleEvaluation.rulesetChecksum,
+Clinical shadow comparison,ABSENT,present,CANDIDATE_ADDS_SAFETY,evaluationMode SIMULATION; 19 RuleEvaluation rows,Legacy remains authoritative
+Governed regrade provenance,ABSENT,present,CANDIDATE_ADDS_PROVENANCE,api/batch/runs/[id]/clinical-regrade,No historical regrade performed
+Canonical facts V2 capture,ABSENT,present,CANDIDATE_ADDS_SAFETY,api/batch/review/[id]/canonical-facts,Closes 16 of 18 input-contract gaps
+Rule graph administration surfaces,ABSENT,present,CANDIDATE_ONLY,707f622,
+NCSR / PAS / FHIR live integration,not verified,not verified,INTEGRATION_REQUIRED,No external call made in either worktree,Requires a real integration environment
+Authenticated deployed behaviour,not verified,n/a,UNVERIFIED,Execution blocked by DEPLOYED_EXECUTION_BLOCKED,No sign-in attempted

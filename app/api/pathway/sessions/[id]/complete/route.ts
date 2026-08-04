@@ -24,6 +24,10 @@ import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
 import { answersToInputFields, getVisibleAnswerMap } from "@/lib/wizard/steps";
 import type { ClinicalInput } from "@/lib/engine/types";
 import { addMonths } from "date-fns";
+import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
+import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
+import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
+import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
 
 // Priority → target working days mapping
 const PRIORITY_DAYS: Record<string, number> = {
@@ -41,6 +45,7 @@ export async function POST(
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
+  const actorUserId = session.user.id;
 
   const { id } = await params;
 
@@ -121,6 +126,45 @@ export async function POST(
 
   // ── Evaluate decision ─────────────────────────────────────────────────────
   const decision = evaluateClinicalDecision(clinicalInput);
+  const shadowVersion = await resolveShadowClinicalRuleVersion();
+  const canonicalWizardInput = { ...clinicalInput } as Record<string, unknown>;
+  // A suspected OCP contribution or an identified STI does not prove that a
+  // clinician adjusted treatment. Those completion facts remain absent until
+  // explicitly documented.
+  delete canonicalWizardInput.oralContraceptiveAdjusted;
+  delete canonicalWizardInput.stiTreated;
+  const canonicalFactsV2 = canonicalClinicalFactsV2FromFlatFacts({
+    subjectReference: patient.id,
+    facts: normalizeClinicalFactMap({
+      ...canonicalWizardInput,
+      currentPathway: decision.figure,
+    }),
+    source: "REVIEWER_ENTRY",
+    enteredBy: actorUserId,
+  });
+  const versionedShadow = shadowVersion
+    ? await evaluateClinicalCase({
+        canonicalFactsV2,
+        ruleVersionId: shadowVersion.id,
+        evaluationMode: "SHADOW",
+        legacyInput: clinicalInput,
+      }).catch(async (error) => {
+        await prisma.auditLog.create({
+          data: {
+            userId: actorUserId,
+            action: "CLINICAL_RULE_SHADOW_FAILED",
+            entity: "WizardSession",
+            entityId: id,
+            severity: "ERROR",
+            newValue: JSON.stringify({
+              ruleVersionId: shadowVersion.id,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          },
+        });
+        return null;
+      })
+    : null;
 
   // ── Create a fresh ScreeningSession for this wizard completion ───────────
   // Each wizard run produces its own clinical record (counters carry forward from
@@ -308,6 +352,7 @@ export async function POST(
       decisionJson: JSON.stringify(decision),
       determinedFigure: decision.figure as PathwayFigure,
       screeningSessionId: screeningSession.id,
+      ruleEvaluationId: versionedShadow?.evaluationId ?? null,
     },
   });
 
@@ -323,5 +368,6 @@ export async function POST(
       dateOfBirth: patient.dateOfBirth,
       email: patient.email,
     },
+    versionedShadow,
   });
 }

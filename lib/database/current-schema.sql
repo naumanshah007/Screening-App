@@ -456,21 +456,118 @@ CREATE TABLE "Recall" (
 -- CreateTable
 CREATE TABLE "ClinicalRuleSet" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "version" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "rulesJson" TEXT NOT NULL,
-    "schemaVersion" TEXT NOT NULL DEFAULT '1.0',
-    "isActive" BOOLEAN NOT NULL DEFAULT false,
-    "publishedAt" DATETIME,
+    "scope" TEXT NOT NULL DEFAULT 'GLOBAL',
+    "organisationKey" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "ClinicalRuleVersion" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "ruleSetId" TEXT NOT NULL,
+    "versionMajor" INTEGER NOT NULL,
+    "versionMinor" INTEGER NOT NULL,
+    "versionPatch" INTEGER NOT NULL,
+    "displayVersion" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
+    "parentVersionId" TEXT,
+    "sourcePackageVersion" TEXT,
+    "sourceGuidelineSummary" TEXT NOT NULL,
+    "snapshotJson" TEXT NOT NULL,
+    "checksum" TEXT,
+    "revision" INTEGER NOT NULL DEFAULT 1,
+    "changeSummary" TEXT,
+    "changeClassification" TEXT NOT NULL DEFAULT 'CLINICAL_LOGIC',
+    "validationJson" TEXT,
+    "createdById" TEXT,
+    "approvedById" TEXT,
     "publishedById" TEXT,
-    "reviewedById" TEXT,
-    "reviewedAt" DATETIME,
-    "changeNotes" TEXT,
+    "validatedAt" DATETIME,
+    "publishedAt" DATETIME,
+    "activatedAt" DATETIME,
+    "retiredAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ClinicalRuleSet_publishedById_fkey" FOREIGN KEY ("publishedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ClinicalRuleSet_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "ClinicalRuleVersion_ruleSetId_fkey" FOREIGN KEY ("ruleSetId") REFERENCES "ClinicalRuleSet" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "ClinicalRuleVersion_parentVersionId_fkey" FOREIGN KEY ("parentVersionId") REFERENCES "ClinicalRuleVersion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "ClinicalRuleVersion_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "ClinicalRuleVersion_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "ClinicalRuleVersion_publishedById_fkey" FOREIGN KEY ("publishedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "RuleSetActivation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "ruleSetId" TEXT NOT NULL,
+    "ruleVersionId" TEXT NOT NULL,
+    "organisationKey" TEXT,
+    "environment" TEXT NOT NULL DEFAULT 'DEMO',
+    "isDefault" BOOLEAN NOT NULL DEFAULT true,
+    "activatedById" TEXT,
+    "activatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deactivatedAt" DATETIME,
+    "reason" TEXT NOT NULL,
+    CONSTRAINT "RuleSetActivation_ruleSetId_fkey" FOREIGN KEY ("ruleSetId") REFERENCES "ClinicalRuleSet" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "RuleSetActivation_ruleVersionId_fkey" FOREIGN KEY ("ruleVersionId") REFERENCES "ClinicalRuleVersion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "RuleSetActivation_activatedById_fkey" FOREIGN KEY ("activatedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "RuleEvaluation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "caseId" TEXT,
+    "batchRunId" TEXT,
+    "ruleSetId" TEXT NOT NULL,
+    "ruleVersionId" TEXT NOT NULL,
+    "ruleVersionDisplay" TEXT NOT NULL,
+    "rulesetChecksum" TEXT NOT NULL,
+    "engineVersion" TEXT NOT NULL,
+    "evaluationMode" TEXT NOT NULL DEFAULT 'LIVE_DEMO',
+    "evaluatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "canonicalInputSnapshot" TEXT NOT NULL,
+    "matchedRuleIds" TEXT NOT NULL,
+    "branchPath" TEXT NOT NULL,
+    "provisionalRecommendation" TEXT NOT NULL,
+    "riskLevel" TEXT NOT NULL,
+    "urgency" TEXT,
+    "referralDestination" TEXT,
+    "repeatInterval" TEXT,
+    "missingInformation" TEXT NOT NULL,
+    "reviewerRequirement" TEXT NOT NULL,
+    "mandatoryReviewerConfirmation" BOOLEAN NOT NULL DEFAULT true,
+    "clinicianOnly" BOOLEAN NOT NULL DEFAULT false,
+    "sourceReferences" TEXT NOT NULL,
+    "evaluationTrace" TEXT NOT NULL,
+    "previousEvaluationId" TEXT,
+    "regradeReason" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "RuleEvaluation_caseId_fkey" FOREIGN KEY ("caseId") REFERENCES "ReferralCase" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "RuleEvaluation_batchRunId_fkey" FOREIGN KEY ("batchRunId") REFERENCES "BatchRun" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "RuleEvaluation_ruleSetId_fkey" FOREIGN KEY ("ruleSetId") REFERENCES "ClinicalRuleSet" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "RuleEvaluation_ruleVersionId_fkey" FOREIGN KEY ("ruleVersionId") REFERENCES "ClinicalRuleVersion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "RuleEvaluation_previousEvaluationId_fkey" FOREIGN KEY ("previousEvaluationId") REFERENCES "RuleEvaluation" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "RuleVersionAuditEvent" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "ruleSetId" TEXT NOT NULL,
+    "ruleVersionId" TEXT,
+    "actorUserId" TEXT,
+    "eventType" TEXT NOT NULL,
+    "reason" TEXT,
+    "beforeJson" TEXT,
+    "afterJson" TEXT,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "RuleVersionAuditEvent_ruleSetId_fkey" FOREIGN KEY ("ruleSetId") REFERENCES "ClinicalRuleSet" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "RuleVersionAuditEvent_ruleVersionId_fkey" FOREIGN KEY ("ruleVersionId") REFERENCES "ClinicalRuleVersion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "RuleVersionAuditEvent_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -481,13 +578,15 @@ CREATE TABLE "WizardSession" (
     "status" TEXT NOT NULL DEFAULT 'IN_PROGRESS',
     "determinedFigure" TEXT,
     "decisionJson" TEXT,
+    "ruleEvaluationId" TEXT,
     "screeningSessionId" TEXT,
     "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "completedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "WizardSession_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "WizardSession_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "WizardSession_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "WizardSession_ruleEvaluationId_fkey" FOREIGN KEY ("ruleEvaluationId") REFERENCES "RuleEvaluation" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -581,6 +680,9 @@ CREATE TABLE "BatchRun" (
     "sourceSystem" TEXT,
     "sourceFileName" TEXT,
     "engineVersion" TEXT NOT NULL,
+    "pinnedRuleVersionId" TEXT,
+    "pinnedRuleVersionDisplay" TEXT,
+    "pinnedRulesetChecksum" TEXT,
     "totalCases" INTEGER NOT NULL,
     "pendingCount" INTEGER NOT NULL DEFAULT 0,
     "acceptedCount" INTEGER NOT NULL DEFAULT 0,
@@ -590,6 +692,7 @@ CREATE TABLE "BatchRun" (
     "createdByUserId" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "BatchRun_pinnedRuleVersionId_fkey" FOREIGN KEY ("pinnedRuleVersionId") REFERENCES "ClinicalRuleVersion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "BatchRun_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -618,6 +721,7 @@ CREATE TABLE "BatchReviewItem" (
     "caseJson" TEXT NOT NULL,
     "inputJson" TEXT NOT NULL,
     "decisionJson" TEXT NOT NULL,
+    "ruleEvaluationId" TEXT,
     "disposition" TEXT NOT NULL DEFAULT 'PENDING',
     "reviewedByUserId" TEXT,
     "reviewedAt" DATETIME,
@@ -626,6 +730,7 @@ CREATE TABLE "BatchReviewItem" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "BatchReviewItem_batchRunId_fkey" FOREIGN KEY ("batchRunId") REFERENCES "BatchRun" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "BatchReviewItem_ruleEvaluationId_fkey" FOREIGN KEY ("ruleEvaluationId") REFERENCES "RuleEvaluation" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "BatchReviewItem_reviewedByUserId_fkey" FOREIGN KEY ("reviewedByUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
@@ -768,10 +873,58 @@ CREATE INDEX "Referral_priority_status_createdAt_idx" ON "Referral"("priority", 
 CREATE INDEX "Recall_dueDate_status_idx" ON "Recall"("dueDate", "status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ClinicalRuleSet_version_key" ON "ClinicalRuleSet"("version");
+CREATE UNIQUE INDEX "ClinicalRuleSet_key_key" ON "ClinicalRuleSet"("key");
+
+-- CreateIndex
+CREATE INDEX "ClinicalRuleSet_scope_organisationKey_idx" ON "ClinicalRuleSet"("scope", "organisationKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ClinicalRuleVersion_ruleSetId_displayVersion_key" ON "ClinicalRuleVersion"("ruleSetId", "displayVersion");
+
+-- CreateIndex
+CREATE INDEX "ClinicalRuleVersion_ruleSetId_status_createdAt_idx" ON "ClinicalRuleVersion"("ruleSetId", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ClinicalRuleVersion_parentVersionId_idx" ON "ClinicalRuleVersion"("parentVersionId");
+
+-- CreateIndex
+CREATE INDEX "ClinicalRuleVersion_checksum_idx" ON "ClinicalRuleVersion"("checksum");
+
+-- CreateIndex
+CREATE INDEX "RuleSetActivation_ruleSetId_organisationKey_environment_deactivatedAt_idx" ON "RuleSetActivation"("ruleSetId", "organisationKey", "environment", "deactivatedAt");
+
+-- CreateIndex
+CREATE INDEX "RuleSetActivation_ruleVersionId_activatedAt_idx" ON "RuleSetActivation"("ruleVersionId", "activatedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RuleSetActivation_one_default_idx" ON "RuleSetActivation"("ruleSetId", ifnull("organisationKey", ''), "environment") WHERE "isDefault" = 1 AND "deactivatedAt" IS NULL;
+
+-- CreateIndex
+CREATE INDEX "RuleEvaluation_caseId_evaluatedAt_idx" ON "RuleEvaluation"("caseId", "evaluatedAt");
+
+-- CreateIndex
+CREATE INDEX "RuleEvaluation_batchRunId_evaluatedAt_idx" ON "RuleEvaluation"("batchRunId", "evaluatedAt");
+
+-- CreateIndex
+CREATE INDEX "RuleEvaluation_ruleVersionId_evaluatedAt_idx" ON "RuleEvaluation"("ruleVersionId", "evaluatedAt");
+
+-- CreateIndex
+CREATE INDEX "RuleEvaluation_previousEvaluationId_idx" ON "RuleEvaluation"("previousEvaluationId");
+
+-- CreateIndex
+CREATE INDEX "RuleVersionAuditEvent_ruleSetId_createdAt_idx" ON "RuleVersionAuditEvent"("ruleSetId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "RuleVersionAuditEvent_ruleVersionId_createdAt_idx" ON "RuleVersionAuditEvent"("ruleVersionId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "RuleVersionAuditEvent_actorUserId_createdAt_idx" ON "RuleVersionAuditEvent"("actorUserId", "createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WizardSession_screeningSessionId_key" ON "WizardSession"("screeningSessionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WizardSession_ruleEvaluationId_key" ON "WizardSession"("ruleEvaluationId");
 
 -- CreateIndex
 CREATE INDEX "WizardSession_patientId_status_idx" ON "WizardSession"("patientId", "status");
@@ -825,6 +978,9 @@ CREATE INDEX "BatchReviewItem_batchRunId_reviewRequired_idx" ON "BatchReviewItem
 CREATE INDEX "BatchReviewItem_reviewedByUserId_reviewedAt_idx" ON "BatchReviewItem"("reviewedByUserId", "reviewedAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "BatchReviewItem_ruleEvaluationId_key" ON "BatchReviewItem"("ruleEvaluationId");
+
+-- CreateIndex
 CREATE INDEX "AIRecommendation_caseId_createdAt_idx" ON "AIRecommendation"("caseId", "createdAt");
 
 -- CreateIndex
@@ -832,3 +988,53 @@ CREATE INDEX "AIRecommendation_suggestedPriority_createdAt_idx" ON "AIRecommenda
 
 -- CreateIndex
 CREATE INDEX "AIRecommendation_concordantWithRule_concordantWithClinician_idx" ON "AIRecommendation"("concordantWithRule", "concordantWithClinician");
+
+-- Immutable published snapshot safeguards.
+CREATE TRIGGER "ClinicalRuleVersion_immutable_snapshot_update"
+BEFORE UPDATE OF "ruleSetId", "versionMajor", "versionMinor", "versionPatch", "displayVersion", "snapshotJson", "checksum"
+ON "ClinicalRuleVersion"
+WHEN OLD."status" IN ('PUBLISHED', 'ACTIVE', 'RETIRED', 'ARCHIVED')
+BEGIN
+  SELECT RAISE(ABORT, 'Published clinical rule versions are immutable');
+END;
+
+CREATE TRIGGER "ClinicalRuleVersion_immutable_delete"
+BEFORE DELETE ON "ClinicalRuleVersion"
+WHEN OLD."status" <> 'DRAFT'
+BEGIN
+  SELECT RAISE(ABORT, 'Only unreferenced draft clinical rule versions may be deleted');
+END;
+
+CREATE TRIGGER "RuleEvaluation_immutable_update"
+BEFORE UPDATE ON "RuleEvaluation"
+BEGIN
+  SELECT RAISE(ABORT, 'Clinical rule evaluations are immutable');
+END;
+
+CREATE TRIGGER "RuleEvaluation_immutable_delete"
+BEFORE DELETE ON "RuleEvaluation"
+BEGIN
+  SELECT RAISE(ABORT, 'Clinical rule evaluations are immutable');
+END;
+
+CREATE TRIGGER "RuleVersionAuditEvent_immutable_update"
+BEFORE UPDATE ON "RuleVersionAuditEvent"
+BEGIN
+  SELECT RAISE(ABORT, 'Clinical rule audit events are immutable');
+END;
+
+CREATE TRIGGER "RuleVersionAuditEvent_immutable_delete"
+BEFORE DELETE ON "RuleVersionAuditEvent"
+BEGIN
+  SELECT RAISE(ABORT, 'Clinical rule audit events are immutable');
+END;
+
+CREATE TRIGGER "ClinicalRuleVersion_evaluated_snapshot_update"
+BEFORE UPDATE OF "ruleSetId", "versionMajor", "versionMinor", "versionPatch", "displayVersion", "snapshotJson", "checksum"
+ON "ClinicalRuleVersion"
+WHEN EXISTS (
+  SELECT 1 FROM "RuleEvaluation" WHERE "ruleVersionId" = OLD."id" LIMIT 1
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Evaluated clinical rule version identities are immutable');
+END;

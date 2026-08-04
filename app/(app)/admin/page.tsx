@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { StatCard, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,7 +11,7 @@ import { NcsrCertificationManager } from "./NcsrCertificationManager";
 import { IntegrationValidationManager } from "./IntegrationValidationManager";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserAccessManager } from "./UserAccessManager";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { listAdminUsers } from "@/lib/admin/user-management";
 import { getDatabaseRuntimeSummary } from "@/lib/config/database";
 import { getDocumentStorageRuntimeSummary } from "@/lib/documents/storage";
@@ -55,7 +56,7 @@ function integrationIcon(id: "database" | "storage" | "ai" | "ncsr") {
   }
 }
 
-type AdminTab = "users" | "security" | "integrations";
+type AdminTab = "users" | "security" | "integrations" | "clinical-rules";
 
 export default async function AdminPage({
   searchParams,
@@ -101,6 +102,7 @@ export default async function AdminPage({
     recentAuditCount,
     patientStats,
     practices,
+    rulesets,
     sessionsThirtyDays,
     referralStats,
     users,
@@ -108,7 +110,11 @@ export default async function AdminPage({
     incidentAutomationOverview,
   ] = await Promise.all([
     prisma.user.count(),
-    prisma.clinicalRuleSet.count({ where: { isActive: true } }),
+    // Integration note: `main` counted `clinicalRuleSet.isActive`. The Rule
+    // Studio schema replaces that model with a governed rule-set container that
+    // has no `isActive` column; activation now lives on the version. Counting
+    // ACTIVE versions is the faithful equivalent of the production stat.
+    prisma.clinicalRuleVersion.count({ where: { status: "ACTIVE" } }),
     prisma.auditLog.count({
       where: { createdAt: { gte: thirtyDaysAgo } },
     }),
@@ -123,6 +129,15 @@ export default async function AdminPage({
           orderBy: [{ name: "asc" }],
         })
       : Promise.resolve([]),
+    prisma.clinicalRuleVersion.findMany({
+      include: {
+        ruleSet: { select: { name: true, scope: true } },
+        publishedBy: { select: { name: true } },
+        approvedBy: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
     prisma.screeningSession.count({
       where: { createdAt: { gte: thirtyDaysAgo } },
     }),
@@ -153,11 +168,23 @@ export default async function AdminPage({
     }, {} as Record<string, number>);
   const pendingEntries = Object.entries(pendingByPriority) as [string, number][];
 
+  type AdminRuleSet = Prisma.ClinicalRuleVersionGetPayload<{
+    include: {
+      ruleSet: { select: { name: true; scope: true } };
+      publishedBy: { select: { name: true } };
+      approvedBy: { select: { name: true } };
+    };
+  }>;
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
+  // Integration note: main's tab structure is retained verbatim and the Rule
+  // Studio governance surface is added as an additional tab rather than
+  // replacing any production tab.
   const tabs: { id: AdminTab; label: string }[] = [
     ...(canManageUsers ? [{ id: "users" as const, label: "Users & Access" }] : []),
     { id: "security" as const, label: "Security" },
     { id: "integrations" as const, label: "Integrations & Runtime" },
+    { id: "clinical-rules" as const, label: "Clinical Rules" },
   ];
   const defaultTab: AdminTab = canManageUsers ? "users" : "security";
   const requestedTab = params.tab as AdminTab | undefined;
@@ -607,6 +634,64 @@ export default async function AdminPage({
           ))}
         </CardContent>
       </Card>
+        </div>
+      )}
+
+      {/* ── Clinical Rules tab (Rule Studio governance) ─────────────────────── */}
+      {activeTab === "clinical-rules" && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-brand-600" />
+                Rule Version History
+              </CardTitle>
+              <Badge variant="info">Two-Person Rule</Badge>
+            </CardHeader>
+            <CardContent className="p-0">
+              {rulesets.length === 0 ? (
+                <EmptyState
+                  icon={Database}
+                  eyebrow={workspace.label}
+                  title="No rule versions published"
+                  description="Clinical rule versions must pass two-person review before publishing. Legacy grading remains authoritative until a version is published and activated."
+                  nextStep="Open Rule Studio to review a draft and record the governance trail."
+                  action={{ href: "/rules/clinical", label: "Open Rule Studio" }}
+                />
+              ) : (
+                <div className="divide-y divide-border">
+                  {rulesets.map((rs: AdminRuleSet) => (
+                    <div key={rs.id} className="px-5 py-4 hover:bg-muted/40 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-foreground text-sm">{rs.ruleSet.name}</p>
+                            {rs.status === "ACTIVE" ? (
+                              <Badge variant="low">Active</Badge>
+                            ) : (
+                              <Badge variant="default">{rs.status}</Badge>
+                            )}
+                            <span className="text-xs font-mono text-muted-foreground">{rs.displayVersion}</span>
+                          </div>
+                          {rs.changeSummary && (
+                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{rs.changeSummary}</p>
+                          )}
+                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                            {rs.publishedBy && (
+                              <span>Published by {rs.publishedBy.name} ({formatDate(rs.publishedAt)})</span>
+                            )}
+                            {rs.approvedBy && (
+                              <span>· Approved by {rs.approvedBy.name} ({formatDate(rs.validatedAt)})</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

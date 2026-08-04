@@ -16,6 +16,8 @@ import type {
   BatchProcessingResult,
   SourceType,
 } from "./types";
+import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
+import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
 
 // ─── Engine version (from the decision engine rule version) ──────────────────
 
@@ -150,10 +152,38 @@ export function processBatch(
     try {
       const input = mapCanonicalToClinicalInput(batchCase);
       const decision = evaluateClinicalDecision(input);
+      const shadowInput = { ...input } as Record<string, unknown>;
+      // Legacy batch processing historically assumes bleeding work-up and
+      // treatment completion flags. The canonical shadow must not inherit
+      // those fabricated actions or examinations.
+      for (const key of [
+        "menstrualHistoryCaptured",
+        "contraceptiveHistoryCaptured",
+        "sexualHistoryCaptured",
+        "speculumExamCompleted",
+        "pelvicExamCompleted",
+        "coTestCompleted",
+        "oralContraceptiveAdjusted",
+        "stiTreated",
+      ]) {
+        delete shadowInput[key];
+      }
+      const canonicalFactsV2 = canonicalClinicalFactsV2FromFlatFacts({
+        subjectReference:
+          batchCase.nhi ?? batchCase.source.externalPatientId ?? batchCase.caseId,
+        facts: normalizeClinicalFactMap({
+          ...shadowInput,
+          currentPathway: decision.figure,
+        }),
+        source: "PRIOR_RECORD",
+        enteredBy: `batch-${batchCase.source.mappingVersion}`,
+        recordedAt: batchCase.source.importedAt,
+      });
       results.push({
         case: batchCase,
         input,
         decision,
+        canonicalFactsV2,
         processingTimeMs: performance.now() - rowStart,
         status: "success",
       });

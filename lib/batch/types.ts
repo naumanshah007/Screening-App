@@ -31,6 +31,7 @@ import type {
   TransformationZoneState,
   ColposcopicImpression,
 } from "@/lib/engine/types";
+import type { CanonicalClinicalFactsV2 } from "@/lib/clinical-rules/canonical-facts-v2";
 
 // ─── Layer 1: Raw Source Row ─────────────────────────────────────────────────
 
@@ -204,6 +205,32 @@ export interface BatchCaseResult {
   input: ClinicalInput;
   /** The ClinicalDecision the engine returned. */
   decision: ClinicalDecision;
+  /** V2 facts persisted only for canonical shadow evaluation. */
+  canonicalFactsV2?: CanonicalClinicalFactsV2;
+  /** Persisted canonical result shown as comparison evidence, never authority. */
+  canonicalShadow?: {
+    reviewItemId?: string;
+    evaluationId: string;
+    evaluationMode: string;
+    ruleVersionDisplay: string;
+    rulesetChecksum: string;
+    engineVersion: string;
+    provisionalRecommendation: string;
+    reviewerRequirement: string;
+    clinicianOnly: boolean;
+    matchedRuleIds: string[];
+    branchPath: string[];
+    missingInformation: string[];
+    sourceReferences: Array<{ document: string; reference: string }>;
+    factDiagnostics?: {
+      factsUsed?: string[];
+      factsMissing?: string[];
+      factsIgnored?: string[];
+      factsConflicting?: string[];
+      provenanceSources?: string[];
+    };
+    legacyComparison?: unknown;
+  };
   /** Processing time for this row in milliseconds. */
   processingTimeMs: number;
   /** Whether the engine call succeeded. */

@@ -452,7 +452,13 @@ export function WorklistClient({
       </p>
 
       {/* Drill-in: full picture (reuses the batch result detail) */}
-      <BatchResultDetail result={detail} open={detailOpen} onClose={() => setDetailOpen(false)} />
+      <BatchResultDetail
+        result={detail}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        reviewItemId={detail?.canonicalShadow?.reviewItemId}
+        canCorrectCanonicalFacts={canReview}
+      />
 
       {/* Reason modal for reject / needs-info */}
       <Dialog

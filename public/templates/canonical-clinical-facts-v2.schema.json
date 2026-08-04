@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaId": {
+      "type": "string",
+      "const": "canonical-clinical-facts-v2"
+    },
+    "subjectReference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+    },
+    "facts": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "KNOWN",
+              "UNKNOWN",
+              "NOT_RECORDED",
+              "NOT_APPLICABLE",
+              "PENDING",
+              "CONFLICTING"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANT_REPORT",
+              "LAB_RESULT",
+              "PATHOLOGY",
+              "COLPOSCOPY",
+              "OPERATIVE_REPORT",
+              "SPECIALIST_LETTER",
+              "PRIOR_RECORD",
+              "REVIEWER_ENTRY",
+              "SYNTHETIC_DEMO"
+            ]
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "enteredBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verifiedBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "UNVERIFIED",
+              "SOURCE_VERIFIED",
+              "REVIEWER_VERIFIED",
+              "CONFLICTING"
+            ]
+          },
+          "sourceDocumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "externalReference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "corrections": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "correctedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                "correctedBy": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "previousStatus": {
+                  "type": "string",
+                  "enum": [
+                    "KNOWN",
+                    "UNKNOWN",
+                    "NOT_RECORDED",
+                    "NOT_APPLICABLE",
+                    "PENDING",
+                    "CONFLICTING"
+                  ]
+                },
+                "previousValue": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "correctedAt",
+                "correctedBy",
+                "reason",
+                "previousStatus"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "status",
+          "source",
+          "recordedAt",
+          "enteredBy",
+          "verificationStatus",
+          "corrections"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaId",
+    "subjectReference",
+    "capturedAt",
+    "facts"
+  ],
+  "additionalProperties": false
+}
