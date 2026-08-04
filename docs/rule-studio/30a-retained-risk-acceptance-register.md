@@ -246,6 +246,21 @@ retained `nodemailer` advisory causes `@auth/core`, `@auth/prisma-adapter` and
 > distinct in kind from R1–R5 and is **not** an npm audit item. It does not
 > appear in `30-dependency-audit-before.json` or `-after.json`.
 
+> **⚠ Partial code remediation — 4 August 2026, still OPEN overall.**
+> Remediation item **(b)** — remove the credential block from the login UI —
+> is code-complete in commit `4a47c12` on
+> `integration/rule-studio-on-latest-main`, guarded by
+> `tests/security/login-no-credential-exposure.test.ts`. **This is not yet
+> deployed.** The branch is pushed only as a protected Preview; `main` and
+> `screening.privexa.co` are unchanged and **still serve the exposed block** as
+> of this update. Items **(a) rotate passwords, (c) disable unused demo
+> accounts, (d) restrict the demo deployment, (e) verify no real
+> data/integrations are reachable** are deployment/operational actions outside
+> this repository and remain **fully open**. Status stays
+> `OPEN_SECURITY_REMEDIATION_REQUIRED` until (i) this branch merges to `main`
+> and deploys, and (ii) (a), (c), (d) and (e) are separately actioned and
+> signed off below.
+
 | Field | Value |
 |---|---|
 | **Risk ID** | R6 |
@@ -262,11 +277,11 @@ retained `nodemailer` advisory causes `@auth/core`, `@auth/prisma-adapter` and
 | **Credential handling in this register** | The literal password is **deliberately not recorded** in this repository or any report. No credential, cookie, session token or authentication material has been committed to Git. Verified by a pre-commit scan of staged content. |
 | **Verified by** | Direct read of the unauthenticated `/login` HTML on 3 August 2026. **No sign-in was attempted** and no session was created. |
 | **Introduced by the Rule Studio programme?** | **No.** The same block exists in the local candidate build and in the inferred deployed build `418e3b8`, which predates the Rule Studio work entirely. This is pre-existing product behaviour, not a candidate regression. |
-| **Remediation required** | (a) **Rotate all exposed passwords**; (b) **remove the credential block from the public login UI**; (c) **review and disable unused demo accounts**; (d) **restrict the demo deployment** using Vercel Authentication, an IP/SSO allowlist or equivalent access control; (e) **verify that no real data and no production integrations** (SMTP, PAS, FHIR/HL7, webhooks) are reachable through those accounts. |
-| **Reason not applied** | Remediation is **not authorised in this session.** The instruction was to record the finding and explicitly not to attempt remediation unless separately assigned. |
+| **Remediation required** | (a) **Rotate all exposed passwords** — OPEN; (b) **remove the credential block from the public login UI** — **CODE-COMPLETE, NOT DEPLOYED** (`4a47c12` on `integration/rule-studio-on-latest-main`); (c) **review and disable unused demo accounts** — OPEN; (d) **restrict the demo deployment** using Vercel Authentication, an IP/SSO allowlist or equivalent access control — OPEN; (e) **verify that no real data and no production integrations** (SMTP, PAS, FHIR/HL7, webhooks) are reachable through those accounts — OPEN. |
+| **Reason not applied** | Item (b) is authorised and applied on the integration branch as of 4 August 2026. Items (a), (c), (d), (e) remain **not authorised in this session** — they are deployment/operational actions (secret rotation, account administration, Vercel project settings) outside what a repository change can perform, and require the risk owner's action. |
 | **Compatibility constraint** | None. Remediation is a product/configuration decision, not a dependency constraint. |
 | **Compensating controls** | **None identified.** Strong transport and header posture (HSTS, CSP, `X-Frame-Options: DENY`) does not mitigate published credentials. No rate limiting, MFA enforcement or IP restriction was observed on the public login surface. |
-| **Tests supporting controls** | **None.** No test asserts that credentials are absent from the login page. A regression test asserting this is recommended as part of remediation. |
+| **Tests supporting controls** | **`tests/security/login-no-credential-exposure.test.ts`**, added 4 August 2026 on the integration branch. Statically inspects the login source and fails if the credential block, a password-shaped literal, or a credential value threaded as a prop is reintroduced. Wired into `test:security` and `test:all`. Not yet active on `main` or in production until the branch merges and deploys. |
 | **Residual risk** | Unauthenticated administrator access to an internet-facing clinical-decision-support prototype. Downstream impact depends on whether those accounts can reach real data or live integrations — **an open question the risk owner must answer.** |
 | **Related findings** | Compounds the deployed-execution safety decision in `docs/deployed-comparison/02-deployed-test-safety-decision.md`: a publicly writable clinical-looking system with no documented test tenant or cleanup path. |
 | **Proposed risk owner** | Security/product risk owner (designated) |
@@ -280,8 +295,8 @@ retained `nodemailer` advisory causes `@auth/core`, `@auth/prisma-adapter` and
 | **Approver role** | ☐ _______________________ |
 | **Approver signature / recorded identity** | ☐ _______________________ |
 | **Approval date** | ☐ _______________________ |
-| **Evidence links** | `docs/deployed-comparison/01-deployment-identity.md` §Security finding; `01-deployment-identity.json` `securityObservations.publicDemoCredentialExposure` |
-| **Status** | **OPEN_SECURITY_REMEDIATION_REQUIRED** |
+| **Evidence links** | `docs/deployed-comparison/01-deployment-identity.md` §Security finding; `01-deployment-identity.json` `securityObservations.publicDemoCredentialExposure`; remediation commit `4a47c12` |
+| **Status** | **OPEN_SECURITY_REMEDIATION_REQUIRED** — (b) code-complete pending deploy; (a)(c)(d)(e) fully open; production `screening.privexa.co` still exposed |
 
 ---
 
@@ -338,8 +353,10 @@ This register is one of four outstanding gates. It does not affect and is not
 affected by the clinical governance gate.
 
 - Retained dependency risks R1–R5: **UNSIGNED — release blockers**
-- **R6 public demo credential exposure: OPEN — live exposure on an
-  internet-facing host. Remediation required; not authorised in this session.**
+- **R6 public demo credential exposure: OPEN — still live on
+  `screening.privexa.co`.** Remediation item (b) is code-complete on
+  `integration/rule-studio-on-latest-main` (`4a47c12`) but not deployed; items
+  (a)(c)(d)(e) remain unauthorised and open. See the R6 entry above for detail.
 - Clinical governance GOV-01…GOV-04: **PENDING** independent clinical reviewers
   (`31-clinical-governance-handoff.md`)
 - Authenticated browser QA: **PENDING** a signed-in human operator
