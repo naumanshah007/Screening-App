@@ -1,6 +1,36 @@
 # Deployed test-execution safety decision
 
 Date: 3 August 2026. Target: `https://screening.privexa.co`.
+**Corrected 4 August 2026** — the deployed baseline identity changed; the
+execution decision did not.
+
+## ⚠ CORRECTION — 4 August 2026
+
+The build identity this document relied on has been corrected. See
+`01-deployment-identity.md` §CORRECTION.
+
+| | Previously recorded | Verified 4 August 2026 |
+|---|---|---|
+| Deployed commit | `418e3b8` (STRONGLY_INFERRED) | **`fb933c3`** (VERIFIED) |
+| Deployed branch | `codex/versioned-clinical-rule-studio` | **`main`** |
+| Role of `418e3b8` | believed Production | **Preview deployment only** |
+| Deployment trigger | assumed Git push | **manual redeploy** |
+
+**Effect on this decision: none.** `DEPLOYED_EXECUTION_BLOCKED` stands, and the
+reasoning strengthens rather than weakens:
+
+- Every one of the twelve safety criteria below was assessed against the *live
+  deployed surface*, not against a commit. Correcting which commit produced that
+  surface does not change what the surface exposes.
+- The R6 public demo-credential exposure is unchanged and remains
+  `OPEN_SECURITY_REMEDIATION_REQUIRED`.
+- The refusal to enter credentials is unchanged.
+
+**Effect on the fallback path: it is now unblocked.** The "what would unlock the
+reproduction comparison" section below asked for exactly one thing — dashboard
+confirmation of the deployed commit. That has now been supplied. The baseline is
+`fb933c3`, which is the tip of `origin/main` and is reproducible locally in an
+isolated worktree with an isolated database and **no production writes at all**.
 
 ## Decision
 
@@ -48,6 +78,13 @@ requires a human operator regardless of the write-safety decision.
 The comparison as designed is **not achievable even with full access**, because
 the deployed build has no canonical engine to compare against.
 
+> **Corrected 4 August 2026:** the reasoning below is sound but was written about
+> `418e3b8`. The verified deployed commit is **`fb933c3`**, which is *also* free
+> of the Rule Studio programme — it is an ancestor-era `main` commit predating
+> `30e8dfb` entirely. The structural blocker therefore still holds, and holds
+> more strongly: `fb933c3` contains neither the canonical engine **nor** the
+> `418e3b8` batch dataset rebase.
+
 The inferred deployed commit `418e3b8` is the exact parent of the first Rule
 Studio commit and contains zero `clinical-rules` files. There is no `CG-NCSP`
 version, no checksum, no SHADOW/SIMULATION mode, no Clinical Review workspace and
@@ -65,21 +102,28 @@ The brief's fallback is: identify the exact deployed commit, reproduce it
 locally, and compare against that reproduction, labelled
 `REPRODUCED_DEPLOYED_BUILD`.
 
-That path is **available but not yet unlocked**, because the commit is
-STRONGLY_INFERRED, not verified. Executing a full clinical differential against a
-*guessed* baseline and presenting it as deployed behaviour would be exactly the
-kind of unfounded claim this programme forbids.
+> **UNLOCKED 4 August 2026.** Option 1 below was exercised: the Vercel dashboard
+> confirmed the active production deployment's source commit. The baseline is
+> **`main` at `fb933c3`**, not `418e3b8`. The reproduction comparison is now
+> sound and proceeds against `REPRODUCED_DEPLOYED_BUILD = fb933c3`.
 
-To unlock it, one of these is needed:
+~~That path is **available but not yet unlocked**, because the commit is
+STRONGLY_INFERRED, not verified.~~ Executing a full clinical differential against
+a *guessed* baseline and presenting it as deployed behaviour would have been
+exactly the kind of unfounded claim this programme forbids — which is why the
+comparison was held until the dashboard lookup resolved it.
 
-1. Confirmation of the deployed commit SHA from the Vercel dashboard (Deployments
-   → the active production deployment → source commit). This is a single lookup
-   and is the cheapest unblock.
-2. Or a `/api/version`-style endpoint exposing the build SHA.
-3. Or confirmation that `origin/codex/versioned-clinical-rule-studio@418e3b8` is
-   the production deployment source.
+To unlock it, one of these was needed:
 
-With any of those, the reproduction comparison becomes sound and Phases 4–7 can
+1. **✅ DONE — Confirmation of the deployed commit SHA from the Vercel dashboard**
+   (Deployments → the active production deployment → source commit). This was the
+   cheapest unblock and it is what resolved the question.
+2. Or a `/api/version`-style endpoint exposing the build SHA. *(Still absent; a
+   standing recommendation — its absence is what made this ambiguity possible.)*
+3. ~~Or confirmation that `origin/codex/versioned-clinical-rule-studio@418e3b8` is
+   the production deployment source.~~ **Disproven** — that commit was a Preview.
+
+With option 1 supplied, the reproduction comparison becomes sound and Phases 4–7
 run entirely locally against isolated databases, with **no production writes at
 all**.
 

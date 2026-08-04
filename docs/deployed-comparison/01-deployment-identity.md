@@ -3,23 +3,113 @@
 Target: `https://screening.privexa.co`. Reconnaissance date: 3 August 2026.
 All observations read-only, rate-limited, publicly served surfaces only.
 
-## Conclusion
+**Corrected 4 August 2026** against the Vercel dashboard. The 3 August inference
+was wrong. Read the correction below before any other section of this document.
+
+---
+
+## ⚠ CORRECTION — 4 August 2026 (supersedes the 3 August conclusion)
+
+### What was previously inferred
+
+`418e3b8` was recorded as **STRONGLY_INFERRED** to be the active Production
+commit, and the deployed hostname was recorded as appearing to track
+`origin/codex/versioned-clinical-rule-studio`.
+
+### What the dashboard verified
+
+`418e3b8` was **never Production**. It was a **Preview** deployment built from
+`codex/versioned-clinical-rule-studio`. Preview deployments do not serve
+`screening.privexa.co`.
+
+The active Production deployment is **`main` at `fb933c3`**.
+
+### Verified deployment identity
 
 | Item | Value | Confidence |
 |---|---|---|
-| Deployed Git commit | **`418e3b8`** — `feat(batch): rebase demo dataset across NZ regions` | **STRONGLY_INFERRED** |
-| Deployed branch lineage | `origin/codex/versioned-clinical-rule-studio` — **not** `origin/main` | **VERIFIED** (ref containment) |
-| Build ID | `HZKNUX6TfkW88sakoDj6n` | VERIFIED |
-| Build era | 2026-08-02T09:14:01Z | VERIFIED (asset), STRONGLY_INFERRED (deploy) |
-| Canonical Rule Studio present? | **No** | STRONGLY_INFERRED |
+| Vercel project | `cervical-screening-app` (team `nauman-shahs-projects`, Hobby) | **VERIFIED** |
+| Connected repository | `naumanshah007/Screening-App` (GitHub) | **VERIFIED** |
+| **Production Branch** | **`main`** | **VERIFIED** |
+| **Active Production commit** | **`fb933c3`** — `Admin UX phase 2+3: onboarding, NCSR, integration validation, automation` | **VERIFIED** |
+| Active Production deployment | `az2UHKSaXg49Upho6U1BgakTJojs` — Production · Current · Ready | **VERIFIED** |
+| **Production trigger** | **Manual redeploy** of an earlier `main` deployment (`Redeploy of 5YZSUhZ8`) — not a fresh Git push | **VERIFIED** |
+| Production deployment date | 2026-08-02 (UI shows relative time only; build clock ≈09:07–09:09 UTC, duration 1m 34s) | VERIFIED (date), APPROXIMATE (time) |
+| Production auto-deploy on `main` | **Enabled** — "Every commit pushed to the `main` branch will create a Production Deployment" | **VERIFIED** |
+| Preview deployments | **Enabled** for all unassigned branches | **VERIFIED** |
+| Preview protection | **Vercel Authentication — Standard Protection**: preview and generated deployment URLs require Vercel login | **VERIFIED** (configuration) |
+| Custom Production domains | **Publicly accessible** — Standard Protection exempts them | **VERIFIED** (configuration + observed public reachability) |
+| Password Protection | Not enabled (Pro-plan feature) | **VERIFIED** |
+| Ignored Build Step | `Automatic` — no custom script, no branch filters | **VERIFIED** |
+| Deploy hooks | **None configured** | **VERIFIED** |
+| Deployment Checks | None configured | **VERIFIED** |
+| Latest Rule Studio Preview | `C5nFUkkzS2r92dKAjXY2gyCpAYUg` — branch `codex/versioned-clinical-rule-studio`, commit **`418e3b8`**, Ready, 2026-08-02, custom-domain assignment *Skipped* | **VERIFIED** |
+| Build ID `HZKNUX6TfkW88sakoDj6n` | Still VERIFIED as the served build ID; it belongs to the **Production** deployment of `fb933c3`, not to `418e3b8` | **VERIFIED** (observed), **CORRECTED** (attribution) |
+
+### Why the inference failed
+
+Four independent factors combined, and each one alone would have been survivable:
+
+1. **Deployment timestamps overlapped.** The Production redeploy and the
+   `418e3b8` Preview were both created on 2026-08-02, minutes apart. The asset
+   `last-modified` of 2026-08-02T09:14:01Z was consistent with both.
+2. **`418e3b8` was the only matching locally known remote commit.** It sat inside
+   the derived build window and was the exact parent of the first Rule Studio
+   commit, which made it look like a uniquely determined answer.
+3. **Local `origin/main` was stale.** The last fetch was 2026-07-07 22:05, so the
+   local clone's `origin/main` was `578b4b0` (June). The eleven `main` commits of
+   7–8 July — including `fb933c3` itself — did not exist locally, so the true
+   production commit was **not in the candidate set** the inference searched.
+4. **A manual redeploy breaks the commit-time ordering assumption.** The
+   reasoning assumed the newest asset corresponded to the newest commit. The
+   production deployment was a *redeploy on 2 August of a commit authored on
+   8 July*, so commit time and deploy time were 25 days apart.
+
+The methodological lesson: an inference over a commit set that is not known to be
+complete cannot be upgraded to STRONGLY_INFERRED. The staleness of `origin/main`
+was the load-bearing error, and it was not checked.
+
+### What this changes downstream
+
+- The comparison baseline is **`fb933c3`**, not `418e3b8`.
+- `fb933c3` is the **tip of `origin/main`**; `main` has not advanced beyond it.
+- The candidate branch forks from `578b4b0` and is therefore missing the eleven
+  `main` commits that include the deployed Admin UX work. See
+  `03-remote-ref-recovery.md`.
+- Push safety is **`VERIFIED_PREVIEW_ONLY_AND_PROTECTED`**, not unknown.
+- **R6 remains OPEN** and is unaffected: Standard Protection exempts custom
+  production domains, so the public demo-credential exposure on
+  `screening.privexa.co` persists regardless of any branch push.
+
+---
+
+## Superseded conclusion (3 August 2026 inference — retained for audit trail)
+
+> **This table is wrong and is retained only to preserve the correction trail.**
+> `418e3b8` was a Preview deployment. See the correction above.
+
+| Item | Value | Confidence |
+|---|---|---|
+| Deployed Git commit | ~~**`418e3b8`** — `feat(batch): rebase demo dataset across NZ regions`~~ **SUPERSEDED** | ~~STRONGLY_INFERRED~~ **DISPROVEN** |
+| Deployed branch lineage | ~~`origin/codex/versioned-clinical-rule-studio` — **not** `origin/main`~~ **SUPERSEDED** | ~~VERIFIED (ref containment)~~ **DISPROVEN as deployment evidence** |
+| Build ID | `HZKNUX6TfkW88sakoDj6n` | VERIFIED (attribution corrected above) |
+| Build era | 2026-08-02T09:14:01Z | VERIFIED (asset) |
+| Canonical Rule Studio present? | **No** | **VERIFIED** — `fb933c3` predates the Rule Studio programme entirely |
 | Engine version | Not exposed | UNKNOWN |
-| Deployed schema generation | Not observable unauthenticated | UNKNOWN |
-| Exact commit proven? | **No.** The SHA is not exposed anywhere | — |
+| Deployed schema generation | Not observable unauthenticated | UNKNOWN (unauthenticated); now reproducible locally from `fb933c3` |
+| Exact commit proven? | ~~**No.**~~ **Yes — from the Vercel dashboard, 4 August 2026** | **VERIFIED** |
 
-The commit is **inferred, not verified**. It is not printed by the application,
-not exposed via a version endpoint, and not recoverable from source maps.
+The ref-containment reasoning below was *arithmetically* correct — `418e3b8` is
+indeed contained only in `origin/codex/versioned-clinical-rule-studio` — but it
+was applied to the wrong deployment. It described the Preview, not Production.
 
-## Timeline evidence (all UTC)
+## Timeline evidence (all UTC) — SUPERSEDED reasoning
+
+> **This timeline reconstructs the wrong deployment.** The window it derives is
+> real, but the commit it selects (`418e3b8`) is the Preview. The true production
+> source `fb933c3` was authored 2026-07-08T06:24:45Z and *redeployed* on
+> 2026-08-02, so it falls outside any window bounded by commit authorship time —
+> and it was absent from the local clone when this table was built.
 
 | Time | Event |
 |---|---|
@@ -59,23 +149,41 @@ git merge-base --is-ancestor origin/main 418e3b8   →  YES
 `origin/codex/versioned-clinical-rule-studio`. The deployment does **not**
 correspond to `origin/main`, which is still at the June commit `578b4b0`.
 
-## ⚠ Release-safety implication — read before pushing the branch
+## ⚠ Release-safety implication — CORRECTED 4 August 2026
 
-The deployed production hostname appears to track
-**`origin/codex/versioned-clinical-rule-studio`** — the same branch that carries
-the unreviewed Rule Studio work.
+> **Superseded text (3 August, retained for the audit trail):** *"The deployed
+> production hostname appears to track `origin/codex/versioned-clinical-rule-studio`
+> … pushing this branch could auto-deploy the Rule Studio programme to
+> `screening.privexa.co`."* That inference was **wrong**, for the reasons given in
+> the correction section above. It was, however, the correct call at the time:
+> it blocked a push under uncertainty, and the uncertainty was real.
 
-If Vercel is configured to deploy that branch (production or a branch alias),
-then **pushing this branch could auto-deploy the Rule Studio programme to
-`screening.privexa.co`** without any further human step. That would bypass the
-outstanding authenticated QA, the GOV-01…GOV-04 clinical governance decisions and
-the R1–R5 security risk sign-off, all of which are recorded as release blockers.
+### Verified position
 
-This materially affects the previously planned sequence, in which "push the
-branch" was treated as a safe pre-review step. **Confirm the Vercel
-project's Git integration and production-branch configuration before any push.**
-This is an inference from ref containment plus deploy timing and must be
-confirmed against the Vercel project settings, which are outside this repository.
+Push safety is **`VERIFIED_PREVIEW_ONLY_AND_PROTECTED`**.
+
+- The Vercel **Production Branch is `main`**. Pushing
+  `codex/versioned-clinical-rule-studio` creates a **Preview** deployment only.
+- Preview and generated deployment URLs are gated by **Vercel Authentication
+  (Standard Protection)** and require a Vercel team login.
+- There are **no deploy hooks, no CI workflows, no ignored-build-step branch
+  mapping and no promotion rules** that could route the branch to Production.
+- The `vercel.json` cron (`/api/admin/security-incidents/run`, `0 0 * * *`) is
+  created and updated **on production deployments only**, so a branch push does
+  not alter production scheduled behaviour.
+
+### What remains a genuine release risk
+
+The risk moved; it did not disappear.
+
+- **Auto-deploy on `main` is enabled.** Any later **merge to `main`** deploys
+  straight to `screening.privexa.co` and rewrites the production cron. That is
+  where GOV-01…GOV-04 and R1–R6 must gate, not at the push.
+- **R6 is unaffected by any push.** Standard Protection exempts custom production
+  domains, so the publicly exposed demo credentials on `screening.privexa.co`
+  remain live and remain `OPEN_SECURITY_REMEDIATION_REQUIRED`.
+- **Preview protection is configuration-verified, not empirically probed.** No
+  unauthenticated request was made to a preview URL to confirm it returns 401.
 
 ## Reconnaissance record
 
