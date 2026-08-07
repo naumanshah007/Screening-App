@@ -14,7 +14,7 @@
     "test:router": "tsx --test \"lib/engine/__tests__/source-router-regression.test.ts\"",
     "test:security": "tsx --test \"tests/security/*.test.ts\"",
     "test:conformance": "tsx --test \"tests/clinical-conformance/*.test.ts\"",
-    "test:all": "npm run test:engine && npm run test:batch && npm run test:rules && npm run test:router && npm run test:security && npm run test:conformance",
+    "test:all": "npm run test:engine && npm run test:batch && npm run test:rules && npm run test:router && npm run test:security && npm run test:conformance && npm run test:db",
     "// test:source-verification": "Requires the external v2.1 source package. See docs/canonical-cutover/13-source-artifact-and-reproducibility.md",
     "test:source-verification": "tsx --test \"lib/clinical-rules/__tests__/governed-snapshot-source-verification.test.ts\" \"lib/clinical-rules/__tests__/successor-v3-1.test.ts\"",
     "rules:export:snapshot": "tsx scripts/rule-studio/export-governed-snapshot.ts",
@@ -25,7 +25,9 @@
     "demo:reset": "tsx scripts/demo-reset.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test:db": "tsx --test \"tests/db/*.test.ts\"",
+    "rules:report:timing": "tsx scripts/rule-studio/timing-classification-report.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
