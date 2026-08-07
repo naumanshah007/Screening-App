@@ -1,0 +1,25 @@
+-- Adds an honest evaluation mode for clinically operative production decisions.
+--
+-- WHY
+-- ---
+-- RuleEvaluation rows are immutable and are the permanent audit record of a
+-- clinical decision. Before this migration the only "live" mode was LIVE_DEMO.
+-- Writing a real production participant decision as LIVE_DEMO would make that
+-- permanent record state something untrue about the decision's clinical status.
+--
+-- SAFETY
+-- ------
+-- Additive only. Postgres ADD VALUE does not rewrite the table, does not touch
+-- any existing row, and does not change the meaning of any existing value.
+-- Zero rows are modified by this migration.
+--
+-- This migration does NOT activate canonical clinical authority and does not
+-- create any LIVE_PRODUCTION row. Reaching this mode additionally requires an
+-- ACTIVE PRODUCTION RuleSetActivation (still refused by
+-- activateClinicalRuleVersion) and CLINICAL_AUTHORITY_LIVE_PRODUCTION=true.
+--
+-- IF NOT EXISTS makes the migration idempotent; ADD VALUE cannot run inside a
+-- transaction block on older Postgres, so this migration contains this
+-- statement alone.
+
+ALTER TYPE "RuleEvaluationMode" ADD VALUE IF NOT EXISTS 'LIVE_PRODUCTION';

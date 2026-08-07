@@ -304,6 +304,12 @@ enum RuleEvaluationMode {
   LIVE_DEMO
   SHADOW
   SIMULATION
+  // Clinically operative evaluation in the production environment. Reachable
+  // only when an ACTIVE PRODUCTION RuleSetActivation exists AND
+  // CLINICAL_AUTHORITY_LIVE_PRODUCTION is enabled. Recorded distinctly from
+  // LIVE_DEMO so the immutable evaluation record never overstates or
+  // understates the clinical status of a real participant decision.
+  LIVE_PRODUCTION
 }
 
 // ─── Auth / User Models ───────────────────────────────────────────────────────
