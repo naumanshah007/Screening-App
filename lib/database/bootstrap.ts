@@ -26,6 +26,66 @@ function shouldBootstrapDatabase(url: string) {
   return process.env.VERCEL === "1" && url.startsWith("file:") && !isRemoteLibSqlUrl(url);
 }
 
+/**
+ * True when this process is running against a production deployment.
+ *
+ * `VERCEL_ENV` is a Vercel system variable and is the authoritative signal:
+ * "production" | "preview" | "development". `NODE_ENV` is NOT sufficient on its
+ * own, because Vercel builds Preview deployments with NODE_ENV=production too.
+ */
+export function isProductionDeployment(
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  return env.VERCEL_ENV === "production";
+}
+
+/**
+ * Whether demo users and demo patients may be seeded.
+ *
+ * R6 REMEDIATION. Previously demo seeding happened whenever
+ * `shouldBootstrapDatabase()` was true — which on Vercel is true for ANY
+ * `file:` database URL. A deployment with no DATABASE_URL therefore fell back to
+ * an ephemeral /tmp SQLite file and then seeded demo accounts into it, using a
+ * password hard-coded in this file, on every cold start. Because the seed is an
+ * UPSERT that overwrites `passwordHash`, it also reset any rotated password back
+ * to the hard-coded value.
+ *
+ * Three independent conditions are now required, and each fails closed:
+ *
+ *   1. `BOOTSTRAP_DEMO_DB=1` must be set explicitly. The implicit
+ *      "empty database on Vercel" path no longer seeds accounts — it only
+ *      creates the schema.
+ *   2. `DEMO_SEED_PASSWORD` must be supplied. There is no default and no
+ *      fallback: with no password, no account is created.
+ *   3. The deployment must not be production. A production deployment never
+ *      seeds demo accounts, even with both of the above set.
+ */
+export function shouldSeedDemoAccounts(
+  url: string,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  if (isProductionDeployment(env)) return false;
+  if (env.BOOTSTRAP_DEMO_DB !== "1") return false;
+  if (!readDemoSeedPassword(env)) return false;
+  // Never seed accounts into a remote/shared database from this code path.
+  return !isRemoteLibSqlUrl(url);
+}
+
+/**
+ * The initial password for seeded demo accounts, supplied by the operator.
+ *
+ * Returns undefined when absent or too weak to be a deliberate choice. The value
+ * is never logged, never returned to a caller other than the seeder, and never
+ * written to any response.
+ */
+export function readDemoSeedPassword(
+  env: NodeJS.ProcessEnv = process.env
+): string | undefined {
+  const raw = env.DEMO_SEED_PASSWORD?.trim();
+  if (!raw || raw.length < 12) return undefined;
+  return raw;
+}
+
 function shouldApplySchemaPatches(url: string) {
   if (shouldBootstrapDatabase(url)) {
     return true;
@@ -345,7 +405,16 @@ async function seedDemoUsers(url: string) {
 
   try {
     const now = new Date().toISOString();
-    const passwordHash = await bcrypt.hash("admin123", 10);
+    // R6: no hard-coded password. The operator supplies DEMO_SEED_PASSWORD; the
+    // caller has already verified it is present via shouldSeedDemoAccounts().
+    // The value is never logged or echoed.
+    const seedPassword = readDemoSeedPassword();
+    if (!seedPassword) {
+      throw new Error(
+        "Demo account seeding requires DEMO_SEED_PASSWORD (minimum 12 characters). No account was created."
+      );
+    }
+    const passwordHash = await bcrypt.hash(seedPassword, 10);
     const practiceId = "demo-practice-auckland";
     const cmPracticeId = "demo-practice-counties";
 
@@ -586,7 +655,10 @@ async function databaseHasSchema(url: string) {
 
 export async function ensureDatabaseReady() {
   const url = resolveDatabaseUrl();
-  const fullBootstrap = shouldBootstrapDatabase(url);
+  // Schema creation and demo-account seeding are deliberately separate concerns.
+  // Creating tables in an empty database is harmless; creating login accounts is
+  // not. See shouldSeedDemoAccounts().
+  const seedDemoAccounts = shouldSeedDemoAccounts(url);
 
   if (!shouldApplySchemaPatches(url)) {
     return;
@@ -598,7 +670,7 @@ export async function ensureDatabaseReady() {
         await applyCurrentSchema(url);
       }
       await applyCompatibilityPatches(url);
-      if (fullBootstrap) {
+      if (seedDemoAccounts) {
         await seedDemoUsers(url);
         await seedDemoPatients(url);
       }
