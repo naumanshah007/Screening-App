@@ -12,6 +12,7 @@ import {
   type CanonicalFactsDiagnostics,
 } from "./canonical-facts-v2";
 import { governedRulePrecedence } from "./compiled-v2-1";
+import { classifyTiming, urgencyFromTiming } from "./governed-vocabulary";
 import { CANONICAL_ENGINE_VERSION } from "./constants";
 import { getClinicalRuleVersion, resolveActiveClinicalRuleVersion } from "./lifecycle";
 import { normalizeClinicalFactMap } from "./facts";
@@ -171,13 +172,25 @@ export function evaluateConditionExpression(
 
 const SAFETY_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 } as const;
 
-function inferUrgency(rule: RuleDefinition | undefined) {
-  if (!rule) return undefined;
-  const value = `${rule.timingDestination} ${rule.provisionalOutcome}`;
-  if (/immediate|urgent|P1\b/i.test(value)) return "URGENT";
-  if (/P2\b/i.test(value)) return "P2";
-  if (/P3\b/i.test(value)) return "P3";
-  return undefined;
+/**
+ * Governed urgency for a rule's timing.
+ *
+ * This replaces a regex over `${timingDestination} ${provisionalOutcome}`, which
+ * let a wording change in outcome prose silently alter a clinical urgency. The
+ * replacement is a closed, exact-literal lookup (see `governed-vocabulary.ts`):
+ * prose is not an input, and an unmapped literal yields no urgency rather than a
+ * guess. See `governed-vocabulary.test.ts`.
+ */
+function governedUrgency(timingDestination: string): string | undefined {
+  let classification;
+  try {
+    classification = classifyTiming(timingDestination);
+  } catch {
+    // Unmapped literal: state no urgency. The adapter raises a safety stop.
+    return undefined;
+  }
+  const urgency = urgencyFromTiming(classification);
+  return urgency === "NOT_STATED" ? undefined : urgency;
 }
 
 function inferRepeatInterval(rule: RuleDefinition | undefined) {
@@ -307,13 +320,7 @@ export function evaluateClinicalSnapshot(
       ],
       provisionalRecommendation: outcome,
       riskLevel: controllingRule.safetyPriority,
-      urgency:
-        outcomeBranch?.urgency ??
-        inferUrgency({
-          ...controllingRule,
-          provisionalOutcome: outcome,
-          timingDestination: timing,
-        }),
+      urgency: outcomeBranch?.urgency ?? governedUrgency(timing),
       referralDestination: careSetting || undefined,
       repeatInterval: timing || inferRepeatInterval(controllingRule),
       missingInformation: [...missingInformation],
