@@ -70,6 +70,53 @@ function priorityRank(p: ReferralPriority): number {
   return { P1: 4, P2: 3, P3: 2, P4: 1 }[p] ?? 0;
 }
 
+/**
+ * Overlay entries that cannot apply under a given clinical authority.
+ *
+ * The overlay is keyed on the LEGACY `recommendationCode`. Under canonical
+ * authority the decision is identified by a CG-NCSP-3.1.0 `stableRuleId`
+ * instead, so every legacy-keyed entry would simply never match — and two
+ * admin-visible safety behaviours (a forced clinician review, and extra
+ * clinical warnings) would stop applying with no error anywhere.
+ *
+ * At the time of writing the overlay is NOT wired to anything: there is no
+ * persistence model, no API route, and no call site passes an overlay. This
+ * function exists so that if it is ever wired up, the mismatch is loud rather
+ * than silent. See docs/canonical-cutover/09-guideline-overlay-transition.md.
+ */
+export function findInapplicableOverlayEntries(args: {
+  overlay: GuidelineOverlay | undefined;
+  authorityEngine: "LEGACY" | "CANONICAL";
+}): string[] {
+  if (!args.overlay?.enabled) return [];
+  if (args.authorityEngine === "LEGACY") return [];
+  return Object.entries(args.overlay.entries)
+    .filter(([, entry]) => !entry.disabled)
+    .map(([code]) => code);
+}
+
+/**
+ * Guard for the canonical authority path.
+ *
+ * Refuses to proceed when an enabled, legacy-keyed overlay would be silently
+ * dropped. Silently losing a configured safety control is worse than an
+ * explicit failure, and far worse than an explicit removal.
+ */
+export function assertOverlayCompatibleWithAuthority(args: {
+  overlay: GuidelineOverlay | undefined;
+  authorityEngine: "LEGACY" | "CANONICAL";
+}): void {
+  const inapplicable = findInapplicableOverlayEntries(args);
+  if (inapplicable.length === 0) return;
+  throw new Error(
+    `The guideline overlay is keyed on legacy recommendation codes and cannot apply under canonical ` +
+      `clinical authority. ${inapplicable.length} enabled entr${inapplicable.length === 1 ? "y" : "ies"} ` +
+      `would be silently dropped: ${inapplicable.join(", ")}. Disable the overlay explicitly, or re-key it ` +
+      `to canonical stableRuleIds, before activating canonical authority. ` +
+      `See docs/canonical-cutover/09-guideline-overlay-transition.md.`
+  );
+}
+
 export function applyGuidelineOverlay(
   decision: ClinicalDecision,
   overlay?: GuidelineOverlay
