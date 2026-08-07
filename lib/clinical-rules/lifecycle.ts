@@ -360,15 +360,52 @@ export async function publishClinicalRuleVersion(args: {
   });
 }
 
-const activeVersionCache = new Map<string, { expiresAt: number; versionId: string }>();
-
-export function invalidateClinicalRuleVersionCache(ruleSetId?: string) {
-  if (!ruleSetId) activeVersionCache.clear();
-  else {
-    for (const key of activeVersionCache.keys()) {
-      if (key.startsWith(`${ruleSetId}:`)) activeVersionCache.delete(key);
-    }
+/**
+ * THE PRODUCTION CLINICAL AUTHORITY BLOCKER.
+ *
+ * Creating a PRODUCTION activation is the act that makes CG-NCSP-3.1.0
+ * clinically authoritative for real participants. It is refused here.
+ *
+ * This function is deliberately the *only* thing standing between the governed
+ * lifecycle and production activation, and it is deliberately trivial, so that
+ * the future enabling change is a single-purpose commit whose entire diff is
+ * this function — reviewable at a glance and pointed at by the approval record.
+ *
+ * Enabling it is NOT sufficient to change any clinical decision. Two further,
+ * independent conditions must also hold (see `authority.ts`):
+ *   - an ACTIVE PRODUCTION RuleSetActivation must exist, and
+ *   - CLINICAL_AUTHORITY_LIVE_PRODUCTION must be explicitly enabled.
+ *
+ * Removing this blocker requires the governance gates in
+ * docs/canonical-cutover/05-governance-and-security-gates.md.
+ */
+export function assertProductionActivationPermitted(
+  environment: RuleActivationEnvironment
+): void {
+  if (environment === "PRODUCTION") {
+    throw new Error(
+      "Production clinical authority activation is blocked. " +
+        "CG-NCSP-3.1.0 may not be made authoritative for real participants until the " +
+        "governance and security gates are signed. See docs/canonical-cutover/."
+    );
   }
+}
+
+/**
+ * Active-version resolution is NOT cached.
+ *
+ * A 30-second in-process cache previously sat here. On a multi-instance
+ * serverless deployment each instance held its own copy, so for up to 30 seconds
+ * after an activation — or, far worse, after a *rollback* — different instances
+ * applied different clinical authorities to different participants, and
+ * invalidation only ever cleared the instance that happened to serve the
+ * activation request.
+ *
+ * Retained as a no-op so existing callers keep compiling and so the intent is
+ * recorded rather than silently dropped.
+ */
+export function invalidateClinicalRuleVersionCache(_ruleSetId?: string) {
+  // Intentionally empty: there is no cache to invalidate.
 }
 
 export async function activateClinicalRuleVersion(args: {
@@ -381,9 +418,7 @@ export async function activateClinicalRuleVersion(args: {
   metadata?: AuditMetadata;
 }) {
   if (!args.reason.trim()) throw new Error("An activation or rollback reason is required.");
-  if (args.environment === "PRODUCTION") {
-    throw new Error("This proof-of-concept may not activate a production ruleset environment.");
-  }
+  assertProductionActivationPermitted(args.environment);
 
   const result = await prisma.$transaction(async (tx) => {
     const target = await tx.clinicalRuleVersion.findUnique({ where: { id: args.id } });
@@ -483,11 +518,6 @@ export async function resolveActiveClinicalRuleVersion(args: {
     where: { key: args.ruleSetKey ?? NATIONAL_RULE_SET_KEY },
   });
   if (!ruleSet) return null;
-  const cacheKey = `${ruleSet.id}:${args.organisationKey ?? "GLOBAL"}:${environment}`;
-  const cached = activeVersionCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return getClinicalRuleVersion(cached.versionId);
-  }
 
   const activation = await prisma.ruleSetActivation.findFirst({
     where: {
@@ -507,10 +537,6 @@ export async function resolveActiveClinicalRuleVersion(args: {
     });
   }
   if (!activation) return null;
-  activeVersionCache.set(cacheKey, {
-    versionId: activation.ruleVersionId,
-    expiresAt: Date.now() + 30_000,
-  });
   return getClinicalRuleVersion(activation.ruleVersionId);
 }
 
