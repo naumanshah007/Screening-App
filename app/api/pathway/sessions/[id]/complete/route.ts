@@ -20,15 +20,10 @@ import {
 } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
 import { answersToInputFields, getVisibleAnswerMap } from "@/lib/wizard/steps";
 import type { ClinicalInput } from "@/lib/engine/types";
 import { addMonths } from "date-fns";
-import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
-import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
-import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
-import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
-import { LEGACY_ENGINE_VERSION } from "@/lib/clinical-rules/authority";
+import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
 
 // Priority → target working days mapping
 const PRIORITY_DAYS: Record<string, number> = {
@@ -125,50 +120,41 @@ export async function POST(
     unsatisfactoryCytologyCount: baseUnsatisfactoryCytologyCount,
   };
 
-  // ── Evaluate decision ─────────────────────────────────────────────────────
-  const decision = evaluateClinicalDecision(clinicalInput);
-  const shadowVersion = await resolveShadowClinicalRuleVersion();
-  const canonicalWizardInput = { ...clinicalInput } as Record<string, unknown>;
-  // A suspected OCP contribution or an identified STI does not prove that a
-  // clinician adjusted treatment. Those completion facts remain absent until
-  // explicitly documented.
-  delete canonicalWizardInput.oralContraceptiveAdjusted;
-  delete canonicalWizardInput.stiTreated;
-  const canonicalFactsV2 = canonicalClinicalFactsV2FromFlatFacts({
+  // ── Evaluate decision via the governed authority path ─────────────────────
+  // legacy router → authority resolver → engine → adapter → provenance.
+  // The resolver answers LEGACY today, so `graded.decision` IS the legacy
+  // decision and the canonical evaluation is written as SHADOW alongside it.
+  const graded = await evaluateGradedDecision({
+    input: clinicalInput,
     subjectReference: patient.id,
-    facts: normalizeClinicalFactMap({
-      ...canonicalWizardInput,
-      // Produced by the legacy router, not entered by the clinician. Its
-      // provenance is forced to DERIVED_ROUTER by ROUTER_DERIVED_FACTS.
-      currentPathway: decision.figure,
-    }),
-    source: "REVIEWER_ENTRY",
     enteredBy: actorUserId,
-    routerEngine: LEGACY_ENGINE_VERSION,
+    caseId: undefined,
+    factSource: "REVIEWER_ENTRY",
   });
-  const versionedShadow = shadowVersion
-    ? await evaluateClinicalCase({
-        canonicalFactsV2,
-        ruleVersionId: shadowVersion.id,
-        evaluationMode: "SHADOW",
-        legacyInput: clinicalInput,
-      }).catch(async (error) => {
-        await prisma.auditLog.create({
-          data: {
-            userId: actorUserId,
-            action: "CLINICAL_RULE_SHADOW_FAILED",
-            entity: "WizardSession",
-            entityId: id,
-            severity: "ERROR",
-            newValue: JSON.stringify({
-              ruleVersionId: shadowVersion.id,
-              message: error instanceof Error ? error.message : String(error),
-            }),
-          },
-        });
-        return null;
-      })
+
+  const decision = graded.decision;
+  const versionedShadow = graded.evaluationId
+    ? { evaluationId: graded.evaluationId }
     : null;
+
+  // Invariant: while the authority gate is off, the operative decision must be
+  // byte-identical to the legacy engine's. If it ever is not, that is a defect,
+  // and the legacy decision stands.
+  if (graded.authority.authorityEngine !== "LEGACY") {
+    await prisma.auditLog.create({
+      data: {
+        userId: actorUserId,
+        action: "CLINICAL_AUTHORITY_UNEXPECTED",
+        entity: "WizardSession",
+        entityId: id,
+        severity: "ERROR",
+        newValue: JSON.stringify({
+          authorityEngine: graded.authority.authorityEngine,
+          reason: graded.authorityReason,
+        }),
+      },
+    }).catch(() => undefined);
+  }
 
   // ── Create a fresh ScreeningSession for this wizard completion ───────────
   // Each wizard run produces its own clinical record (counters carry forward from

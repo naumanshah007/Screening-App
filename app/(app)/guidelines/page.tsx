@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { BookOpen, Search } from "lucide-react";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { FlowDiagram } from "@/components/clinical/FlowDiagram";
@@ -76,10 +77,26 @@ function PriorityPill({ priority }: { priority: string }) {
   );
 }
 
+// Each tab names the rules system it documents. Three different rule stacks are
+// represented here, and conflating them is a real governance hazard: the
+// colposcopy/gynaecology tabs describe operational referral-booking rules
+// (RuleSetRelease), NOT the governed canonical screening ruleset.
 const TABS = [
-  { id: "colposcopy" as const, label: "Colposcopy triage" },
-  { id: "gynaecology" as const, label: "Gynaecology grading" },
-  { id: "pathways" as const, label: "Cervical pathways" },
+  {
+    id: "colposcopy" as const,
+    label: "Colposcopy triage",
+    system: "Operational referral grading · Case Rule Release",
+  },
+  {
+    id: "gynaecology" as const,
+    label: "Gynaecology grading",
+    system: "Operational referral grading · Case Rule Release",
+  },
+  {
+    id: "pathways" as const,
+    label: "Cervical pathways",
+    system: "Legacy pathway router reference",
+  },
 ];
 
 export default function GuidelinesPage() {
@@ -123,7 +140,7 @@ function GuidelinesPageInner() {
         <PageIntro
           eyebrow="Reference"
           title="Clinical Guidance Library"
-          description="Colposcopy and gynaecology grading guides alongside cervical pathway references. Simplified visual references are under validation; use rule trace and validation log for clinical parity review."
+          description="Reference content for three separate rules systems. Colposcopy and gynaecology grading describe operational referral-booking rules; cervical pathways describe the legacy pathway router. None of these pages is the governed canonical ruleset CG-NCSP-3.1.0 — see Rule Governance for that."
           trailing={
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
               <BookOpen className="h-3.5 w-3.5 text-accent-color" aria-hidden />
@@ -151,6 +168,21 @@ function GuidelinesPageInner() {
             </button>
           ))}
         </div>
+        {/* Which rules system the visible tab actually documents. */}
+        <p className="mt-2 pb-3 text-xs text-muted-foreground">
+          Showing:{" "}
+          <span className="font-medium text-foreground">
+            {TABS.find((t) => t.id === tab)?.system}
+          </span>
+          {" · "}
+          Governed canonical ruleset{" "}
+          <span className="font-mono text-foreground">CG-NCSP-3.1.0</span> is{" "}
+          <span className="font-medium text-foreground">DRAFT · shadow/simulation only</span> and is
+          not represented on this page.{" "}
+          <Link href="/rules/clinical" className="underline hover:text-foreground">
+            Open Rule Studio
+          </Link>
+        </p>
       </div>
 
       {/* Colposcopy */}

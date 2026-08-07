@@ -250,6 +250,8 @@ export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCa
             provisionalRecommendation: item.ruleEvaluation.provisionalRecommendation,
             reviewerRequirement: item.ruleEvaluation.reviewerRequirement,
             clinicianOnly: item.ruleEvaluation.clinicianOnly,
+            repeatInterval: item.ruleEvaluation.repeatInterval,
+            evaluatedAt: item.ruleEvaluation.evaluatedAt.toISOString(),
             matchedRuleIds: JSON.parse(item.ruleEvaluation.matchedRuleIds),
             branchPath: JSON.parse(item.ruleEvaluation.branchPath),
             missingInformation: JSON.parse(item.ruleEvaluation.missingInformation),

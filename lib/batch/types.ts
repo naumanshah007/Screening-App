@@ -218,6 +218,9 @@ export interface BatchCaseResult {
     provisionalRecommendation: string;
     reviewerRequirement: string;
     clinicianOnly: boolean;
+    /** Governed timing text, e.g. "12 months". Classified for display, never parsed. */
+    repeatInterval?: string | null;
+    evaluatedAt?: string | null;
     matchedRuleIds: string[];
     branchPath: string[];
     missingInformation: string[];

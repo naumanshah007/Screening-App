@@ -3,6 +3,7 @@
 import { SlideOver } from "@/components/ui/slide-over";
 import { Badge, RiskBadge } from "@/components/ui/badge";
 import { CanonicalShadowEvidence } from "@/components/batch/CanonicalShadowEvidence";
+import { AuthorityComparison } from "@/components/clinical-rules/AuthorityComparison";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowUpRight, GitBranch, FileText, Database,
@@ -218,6 +219,36 @@ export function BatchResultDetail({
             </Badge>
           </div>
         </div>
+
+        {/* ── Clinical authority: which engine decided, and what canonical
+             would have said. Legacy is authoritative; canonical is shadow. ── */}
+        <AuthorityComparison
+          legacy={{
+            recommendation: decision?.recommendation ?? "No recommendation recorded",
+            recommendationCode: decision?.recommendationCode,
+            figure: decision?.figure,
+            riskLevel: decision?.riskLevel,
+            referralPriority: decision?.referralPriority ?? null,
+            recallIntervalMonths: decision?.recallIntervalMonths ?? null,
+          }}
+          shadow={
+            result.canonicalShadow
+              ? {
+                  ruleVersionDisplay: result.canonicalShadow.ruleVersionDisplay,
+                  rulesetChecksum: result.canonicalShadow.rulesetChecksum,
+                  evaluationMode: result.canonicalShadow.evaluationMode,
+                  evaluationId: result.canonicalShadow.evaluationId,
+                  provisionalRecommendation: result.canonicalShadow.provisionalRecommendation,
+                  matchedRuleIds: result.canonicalShadow.matchedRuleIds,
+                  reviewerRequirement: result.canonicalShadow.reviewerRequirement,
+                  clinicianOnly: result.canonicalShadow.clinicianOnly,
+                  repeatInterval: result.canonicalShadow.repeatInterval ?? null,
+                  evaluatedAt: result.canonicalShadow.evaluatedAt ?? null,
+                }
+              : null
+          }
+          canonicalStatus="DRAFT"
+        />
 
         {/* ── 1. Source Record ─────────────────────────────────────────────── */}
         <Section title="Source Record" icon={<Database className="h-3.5 w-3.5" />}>
