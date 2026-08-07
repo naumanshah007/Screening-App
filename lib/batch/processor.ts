@@ -173,11 +173,14 @@ export function processBatch(
           batchCase.nhi ?? batchCase.source.externalPatientId ?? batchCase.caseId,
         facts: normalizeClinicalFactMap({
           ...shadowInput,
+          // Produced by the legacy router, not by the source system. Its
+          // provenance is forced to DERIVED_ROUTER by ROUTER_DERIVED_FACTS.
           currentPathway: decision.figure,
         }),
         source: "PRIOR_RECORD",
         enteredBy: `batch-${batchCase.source.mappingVersion}`,
         recordedAt: batchCase.source.importedAt,
+        routerEngine: ENGINE_VERSION,
       });
       results.push({
         case: batchCase,

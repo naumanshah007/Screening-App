@@ -25,6 +25,13 @@ export const CanonicalFactSourceSchema = z.enum([
   "PRIOR_RECORD",
   "REVIEWER_ENTRY",
   "SYNTHETIC_DEMO",
+  // Computed by the legacy routing engine rather than observed or entered by a
+  // person. `currentPathway` is the canonical example: CG-NCSP-3.1.0 has no
+  // router, so the pathway it evaluates within is produced by
+  // evaluateClinicalDecision(). Labelling that REVIEWER_ENTRY or PRIOR_RECORD
+  // would assert in an immutable record that a clinician supplied a value that
+  // software derived.
+  "DERIVED_ROUTER",
 ]);
 export type CanonicalFactSource = z.infer<typeof CanonicalFactSourceSchema>;
 
@@ -239,12 +246,27 @@ export function snapshotFactNames(snapshot: ClinicalRuleSnapshot) {
   return names;
 }
 
+/**
+ * Facts that are always computed by the legacy routing engine, never observed or
+ * entered. Their provenance is forced to `DERIVED_ROUTER` regardless of the
+ * caller's default source, so no call site can accidentally assert that a
+ * clinician supplied a routed value.
+ *
+ * `currentPathway` is required by essentially every CG-NCSP-3.1.0 rule and is
+ * produced by `evaluateClinicalDecision().figure`.
+ */
+export const ROUTER_DERIVED_FACTS: ReadonlySet<string> = new Set(["currentPathway"]);
+
 export function canonicalClinicalFactsV2FromFlatFacts(args: {
   subjectReference: string;
   facts: Record<string, unknown>;
   source?: CanonicalFactSource;
   enteredBy?: string;
   recordedAt?: string;
+  /** Per-fact provenance overrides, applied on top of `source`. */
+  factSources?: Record<string, CanonicalFactSource>;
+  /** Identifies the router that produced `ROUTER_DERIVED_FACTS`, e.g. "business-figures-table1-v1". */
+  routerEngine?: string;
 }): CanonicalClinicalFactsV2 {
   const recordedAt = args.recordedAt ?? new Date().toISOString();
   const facts: Record<string, CanonicalFactV2> = {};
@@ -257,12 +279,18 @@ export function canonicalClinicalFactsV2FromFlatFacts(args: {
     ) {
       continue;
     }
+    const routerDerived = ROUTER_DERIVED_FACTS.has(key);
     facts[key] = {
       value: value as string | number | boolean | Array<string | number | boolean>,
       status: "KNOWN",
-      source: args.source ?? "SYNTHETIC_DEMO",
+      source: routerDerived
+        ? "DERIVED_ROUTER"
+        : args.factSources?.[key] ?? args.source ?? "SYNTHETIC_DEMO",
       recordedAt,
-      enteredBy: args.enteredBy ?? "canonical-v2-adapter",
+      // A router-derived fact records the router identity, not a person.
+      enteredBy: routerDerived
+        ? args.routerEngine ?? "legacy-router"
+        : args.enteredBy ?? "canonical-v2-adapter",
       verificationStatus: "UNVERIFIED",
       corrections: [],
     };

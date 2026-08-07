@@ -28,6 +28,7 @@ import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
 import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
+import { LEGACY_ENGINE_VERSION } from "@/lib/clinical-rules/authority";
 
 // Priority → target working days mapping
 const PRIORITY_DAYS: Record<string, number> = {
@@ -137,10 +138,13 @@ export async function POST(
     subjectReference: patient.id,
     facts: normalizeClinicalFactMap({
       ...canonicalWizardInput,
+      // Produced by the legacy router, not entered by the clinician. Its
+      // provenance is forced to DERIVED_ROUTER by ROUTER_DERIVED_FACTS.
       currentPathway: decision.figure,
     }),
     source: "REVIEWER_ENTRY",
     enteredBy: actorUserId,
+    routerEngine: LEGACY_ENGINE_VERSION,
   });
   const versionedShadow = shadowVersion
     ? await evaluateClinicalCase({
