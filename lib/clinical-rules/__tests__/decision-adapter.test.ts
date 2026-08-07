@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import type { ClinicalDecision } from "../../engine/types";
 import type { ClinicalEvaluationResult } from "../evaluator";
 import { canonicalToClinicalDecision, findDeEscalations } from "../decision-adapter";
-import { buildSuccessorSnapshotFromV21Package } from "../successor-v3-1";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 import { classifyTiming, isAutomaticallySchedulable } from "../governed-vocabulary";
 
 function legacy(overrides: Partial<ClinicalDecision> = {}): ClinicalDecision {
@@ -240,7 +240,7 @@ test("provenance carries the canonical version and checksum prefix", () => {
 // ── Whole-snapshot property ─────────────────────────────────────────────────
 
 test("no rule in the governed snapshot can produce a recall date it did not state", async () => {
-  const { snapshot } = await buildSuccessorSnapshotFromV21Package();
+  const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   for (const rule of snapshot.rules) {
     const { decision } = canonicalToClinicalDecision({
       canonical: canonical({
@@ -261,7 +261,7 @@ test("no rule in the governed snapshot can produce a recall date it did not stat
 });
 
 test("no rule in the governed snapshot de-escalates a high-risk legacy decision", async () => {
-  const { snapshot } = await buildSuccessorSnapshotFromV21Package();
+  const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   const legacyHigh = legacy({
     riskLevel: "URGENT",
     referralRequired: true,

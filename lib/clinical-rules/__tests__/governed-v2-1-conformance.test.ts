@@ -15,10 +15,10 @@ import {
   evaluateClinicalSnapshot,
   evaluateConditionExpression,
 } from "../evaluator";
-import { buildSnapshotFromV21Package } from "../source-package";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 import { validateClinicalRuleSnapshot } from "../validation";
 
-const builtPromise = buildSnapshotFromV21Package();
+const builtPromise = Promise.resolve({ snapshot: loadGovernedSnapshot("cg-ncsp-3.0.0") });
 
 test("governed compilation covers all 203 v2.1 rules exactly once", async () => {
   const { snapshot } = await builtPromise;

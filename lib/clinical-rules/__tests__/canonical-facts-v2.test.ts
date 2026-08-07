@@ -9,14 +9,14 @@ import {
   canonicalClinicalFactsV2ToFactMap,
 } from "../canonical-facts-v2";
 import { evaluateCanonicalClinicalFactsV2 } from "../evaluator";
-import { buildSuccessorSnapshotFromV21Package } from "../successor-v3-1";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 import {
   canonicalV2Corpus,
   legacyInputGapCaseIds,
 } from "./support/canonical-v2-corpus";
 
 test("CanonicalClinicalFactsV2 preserves explicit status and provenance", async () => {
-  const { snapshot } = await buildSuccessorSnapshotFromV21Package();
+  const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   const input = CanonicalClinicalFactsV2Schema.parse({
     schemaId: CANONICAL_CLINICAL_FACTS_V2_SCHEMA_ID,
     subjectReference: "SYNTHETIC-STATUS",
@@ -49,7 +49,7 @@ test("CanonicalClinicalFactsV2 preserves explicit status and provenance", async 
 });
 
 test("unknown facts never become false and conflicting facts force review", async () => {
-  const { snapshot } = await buildSuccessorSnapshotFromV21Package();
+  const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   const input = CanonicalClinicalFactsV2Schema.parse({
     schemaId: CANONICAL_CLINICAL_FACTS_V2_SCHEMA_ID,
     subjectReference: "SYNTHETIC-CONFLICT",

@@ -6,9 +6,9 @@ import type { ClinicalInput } from "@/lib/engine/types";
 
 import { evaluateClinicalSnapshot } from "../evaluator";
 import { normalizeClinicalFactMap } from "../facts";
-import { buildSnapshotFromV21Package } from "../source-package";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 
-const snapshotPromise = buildSnapshotFromV21Package().then((built) => built.snapshot);
+const snapshotPromise = Promise.resolve(loadGovernedSnapshot("cg-ncsp-3.0.0"));
 
 function legacyInput(overrides: Partial<ClinicalInput>): ClinicalInput {
   return {

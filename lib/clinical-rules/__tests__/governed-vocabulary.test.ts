@@ -9,7 +9,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildSuccessorSnapshotFromV21Package } from "../successor-v3-1";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 import {
   BRANCH_URGENCY_VOCABULARY,
   CARE_SETTING_VOCABULARY,
@@ -25,7 +25,7 @@ import {
 } from "../governed-vocabulary";
 
 async function snapshotLiterals() {
-  const { snapshot } = await buildSuccessorSnapshotFromV21Package();
+  const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   const timing = new Set<string>();
   const care = new Set<string>();
   const urgency = new Set<string>();

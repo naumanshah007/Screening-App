@@ -9,7 +9,7 @@ import {
   ClinicalRuleSnapshotSchema,
   type ConditionExpression,
 } from "../schema";
-import { buildSuccessorSnapshotFromV21Package } from "../successor-v3-1";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 import { validateClinicalRuleSnapshot } from "../validation";
 
 test("condition evaluation rejects excessive recursion without executing source text", () => {
@@ -29,7 +29,7 @@ test("condition evaluation rejects excessive recursion without executing source 
 });
 
 test("snapshot schema enforces graph denial-of-service collection limits", async () => {
-  const { snapshot } = await buildSuccessorSnapshotFromV21Package();
+  const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   const oversized = {
     ...snapshot,
     views: Array.from({ length: 101 }, (_, index) => ({
@@ -43,7 +43,7 @@ test("snapshot schema enforces graph denial-of-service collection limits", async
 });
 
 test("unexpected graph cycles and duplicate stable IDs remain publication blockers", async () => {
-  const { snapshot } = await buildSuccessorSnapshotFromV21Package();
+  const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   const changed = structuredClone(snapshot);
   changed.rules[1]!.stableRuleId = changed.rules[0]!.stableRuleId;
   changed.edges.push({

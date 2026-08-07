@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { evaluateClinicalSnapshot } from "../evaluator";
-import { buildSnapshotFromV21Package } from "../source-package";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 
-const snapshotPromise = buildSnapshotFromV21Package().then((built) => built.snapshot);
+const snapshotPromise = Promise.resolve(loadGovernedSnapshot("cg-ncsp-3.0.0"));
 
 test("age 70-74 with any HPV detected is controlled by the exit-test colposcopy branch", async () => {
   const snapshot = await snapshotPromise;

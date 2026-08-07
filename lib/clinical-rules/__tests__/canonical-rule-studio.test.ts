@@ -5,13 +5,13 @@ import { calculateRuleSnapshotChecksum, deterministicJson } from "../checksum";
 import { diffClinicalRuleSnapshots } from "../diff";
 import { evaluateClinicalSnapshot } from "../evaluator";
 import { ClinicalRuleSnapshotSchema, type ClinicalRuleSnapshot } from "../schema";
-import { buildSnapshotFromV21Package } from "../source-package";
+import { loadGovernedSnapshot } from "../governed-snapshot-store";
 import { validateClinicalRuleSnapshot } from "../validation";
 
 let snapshotPromise: Promise<ClinicalRuleSnapshot> | undefined;
 
 function sourceSnapshot() {
-  snapshotPromise ??= buildSnapshotFromV21Package().then((built) => built.snapshot);
+  snapshotPromise ??= Promise.resolve(loadGovernedSnapshot("cg-ncsp-3.0.0"));
   return snapshotPromise;
 }
 
