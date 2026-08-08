@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { PageIntro } from "@/components/layout/PageIntro";
+import { PageShell, PageHeader, Panel, StepTimeline } from "@/components/system";
 import { BatchEngineTrustPanel } from "@/components/batch/BatchEngineTrustPanel";
 import { BatchUploader } from "@/components/batch/BatchUploader";
 import { SourceConnectors } from "@/components/batch/SourceConnectors";
@@ -14,7 +14,7 @@ import { BatchEquityCard } from "@/components/batch/BatchEquityCard";
 import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
 import { ManualCaseForm } from "@/components/batch/ManualCaseForm";
 import { IntegrationReadinessPanel } from "@/components/batch/IntegrationReadinessPanel";
-import { RotateCcw, CheckCircle2, ChevronRight, ClipboardCheck, Loader2, ChevronDown } from "lucide-react";
+import { RotateCcw, ClipboardCheck, Loader2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
@@ -465,51 +465,44 @@ export function BatchPageClient() {
   ] as const;
 
   return (
-    <div className="page-aura p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <PageIntro
+    <PageShell>
+      <PageHeader
         eyebrow="Pull Cases"
         title="Case Intake"
         description="Pull synthetic NZ-real cases from simulated hospital sources through Batch Decision Support, generate provisional guideline-aligned recommendations, then add them to the Review Queue for clinician confirmation."
         actions={
-          state.step !== "empty" && state.step !== "uploading"
-            ? [{ label: "Reset", onClick: reset, variant: "outline" as const, icon: <RotateCcw className="h-4 w-4" /> }]
-            : []
+          state.step !== "empty" && state.step !== "uploading" ? (
+            <Button variant="outline" size="sm" onClick={reset} icon={<RotateCcw className="h-4 w-4" />}>
+              Reset
+            </Button>
+          ) : undefined
         }
       />
 
-      {/* Pipeline flow indicator */}
-      <div className="flex items-center gap-1 flex-wrap">
-        {PIPELINE_STEPS.map((s, i) => {
-          const done    = i < pipelineStep || (i === 2 && state.step === "results");
-          const active  = i === pipelineStep && !(i === 2 && state.step === "results");
-          const isLast  = i === PIPELINE_STEPS.length - 1;
-          return (
-            <div key={s.label} className="flex items-center gap-1">
-              <div className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                done   && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-                active && "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-400 ring-1 ring-brand-400/40",
-                !done && !active && "text-muted-foreground"
-              )}>
-                {done
-                  ? <CheckCircle2 className="h-3 w-3" />
-                  : <span className={cn(
-                      "h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold border",
-                      active ? "border-brand-500 text-brand-600" : "border-muted-foreground/30 text-muted-foreground/50"
-                    )}>{i + 1}</span>
-                }
-                {s.label}
-              </div>
-              {!isLast && <ChevronRight className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />}
-            </div>
-          );
-        })}
-      </div>
+      {/* Pipeline progress. State comes from the actual page state machine —
+          a step is never marked complete ahead of the work it represents. */}
+      <Panel>
+        <StepTimeline
+          steps={PIPELINE_STEPS.map((s, i) => {
+            const done = i < pipelineStep || (i === 2 && state.step === "results");
+            const active = i === pipelineStep && !(i === 2 && state.step === "results");
+            return {
+              id: s.label,
+              label: s.label,
+              caption: s.desc,
+              state: done ? "complete" : active ? "current" : "upcoming",
+            };
+          })}
+        />
+      </Panel>
 
       <BatchEngineTrustPanel />
 
       {uploadError && (
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
           <strong>Upload error:</strong> {uploadError}
         </div>
       )}
@@ -520,10 +513,11 @@ export function BatchPageClient() {
           <SourceConnectors onLoaded={loadFromConnector} disabled={isUploading} />
 
           {/* Manual upload / test data — secondary, collapsed by default */}
-          <div className="rounded-xl border border-border bg-card">
+          <Panel padded={false}>
             <button
               onClick={() => setShowManual((v) => !v)}
-              className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+              aria-expanded={showManual}
+              className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span>Manual upload &amp; test data</span>
               <ChevronDown className={cn("h-4 w-4 transition-transform", showManual && "rotate-180")} />
@@ -538,7 +532,7 @@ export function BatchPageClient() {
                 />
               </div>
             )}
-          </div>
+          </Panel>
         </>
       )}
 
@@ -616,6 +610,6 @@ export function BatchPageClient() {
         }
         onSave={handleSaveManualCase}
       />
-    </div>
+    </PageShell>
   );
 }
