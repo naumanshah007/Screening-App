@@ -14,6 +14,7 @@
  */
 
 import { cn } from "@/lib/utils";
+import { StatusBadge, riskTone } from "@/components/system";
 import {
   classifyTiming,
   intervalToMonths,
@@ -121,66 +122,100 @@ export function AuthorityComparison({
     shadow.provisionalRecommendation.trim() !== legacy.recommendation.trim();
 
   return (
-    <div className={cn("space-y-3", className)}>
-      {/* ── Authoritative ─────────────────────────────────────────────────── */}
-      <div className="rounded-md border border-border bg-card p-3">
-        <div className="mb-1.5 flex items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className={cn("space-y-2.5", className)}>
+      {/* ── Authoritative ─────────────────────────────────────────────────────
+           Deliberately the heaviest block on the screen: solid surface, brand
+           rail, full-size type, raised elevation. The shadow block below is
+           built to read as strictly secondary at a glance, before any label is
+           read — see the styling note there. */}
+      <section className="overflow-hidden rounded-lg border border-border border-l-4 border-l-brand-600 bg-card shadow-card">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-brand-50/60 px-4 py-2 dark:bg-brand-950/30">
+          <StatusBadge tone="brand" size="sm" dot>
             Authoritative decision
-          </span>
-          <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+          </StatusBadge>
+          <StatusBadge tone="neutral" size="sm">
             Legacy engine
-          </span>
-        </div>
-        <p className="text-sm text-foreground">{legacy.recommendation}</p>
-        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {legacy.recommendationCode && (
-            <span>
-              Code <span className="font-mono text-foreground">{legacy.recommendationCode}</span>
-            </span>
-          )}
-          {legacy.figure && (
-            <span>
-              Pathway <span className="font-mono text-foreground">{legacy.figure}</span>
-            </span>
-          )}
-          {legacy.riskLevel && <span>Risk {legacy.riskLevel}</span>}
-          {legacy.referralPriority && <span>Priority {legacy.referralPriority}</span>}
-          {typeof legacy.recallIntervalMonths === "number" && (
-            <span>Recall {legacy.recallIntervalMonths} months</span>
+          </StatusBadge>
+          {legacy.riskLevel && (
+            <StatusBadge tone={riskTone(legacy.riskLevel)} size="sm" className="ml-auto">
+              Risk: {legacy.riskLevel}
+            </StatusBadge>
           )}
         </div>
-      </div>
 
-      {/* ── Canonical shadow ──────────────────────────────────────────────── */}
-      {shadow ? (
-        <div className="rounded-md border border-dashed border-border bg-muted/30 p-3">
-          <div className="mb-1.5 flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Canonical shadow — not authoritative
-            </span>
-            <span className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px]">
-              {shadow.ruleVersionDisplay}
-            </span>
-            {canonicalStatus && (
-              <span className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium">
-                {canonicalStatus}
-              </span>
+        <div className="px-4 py-3">
+          <p className="text-base font-semibold leading-snug text-foreground">
+            {legacy.recommendation}
+          </p>
+          <dl className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
+            {legacy.recommendationCode && (
+              <div className="flex gap-1.5">
+                <dt>Code</dt>
+                <dd className="font-mono font-medium text-foreground">
+                  {legacy.recommendationCode}
+                </dd>
+              </div>
             )}
-            <span className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium">
+            {legacy.figure && (
+              <div className="flex gap-1.5">
+                <dt>Pathway</dt>
+                <dd className="font-mono font-medium text-foreground">{legacy.figure}</dd>
+              </div>
+            )}
+            {legacy.referralPriority && (
+              <div className="flex gap-1.5">
+                <dt>Priority</dt>
+                <dd className="font-medium text-foreground">{legacy.referralPriority}</dd>
+              </div>
+            )}
+            {typeof legacy.recallIntervalMonths === "number" && (
+              <div className="flex gap-1.5">
+                <dt>Recall</dt>
+                <dd className="font-medium text-foreground">
+                  {legacy.recallIntervalMonths} months
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      </section>
+
+      {/* ── Canonical shadow ──────────────────────────────────────────────────
+           Held visually below the authoritative block on every axis that
+           signals weight: dashed border, recessed surface, no elevation, no
+           colour rail, smaller type. This is a clinical-safety requirement, not
+           a stylistic choice — the shadow must never be mistaken for the
+           operative decision, so do not raise it to parity when restyling. */}
+      {shadow ? (
+        <section className="rounded-lg border border-dashed border-border bg-muted/40 px-4 py-3">
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <StatusBadge tone="canonical" size="sm">
+              Canonical shadow — not authoritative
+            </StatusBadge>
+            <StatusBadge tone="neutral" size="sm" mono>
+              {shadow.ruleVersionDisplay}
+            </StatusBadge>
+            {canonicalStatus && (
+              <StatusBadge tone="neutral" size="sm">
+                {canonicalStatus}
+              </StatusBadge>
+            )}
+            <StatusBadge tone="neutral" size="sm" mono>
               {shadow.evaluationMode}
-            </span>
+            </StatusBadge>
             {/* Defensive: a live mode here would be a defect, and must be visible. */}
             {shadowIsOperative && (
-              <span className="rounded border border-destructive/40 bg-destructive/5 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
+              <StatusBadge tone="danger" size="sm">
                 Unexpected live mode
-              </span>
+              </StatusBadge>
             )}
           </div>
 
-          <p className="text-sm text-foreground">{shadow.provisionalRecommendation}</p>
+          <p className="text-sm leading-snug text-muted-foreground">
+            {shadow.provisionalRecommendation}
+          </p>
 
-          <div className="mt-1.5 space-y-1">
+          <div className="mt-2 space-y-1">
             <TimingLine repeatInterval={shadow.repeatInterval} />
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span>
@@ -200,7 +235,7 @@ export function AuthorityComparison({
               <span>Reviewer {shadow.reviewerRequirement}</span>
               {shadow.clinicianOnly && <span>Clinician only</span>}
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-muted-foreground">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[0.625rem] text-muted-foreground">
               <span>checksum {shadow.rulesetChecksum.slice(0, 12)}</span>
               {shadow.evaluationId && <span>eval {shadow.evaluationId}</span>}
               {shadow.evaluatedAt && <span>{shadow.evaluatedAt}</span>}
@@ -208,17 +243,17 @@ export function AuthorityComparison({
           </div>
 
           {differs && (
-            <div className="mt-2 rounded border border-border bg-card px-2 py-1 text-xs text-muted-foreground">
+            <p className="mt-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Shadow difference detected.</span>{" "}
               The canonical ruleset would state a different recommendation. This does not change
               the authoritative decision; reviewer confirmation is still required.
-            </div>
+            </p>
           )}
-        </div>
+        </section>
       ) : (
-        <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
           No canonical shadow evaluation was recorded for this decision.
-        </div>
+        </p>
       )}
     </div>
   );
