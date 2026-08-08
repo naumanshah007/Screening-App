@@ -7,7 +7,16 @@ import { canPerformClinicalRuleAction } from "@/lib/clinical-rules/governance";
 import { getClinicalRuleVersionSnapshot } from "@/lib/clinical-rules/lifecycle";
 import { diffClinicalRuleSnapshots } from "@/lib/clinical-rules/diff";
 import { prisma } from "@/lib/prisma";
-import { PageIntro } from "@/components/layout/PageIntro";
+import {
+  PageShell,
+  PageHeader,
+  HeaderMeta,
+  Panel,
+  PanelInset,
+  StatusBadge,
+  Timeline,
+  type BadgeTone,
+} from "@/components/system";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/tabs";
@@ -21,6 +30,13 @@ import { formatDateTime } from "@/lib/utils";
 
 // Governed rule versions change through the lifecycle, not at build time.
 export const dynamic = "force-dynamic";
+
+function statusTone(status: string): BadgeTone {
+  if (status === "ACTIVE") return "success";
+  if (status === "DRAFT" || status === "VALIDATING") return "warn";
+  if (status === "VALIDATED" || status === "PUBLISHED") return "info";
+  return "neutral";
+}
 
 
 export default async function ClinicalRuleVersionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -88,19 +104,41 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
     !evaluatedSnapshotLocked;
 
   return (
-    <div className="space-y-6 p-6 animate-fade-in">
-      <div className="page-aura">
-        <PageIntro eyebrow="Versioned Clinical Rule Studio" title={version.displayVersion} description={version.changeSummary ?? version.ruleSet.name} actions={[{ href: "/rules/clinical", label: "All versions" }]} />
-      </div>
+    <PageShell width="wide">
+      <PageHeader
+        eyebrow="Versioned Clinical Rule Studio"
+        title={version.displayVersion}
+        description={version.changeSummary ?? version.ruleSet.name}
+        actions={
+          <Link
+            href="/rules/clinical"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            All versions
+          </Link>
+        }
+        meta={
+          <>
+            <HeaderMeta label="Revision" value={version.revision} />
+            <HeaderMeta label="Parent" value={version.parentVersion?.displayVersion ?? "Initial source import"} />
+            <HeaderMeta label="Created" value={formatDateTime(version.createdAt)} />
+            <HeaderMeta label="Evaluations" value={version._count.evaluations} />
+          </>
+        }
+      />
 
-      <Card>
-        <CardContent className="space-y-4 p-5">
+      <Panel>
+        <div className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex flex-wrap gap-2">
-              <Badge variant={version.status === "ACTIVE" ? "low" : version.status === "DRAFT" ? "high" : "info"}>{version.status}</Badge>
-              <Badge variant="default">{version.changeClassification.replace(/_/g, " ")}</Badge>
-              <Badge variant="default">source v{version.sourcePackageVersion ?? "—"}</Badge>
-              {validation && <Badge variant={validation.valid ? "low" : "urgent"}>{validation.valid ? "Validated" : `${validation.counts.errors} blockers`}</Badge>}
+              <StatusBadge tone={statusTone(version.status)} dot>{version.status}</StatusBadge>
+              <StatusBadge tone="neutral">{version.changeClassification.replace(/_/g, " ")}</StatusBadge>
+              <StatusBadge tone="neutral">source v{version.sourcePackageVersion ?? "—"}</StatusBadge>
+              {validation && (
+                <StatusBadge tone={validation.valid ? "success" : "danger"}>
+                  {validation.valid ? "Validated" : `${validation.counts.errors} blockers`}
+                </StatusBadge>
+              )}
             </div>
             <ClinicalRuleVersionActions
               id={version.id}
@@ -115,15 +153,14 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
               canExport={canPerformClinicalRuleAction(user?.role, "export")}
             />
           </div>
-          <div className="grid gap-3 text-xs text-muted-foreground md:grid-cols-4">
-            <div><span className="font-semibold text-foreground">Revision</span><br />{version.revision}</div>
-            <div><span className="font-semibold text-foreground">Parent</span><br />{version.parentVersion?.displayVersion ?? "Initial source import"}</div>
-            <div><span className="font-semibold text-foreground">Created</span><br />{formatDateTime(version.createdAt)}</div>
-            <div><span className="font-semibold text-foreground">Evaluations</span><br />{version._count.evaluations}</div>
-          </div>
-          <div className="break-all rounded-lg border border-border bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">SHA-256 {version.checksum}</div>
-        </CardContent>
-      </Card>
+          <PanelInset>
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">
+              Snapshot checksum
+            </p>
+            <p className="mt-1 break-all font-mono text-[0.6875rem] text-foreground">SHA-256 {version.checksum}</p>
+          </PanelInset>
+        </div>
+      </Panel>
 
       {evaluatedSnapshotLocked && (
         <div role="status" className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -185,11 +222,23 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
 
         <TabPanel id="diff" className="p-6"><ClinicalRuleDiffPanel currentVersionId={version.id} currentVersionDisplay={version.displayVersion} versions={comparisonVersions} initialComparison={initialComparison} /></TabPanel>
 
-        <TabPanel id="audit" className="p-6"><div className="space-y-3">{auditEvents.map((event) => <Card key={event.id}><CardContent className="flex items-start gap-4 p-4"><History className="mt-0.5 h-4 w-4 text-brand-600" /><div><div className="font-semibold">{event.eventType}</div><p className="mt-1 text-xs text-muted-foreground">{event.actorUser?.name ?? event.actorUser?.email ?? "System"} · {formatDateTime(event.createdAt)}</p>{event.reason && <p className="mt-2 text-sm">{event.reason}</p>}</div></CardContent></Card>)}</div></TabPanel>
+        <TabPanel id="audit" className="p-6">
+          <Timeline
+            events={auditEvents.map((event) => ({
+              id: event.id,
+              title: event.eventType,
+              timestamp: formatDateTime(event.createdAt),
+              actor: event.actorUser?.name ?? event.actorUser?.email ?? "System",
+              description: event.reason ?? undefined,
+              icon: <History className="h-3 w-3" />,
+              tone: "brand" as const,
+            }))}
+          />
+        </TabPanel>
       </Tabs>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><Link href="/rules/clinical" className="font-semibold text-brand-700 hover:underline">← Version list</Link><span>Not for direct clinical action · Demo environment · Simulated export package</span></div>
-    </div>
+    </PageShell>
   );
 }
 
