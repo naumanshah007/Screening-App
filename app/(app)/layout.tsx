@@ -6,6 +6,11 @@ import { getReviewQueueCounts } from "@/lib/batch/persistence";
 import { getClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
 import { redirect } from "next/navigation";
 
+// The clinical authority indicator must never be served from a build-time
+// render: it reports which engine is authoritative right now, and a stale
+// value here would misstate that on every page.
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");

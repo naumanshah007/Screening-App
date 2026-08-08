@@ -19,6 +19,10 @@ import { ClinicalGovernanceReviewWorkspace } from "@/components/clinical-rules/C
 import { CLINICAL_GOVERNANCE_CASES } from "@/lib/clinical-rules/governance-review";
 import { formatDateTime } from "@/lib/utils";
 
+// Governed rule versions change through the lifecycle, not at build time.
+export const dynamic = "force-dynamic";
+
+
 export default async function ClinicalRuleVersionPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   const user = session?.user as { role?: string } | undefined;

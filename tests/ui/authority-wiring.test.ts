@@ -165,3 +165,21 @@ test("the authority display resolver fails safe to LEGACY", () => {
   assert.ok(display.includes("LEGACY_ONLY"));
   assert.ok(display.includes("catch"), "a display query must never break a clinical page");
 });
+
+// ── 7. Authority-bearing pages must never be served from a build-time render ─
+
+test("pages that report clinical authority are force-dynamic", () => {
+  // A statically rendered authority indicator would report whatever was true at
+  // build time. On the Preview this made Rule Studio appear empty even after the
+  // governed ruleset had been imported.
+  for (const path of [
+    "app/(app)/layout.tsx",
+    "app/(app)/rules/clinical/page.tsx",
+    "app/(app)/rules/clinical/[id]/page.tsx",
+  ]) {
+    assert.ok(
+      read(path).includes('export const dynamic = "force-dynamic"'),
+      `${path} must not be statically rendered: it reports live clinical authority state`
+    );
+  }
+});

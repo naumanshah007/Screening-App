@@ -12,6 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { formatDateTime } from "@/lib/utils";
 
+// Governed rule versions change through the lifecycle, not at build time.
+export const dynamic = "force-dynamic";
+
+
 function statusVariant(status: string): "low" | "high" | "urgent" | "info" | "default" {
   if (status === "ACTIVE") return "low";
   if (status === "VALIDATED" || status === "PUBLISHED") return "info";
