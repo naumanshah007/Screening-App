@@ -7,6 +7,7 @@ import {
   NATIONAL_RULE_SET_KEY,
 } from "./constants";
 import { ClinicalRuleSnapshotSchema } from "./schema";
+import { resolveImportSnapshot } from "./import-source";
 import {
   buildSuccessorSnapshotFromV21Package,
   SUCCESSOR_PRODUCT_VERSION,
@@ -34,7 +35,11 @@ export async function importNcspRulebookV21(args: {
   sourceDirectory?: string;
   actorUserId?: string;
 } = {}): Promise<RulebookImportResult> {
-  const built = await buildSnapshotFromV21Package(args.sourceDirectory);
+  const built = await resolveImportSnapshot({
+    name: "cg-ncsp-3.0.0",
+    explicitSourceDirectory: args.sourceDirectory,
+    buildFromSource: () => buildSnapshotFromV21Package(args.sourceDirectory),
+  });
   const snapshot = ClinicalRuleSnapshotSchema.parse(built.snapshot);
   const checksum = calculateRuleSnapshotChecksum(snapshot);
   const snapshotJson = deterministicJson(snapshot);
@@ -204,7 +209,11 @@ export async function importNcspRulebookV21Successor(args: {
   actorUserId?: string;
   reason?: string;
 } = {}): Promise<RulebookImportResult> {
-  const built = await buildSuccessorSnapshotFromV21Package(args.sourceDirectory);
+  const built = await resolveImportSnapshot({
+    name: "cg-ncsp-3.1.0",
+    explicitSourceDirectory: args.sourceDirectory,
+    buildFromSource: () => buildSuccessorSnapshotFromV21Package(args.sourceDirectory),
+  });
   const snapshot = ClinicalRuleSnapshotSchema.parse(built.snapshot);
   const checksum = calculateRuleSnapshotChecksum(snapshot);
   const snapshotJson = deterministicJson(snapshot);
