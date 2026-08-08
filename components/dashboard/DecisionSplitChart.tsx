@@ -62,8 +62,8 @@ export function DecisionSplitChart({ split }: { split: DecisionSplit }) {
             <Tooltip
               contentStyle={{
                 borderRadius: 8,
-                border: "1px solid var(--color-border)",
-                background: "var(--color-card)",
+                border: "1px solid var(--border)",
+                background: "var(--card)",
                 fontSize: 12,
               }}
             />

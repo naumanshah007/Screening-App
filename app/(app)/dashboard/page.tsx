@@ -13,13 +13,21 @@ import {
 import { auth } from "@/lib/auth";
 import { isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
+import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getCommandCentreMetrics } from "@/lib/decisions/dashboard-metrics";
 import { getDashboardInsights } from "@/lib/decisions/dashboard-insights";
 import { getClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
 
-import { DashboardTopBar } from "@/components/dashboard/DashboardTopBar";
-import { DashboardKpiCard } from "@/components/dashboard/DashboardKpiCard";
+import {
+  PageShell,
+  PageHeader,
+  Panel,
+  MetricTile,
+  MetricGrid,
+  RangeControl,
+} from "@/components/system";
+
 import { WorkflowFunnel } from "@/components/dashboard/WorkflowFunnel";
 import { QueueTrendChart } from "@/components/dashboard/QueueTrendChart";
 import { DecisionSplitChart } from "@/components/dashboard/DecisionSplitChart";
@@ -57,34 +65,14 @@ function formatDuration(minutes: number | null) {
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
 
-function Panel({
-  title,
-  description,
-  children,
-  action,
-  className,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-  className?: string;
-}) {
+function PanelLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <section
-      className={`rounded-xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(15,30,50,0.04)] ${className ?? ""}`}
+    <Link
+      href={href}
+      className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300"
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-          {description && (
-            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{description}</p>
-          )}
-        </div>
-        {action}
-      </div>
       {children}
-    </section>
+    </Link>
   );
 }
 
@@ -111,10 +99,9 @@ export default async function DashboardPage({
   ]);
 
   const { policy } = metrics;
-  const scopeLabel =
-    policy.completedScope === "own" ? "Your decisions" : "Organisation";
+  const scopeLabel = policy.completedScope === "own" ? "Your decisions" : "Organisation";
 
-  const actions = [
+  const quickActions = [
     { label: "Pull Cases", href: "/batch", icon: <UploadCloud className="h-4 w-4" /> },
     { label: "Open Review Queue", href: "/review", icon: <Inbox className="h-4 w-4" /> },
     { label: "Completed Decisions", href: "/decisions", icon: <FileCheck2 className="h-4 w-4" /> },
@@ -125,56 +112,57 @@ export default async function DashboardPage({
   const trend = insights.queueTrend;
   const hasSeries = trend.length >= 2;
 
+  const header = (
+    <PageHeader
+      eyebrow="Command Centre"
+      title="Clinical Command Centre"
+      description={roleNarrative(user?.role)}
+      actions={<RangeControl activeDays={days} ranges={[7, 14, 30]} label="Dashboard date range" />}
+      filters={
+        quickActions.length > 0 ? (
+          <>
+            {quickActions.map((action, index) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  index === 0
+                    ? "bg-brand-600 text-white shadow-sm hover:bg-brand-700"
+                    : "border border-border bg-card text-foreground hover:bg-muted"
+                )}
+              >
+                {action.icon}
+                {action.label}
+              </Link>
+            ))}
+          </>
+        ) : undefined
+      }
+    />
+  );
+
   if (!policy.canViewOperationalMetrics) {
     return (
-      <div className="space-y-6 p-6">
-        <DashboardTopBar
-          title="Clinical Command Centre"
-          subtitle={roleNarrative(user?.role)}
-          activeDays={days}
-        />
+      <PageShell width="wide">
+        {header}
         <EmptyState
           icon={ShieldAlert}
           title="Operational metrics are not available for your role"
           description="Your role does not include organisation-wide intake and review metrics."
         />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-5 p-6">
-      <DashboardTopBar
-        title="Clinical Command Centre"
-        subtitle={roleNarrative(user?.role)}
-        activeDays={days}
-      />
-
-      {/* ── Quick actions ─────────────────────────────────────────────────── */}
-      {actions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {actions.map((action, index) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              className={
-                "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors " +
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
-                (index === 0
-                  ? "bg-brand-600 text-white shadow-sm hover:bg-brand-700"
-                  : "border border-border bg-card text-foreground hover:bg-muted")
-              }
-            >
-              {action.icon}
-              {action.label}
-            </Link>
-          ))}
-        </div>
-      )}
+    <PageShell width="wide">
+      {header}
 
       {/* ── KPI row ───────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <DashboardKpiCard
+      <MetricGrid columns={6}>
+        <MetricTile
           label="Pending review"
           value={metrics.pendingReview}
           caption={`${scopeLabel} · awaiting clinician`}
@@ -184,7 +172,7 @@ export default async function DashboardPage({
           series={hasSeries ? trend.map((point) => point.totalInQueue) : undefined}
           ariaSparklineLabel={`Pending review over the last ${days} days`}
         />
-        <DashboardKpiCard
+        <MetricTile
           label="Clinician review required"
           value={metrics.mandatoryClinicianReview}
           caption="Safety stop or evidence gap"
@@ -194,7 +182,7 @@ export default async function DashboardPage({
           series={hasSeries ? trend.map((point) => point.clinicianReviewRequired) : undefined}
           ariaSparklineLabel={`Mandatory clinician review over the last ${days} days`}
         />
-        <DashboardKpiCard
+        <MetricTile
           label="Urgent clinical priority"
           value={metrics.urgentClinicalPriority}
           caption="Urgent risk or P1 priority"
@@ -204,7 +192,7 @@ export default async function DashboardPage({
           series={hasSeries ? trend.map((point) => point.urgentPriority) : undefined}
           ariaSparklineLabel={`Urgent priority over the last ${days} days`}
         />
-        <DashboardKpiCard
+        <MetricTile
           label="Cases pulled today"
           value={metrics.casesPulledToday}
           caption="Organisation intake"
@@ -212,7 +200,7 @@ export default async function DashboardPage({
           tone="neutral"
           href={showBatch ? "/batch" : undefined}
         />
-        <DashboardKpiCard
+        <MetricTile
           label="Completed this week"
           value={metrics.completedThisWeek}
           caption={`${scopeLabel} · reviewer-confirmed`}
@@ -220,14 +208,14 @@ export default async function DashboardPage({
           tone="neutral"
           href="/decisions"
         />
-        <DashboardKpiCard
+        <MetricTile
           label="Avg intake to decision"
           value={formatDuration(metrics.averageIntakeToDecisionMinutes)}
           caption="Completed decisions"
           icon={<Clock className="h-4.5 w-4.5" />}
           tone="neutral"
         />
-      </div>
+      </MetricGrid>
 
       {/* ── Funnel + trend + split ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
@@ -239,10 +227,22 @@ export default async function DashboardPage({
           <WorkflowFunnel
             scopeLabel={scopeLabel}
             stages={[
-              { label: "Pulled", value: metrics.casesPulledThisWeek, href: showBatch ? "/batch" : undefined },
-              { label: "Pending", value: metrics.pendingReview, href: showBatch ? "/review" : undefined },
+              {
+                label: "Pulled",
+                value: metrics.casesPulledThisWeek,
+                href: showBatch ? "/batch" : undefined,
+              },
+              {
+                label: "Pending",
+                value: metrics.pendingReview,
+                href: showBatch ? "/review" : undefined,
+              },
               { label: "Completed", value: metrics.completedThisWeek, href: "/decisions" },
-              { label: "Exported", value: metrics.packagePreviewedOrExportedThisWeek, href: "/decisions" },
+              {
+                label: "Exported",
+                value: metrics.packagePreviewedOrExportedThisWeek,
+                href: "/decisions",
+              },
             ]}
           />
         </Panel>
@@ -255,11 +255,7 @@ export default async function DashboardPage({
           <QueueTrendChart data={trend} />
         </Panel>
 
-        <Panel
-          title="Decision split"
-          description={scopeLabel}
-          className="xl:col-span-3"
-        >
+        <Panel title="Decision split" description={scopeLabel} className="xl:col-span-3">
           <DecisionSplitChart split={metrics.decisionSplit} />
         </Panel>
       </div>
@@ -285,16 +281,7 @@ export default async function DashboardPage({
         <Panel
           title="Recent intake sessions"
           className="xl:col-span-3"
-          action={
-            showBatch ? (
-              <Link
-                href="/batch/runs"
-                className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300"
-              >
-                View all
-              </Link>
-            ) : undefined
-          }
+          action={showBatch ? <PanelLink href="/batch/runs">View all</PanelLink> : undefined}
         >
           <RecentSessionsTable sessions={metrics.recentIntakeSessions} />
         </Panel>
@@ -302,14 +289,7 @@ export default async function DashboardPage({
         <Panel
           title="Recent completed decisions"
           className="xl:col-span-3"
-          action={
-            <Link
-              href="/decisions"
-              className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300"
-            >
-              View all
-            </Link>
-          }
+          action={<PanelLink href="/decisions">View all</PanelLink>}
         >
           <RecentDecisionsTable decisions={metrics.recentCompletedDecisions} />
         </Panel>
@@ -317,6 +297,6 @@ export default async function DashboardPage({
 
       {/* ── Governance ────────────────────────────────────────────────────── */}
       <RulesetStatusPanel authority={authority} />
-    </div>
+    </PageShell>
   );
 }
