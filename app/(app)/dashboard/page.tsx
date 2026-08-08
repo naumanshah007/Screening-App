@@ -1,34 +1,33 @@
 import Link from "next/link";
 import {
-  ArrowRight,
-  ClipboardCheck,
-  Clock,
-  Database,
-  FileCheck2,
-  FileSearch,
   Inbox,
   ShieldAlert,
-  Stethoscope,
+  Siren,
+  Database,
+  FileCheck2,
+  Clock,
   UploadCloud,
+  FileSearch,
 } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
+import { isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  getCommandCentreMetrics,
-  type DecisionSplit,
-} from "@/lib/decisions/dashboard-metrics";
-import { SOURCE_LABELS } from "@/lib/decisions/completed-decisions";
-import {
-  formatDisposition,
-  isUrgentClinicalPriority,
-} from "@/lib/decisions/package-generator";
-import { formatDateTime } from "@/lib/utils";
+import { getCommandCentreMetrics } from "@/lib/decisions/dashboard-metrics";
+import { getDashboardInsights } from "@/lib/decisions/dashboard-insights";
+import { getClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
+
+import { DashboardTopBar } from "@/components/dashboard/DashboardTopBar";
+import { DashboardKpiCard } from "@/components/dashboard/DashboardKpiCard";
+import { WorkflowFunnel } from "@/components/dashboard/WorkflowFunnel";
+import { QueueTrendChart } from "@/components/dashboard/QueueTrendChart";
+import { DecisionSplitChart } from "@/components/dashboard/DecisionSplitChart";
+import { PriorityHeatmap } from "@/components/dashboard/PriorityHeatmap";
+import { ConnectorStatusCard } from "@/components/dashboard/ConnectorStatusCard";
+import { RecentSessionsTable } from "@/components/dashboard/RecentSessionsTable";
+import { RecentDecisionsTable } from "@/components/dashboard/RecentDecisionsTable";
+import { RulesetStatusPanel } from "@/components/dashboard/RulesetStatusPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +43,7 @@ function roleNarrative(role?: string) {
     case "INTEGRATION_ADMIN":
       return "Connector readiness, simulated export evidence, and package preview/export audit trail.";
     case "ADMIN":
-      return "Executive overview for the buyer demo: intake volume, pending review, decisions, simulated exports, and audit evidence.";
+      return "Executive overview of intake, triage, review, governance and audit visibility.";
     default:
       return "Operational overview for the CerviGrade batch demo.";
   }
@@ -53,423 +52,271 @@ function roleNarrative(role?: string) {
 function formatDuration(minutes: number | null) {
   if (minutes == null) return "—";
   if (minutes < 60) return `${minutes}m`;
-  const hours = minutes / 60;
-  return `${hours.toFixed(hours >= 10 ? 0 : 1)}h`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
 
-function splitPercent(value: number, split: DecisionSplit) {
-  if (split.total === 0) return 0;
-  return Math.round((value / split.total) * 100);
-}
-
-function sourceLabel(source: string, sourceSystem?: string | null) {
-  return sourceSystem ?? SOURCE_LABELS[source] ?? source;
-}
-
-function commandCentreActions(role?: string) {
-  return [
-    { label: "Pull Cases", href: "/batch", variant: "primary" as const, icon: <UploadCloud className="h-4 w-4" /> },
-    { label: "Open Review Queue", href: "/review", variant: "outline" as const, icon: <Inbox className="h-4 w-4" /> },
-    { label: "View Completed Decisions", href: "/decisions", variant: "outline" as const, icon: <FileCheck2 className="h-4 w-4" /> },
-    { label: "View Audit Trail", href: "/audit", variant: "outline" as const, icon: <FileSearch className="h-4 w-4" /> },
-  ].filter((action) => isVisibleInDemoFlow(action.href, role));
-}
-
-function MiniBar({
-  label,
-  value,
-  percent,
-  tone,
+function Panel({
+  title,
+  description,
+  children,
+  action,
+  className,
 }: {
-  label: string;
-  value: number;
-  percent: number;
-  tone: "success" | "danger" | "info";
-}) {
-  const color = {
-    success: "bg-emerald-500",
-    danger: "bg-red-500",
-    info: "bg-sky-500",
-  }[tone];
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium text-foreground">{value.toLocaleString()}</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div className={color} style={{ width: `${percent}%`, height: "100%" }} />
-      </div>
-    </div>
-  );
-}
-
-function FunnelStep({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/25 px-4 py-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-semibold text-foreground tabular-nums">
-        {value.toLocaleString()}
-      </div>
-    </div>
-  );
-}
-
-export default async function DashboardPage() {
-  const session = await auth();
-  const user = session?.user as { id?: string; name?: string; role?: string } | undefined;
-  const showBatchDemo = isFeatureEnabled("batchDemo");
-
-  if (!showBatchDemo) {
-    return (
-      <div className="page-aura p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="eyebrow-rule" aria-hidden />
-              <span className="text-label text-accent-color">Command Centre</span>
-            </div>
-            <h1 className="text-h2 text-foreground tracking-tight">CerviGrade Command Centre</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Batch demo reporting is disabled in this environment.
-            </p>
-          </div>
+    <section
+      className={`rounded-xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(15,30,50,0.04)] ${className ?? ""}`}
+    >
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          {description && (
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{description}</p>
+          )}
         </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ days?: string }>;
+}) {
+  const session = await auth();
+  const user = session?.user as
+    | { id?: string; role?: string; name?: string; email?: string }
+    | undefined;
+
+  const params = await searchParams;
+  const parsedDays = Number.parseInt(params.days ?? "", 10);
+  const days = [7, 14, 30].includes(parsedDays) ? parsedDays : 7;
+
+  const showBatch = isFeatureEnabled("batchDemo");
+
+  const [metrics, insights, authority] = await Promise.all([
+    getCommandCentreMetrics({ id: user?.id, role: user?.role }),
+    getDashboardInsights({ id: user?.id, role: user?.role }, { trendDays: days }),
+    getClinicalAuthorityDisplay(),
+  ]);
+
+  const { policy } = metrics;
+  const scopeLabel =
+    policy.completedScope === "own" ? "Your decisions" : "Organisation";
+
+  const actions = [
+    { label: "Pull Cases", href: "/batch", icon: <UploadCloud className="h-4 w-4" /> },
+    { label: "Open Review Queue", href: "/review", icon: <Inbox className="h-4 w-4" /> },
+    { label: "Completed Decisions", href: "/decisions", icon: <FileCheck2 className="h-4 w-4" /> },
+    { label: "Audit Trail", href: "/audit", icon: <FileSearch className="h-4 w-4" /> },
+  ].filter((action) => isVisibleInDemoFlow(action.href, user?.role));
+
+  // Sparkline series exist only where a genuine daily history is stored.
+  const trend = insights.queueTrend;
+  const hasSeries = trend.length >= 2;
+
+  if (!policy.canViewOperationalMetrics) {
+    return (
+      <div className="space-y-6 p-6">
+        <DashboardTopBar
+          title="Clinical Command Centre"
+          subtitle={roleNarrative(user?.role)}
+          activeDays={days}
+        />
         <EmptyState
-          icon={Database}
-          title="Batch demo is not enabled"
-          description="Enable the batch demo flag to show intake volume, review queue status, completed decisions, simulated export packages, and audit evidence."
+          icon={ShieldAlert}
+          title="Operational metrics are not available for your role"
+          description="Your role does not include organisation-wide intake and review metrics."
         />
       </div>
     );
   }
 
-  const metrics = await getCommandCentreMetrics(user ?? {});
-  const actions = commandCentreActions(user?.role);
-  const canPullCases = isAuthorizedForRoute("/batch", user?.role);
-  const split = metrics.decisionSplit;
-  const hasAnyBatchActivity =
-    metrics.casesPulledThisWeek > 0 ||
-    metrics.pendingReview > 0 ||
-    metrics.completedThisWeek > 0;
-
   return (
-    <div className="page-aura p-6 lg:p-8 space-y-6 max-w-[1500px] mx-auto">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="eyebrow-rule" aria-hidden />
-            <span className="text-label text-accent-color">Command Centre</span>
-          </div>
-          <h1 className="text-h2 text-foreground tracking-tight">
-            CerviGrade closed-loop demo
-          </h1>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground leading-relaxed">
-            {roleNarrative(user?.role)}
-          </p>
+    <div className="space-y-5 p-6">
+      <DashboardTopBar
+        title="Clinical Command Centre"
+        subtitle={roleNarrative(user?.role)}
+        activeDays={days}
+      />
+
+      {/* ── Quick actions ─────────────────────────────────────────────────── */}
+      {actions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {actions.map((action, index) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className={
+                "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors " +
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+                (index === 0
+                  ? "bg-brand-600 text-white shadow-sm hover:bg-brand-700"
+                  : "border border-border bg-card text-foreground hover:bg-muted")
+              }
+            >
+              {action.icon}
+              {action.label}
+            </Link>
+          ))}
         </div>
-        {actions.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {actions.map((action) => (
-              <Link key={action.href} href={action.href}>
-                <Button size="sm" variant={action.variant} icon={action.icon}>
-                  {action.label}
-                </Button>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {!metrics.policy.canViewOperationalMetrics && (
-        <EmptyState
-          icon={Database}
-          title="Limited demo view"
-          description="This role does not show organisation-wide intake, review, decision, or simulated export metrics in the demo environment."
-          nextStep="Use an admin, coordinator, reviewer, or integration admin account to present the buyer demo flow."
-        />
       )}
 
-      {metrics.policy.canViewOperationalMetrics && !hasAnyBatchActivity && (
-        <EmptyState
-          icon={ClipboardCheck}
-          title="No closed-loop activity yet"
-          description="Pull simulated cases, add them to the Review Queue, then record reviewer decisions to populate the Command Centre."
-          action={
-            canPullCases
-              ? { label: "Pull cases", href: "/batch", variant: "primary" }
-              : undefined
-          }
-        />
-      )}
-
-      {metrics.policy.canViewOperationalMetrics && (
-        <>
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatCard
+      {/* ── KPI row ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <DashboardKpiCard
           label="Pending review"
-          value={metrics.pendingReview.toLocaleString()}
-          subtext={metrics.policy.queueLabel}
-          variant={metrics.pendingReview > 0 ? "info" : "success"}
-          icon={<Inbox className="h-5 w-5" />}
+          value={metrics.pendingReview}
+          caption={`${scopeLabel} · awaiting clinician`}
+          icon={<Inbox className="h-4.5 w-4.5" />}
+          tone="brand"
+          href={showBatch ? "/review" : undefined}
+          series={hasSeries ? trend.map((point) => point.totalInQueue) : undefined}
+          ariaSparklineLabel={`Pending review over the last ${days} days`}
         />
-        <StatCard
-          label="Mandatory clinician review"
-          value={metrics.mandatoryClinicianReview.toLocaleString()}
-          subtext={`${metrics.policy.queueLabel} · safety-stop or evidence gap`}
-          variant={metrics.mandatoryClinicianReview > 0 ? "warning" : "success"}
-          icon={<ShieldAlert className="h-5 w-5" />}
+        <DashboardKpiCard
+          label="Clinician review required"
+          value={metrics.mandatoryClinicianReview}
+          caption="Safety stop or evidence gap"
+          icon={<ShieldAlert className="h-4.5 w-4.5" />}
+          tone="warn"
+          href={showBatch ? "/review" : undefined}
+          series={hasSeries ? trend.map((point) => point.clinicianReviewRequired) : undefined}
+          ariaSparklineLabel={`Mandatory clinician review over the last ${days} days`}
         />
-        <StatCard
+        <DashboardKpiCard
           label="Urgent clinical priority"
-          value={metrics.urgentClinicalPriority.toLocaleString()}
-          subtext={`${metrics.policy.queueLabel} · urgent risk or P1 priority`}
-          variant={metrics.urgentClinicalPriority > 0 ? "urgent" : "success"}
-          icon={<Stethoscope className="h-5 w-5" />}
+          value={metrics.urgentClinicalPriority}
+          caption="Urgent risk or P1 priority"
+          icon={<Siren className="h-4.5 w-4.5" />}
+          tone="danger"
+          href={showBatch ? "/review" : undefined}
+          series={hasSeries ? trend.map((point) => point.urgentPriority) : undefined}
+          ariaSparklineLabel={`Urgent priority over the last ${days} days`}
         />
-        <StatCard
+        <DashboardKpiCard
+          label="Cases pulled today"
+          value={metrics.casesPulledToday}
+          caption="Organisation intake"
+          icon={<Database className="h-4.5 w-4.5" />}
+          tone="neutral"
+          href={showBatch ? "/batch" : undefined}
+        />
+        <DashboardKpiCard
+          label="Completed this week"
+          value={metrics.completedThisWeek}
+          caption={`${scopeLabel} · reviewer-confirmed`}
+          icon={<FileCheck2 className="h-4.5 w-4.5" />}
+          tone="neutral"
+          href="/decisions"
+        />
+        <DashboardKpiCard
           label="Avg intake to decision"
           value={formatDuration(metrics.averageIntakeToDecisionMinutes)}
-          subtext={metrics.policy.completedLabel}
-          variant="default"
-          icon={<Clock className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Cases pulled today"
-          value={metrics.casesPulledToday.toLocaleString()}
-          subtext={metrics.policy.intakeLabel}
-          variant="default"
-          icon={<Database className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Cases pulled this week"
-          value={metrics.casesPulledThisWeek.toLocaleString()}
-          subtext={`${metrics.policy.intakeLabel} · Monday to today`}
-          variant="default"
-          icon={<Database className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Completed today"
-          value={metrics.completedToday.toLocaleString()}
-          subtext={metrics.policy.completedLabel}
-          variant="success"
-          icon={<FileCheck2 className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Completed this week"
-          value={metrics.completedThisWeek.toLocaleString()}
-          subtext={`${metrics.policy.packageLabel}: ${metrics.packagePreviewedOrExportedThisWeek}`}
-          variant="success"
-          icon={<FileCheck2 className="h-5 w-5" />}
+          caption="Completed decisions"
+          icon={<Clock className="h-4.5 w-4.5" />}
+          tone="neutral"
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Decision Funnel</CardTitle>
-            <Badge variant="info">{metrics.policy.intakeLabel}</Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-4">
-              <FunnelStep
-                label="Pulled this week"
-                value={metrics.casesPulledThisWeek}
-                icon={<Database className="h-3.5 w-3.5" />}
-              />
-              <FunnelStep
-                label="Pending"
-                value={metrics.pendingReview}
-                icon={<Inbox className="h-3.5 w-3.5" />}
-              />
-              <FunnelStep
-                label="Completed this week"
-                value={metrics.completedThisWeek}
-                icon={<FileCheck2 className="h-3.5 w-3.5" />}
-              />
-              <FunnelStep
-                label="Packages previewed/exported"
-                value={metrics.packagePreviewedOrExportedThisWeek}
-                icon={<FileSearch className="h-3.5 w-3.5" />}
-              />
-            </div>
-            <div className="rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
-              Pull Cases → Review Queue → reviewer decision → Completed Decisions → simulated export package → audit evidence.
-            </div>
-          </CardContent>
-        </Card>
+      {/* ── Funnel + trend + split ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <Panel
+          title="Decision workflow funnel"
+          description="Real counts for the current week"
+          className="xl:col-span-4"
+        >
+          <WorkflowFunnel
+            scopeLabel={scopeLabel}
+            stages={[
+              { label: "Pulled", value: metrics.casesPulledThisWeek, href: showBatch ? "/batch" : undefined },
+              { label: "Pending", value: metrics.pendingReview, href: showBatch ? "/review" : undefined },
+              { label: "Completed", value: metrics.completedThisWeek, href: "/decisions" },
+              { label: "Exported", value: metrics.packagePreviewedOrExportedThisWeek, href: "/decisions" },
+            ]}
+          />
+        </Panel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Decision Split</CardTitle>
-            <Badge variant="default">{metrics.policy.completedLabel}</Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <MiniBar
-              label="Accepted"
-              value={split.accepted}
-              percent={splitPercent(split.accepted, split)}
-              tone="success"
-            />
-            <MiniBar
-              label="Rejected"
-              value={split.rejected}
-              percent={splitPercent(split.rejected, split)}
-              tone="danger"
-            />
-            <MiniBar
-              label="Needs information"
-              value={split.needsInfo}
-              percent={splitPercent(split.needsInfo, split)}
-              tone="info"
-            />
-          </CardContent>
-        </Card>
+        <Panel
+          title="Review queue trend"
+          description={`Daily intake still pending · last ${days} days`}
+          className="xl:col-span-5"
+        >
+          <QueueTrendChart data={trend} />
+        </Panel>
+
+        <Panel
+          title="Decision split"
+          description={scopeLabel}
+          className="xl:col-span-3"
+        >
+          <DecisionSplitChart split={metrics.decisionSplit} />
+        </Panel>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Source Connector Status</CardTitle>
-            <Badge variant="info">Demo-safe</Badge>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              {
-                title: "Demo source connector",
-                status: "Demo connector ready",
-                detail: "Simulated source with integration-ready synthetic payloads.",
-                badge: "low" as const,
-              },
-              {
-                title: "CSV / Excel / JSON",
-                status: "File upload available",
-                detail: "Persisted intake sessions and review queue creation are active.",
-                badge: "info" as const,
-              },
-              {
-                title: "HL7 / FHIR / ERMS",
-                status: "Adapter pattern defined · not connected",
-                detail: "Previews are generated as simulated export packages for the demo environment.",
-                badge: "default" as const,
-              },
-            ].map((connector) => (
-              <div key={connector.title} className="rounded-lg border border-border px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-foreground">{connector.title}</p>
-                  <Badge variant={connector.badge}>{connector.status}</Badge>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{connector.detail}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      {/* ── Heatmap + connectors + tables ──────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-12">
+        <Panel
+          title="Priority distribution"
+          description="Stored clinical risk level"
+          className="xl:col-span-3"
+        >
+          <PriorityHeatmap distribution={insights.priorityDistribution} />
+        </Panel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Intake Sessions</CardTitle>
-            {isAuthorizedForRoute("/batch/runs", user?.role) && (
-              <Link href="/batch/runs" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
+        <Panel
+          title="Intake source activity"
+          description="Simulated sources only"
+          className="xl:col-span-3"
+        >
+          <ConnectorStatusCard connectors={insights.connectors} />
+        </Panel>
+
+        <Panel
+          title="Recent intake sessions"
+          className="xl:col-span-3"
+          action={
+            showBatch ? (
+              <Link
+                href="/batch/runs"
+                className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300"
+              >
                 View all
               </Link>
-            )}
-          </CardHeader>
-          <CardContent>
-            {metrics.recentIntakeSessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No intake sessions yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {metrics.recentIntakeSessions.map((run) => (
-                  <Link key={run.id} href={`/batch/runs/${run.id}`} className="block rounded-lg border border-border px-4 py-3 hover:bg-muted/35">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-foreground">
-                        {sourceLabel(run.source, run.sourceSystem)}
-                      </p>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {run.totalCases} cases · {run.pendingCount} pending · saved {formatDateTime(run.createdAt)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {run.acceptedCount} accepted · {run.rejectedCount} rejected · {run.needsInfoCount} needs information
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            ) : undefined
+          }
+        >
+          <RecentSessionsTable sessions={metrics.recentIntakeSessions} />
+        </Panel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Completed Decisions</CardTitle>
-            {isAuthorizedForRoute("/decisions", user?.role) && (
-              <Link href="/decisions" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
-                View completed
-              </Link>
-            )}
-          </CardHeader>
-          <CardContent>
-            {metrics.recentCompletedDecisions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No completed decisions yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {metrics.recentCompletedDecisions.map((item) => {
-                  const urgent = isUrgentClinicalPriority(item);
-                  return (
-                    <Link
-                      key={item.id}
-                      href="/decisions"
-                      className="block rounded-lg border border-border px-4 py-3 hover:bg-muted/35"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {item.patientName ?? item.nhi ?? item.externalPatientId ?? `Case ${item.rowNumber}`}
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {item.reviewedBy?.name ?? item.reviewedBy?.email ?? "Reviewer"} · {formatDateTime(item.reviewedAt)}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={
-                            item.disposition === "ACCEPTED"
-                              ? "low"
-                              : item.disposition === "REJECTED"
-                                ? "urgent"
-                                : "info"
-                          }
-                        >
-                          {formatDisposition(item.disposition)}
-                        </Badge>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {item.reviewRequired && <Badge variant="high">Mandatory clinician review</Badge>}
-                        {urgent && <Badge variant="urgent">Urgent clinical priority</Badge>}
-                        <Badge variant="info">Simulated package ready</Badge>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Panel
+          title="Recent completed decisions"
+          className="xl:col-span-3"
+          action={
+            <Link
+              href="/decisions"
+              className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300"
+            >
+              View all
+            </Link>
+          }
+        >
+          <RecentDecisionsTable decisions={metrics.recentCompletedDecisions} />
+        </Panel>
       </div>
-        </>
-      )}
+
+      {/* ── Governance ────────────────────────────────────────────────────── */}
+      <RulesetStatusPanel authority={authority} />
     </div>
   );
 }
