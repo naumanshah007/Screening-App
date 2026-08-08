@@ -67,8 +67,19 @@ export function shouldSeedDemoAccounts(
   if (isProductionDeployment(env)) return false;
   if (env.BOOTSTRAP_DEMO_DB !== "1") return false;
   if (!readDemoSeedPassword(env)) return false;
-  // Never seed accounts into a remote/shared database from this code path.
-  return !isRemoteLibSqlUrl(url);
+
+  // A remote database is SHARED: every instance, and every developer pointed at
+  // it, sees the same rows. Seeding one is therefore a much bigger act than
+  // seeding a throwaway local file, so it is permitted only from a Vercel
+  // Preview deployment — the one environment that exists to be QA'd against a
+  // dedicated, disposable database.
+  //
+  // A local developer machine is deliberately NOT allowed to seed a remote
+  // database, even with both opt-ins set: that would let one person's local run
+  // reset accounts in a database other people are testing against.
+  if (isRemoteLibSqlUrl(url)) return env.VERCEL_ENV === "preview";
+
+  return true;
 }
 
 /**

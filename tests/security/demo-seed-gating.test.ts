@@ -89,12 +89,12 @@ test("a weak or accidental password does not count as a deliberate choice", () =
   }
 });
 
-test("seeding never targets a remote/shared database from this path", () => {
+test("a remote/shared database is never seeded implicitly", () => {
+  // Preview may seed a dedicated remote QA database, but only with both
+  // explicit opt-ins — never as a side effect of the database being empty.
+  // (The permitted Preview case is covered below.)
   assert.equal(
-    shouldSeedDemoAccounts(
-      "libsql://example-db.turso.io",
-      previewEnv({ BOOTSTRAP_DEMO_DB: "1", DEMO_SEED_PASSWORD: STRONG_PASSWORD })
-    ),
+    shouldSeedDemoAccounts("libsql://example-db.turso.io", previewEnv()),
     false,
     "a shared database must not receive demo accounts implicitly"
   );
@@ -168,4 +168,80 @@ test("the seed password is never logged or echoed", () => {
   const loggingThePassword =
     /console\.[a-z]+\([^)]*(seedPassword|DEMO_SEED_PASSWORD)/.test(source);
   assert.equal(loggingThePassword, false, "a generated or supplied credential must never be logged");
+});
+
+// ── Remote/shared databases: Preview only ──────────────────────────────────
+
+const REMOTE_URL = "libsql://cervigrade-preview-qa.turso.io";
+
+test("a Preview deployment may seed a dedicated remote QA database", () => {
+  assert.equal(
+    shouldSeedDemoAccounts(
+      REMOTE_URL,
+      previewEnv({ BOOTSTRAP_DEMO_DB: "1", DEMO_SEED_PASSWORD: STRONG_PASSWORD })
+    ),
+    true,
+    "a Preview deployment is the one place a shared QA database is seeded"
+  );
+});
+
+test("Production never seeds a remote database, whatever else is set", () => {
+  assert.equal(
+    shouldSeedDemoAccounts(
+      REMOTE_URL,
+      productionEnv({ BOOTSTRAP_DEMO_DB: "1", DEMO_SEED_PASSWORD: STRONG_PASSWORD })
+    ),
+    false,
+    "production is an absolute bar for remote databases too"
+  );
+});
+
+test("a local machine may not seed a remote shared database", () => {
+  // No VERCEL_ENV: a developer's laptop. Seeding here would reset accounts that
+  // other people are testing against.
+  assert.equal(
+    shouldSeedDemoAccounts(
+      REMOTE_URL,
+      env({ BOOTSTRAP_DEMO_DB: "1", DEMO_SEED_PASSWORD: STRONG_PASSWORD })
+    ),
+    false
+  );
+});
+
+test("remote seeding still requires both opt-ins on Preview", () => {
+  assert.equal(
+    shouldSeedDemoAccounts(REMOTE_URL, previewEnv({ DEMO_SEED_PASSWORD: STRONG_PASSWORD })),
+    false,
+    "no BOOTSTRAP_DEMO_DB"
+  );
+  assert.equal(
+    shouldSeedDemoAccounts(REMOTE_URL, previewEnv({ BOOTSTRAP_DEMO_DB: "1" })),
+    false,
+    "no DEMO_SEED_PASSWORD"
+  );
+  assert.equal(
+    shouldSeedDemoAccounts(
+      REMOTE_URL,
+      previewEnv({ BOOTSTRAP_DEMO_DB: "1", DEMO_SEED_PASSWORD: "admin123" })
+    ),
+    false,
+    "a trivial password is not a deliberate choice"
+  );
+});
+
+test("every remote URL scheme is treated as shared", () => {
+  for (const url of [
+    "libsql://db.turso.io",
+    "https://db.turso.io",
+    "wss://db.turso.io",
+  ]) {
+    assert.equal(
+      shouldSeedDemoAccounts(
+        url,
+        productionEnv({ BOOTSTRAP_DEMO_DB: "1", DEMO_SEED_PASSWORD: STRONG_PASSWORD })
+      ),
+      false,
+      `${url} must never be seeded from production`
+    );
+  }
 });
