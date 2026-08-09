@@ -1,6 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { createPrismaAdapter } from "../lib/config/database";
+import {
+  createPrismaAdapter,
+  isRemoteLibSqlUrl,
+  resolveDatabaseUrl,
+} from "../lib/config/database";
+import { isProductionDeployment, readDemoSeedPassword } from "../lib/database/bootstrap";
 
 // Prisma v7 uses the same adapter/runtime configuration as the app.
 const adapter = createPrismaAdapter();
@@ -70,6 +75,17 @@ function demoRulePayload(args: {
 }
 
 async function main() {
+  const databaseUrl = resolveDatabaseUrl();
+  if (isProductionDeployment()) {
+    throw new Error("Demo seed is prohibited in Production.");
+  }
+  if (isRemoteLibSqlUrl(databaseUrl)) {
+    throw new Error("Local demo seed is prohibited against a remote/shared database.");
+  }
+  const demoPassword = readDemoSeedPassword();
+  if (!demoPassword) {
+    throw new Error("DEMO_SEED_PASSWORD (minimum 12 characters) is required for local demo seeding.");
+  }
   // ── Practices ─────────────────────────────────────────────────────────────
   const practice = await prisma.gPPractice.upsert({
     where: { hpiNumber: "G00001" },
@@ -104,8 +120,8 @@ async function main() {
     },
   });
 
-  // ── Users — all share password "admin123" ─────────────────────────────────
-  const pw = await bcrypt.hash("admin123", 10);
+  // ── Users — operator-supplied local-only demo password ────────────────────
+  const pw = await bcrypt.hash(demoPassword, 10);
 
   const userDefs = [
     { email: "admin@cs.nz", name: "System Admin", role: "ADMIN" as const, gpPracticeId: null },
@@ -1057,7 +1073,7 @@ async function main() {
     ],
   });
 
-  console.log("\n✓ Seed complete — all accounts use password: admin123\n");
+  console.log("\n✓ Seed complete — operator-supplied password applied (not echoed)\n");
   console.log("  Email                    Role              Notes");
   console.log("  ──────────────────────────────────────────────────────────────────");
   console.log("  admin@cs.nz              ADMIN             System administrator");
