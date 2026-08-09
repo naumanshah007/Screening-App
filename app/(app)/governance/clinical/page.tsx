@@ -15,6 +15,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { ClinicalGovernanceReviewWorkspace } from "@/components/clinical-rules/ClinicalGovernanceReviewWorkspace";
 import { ActivationGovernancePanel } from "@/components/clinical-rules/ActivationGovernancePanel";
+import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { HeaderMeta, PageHeader, PageShell, Panel, StatusBadge } from "@/components/system";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/tabs";
 
@@ -134,7 +135,21 @@ export default async function ClinicalGovernanceActivationPage() {
               Engineering evidence is visible but never counted as a human approval. Every decision is tied to an authenticated identity; stale-checksum decisions do not satisfy activation.
             </p>
           </div>
-          <ShieldCheck className="h-8 w-8 text-brand-600" />
+          <div className="flex flex-col items-end gap-3">
+            <ShieldCheck className="h-8 w-8 text-brand-600" />
+            <ClinicalRuleVersionActions
+              id={version.id}
+              status={version.status}
+              sourceSummary={version.sourceGuidelineSummary}
+              canEdit={false}
+              canValidate={canPerformClinicalRuleAction(userRole, "validate")}
+              canApprove={canPerformClinicalRuleAction(userRole, "approve")}
+              canPublish={version.status !== "PUBLISHED" && canPerformClinicalRuleAction(userRole, "publish")}
+              canActivate={false}
+              canRollback={false}
+              canExport={false}
+            />
+          </div>
         </div>
         <div className="mt-4 break-all rounded-lg border border-border bg-muted/25 p-3 font-mono text-xs">SHA-256 {version.checksum}</div>
       </Panel>

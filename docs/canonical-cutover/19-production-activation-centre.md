@@ -67,6 +67,8 @@ The shared rehearsal gate may be approved only after the A–L activation/rollba
 6. The primary operator opens `/governance/clinical`, confirms every gate is green, and selects **Activate Production authority** with the approved change reference.
 7. Verify the new Production activation, resolver state, audit event, monitoring signals and first new-case pin.
 
+Validation, both final release approvals, and publication are exposed in the same approval centre; reviewers do not need to navigate back to Rule Studio to complete the lifecycle.
+
 The primary or deputy operator can select **Roll back Production to Legacy** from the same centre. This deactivates the current Production row, restores the version to PUBLISHED when no other activation remains, writes `ROLLBACK_TO_LEGACY`, and is idempotent. It does not require the live-authority environment switch to remain enabled.
 
 The resolver still requires both the explicit `CLINICAL_AUTHORITY_LIVE_PRODUCTION` deployment control and an active Production database row. Either one absent means Legacy authority. Existing cases retain their original authority pin. Rollback is uncached and takes effect for new cases without a cross-instance delay.
