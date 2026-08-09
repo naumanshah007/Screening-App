@@ -34,6 +34,7 @@ let prisma: Prisma;
 let resolveClinicalAuthority: typeof import("../../lib/clinical-rules/authority")["resolveClinicalAuthority"];
 let getCaseAuthorityPin: typeof import("../../lib/clinical-rules/pinning")["getCaseAuthorityPin"];
 let applyPin: typeof import("../../lib/clinical-rules/pinning")["applyPin"];
+let rollbackClinicalRuleAuthorityToLegacy: typeof import("../../lib/clinical-rules/lifecycle")["rollbackClinicalRuleAuthorityToLegacy"];
 let ruleSetId: string;
 let versionId: string;
 
@@ -42,6 +43,7 @@ before(async () => {
   ({ prisma } = await import("../../lib/prisma"));
   ({ resolveClinicalAuthority } = await import("../../lib/clinical-rules/authority"));
   ({ getCaseAuthorityPin, applyPin } = await import("../../lib/clinical-rules/pinning"));
+  ({ rollbackClinicalRuleAuthorityToLegacy } = await import("../../lib/clinical-rules/lifecycle"));
   const ruleSet = await seedRuleSet(prisma as never);
   ruleSetId = ruleSet.id;
   const version = await seedVersion(prisma as never, {
@@ -119,9 +121,12 @@ test("rollback rehearsal T0 through T4", async () => {
 
   // ── T3: rollback — deactivate. One UPDATE. No deploy, no restore. ─────────
   const rollbackStarted = Date.now();
-  await prisma.ruleSetActivation.update({
-    where: { id: activation.id },
-    data: { deactivatedAt: new Date() },
+  await rollbackClinicalRuleAuthorityToLegacy({
+    id: versionId,
+    actorUserId: (await prisma.user.findFirstOrThrow()).id,
+    environment: "TEST",
+    organisationKey: "org-a",
+    reason: "T3 controlled rollback rehearsal",
   });
 
   // ── T4: new cases resolve legacy, on the very next resolution ─────────────
@@ -168,12 +173,18 @@ test("rollback rehearsal T0 through T4", async () => {
   assert.ok(activationAfter, "rollback must not delete the activation record");
   assert.ok(activationAfter?.deactivatedAt, "rollback must record the deactivation time");
   assert.equal(activationAfter?.reason, "isolated test activation", "the original activation reason survives");
+  assert.equal(
+    await prisma.ruleVersionAuditEvent.count({ where: { eventType: "ROLLBACK_TO_LEGACY" } }),
+    1,
+    "the application rollback writes an append-only audit event"
+  );
 });
 
 test("rollback is idempotent and re-activation is possible without data loss", async () => {
   const before = await prisma.ruleEvaluation.count();
 
   // Re-activate: a fresh activation row, not a mutation of the old one.
+  await prisma.clinicalRuleVersion.update({ where: { id: versionId }, data: { status: "ACTIVE" } });
   const reactivation = await seedActivation(prisma as never, {
     ruleSetId,
     ruleVersionId: versionId,
@@ -185,10 +196,21 @@ test("rollback is idempotent and re-activation is possible without data loss", a
   assert.equal(reactivated.activationId, reactivation.id, "the newest active activation wins");
 
   // Roll back again.
-  await prisma.ruleSetActivation.update({
-    where: { id: reactivation.id },
-    data: { deactivatedAt: new Date() },
+  await rollbackClinicalRuleAuthorityToLegacy({
+    id: versionId,
+    actorUserId: (await prisma.user.findFirstOrThrow()).id,
+    environment: "TEST",
+    organisationKey: "org-a",
+    reason: "Idempotent rollback rehearsal",
   });
+  const unchanged = await rollbackClinicalRuleAuthorityToLegacy({
+    id: versionId,
+    actorUserId: (await prisma.user.findFirstOrThrow()).id,
+    environment: "TEST",
+    organisationKey: "org-a",
+    reason: "Repeated idempotent rollback rehearsal",
+  });
+  assert.equal(unchanged.unchanged, true);
   const rolledBack = await resolveClinicalAuthority({ environment: "TEST", organisationKey: "org-a" });
   assert.equal(rolledBack.authorityEngine, "LEGACY");
 

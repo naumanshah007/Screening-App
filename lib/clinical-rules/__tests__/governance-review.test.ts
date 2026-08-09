@@ -64,6 +64,10 @@ test("governance review write contract rejects unsupported dispositions and shor
     true
   );
   assert.equal(
+    ClinicalGovernanceReviewActionSchema.safeParse({ ...valid, action: "REQUEST_CHANGE" }).success,
+    true
+  );
+  assert.equal(
     ClinicalGovernanceReviewActionSchema.safeParse({
       ...valid,
       disposition: "AUTO_APPROVE",

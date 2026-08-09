@@ -222,6 +222,12 @@ export async function ensureClinicalRuleSchema(url: string) {
     for (const statement of statements) {
       await client.execute(makeSchemaStatementIdempotent(statement));
     }
+
+    // Databases that pre-date Rule Studio already have the batch and wizard
+    // tables, so CREATE TABLE IF NOT EXISTS cannot add the provenance columns
+    // introduced with canonical evaluations. Keep this additive and
+    // idempotent: existing operational rows are preserved and remain unpinned.
+    await ensureCanonicalProvenanceColumns(client);
   } finally {
     client.close();
   }
@@ -264,6 +270,63 @@ async function addColumnIfMissing(
 
   await client.execute(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${definition}`);
   columns.add(columnName);
+}
+
+async function ensureCanonicalProvenanceColumns(
+  client: ReturnType<typeof createClient>
+) {
+  if (await tableExists(client, "BatchRun")) {
+    const columns = await getTableColumns(client, "BatchRun");
+    await addColumnIfMissing(
+      client,
+      "BatchRun",
+      columns,
+      "pinnedRuleVersionId",
+      'TEXT REFERENCES "ClinicalRuleVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE'
+    );
+    await addColumnIfMissing(
+      client,
+      "BatchRun",
+      columns,
+      "pinnedRuleVersionDisplay",
+      "TEXT"
+    );
+    await addColumnIfMissing(
+      client,
+      "BatchRun",
+      columns,
+      "pinnedRulesetChecksum",
+      "TEXT"
+    );
+  }
+
+  if (await tableExists(client, "BatchReviewItem")) {
+    const columns = await getTableColumns(client, "BatchReviewItem");
+    await addColumnIfMissing(
+      client,
+      "BatchReviewItem",
+      columns,
+      "ruleEvaluationId",
+      'TEXT REFERENCES "RuleEvaluation"("id") ON DELETE SET NULL ON UPDATE CASCADE'
+    );
+    await client.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "BatchReviewItem_ruleEvaluationId_key" ON "BatchReviewItem"("ruleEvaluationId")'
+    );
+  }
+
+  if (await tableExists(client, "WizardSession")) {
+    const columns = await getTableColumns(client, "WizardSession");
+    await addColumnIfMissing(
+      client,
+      "WizardSession",
+      columns,
+      "ruleEvaluationId",
+      'TEXT REFERENCES "RuleEvaluation"("id") ON DELETE SET NULL ON UPDATE CASCADE'
+    );
+    await client.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "WizardSession_ruleEvaluationId_key" ON "WizardSession"("ruleEvaluationId")'
+    );
+  }
 }
 
 async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) {
