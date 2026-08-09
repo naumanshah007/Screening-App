@@ -26,6 +26,12 @@ type ReviewCase = {
   figureBranch: string;
   affectedRuleIds: readonly string[];
   affectedTests: readonly string[];
+  sourceGuidance: string;
+  currentLegacyBehaviour: string;
+  canonicalBehaviour: string;
+  proposedFinalBehaviour: string;
+  safetyImpact: string;
+  testEvidence: string;
   competingInterpretation: string;
   sourceSupportedDisposition: (typeof DISPOSITIONS)[number];
   effectOnPathways: string;
@@ -37,6 +43,8 @@ type ReviewCase = {
   approvalStatus: string;
   recordedDisposition: string | null;
   reviewerComment: string | null;
+  approver: string | null;
+  approvalDate: string | null;
 };
 
 function GovernanceCaseCard({
@@ -61,10 +69,10 @@ function GovernanceCaseCard({
     item.sourceSupportedDisposition
   );
   const [comments, setComments] = useState("");
-  const [busy, setBusy] = useState<"PROPOSE" | "APPROVE" | null>(null);
+  const [busy, setBusy] = useState<"PROPOSE" | "APPROVE" | "REJECT" | null>(null);
   const [error, setError] = useState("");
 
-  async function submit(action: "PROPOSE" | "APPROVE") {
+  async function submit(action: "PROPOSE" | "APPROVE" | "REJECT") {
     setBusy(action);
     setError("");
     try {
@@ -110,25 +118,35 @@ function GovernanceCaseCard({
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-3 text-sm lg:grid-cols-2">
-          <div className="rounded-lg border border-border bg-muted/25 p-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Figure branch</div>
+          {[
+            ["Source guidance", item.sourceGuidance],
+            ["Current Legacy behaviour", item.currentLegacyBehaviour],
+            ["Canonical behaviour", item.canonicalBehaviour],
+            ["Proposed final behaviour", item.proposedFinalBehaviour],
+            ["Safety impact", item.safetyImpact],
+            ["Test evidence", item.testEvidence],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-border bg-muted/25 p-3">
+              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</div>
+              <p className="mt-2 leading-6">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-3 text-sm lg:grid-cols-2">
+          <div className="rounded-lg border border-border p-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Pathway / recommendation</div>
             <p className="mt-2">{item.figureBranch}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/25 p-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Recommendation IDs</div>
             <p className="mt-2 font-mono text-xs">{item.recommendations.join(", ")}</p>
           </div>
-          <div className="rounded-lg border border-border bg-muted/25 p-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Competing interpretation</div>
+          <div className="rounded-lg border border-border p-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Alternative interpretation</div>
             <p className="mt-2 leading-6">{item.competingInterpretation}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/25 p-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Effect on pathways</div>
-            <p className="mt-2 leading-6">{item.effectOnPathways}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{item.effectOnPathways}</p>
           </div>
         </div>
 
-        <div>
+        {item.rules.length > 0 && <div>
           <div className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Current rule records and AST</div>
           <div className="space-y-3">
             {item.rules.map((rule) => (
@@ -139,12 +157,14 @@ function GovernanceCaseCard({
               </div>
             ))}
           </div>
-        </div>
+        </div>}
 
         <div className="rounded-lg border border-border p-3 text-xs leading-5 text-muted-foreground">
           <strong className="text-foreground">Affected tests:</strong> {item.affectedTests.join(", ")}
           {item.recordedDisposition && <><br /><strong className="text-foreground">Recorded disposition:</strong> {item.recordedDisposition}</>}
           {item.reviewerComment && <><br /><strong className="text-foreground">Latest comment:</strong> {item.reviewerComment}</>}
+          <br /><strong className="text-foreground">Approver:</strong> {item.approver ?? "Not yet approved"}
+          <br /><strong className="text-foreground">Date:</strong> {item.approvalDate ?? "—"}
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[280px_1fr]">
@@ -184,7 +204,15 @@ function GovernanceCaseCard({
             onClick={() => void submit("APPROVE")}
             icon={busy === "APPROVE" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           >
-            Approve into new draft revision
+            Approve recorded disposition
+          </Button>
+          <Button
+            variant="danger"
+            disabled={!canApprove || status !== "DRAFT" || comments.trim().length < 10 || busy !== null}
+            onClick={() => void submit("REJECT")}
+            loading={busy === "REJECT"}
+          >
+            Reject proposed behaviour
           </Button>
         </div>
       </CardContent>

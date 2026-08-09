@@ -25,7 +25,9 @@ export async function POST(
   }
   const permissionError = getApiPermissionError(
     user,
-    parsed.data.action === "APPROVE" ? "rules:approve" : "rules:validate"
+    parsed.data.action === "APPROVE" || parsed.data.action === "REJECT"
+      ? "rules:approve"
+      : "rules:validate"
   );
   if (permissionError) {
     return NextResponse.json(permissionError.body, {

@@ -297,9 +297,25 @@ export async function approveClinicalRuleVersion(args: {
     if (current.createdById && current.createdById === args.actorUserId) {
       throw new Error("The draft creator cannot approve the same version.");
     }
+    const approvalHistory = await tx.ruleVersionAuditEvent.findMany({
+      where: {
+        ruleVersionId: current.id,
+        eventType: "APPROVAL",
+      },
+    });
+    const currentApprovals = approvalHistory.filter((event) => {
+      try {
+        const evidence = JSON.parse(event.afterJson ?? "{}") as { revision?: number; checksum?: string };
+        return evidence.revision === current.revision && evidence.checksum === current.checksum;
+      } catch {
+        return false;
+      }
+    });
+    const priorApproval = currentApprovals.find((event) => event.actorUserId === args.actorUserId);
+    if (priorApproval) throw new Error("This approver has already approved the version.");
     const updated = await tx.clinicalRuleVersion.update({
       where: { id: current.id },
-      data: { approvedById: args.actorUserId },
+      data: { approvedById: currentApprovals[0]?.actorUserId ?? args.actorUserId },
       include: versionInclude,
     });
     await createVersionAudit(tx, {
@@ -308,7 +324,12 @@ export async function approveClinicalRuleVersion(args: {
       actorUserId: args.actorUserId,
       eventType: "APPROVAL",
       reason: args.reason,
-      after: { approvedById: args.actorUserId },
+      after: {
+        approvedById: args.actorUserId,
+        approvalSequence: currentApprovals.length + 1,
+        revision: current.revision,
+        checksum: current.checksum,
+      },
       metadata: args.metadata,
     });
     return updated;
@@ -328,7 +349,26 @@ export async function publishClinicalRuleVersion(args: {
     const current = await tx.clinicalRuleVersion.findUnique({ where: { id: args.id } });
     if (!current) throw new Error("Clinical rule version not found.");
     if (current.status !== "VALIDATED") throw new Error("Only a validated version can be published.");
-    if (!current.approvedById) throw new Error("Clinical approval is required before publication.");
+    const approvalEvents = await tx.ruleVersionAuditEvent.findMany({
+      where: { ruleVersionId: current.id, eventType: "APPROVAL" },
+      select: { actorUserId: true, afterJson: true },
+    });
+    const clinicalApprovers = new Set(
+      approvalEvents
+        .filter((event) => {
+          try {
+            const evidence = JSON.parse(event.afterJson ?? "{}") as { revision?: number; checksum?: string };
+            return evidence.revision === current.revision && evidence.checksum === current.checksum;
+          } catch {
+            return false;
+          }
+        })
+        .map((event) => event.actorUserId)
+        .filter((id): id is string => Boolean(id))
+    );
+    if (clinicalApprovers.size < 2) {
+      throw new Error("Two independent clinical approvals are required before publication.");
+    }
     const report = current.validationJson ? JSON.parse(current.validationJson) : null;
     if (!report?.valid) throw new Error("A passing validation report is required before publication.");
     const snapshot = parseSnapshot(JSON.parse(current.snapshotJson));
@@ -427,6 +467,20 @@ export async function activateClinicalRuleVersion(args: {
       throw new Error("Only a published version can be activated.");
     }
     if (!target.checksum) throw new Error("A published checksum is required before activation.");
+    const approvalActors = await tx.ruleVersionAuditEvent.findMany({
+      where: { ruleVersionId: target.id, eventType: "APPROVAL" },
+      select: { actorUserId: true, afterJson: true },
+    });
+    if (approvalActors.some((event) => {
+      try {
+        const evidence = JSON.parse(event.afterJson ?? "{}") as { revision?: number; checksum?: string };
+        return evidence.revision === target.revision && evidence.checksum === target.checksum && event.actorUserId === args.actorUserId;
+      } catch {
+        return false;
+      }
+    })) {
+      throw new Error("The activating operator must be distinct from both clinical approvers.");
+    }
 
     const previous = await tx.ruleSetActivation.findFirst({
       where: {

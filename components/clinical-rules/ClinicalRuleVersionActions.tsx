@@ -93,7 +93,7 @@ export function ClinicalRuleVersionActions({
         <Button size="sm" variant="outline" loading={pending === "validate"} onClick={() => void run("validate")} icon={<FileCheck2 className="h-4 w-4" />}>Validate</Button>
       )}
       {canApprove && status === "VALIDATED" && (
-        <Button size="sm" variant="success" loading={pending === "approve"} onClick={() => { const reason = window.prompt("Approval reason"); if (reason) void run("approve", { reason }); }} icon={<CheckCircle2 className="h-4 w-4" />}>Approve</Button>
+        <Button size="sm" variant="success" loading={pending === "approve"} onClick={() => { const reason = window.prompt("Approval reason (two independent clinical approvals are required)"); if (reason) void run("approve", { reason }); }} icon={<CheckCircle2 className="h-4 w-4" />}>Record clinical approval</Button>
       )}
       {canPublish && status === "VALIDATED" && (
         <Button size="sm" variant="secondary" loading={pending === "publish"} onClick={() => { const reason = window.prompt("Publication reason"); if (reason) void run("publish", { reason, sourceSummary }); }} icon={<Send className="h-4 w-4" />}>Publish</Button>

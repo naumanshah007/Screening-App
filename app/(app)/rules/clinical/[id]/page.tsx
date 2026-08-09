@@ -83,6 +83,12 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
       approvalStatus: details.approvalStatus ?? "EVIDENCE_RESOLVED_GOVERNANCE_PENDING",
       recordedDisposition: details.disposition ?? null,
       reviewerComment: latest?.reason ?? null,
+      approver: details.approvalStatus?.startsWith("APPROVED")
+        ? latest?.actorUser?.name ?? latest?.actorUser?.email ?? "Recorded user"
+        : null,
+      approvalDate: details.approvalStatus?.startsWith("APPROVED")
+        ? latest?.createdAt.toLocaleDateString("en-NZ") ?? null
+        : null,
     };
   });
   const parent = version.parentVersionId
