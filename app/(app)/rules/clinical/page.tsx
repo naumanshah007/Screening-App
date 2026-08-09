@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { canPerformClinicalRuleAction } from "@/lib/clinical-rules/governance";
 import { listClinicalRuleVersions } from "@/lib/clinical-rules/lifecycle";
 import { parseSnapshot } from "@/lib/clinical-rules/schema";
+import { getRuntimeClinicalEnvironment } from "@/lib/clinical-rules/authority";
 import {
   PageShell,
   PageHeader,
@@ -56,6 +57,8 @@ export default async function ClinicalRuleVersionsPage() {
   const user = session?.user as { role?: string } | undefined;
   if (!canPerformClinicalRuleAction(user?.role, "view")) redirect("/dashboard");
   const versions = await listClinicalRuleVersions();
+  const runtimeEnvironment = getRuntimeClinicalEnvironment();
+  const rehearsalEnvironment = runtimeEnvironment === "PRODUCTION" ? null : runtimeEnvironment;
 
   return (
     <PageShell width="wide">
@@ -175,9 +178,10 @@ export default async function ClinicalRuleVersionsPage() {
                     canValidate={canPerformClinicalRuleAction(user?.role, "validate")}
                     canApprove={canPerformClinicalRuleAction(user?.role, "approve")}
                     canPublish={canPerformClinicalRuleAction(user?.role, "publish")}
-                    canActivate={canPerformClinicalRuleAction(user?.role, "activate")}
-                    canRollback={canPerformClinicalRuleAction(user?.role, "rollback")}
+                    canActivate={Boolean(rehearsalEnvironment) && canPerformClinicalRuleAction(user?.role, "activate")}
+                    canRollback={Boolean(rehearsalEnvironment) && canPerformClinicalRuleAction(user?.role, "rollback")}
                     canExport={canPerformClinicalRuleAction(user?.role, "export")}
+                    activationEnvironment={rehearsalEnvironment ?? "DEMO"}
                   />
                 </div>
               </div>

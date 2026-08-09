@@ -13,6 +13,7 @@ const BodySchema = z.object({
   environment: z.enum(["DEMO", "TEST", "VALIDATION", "PRODUCTION"]).default("DEMO"),
   organisationKey: z.string().trim().min(1).nullable().optional(),
   reason: z.string().trim().min(1),
+  toLegacy: z.boolean().default(false),
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -24,12 +25,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!parsed.success) return NextResponse.json({ error: "Rollback reason is required" }, { status: 400 });
   try {
     const id = (await params).id;
-    if (parsed.data.environment === "PRODUCTION") {
+    const rollback = {
+      environment: parsed.data.environment,
+      organisationKey: parsed.data.organisationKey,
+      reason: parsed.data.reason,
+    };
+    if (parsed.data.environment === "PRODUCTION" || parsed.data.toLegacy) {
       return NextResponse.json(
         await rollbackClinicalRuleAuthorityToLegacy({
           id,
           actorUserId: user!.id!,
-          ...parsed.data,
+          ...rollback,
           metadata: requestAuditMetadata(request),
         })
       );
@@ -38,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       await activateClinicalRuleVersion({
         id,
         actorUserId: user!.id!,
-        ...parsed.data,
+        ...rollback,
         rollback: true,
         metadata: requestAuditMetadata(request),
       })

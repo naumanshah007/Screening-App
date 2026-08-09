@@ -58,6 +58,7 @@ export function ClinicalRuleVersionActions({
   canRollback,
   canExport,
   sourceSummary,
+  activationEnvironment = "DEMO",
 }: {
   id: string;
   status: string;
@@ -69,6 +70,7 @@ export function ClinicalRuleVersionActions({
   canRollback: boolean;
   canExport: boolean;
   sourceSummary: string;
+  activationEnvironment?: "DEMO" | "TEST" | "VALIDATION";
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<string>();
@@ -139,10 +141,13 @@ export function ClinicalRuleVersionActions({
         <Button size="sm" variant="secondary" loading={pending === "publish"} onClick={() => { const reason = window.prompt("Publication reason"); if (reason) void run("publish", { reason, sourceSummary }); }} icon={<Send className="h-4 w-4" />}>Publish</Button>
       )}
       {canActivate && status === "PUBLISHED" && (
-        <Button size="sm" variant="primary" loading={pending === "activate"} onClick={() => { const reason = window.prompt("Activation reason"); if (reason) void run("activate", { environment: "DEMO", reason }); }} icon={<Play className="h-4 w-4" />}>Activate in demo</Button>
+        <Button size="sm" variant="primary" loading={pending === "activate"} onClick={() => { const reason = window.prompt("Activation reason"); if (reason) void run("activate", { environment: activationEnvironment, reason }); }} icon={<Play className="h-4 w-4" />}>Activate in {activationEnvironment.toLowerCase()}</Button>
       )}
       {canRollback && status === "PUBLISHED" && (
-        <Button size="sm" variant="warning" loading={pending === "rollback"} onClick={() => { const reason = window.prompt("Rollback reason"); if (reason) void run("rollback", { environment: "DEMO", reason }); }} icon={<RotateCcw className="h-4 w-4" />}>Roll back to this</Button>
+        <Button size="sm" variant="warning" loading={pending === "rollback"} onClick={() => { const reason = window.prompt("Rollback reason"); if (reason) void run("rollback", { environment: activationEnvironment, reason }); }} icon={<RotateCcw className="h-4 w-4" />}>Roll back to this</Button>
+      )}
+      {canRollback && status === "ACTIVE" && (
+        <Button size="sm" variant="warning" loading={pending === "rollback"} onClick={() => { const reason = window.prompt("Rollback-to-Legacy reason"); if (reason) void run("rollback", { environment: activationEnvironment, reason, toLegacy: true }); }} icon={<RotateCcw className="h-4 w-4" />}>Roll back to Legacy</Button>
       )}
       {canPublish && status === "PUBLISHED" && (
         <Button size="sm" variant="outline" loading={pending === "retire"} onClick={() => { const reason = window.prompt("Retirement reason"); if (reason) void run("retire", { reason }); }} icon={<ShieldOff className="h-4 w-4" />}>Retire</Button>
