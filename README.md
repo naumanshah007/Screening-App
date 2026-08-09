@@ -1,6 +1,6 @@
 # CerviGrade Screening App
 
-CerviGrade is a cervical-screening decision-support prototype for demo and early pilot conversations. The buyer-demo story is:
+CerviGrade is a governed cervical-screening decision-support application. Its primary workflow is:
 
 Command Centre -> Pull Cases -> Review Queue -> Completed Decisions -> Simulated export package -> Audit Trail
 
@@ -70,9 +70,9 @@ For hosted demo deployments:
 
 ## Clinical authority architecture
 
-The Legacy engine remains the pathway router and default clinical authority. The checksum-controlled `CG-NCSP-3.1.0` package is a governed within-pathway layer and remains `DRAFT / SHADOW / SIMULATION` until every clinical, governance, durability, monitoring, rollback, security and licensing gate is signed. Resolver, adapter or persistence failures fail closed to Legacy; stored evaluations are append-only and pinned.
+`CG-NCSP-3.1.0` is the target governed within-pathway clinical recommendation ruleset. The Legacy engine remains a technical pathway router and the safe default authority until every clinical, governance, durability, monitoring, rollback, security and licensing gate is signed. Resolver, adapter or persistence failures fail closed to Legacy; stored evaluations are append-only and pinned. Once legitimately activated, canonical recommendations are primary for eligible new cases and Legacy routing appears as technical provenance.
 
-Current engineering evidence, monitoring coverage and the exact human sign-off checkpoint are recorded in [`docs/canonical-cutover/17-engineering-closure-and-human-gates.md`](docs/canonical-cutover/17-engineering-closure-and-human-gates.md). The full activation sequence remains in [`docs/canonical-cutover/07-cutover-runbook.md`](docs/canonical-cutover/07-cutover-runbook.md).
+Current controlled-integration evidence and the exact human sign-off checkpoint are recorded in [`docs/canonical-cutover/18-controlled-production-integration.md`](docs/canonical-cutover/18-controlled-production-integration.md). The full activation sequence remains in [`docs/canonical-cutover/07-cutover-runbook.md`](docs/canonical-cutover/07-cutover-runbook.md).
 
 ## Demo Script
 
