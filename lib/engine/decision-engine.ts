@@ -13,7 +13,13 @@ const RULE_VERSION = "business-figures-table1-v1";
 const THREE_YEARS_MS = 3 * 365.25 * 24 * 60 * 60 * 1000;
 
 const GLANDULAR_CODES = ["AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
-const FIGURE_9_QUALIFYING_CYTOLOGY = ["ASC_H", "HSIL", "AIS", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
+// ROUTER-003 fix: "SCC" (malignant squamous cytology) was absent here while
+// being present in isHighGradeCytology, so a pregnant participant with
+// malignant cytology failed this gate, fell through to Figure 3 and was asked
+// for an HPV result instead of being escalated. Malignant cytology is more
+// severe than every other entry in this list; it cannot be the one value that
+// does not qualify for the pregnancy pathway.
+const FIGURE_9_QUALIFYING_CYTOLOGY = ["ASC_H", "HSIL", "SCC", "AIS", "AG1", "AG2", "AG3", "AG4", "AG5", "AC1", "AC2", "AC3", "AC4"];
 
 function withDefaults(decision: ClinicalDecision): ClinicalDecision {
   return {
@@ -432,6 +438,26 @@ function evaluateFigure3(input: ClinicalInput): ClinicalDecision {
 
   if (input.hpvResult === "HPV_OTHER") {
     if (!input.cytologyResult) {
+      // ROUTER-002 fix (LEGACY-006): "request sample type before deciding
+      // whether cytology is available or a return visit is required".
+      //
+      // With no cytology and an unknown sample type the engine fell through to
+      // the cytology request below — asking for a result a self-collected swab
+      // physically cannot produce, while the participant actually needed a
+      // return visit with clinical examination (the SWAB branch).
+      //
+      // Scoped to exactly that ambiguity. Where a cytology result already
+      // exists the sample must have been clinician-taken, so nothing is asked;
+      // high-grade cytology is handled below and never delayed by this; and
+      // where HPV is not detected both sample types return to routine recall.
+      if (input.sampleType === undefined) {
+        return insufficient(
+          "FIGURE_3",
+          "F3-SAMPLE-TYPE-REQUIRED",
+          ["sampleType"],
+          "Confirm whether the sample was clinician-taken (LBC) or self-collected (swab) before requesting cytology"
+        );
+      }
       return insufficient("FIGURE_3", "F3-HPV-OTHER-CYTOLOGY-REQUIRED", ["cytologyResult"], "Enter cytology result for HPV Other");
     }
 

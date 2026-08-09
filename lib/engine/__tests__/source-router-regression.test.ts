@@ -118,12 +118,15 @@ test("router: age-appropriate asymptomatic states still reassure (no over-escala
 // branch yields the same terminal action as supplying age 52. Marked `todo` so
 // the gate stays honest: the assertion is source-correct and must not be
 // weakened. See docs/integration/05-router-defect-register.md.
-test("router: missing age where age changes routing must not silently pick a branch", { todo: "ROUTER-001 — pre-existing defect, also fails on production fb933c3" }, () => {
+test("router: missing age where age changes routing must not silently pick a branch", () => {
+  // The age ≥50 fork lives at FIRST_REPEAT, not at baseline. At baseline the
+  // source gives every age the same 12-month repeat, so probing there compared
+  // two states the guideline defines as identical.
   const withAge = evaluateClinicalDecision(
-    baseInput({ patientAge: 52, hpvResult: "HPV_OTHER", cytologyResult: "NEGATIVE" })
+    baseInput({ patientAge: 52, hpvResult: "HPV_OTHER", cytologyResult: "NEGATIVE", sampleType: "LBC", repeatStage: "FIRST_REPEAT" })
   );
   const withoutAge = evaluateClinicalDecision(
-    baseInput({ patientAge: undefined, hpvResult: "HPV_OTHER", cytologyResult: "NEGATIVE" })
+    baseInput({ patientAge: undefined, hpvResult: "HPV_OTHER", cytologyResult: "NEGATIVE", sampleType: "LBC", repeatStage: "FIRST_REPEAT" })
   );
   assert.ok(
     requestsInformation(withoutAge) || withoutAge.recommendationCode !== withAge.recommendationCode,
@@ -131,18 +134,59 @@ test("router: missing age where age changes routing must not silently pick a bra
   );
 });
 
-// ROUTER-002 — KNOWN DEFECT, present in production fb933c3 identically. A
-// missing sample type resolves to F3-HPV-NOT-DETECTED-5Y, a terminal 5-year
-// interval, although F3-MISSING-SAMPLE-TYPE-SAFETY-STOP is a source branch.
-// This is the router-level twin of LEGACY-006 (MISSING_DATA_COLLAPSE).
-test("router: missing sample type must not resolve to a terminal screening interval", { todo: "ROUTER-002 - pre-existing defect, also fails on production fb933c3" }, () => {
-  const d = evaluateClinicalDecision(
-    baseInput({ patientAge: 30, hpvResult: "NOT_DETECTED", sampleType: undefined })
+// Baseline is where the original ROUTER-001 probe pointed. Pinned as a
+// non-defect so a future reader does not "fix" it by adding an age request
+// that the source does not call for.
+test("router: at baseline, HPV Other with negative cytology does not depend on age", () => {
+  const codes = [52, 30, undefined].map(
+    (patientAge) =>
+      evaluateClinicalDecision(
+        baseInput({ patientAge, hpvResult: "HPV_OTHER", cytologyResult: "NEGATIVE", sampleType: "LBC" })
+      ).recommendationCode
+  );
+  assert.equal(new Set(codes).size, 1, `baseline disposition varied by age: ${codes.join(", ")}`);
+});
+
+// ROUTER-002 — FIXED. LEGACY-006's source expectation is to "request sample
+// type before deciding whether cytology is available or a return visit is
+// required". That decision point is HPV Other with no cytology yet: an LBC is
+// asked for cytology, a self-collected swab is sent for a return visit with
+// clinical examination. With the sample type unknown the engine asked for a
+// cytology result that a swab cannot physically produce.
+test("router: HPV Other with no cytology must not request a result a swab cannot produce", () => {
+  const unknown = evaluateClinicalDecision(
+    baseInput({ patientAge: 30, hpvResult: "HPV_OTHER", cytologyResult: undefined, sampleType: undefined })
   );
   assert.ok(
-    requestsInformation(d) || d.nextScreeningIntervalMonths === undefined,
-    `missing sample type produced a terminal interval: ${d.recommendationCode}`
+    requestsInformation(unknown),
+    `unknown sample type did not request the missing fact: ${unknown.recommendationCode}`
   );
+  assert.deepEqual(
+    unknown.missingInformation,
+    ["sampleType"],
+    `expected the sample type to be requested first, got: ${JSON.stringify(unknown.missingInformation)}`
+  );
+});
+
+// The two states either side of that fork must be untouched by the fix: a
+// cytology result already proves a clinician-taken sample, and where HPV is not
+// detected both sample types return to routine recall. Pinned so the fix is not
+// later widened into a request the source does not make.
+test("router: an existing cytology result is not blocked by a sample-type request", () => {
+  const d = evaluateClinicalDecision(
+    baseInput({ patientAge: 30, hpvResult: "HPV_OTHER", cytologyResult: "ASC_US", sampleType: undefined })
+  );
+  assert.notEqual(d.recommendationCode, "F3-SAMPLE-TYPE-REQUIRED");
+});
+
+test("router: HPV not detected returns to routine recall for either sample type", () => {
+  const codes = (["LBC", "SWAB", undefined] as const).map(
+    (sampleType) =>
+      evaluateClinicalDecision(
+        baseInput({ patientAge: 30, hpvResult: "NOT_DETECTED", sampleType })
+      ).recommendationCode
+  );
+  assert.equal(new Set(codes).size, 1, `HPV-negative disposition varied by sample type: ${codes.join(", ")}`);
 });
 
 test("router: unknown immune status must not silently assume immunocompetent", () => {
@@ -181,7 +225,7 @@ test("router: Test of Cure without a treatment date must not assert a completed 
 // ROUTER-003 — KNOWN DEFECT, present in production fb933c3 identically. A
 // pregnant participant with malignant (SCC) cytology falls through the Figure 9
 // gate to Figure 3 and is asked for an HPV result instead of being escalated.
-test("router: pregnancy with malignant cytology routes to the pregnancy pathway and escalates", { todo: "ROUTER-003 - pre-existing defect, also fails on production fb933c3" }, () => {
+test("router: pregnancy with malignant cytology routes to the pregnancy pathway and escalates", () => {
   const d = evaluateClinicalDecision(
     baseInput({ patientAge: 30, isPregnant: true, cytologyResult: "SCC" })
   );

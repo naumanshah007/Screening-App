@@ -78,6 +78,13 @@ const CASES: Array<{
     legacyCode: "F6-FIRST-NEGATIVE-REPEAT-12M",
   },
   {
+    // ROUTER-003 narrowed this divergence but did not close it. Legacy used to
+    // refuse the pathway outright ("F9-QUALIFYING-CYTOLOGY-REQUIRED") because
+    // SCC was missing from the Figure 9 qualifying-cytology list; it now routes
+    // and escalates to P1 colposcopy. Canonical F9-14 additionally specifies
+    // oncology/MDT involvement, which legacy still does not express — so the
+    // comparison stays explicit. Closing that remainder is a clinical decision,
+    // not an engine edit.
     id: "PREGNANCY-MALIGNANT-CYTOLOGY",
     input: legacyInput({
       currentFigure: "FIGURE_9",
@@ -87,7 +94,7 @@ const CASES: Array<{
     }),
     canonicalRule: "F9-14",
     canonicalRecommendation: /urgent experienced colposcopy and oncology\/MDT/i,
-    legacyCode: "F9-QUALIFYING-CYTOLOGY-REQUIRED",
+    legacyCode: "F9-INITIAL-COLPOSCOPY",
   },
 ];
 

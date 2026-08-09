@@ -99,18 +99,95 @@ which was derived from figure-level evaluation. ROUTER-002 is the router-level
 twin of LEGACY-006; ROUTER-001 and ROUTER-003 have no figure-level counterpart
 and would not have been found without entering the router.
 
-## Required decisions
+---
 
-1. **Clinical triage of ROUTER-001, -002, -003** — severity confirmation and fix
-   priority. All three are live in production now.
-2. **Whether ROUTER-002 and ROUTER-003 are regrade-impacting**, on the same basis
-   as the 26 registered defects. **No regrade was performed.**
-3. Whether the router fixes land on `main` independently of the Rule Studio
-   integration, since they affect the currently deployed build.
+# Re-analysis and disposition — 9 August 2026
 
-## What was not done
+Each defect was re-probed at the exact branch point it names, rather than at the
+state the original test happened to use. **Two of the three were mis-located:
+the engine was already correct at the real fork, and the probe was comparing two
+states the source defines as identical.** One was real and is now fixed.
 
-- No router behaviour was changed. This branch's router is byte-identical to
-  `origin/main`.
-- No assertion was relaxed to make the suite pass.
+## ROUTER-001 — **NOT A DEFECT. CLOSED.**
+
+The age ≥50 fork is at `FIRST_REPEAT`, not at baseline. Probed directly:
+
+| State | age 52 | age 30 | age absent |
+|---|---|---|---|
+| `BASELINE` | `…NEG-ASCUS-LSIL-12M` | `…NEG-ASCUS-LSIL-12M` | `…NEG-ASCUS-LSIL-12M` |
+| `FIRST_REPEAT` | `F3-FIRST-REPEAT-AGE50-COLP` | `F3-FIRST-REPEAT-UNDER50-SECOND-REPEAT` | `F3-FIRST-REPEAT-AGE-REQUIRED` |
+
+At baseline the source gives every age the same 12-month repeat, so the original
+probe compared two states the guideline defines as identical. At the real fork
+the engine **already requests the age**. No engine change was made; the test was
+retargeted to `FIRST_REPEAT`, and the baseline behaviour is now pinned by a
+second test so a future reader does not "fix" it by adding an age request the
+source does not call for.
+
+## ROUTER-002 — **REAL, BUT MIS-LOCATED. FIXED.**
+
+Sample type does not fork the HPV-not-detected branch at all — LBC, swab and
+unknown all correctly return to routine 5-year recall. The original probe was
+therefore testing a state where the answer cannot change.
+
+The actual decision point is LEGACY-006's own wording: *"request sample type
+before deciding whether cytology is available or a return visit is required."*
+That is **HPV Other with no cytology yet**:
+
+| Sample type | Before | After |
+|---|---|---|
+| `LBC` | `F3-HPV-OTHER-CYTOLOGY-REQUIRED` | unchanged |
+| `SWAB` | `F3-SWAB-RETURN-REQUIRED` | unchanged |
+| unknown | `F3-HPV-OTHER-CYTOLOGY-REQUIRED` | **`F3-SAMPLE-TYPE-REQUIRED`** |
+
+With the sample type unknown the engine asked for a cytology result that a
+self-collected swab **cannot physically produce**, while the participant in fact
+needed a return visit with clinical examination.
+
+The fix is scoped to exactly that ambiguity. Where a cytology result already
+exists the sample must have been clinician-taken, so nothing is asked; high-grade
+cytology is referred to colposcopy first and is never delayed by the question;
+and the HPV-not-detected branch is untouched. An earlier, broader version of this
+fix was caught by `figure3.test.ts` for exactly that reason and narrowed.
+
+## ROUTER-003 — **REAL. FIXED.**
+
+`"SCC"` was absent from `FIGURE_9_QUALIFYING_CYTOLOGY` while being present in
+`isHighGradeCytology`. A pregnant participant with malignant cytology therefore
+failed the Figure 9 gate, fell through to Figure 3 and was asked for an HPV
+result. `"SCC"` is now in the list: the case routes to Figure 9 and returns
+`F9-INITIAL-COLPOSCOPY` — HIGH, referral required, priority P1.
+
+**Residual gap, for clinical decision, not an engine edit:** canonical `F9-14`
+specifies *"urgent experienced colposcopy and oncology/MDT"*. Legacy now
+escalates to colposcopy but does not express the oncology/MDT element. The
+`PREGNANCY-MALIGNANT-CYTOLOGY` shadow comparison remains explicit and now pins
+the narrowed divergence at `F9-INITIAL-COLPOSCOPY`.
+
+## Post-fix suite state
+
+| Metric | Before | After |
+|---|---|---|
+| Router probes | 17 | 20 |
+| Failing | 0 | 0 |
+| Marked `todo` | 3 | **0** |
+| Whole suite | 1,441 tests / 6 todo | **1,447 tests / 0 todo / 0 fail** |
+
+## Still required
+
+1. **Clinical sign-off on the two fixes.** Both change routing in a deployed
+   clinical tool and were made from the source expectations recorded here, not
+   from clinical authority.
+2. **Whether ROUTER-002 and ROUTER-003 are regrade-impacting.** **No regrade was
+   performed** and no stored evaluation was altered.
+3. **The ROUTER-003 residual** (oncology/MDT) — close in legacy, accept the
+   divergence, or leave it to the canonical cutover.
+
+## Constraints held
+
+- No assertion was relaxed to make the suite pass. Two tests were **retargeted**
+  to the branch point they claim to test, with the previous behaviour pinned by
+  additional tests.
 - No historical decision was regraded and no stored evaluation was altered.
+- Clinical rules, authority selection and database semantics are unchanged;
+  CG-NCSP-3.1.0 remains DRAFT and non-authoritative.
