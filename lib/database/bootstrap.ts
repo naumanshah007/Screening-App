@@ -151,6 +151,82 @@ async function applyCurrentSchema(url: string) {
   }
 }
 
+const CLINICAL_RULE_TABLES = new Set([
+  "ClinicalRuleSet",
+  "ClinicalRuleVersion",
+  "RuleSetActivation",
+  "RuleEvaluation",
+  "RuleVersionAuditEvent",
+]);
+
+function isClinicalRuleSchemaStatement(statement: string) {
+  const table = statement.match(/CREATE TABLE\s+"([^"]+)"/i)?.[1];
+  if (table && CLINICAL_RULE_TABLES.has(table)) return true;
+
+  const schemaObject = statement.match(
+    /CREATE\s+(?:UNIQUE\s+)?(?:INDEX|TRIGGER)\s+"([^"]+)"/i
+  )?.[1];
+  return Boolean(
+    schemaObject &&
+      [...CLINICAL_RULE_TABLES].some((name) =>
+        schemaObject.startsWith(`${name}_`)
+      )
+  );
+}
+
+function makeSchemaStatementIdempotent(statement: string) {
+  return statement
+    .replace(/CREATE TABLE\s+/i, "CREATE TABLE IF NOT EXISTS ")
+    .replace(/CREATE UNIQUE INDEX\s+/i, "CREATE UNIQUE INDEX IF NOT EXISTS ")
+    .replace(/CREATE INDEX\s+/i, "CREATE INDEX IF NOT EXISTS ")
+    .replace(/CREATE TRIGGER\s+/i, "CREATE TRIGGER IF NOT EXISTS ");
+}
+
+/**
+ * Installs the governed clinical-rule tables on durable databases created
+ * before Rule Studio existed. Existing tables and rows are never replaced.
+ */
+export async function ensureClinicalRuleSchema(url: string) {
+  const client = createClient({
+    url,
+    ...(resolveDatabaseAuthToken() ? { authToken: resolveDatabaseAuthToken() } : {}),
+  });
+
+  try {
+    if (await tableExists(client, "ClinicalRuleSet")) {
+      const columns = await getTableColumns(client, "ClinicalRuleSet");
+      if (!columns.has("key")) {
+        if (!columns.has("rulesJson")) {
+          throw new Error(
+            "ClinicalRuleSet has an unknown legacy shape; refusing automatic migration."
+          );
+        }
+        if (await tableExists(client, "LegacyClinicalRuleSet")) {
+          throw new Error(
+            "Both legacy ClinicalRuleSet tables exist; refusing ambiguous migration."
+          );
+        }
+        await client.execute(
+          'ALTER TABLE "ClinicalRuleSet" RENAME TO "LegacyClinicalRuleSet"'
+        );
+      }
+    }
+
+    const schemaSql = readFileSync(
+      join(process.cwd(), "lib", "database", "current-schema.sql"),
+      "utf8"
+    );
+    const statements = splitSqlStatements(schemaSql).filter(
+      isClinicalRuleSchemaStatement
+    );
+    for (const statement of statements) {
+      await client.execute(makeSchemaStatementIdempotent(statement));
+    }
+  } finally {
+    client.close();
+  }
+}
+
 async function getTableColumns(
   client: ReturnType<typeof createClient>,
   tableName: string
@@ -694,6 +770,7 @@ export async function ensureDatabaseReady() {
         await applyCurrentSchema(url);
       }
       await applyCompatibilityPatches(url);
+      await ensureClinicalRuleSchema(url);
       if (seedDemoAccounts) {
         await seedDemoUsers(url);
         await seedDemoPatients(url);
