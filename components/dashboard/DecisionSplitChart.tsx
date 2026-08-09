@@ -44,7 +44,13 @@ export function DecisionSplitChart({ split }: { split: DecisionSplit }) {
   return (
     <div className="flex flex-wrap items-center gap-5">
       <div className="relative h-[170px] w-[170px] flex-shrink-0" role="img" aria-label={`Decision split: ${SEGMENTS.map((s) => `${s.label} ${values[s.key] ?? 0}`).join(", ")}`}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          minHeight={1}
+          initialDimension={{ width: 170, height: 170 }}
+        >
           <PieChart>
             <Pie
               data={data}

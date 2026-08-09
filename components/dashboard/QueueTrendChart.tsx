@@ -114,7 +114,13 @@ export function QueueTrendChart({
       </div>
 
       <div className="h-[220px]" role="img" aria-label="Daily review queue composition">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          minHeight={1}
+          initialDimension={{ width: 720, height: 220 }}
+        >
           <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -18 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border" vertical={false} />
             <XAxis

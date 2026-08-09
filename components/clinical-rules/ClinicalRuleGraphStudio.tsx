@@ -275,11 +275,13 @@ function ClinicalRuleGraphStudioInner({
   initialSnapshot,
   initialRevision,
   editable,
+  auditEnabled,
 }: {
   versionId: string;
   initialSnapshot: ClinicalRuleSnapshot;
   initialRevision: number;
   editable: boolean;
+  auditEnabled: boolean;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const flowRef = useRef<HTMLDivElement>(null);
@@ -739,11 +741,11 @@ function ClinicalRuleGraphStudioInner({
   }, [saveDraft, versionId]);
 
   useEffect(() => {
-    if (inspectorTab !== "audit") return;
+    if (!auditEnabled || inspectorTab !== "audit") return;
     void fetch(`/api/clinical-rules/versions/${versionId}/audit`)
       .then((response) => response.json())
       .then((body) => setAuditEvents(body.events ?? []));
-  }, [inspectorTab, versionId]);
+  }, [auditEnabled, inspectorTab, versionId]);
 
   return (
     <div ref={wrapperRef} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -801,6 +803,7 @@ function ClinicalRuleGraphStudioInner({
         </p>
         <div ref={flowRef} className="relative h-[720px] min-h-[720px] w-full bg-slate-50 print:h-[900px] print:min-h-[900px]">
           <ReactFlow
+            style={{ width: "100%", height: "100%" }}
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
@@ -905,7 +908,7 @@ function ClinicalRuleGraphStudioInner({
           ) : (
             <div>
               <div className="flex gap-1 overflow-x-auto border-b border-border px-2 py-2">
-                {(["display", "condition", "outcome", "safety", "source", "layout", "audit"] as InspectorTab[]).map((tab) => (
+                {(["display", "condition", "outcome", "safety", "source", "layout", ...(auditEnabled ? ["audit" as const] : [])] as InspectorTab[]).map((tab) => (
                   <button key={tab} onClick={() => setInspectorTab(tab)} className={cn("rounded-md px-2.5 py-1.5 text-[11px] font-semibold capitalize", inspectorTab === tab ? "bg-navy-700 text-white" : "text-slate-600 hover:bg-slate-100")}>{tab}</button>
                 ))}
               </div>
@@ -1119,10 +1122,11 @@ export function ClinicalRuleGraphStudio(props: {
   initialSnapshot: ClinicalRuleSnapshot;
   initialRevision: number;
   editable: boolean;
+  auditEnabled?: boolean;
 }) {
   return (
     <ReactFlowProvider>
-      <ClinicalRuleGraphStudioInner {...props} />
+      <ClinicalRuleGraphStudioInner {...props} auditEnabled={props.auditEnabled ?? true} />
     </ReactFlowProvider>
   );
 }

@@ -143,14 +143,13 @@ test("the Guidelines page names the rules system behind each tab", () => {
   assert.ok(guidelines.includes("Legacy pathway router reference"));
 });
 
-test("the Guidelines page states CG-NCSP-3.1.0 is DRAFT and not represented there", () => {
+test("the Guidelines page renders CG-NCSP-3.1.0 as governed but non-authoritative", () => {
   const guidelines = read("app/(app)/guidelines/page.tsx");
   assert.ok(guidelines.includes("CG-NCSP-3.1.0"));
-  assert.ok(guidelines.includes("DRAFT · shadow/simulation only"));
-  assert.ok(
-    guidelines.includes("not represented on this page"),
-    "the page must not let a reader assume these trees are the canonical ruleset"
-  );
+  assert.ok(guidelines.includes("DRAFT · SHADOW / SIMULATION"));
+  assert.ok(guidelines.includes("Clinical authority remains"));
+  assert.ok(guidelines.includes("ClinicalRuleGraphStudio"));
+  assert.ok(guidelines.includes("GOVERNED_CHECKSUM"));
 });
 
 test("the Guidelines page links to Rule Studio for the canonical ruleset", () => {
