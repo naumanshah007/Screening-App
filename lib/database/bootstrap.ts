@@ -238,6 +238,9 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
       "caseJson" TEXT NOT NULL,
       "inputJson" TEXT NOT NULL,
       "decisionJson" TEXT NOT NULL,
+      "authorityEngine" TEXT NOT NULL DEFAULT 'LEGACY',
+      "authorityReason" TEXT,
+      "legacyDecisionJson" TEXT,
       "disposition" TEXT NOT NULL DEFAULT 'PENDING',
       "reviewedByUserId" TEXT,
       "reviewedAt" DATETIME,
@@ -305,6 +308,27 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
     batchReviewColumns,
     "receivedDate",
     "DATETIME"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "authorityEngine",
+    "TEXT NOT NULL DEFAULT 'LEGACY'"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "authorityReason",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "legacyDecisionJson",
+    "TEXT"
   );
 
   await client.execute(

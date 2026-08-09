@@ -130,31 +130,13 @@ export async function POST(
     enteredBy: actorUserId,
     caseId: undefined,
     factSource: "REVIEWER_ENTRY",
+    caseCreatedAt: wizardSession.startedAt,
   });
 
   const decision = graded.decision;
   const versionedShadow = graded.evaluationId
     ? { evaluationId: graded.evaluationId }
     : null;
-
-  // Invariant: while the authority gate is off, the operative decision must be
-  // byte-identical to the legacy engine's. If it ever is not, that is a defect,
-  // and the legacy decision stands.
-  if (graded.authority.authorityEngine !== "LEGACY") {
-    await prisma.auditLog.create({
-      data: {
-        userId: actorUserId,
-        action: "CLINICAL_AUTHORITY_UNEXPECTED",
-        entity: "WizardSession",
-        entityId: id,
-        severity: "ERROR",
-        newValue: JSON.stringify({
-          authorityEngine: graded.authority.authorityEngine,
-          reason: graded.authorityReason,
-        }),
-      },
-    }).catch(() => undefined);
-  }
 
   // ── Create a fresh ScreeningSession for this wizard completion ───────────
   // Each wizard run produces its own clinical record (counters carry forward from

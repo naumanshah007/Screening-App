@@ -21,13 +21,18 @@ import {
 } from "@/lib/engine/overlay";
 import { prisma } from "@/lib/prisma";
 
-import { resolveClinicalAuthority, type ClinicalAuthority } from "./authority";
+import {
+  LEGACY_ENGINE_VERSION,
+  resolveClinicalAuthority,
+  type ClinicalAuthority,
+} from "./authority";
 import { canonicalToClinicalDecision, findDeEscalations } from "./decision-adapter";
 import { canonicalClinicalFactsV2FromFlatFacts } from "./canonical-facts-v2";
+import type { CanonicalClinicalFactsV2 } from "./canonical-facts-v2";
 import { evaluateClinicalCase } from "./evaluator";
 import { normalizeClinicalFactMap } from "./facts";
 import { resolveShadowClinicalRuleVersion } from "./lifecycle";
-import { applyPin, getCaseAuthorityPin } from "./pinning";
+import { applyPin, getBatchRunAuthorityPin, getCaseAuthorityPin } from "./pinning";
 import { recordAuthorityComparison } from "./monitoring";
 
 /**
@@ -77,6 +82,8 @@ export async function evaluateGradedDecision(args: {
   batchRunId?: string;
   factSource?: Parameters<typeof canonicalClinicalFactsV2FromFlatFacts>[0]["source"];
   recordedAt?: string;
+  caseCreatedAt?: Date;
+  canonicalFactsV2?: CanonicalClinicalFactsV2;
   overlay?: GuidelineOverlay;
 }): Promise<GradedDecision> {
   // ── 1. Legacy router. Always. ─────────────────────────────────────────────
@@ -87,15 +94,30 @@ export async function evaluateGradedDecision(args: {
     organisationKey: args.organisationKey,
     environment: args.environment,
     caseId: args.caseId,
+    caseCreatedAt: args.caseCreatedAt,
   });
-  const pin = args.caseId ? await getCaseAuthorityPin(args.caseId) : null;
-  const { pinned, reason: authorityReason } = applyPin(resolved, pin);
-
-  // A pinned case keeps the authority it was first decided under. Since the only
-  // pin that can exist today is legacy, this can only ever hold canonical back.
+  const pin = args.caseId
+    ? await getCaseAuthorityPin(args.caseId)
+    : args.batchRunId
+      ? await getBatchRunAuthorityPin(args.batchRunId)
+      : null;
+  const applied = applyPin(resolved, pin);
+  const pinned = applied.pinned;
+  const authorityReason = applied.reason;
   const authority: ClinicalAuthority =
-    pinned && pin?.authorityEngine === "LEGACY"
-      ? { ...resolved, authorityEngine: "LEGACY", evaluationMode: "SHADOW" }
+    pinned && pin
+      ? pin.authorityEngine === "CANONICAL" && pin.ruleVersionId
+        ? {
+            ...resolved,
+            authorityEngine: "CANONICAL",
+            evaluationMode: pin.evaluationMode ?? resolved.evaluationMode,
+            ruleSetVersionId: pin.ruleVersionId,
+            ruleSetVersion: pin.ruleVersionDisplay,
+            ruleSetChecksum: pin.rulesetChecksum,
+            routerEngine: LEGACY_ENGINE_VERSION,
+            reason: authorityReason,
+          }
+        : { ...resolved, authorityEngine: "LEGACY", evaluationMode: "SHADOW", reason: authorityReason }
       : resolved;
 
   // An enabled legacy-keyed overlay cannot apply under canonical authority and
@@ -124,7 +146,7 @@ export async function evaluateGradedDecision(args: {
     };
   }
 
-  const canonicalFactsV2 = canonicalClinicalFactsV2FromFlatFacts({
+  const canonicalFactsV2 = args.canonicalFactsV2 ?? canonicalClinicalFactsV2FromFlatFacts({
     subjectReference: args.subjectReference,
     facts: normalizeClinicalFactMap({
       ...withoutFabricatedFacts(args.input),

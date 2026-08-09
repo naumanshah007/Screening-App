@@ -10,7 +10,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { isLiveProductionAuthorityEnabled, describeAuthority, LEGACY_ENGINE_VERSION } from "../authority";
+import { isLiveProductionAuthorityEnabled, describeAuthority, getRuntimeClinicalEnvironment, LEGACY_ENGINE_VERSION } from "../authority";
 
 function withEnv(value: string | undefined, run: () => void) {
   const previous = process.env.CLINICAL_AUTHORITY_LIVE_PRODUCTION;
@@ -66,4 +66,17 @@ test("authority description never implies canonical without a version", () => {
     describeAuthority({ authorityEngine: "CANONICAL", ruleSetVersion: "CG-NCSP-3.1.0" }),
     "Canonical CG-NCSP-3.1.0"
   );
+});
+
+test("the runtime deployment selects the governed activation environment", () => {
+  const previousVercel = process.env.VERCEL_ENV;
+  try {
+    process.env.VERCEL_ENV = "production";
+    assert.equal(getRuntimeClinicalEnvironment(), "PRODUCTION");
+    process.env.VERCEL_ENV = "preview";
+    assert.equal(getRuntimeClinicalEnvironment(), "VALIDATION");
+  } finally {
+    if (previousVercel === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = previousVercel;
+  }
 });

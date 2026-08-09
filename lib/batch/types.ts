@@ -205,6 +205,12 @@ export interface BatchCaseResult {
   input: ClinicalInput;
   /** The ClinicalDecision the engine returned. */
   decision: ClinicalDecision;
+  /** The router/Legacy outcome retained as technical provenance when canonical is operative. */
+  legacyDecision?: ClinicalDecision;
+  clinicalAuthority?: {
+    authorityEngine: "LEGACY" | "CANONICAL";
+    reason?: string | null;
+  };
   /** V2 facts persisted only for canonical shadow evaluation. */
   canonicalFactsV2?: CanonicalClinicalFactsV2;
   /** Persisted canonical result shown as comparison evidence, never authority. */

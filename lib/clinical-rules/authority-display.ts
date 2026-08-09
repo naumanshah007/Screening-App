@@ -17,7 +17,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-import { LEGACY_ENGINE_VERSION, resolveClinicalAuthority } from "./authority";
+import { getRuntimeClinicalEnvironment, LEGACY_ENGINE_VERSION, resolveClinicalAuthority } from "./authority";
 import { NATIONAL_RULE_SET_KEY } from "./constants";
 
 export type ClinicalAuthorityDisplay = {
@@ -47,7 +47,7 @@ export async function getClinicalAuthorityDisplay(args?: {
   try {
     const authority = await resolveClinicalAuthority({
       organisationKey: args?.organisationKey,
-      environment: process.env.VERCEL_ENV === "production" ? "PRODUCTION" : "DEMO",
+      environment: getRuntimeClinicalEnvironment(),
     });
 
     // The newest canonical version, regardless of status, so the UI can show

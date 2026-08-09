@@ -327,6 +327,35 @@ test("10. after rollback, new resolutions return LEGACY immediately", async () =
   assert.ok(stillThere?.deactivatedAt, "rollback must record when the activation ended");
 });
 
+test("10a. an in-flight workflow created before activation remains Legacy", async () => {
+  await clearActivations();
+  const version = await seedVersion(prisma as never, {
+    ruleSetId,
+    displayVersion: "CG-NCSP-3.1.0-new-cases-only",
+    status: "ACTIVE",
+    patch: 31,
+  });
+  const activation = await seedActivation(prisma as never, {
+    ruleSetId,
+    ruleVersionId: version.id,
+    environment: "TEST",
+  });
+  const stored = await prisma.ruleSetActivation.findUniqueOrThrow({ where: { id: activation.id } });
+
+  const existing = await resolveClinicalAuthority({
+    environment: "TEST",
+    caseCreatedAt: new Date(stored.activatedAt.getTime() - 1),
+  });
+  assert.equal(existing.authorityEngine, "LEGACY");
+  assert.match(existing.reason, /predates the canonical activation/i);
+
+  const newCase = await resolveClinicalAuthority({
+    environment: "TEST",
+    caseCreatedAt: new Date(stored.activatedAt.getTime() + 1),
+  });
+  assert.equal(newCase.authorityEngine, "CANONICAL");
+});
+
 // ── 11 and 12: pinning ──────────────────────────────────────────────────────
 
 test("11. an already-pinned case retains its original authority", async () => {

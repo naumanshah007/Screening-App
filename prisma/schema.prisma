@@ -1266,6 +1266,11 @@ model BatchReviewItem {
   caseJson     String
   inputJson    String
   decisionJson String
+  // Stored authority provenance lets Case Review render canonical-first only
+  // when the evaluation that produced this decision was genuinely operative.
+  authorityEngine   String  @default("LEGACY")
+  authorityReason   String?
+  legacyDecisionJson String?
 
   // Reviewer disposition
   disposition      BatchReviewDisposition @default(PENDING)

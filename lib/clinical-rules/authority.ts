@@ -60,6 +60,14 @@ export type ClinicalAuthority = {
   reason: string;
 };
 
+/** Resolve the activation environment from the running deployment, never from a UI hint. */
+export function getRuntimeClinicalEnvironment(): RuleActivationEnvironment {
+  if (process.env.VERCEL_ENV === "production") return "PRODUCTION";
+  if (process.env.VERCEL_ENV === "preview") return "VALIDATION";
+  if (process.env.NODE_ENV === "test") return "TEST";
+  return "DEMO";
+}
+
 /** The legacy engine identity, matching `lib/batch/processor.ts` ENGINE_VERSION. */
 export const LEGACY_ENGINE_VERSION = "business-figures-table1-v1";
 
@@ -126,7 +134,7 @@ export async function resolveClinicalAuthority(args: {
   caseCreatedAt?: Date;
   caseId?: string;
 }): Promise<ClinicalAuthority> {
-  const environment = args.environment ?? "DEMO";
+  const environment = args.environment ?? getRuntimeClinicalEnvironment();
   const organisationKey = args.organisationKey ?? null;
 
   // Gate 1: live canonical authority in PRODUCTION requires an explicit switch.
@@ -236,6 +244,18 @@ export async function resolveClinicalAuthority(args: {
       organisationKey,
       reason:
         "Legacy authority: the activated clinical rule version is not ACTIVE or has no published checksum.",
+    });
+  }
+
+  // New-cases-only activation: a workflow created before the activation keeps
+  // Legacy authority even if it is completed afterwards. Existing immutable
+  // evaluations are handled by pinning; this timestamp gate covers in-flight
+  // workflows that have not yet produced an operative evaluation.
+  if (args.caseCreatedAt && args.caseCreatedAt < activation.activatedAt) {
+    return legacyAuthority({
+      environment,
+      organisationKey,
+      reason: `Legacy authority: this workflow predates the canonical activation at ${activation.activatedAt.toISOString()}.`,
     });
   }
 
