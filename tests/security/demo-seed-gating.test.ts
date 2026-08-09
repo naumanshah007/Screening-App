@@ -162,6 +162,16 @@ test("no hard-coded seed password remains in the bootstrap source", () => {
   );
 });
 
+test("all local seed entry points require an operator password and refuse remote databases", () => {
+  for (const path of ["scripts/demo-reset.ts", "prisma/seed.ts"]) {
+    const source = readFileSync(path, "utf8");
+    assert.ok(source.includes("readDemoSeedPassword"), `${path} must require the operator password`);
+    assert.ok(source.includes("isRemoteLibSqlUrl"), `${path} must refuse a remote/shared database`);
+    assert.ok(source.includes("isProductionDeployment"), `${path} must refuse Production`);
+    assert.equal(/admin123|CerviGradeDemo123/i.test(source), false, `${path} contains a legacy credential literal`);
+  }
+});
+
 test("the seed password is never logged or echoed", () => {
   const source = readFileSync("lib/database/bootstrap.ts", "utf8");
   // No console call may mention the password variable or its env name.

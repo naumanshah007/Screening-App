@@ -1,7 +1,12 @@
 import { PrismaClient, type BatchReviewDisposition, type Prisma, type UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { createPrismaAdapter } from "../lib/config/database";
+import {
+  createPrismaAdapter,
+  isRemoteLibSqlUrl,
+  resolveDatabaseUrl,
+} from "../lib/config/database";
+import { isProductionDeployment, readDemoSeedPassword } from "../lib/database/bootstrap";
 import { ENGINE_VERSION, processBatch } from "../lib/batch/processor";
 import { isReviewRequired } from "../lib/batch/persistence";
 import type { CanonicalBatchCase } from "../lib/batch/types";
@@ -9,7 +14,6 @@ import { buildDecisionPackageAuditPayload } from "../lib/decisions/package-audit
 
 const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
-const DEMO_PASSWORD = "CerviGradeDemo123!";
 const DEMO_SOURCE_FILE = "phase-3a-demo-reset.json";
 const DEMO_SOURCE_SYSTEM = "CerviGrade demo environment - synthetic intake";
 
@@ -134,7 +138,11 @@ function buildDemoCases(): CanonicalBatchCase[] {
 }
 
 async function upsertDemoUsers() {
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const demoPassword = readDemoSeedPassword();
+  if (!demoPassword) {
+    throw new Error("DEMO_SEED_PASSWORD (minimum 12 characters) is required for a local demo reset.");
+  }
+  const passwordHash = await bcrypt.hash(demoPassword, 10);
   const users: Record<string, { id: string; email: string; name: string | null; role: UserRole }> = {};
 
   for (const user of DEMO_USERS) {
@@ -328,6 +336,13 @@ async function createDemoRun(users: Awaited<ReturnType<typeof upsertDemoUsers>>)
 }
 
 async function main() {
+  const databaseUrl = resolveDatabaseUrl();
+  if (isProductionDeployment()) {
+    throw new Error("Demo reset is prohibited in Production.");
+  }
+  if (isRemoteLibSqlUrl(databaseUrl)) {
+    throw new Error("Local demo reset is prohibited against a remote/shared database.");
+  }
   const users = await upsertDemoUsers();
 
   await clearDemoBatchData();
@@ -336,7 +351,7 @@ async function main() {
   console.log("Demo reset complete");
   console.log(`Intake session: ${run.id}`);
   console.log(`Demo users: ${DEMO_USERS.map((user) => user.email).join(", ")}`);
-  console.log(`Demo password: ${DEMO_PASSWORD}`);
+  console.log("Demo password was supplied by the operator and is not echoed.");
   console.log("Seeded: 3 pending review items, 1 accepted, 1 rejected, 1 needs information, 2 simulated package audit events.");
 }
 
