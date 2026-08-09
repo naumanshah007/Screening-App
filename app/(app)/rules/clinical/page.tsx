@@ -16,7 +16,10 @@ import {
   type BadgeTone,
   type StepState,
 } from "@/components/system";
-import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
+import {
+  ClinicalRuleBootstrapAction,
+  ClinicalRuleVersionActions,
+} from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { formatDateTime } from "@/lib/utils";
 
 // Governed rule versions change through the lifecycle, not at build time.
@@ -91,6 +94,21 @@ export default async function ClinicalRuleVersionsPage() {
       </div>
 
       <div className="space-y-4">
+        {versions.length === 0 && (
+          <Panel className="space-y-4">
+            <div>
+              <h2 className="font-semibold text-foreground">No governed snapshot loaded</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Load the committed, checksum-verified NCSP snapshots into this
+                non-Production validation database. This creates inactive drafts
+                only; it does not approve, publish, or activate clinical authority.
+              </p>
+            </div>
+            {canPerformClinicalRuleAction(user?.role, "edit") && (
+              <ClinicalRuleBootstrapAction />
+            )}
+          </Panel>
+        )}
         {versions.map((version) => {
           const snapshot = parseSnapshot(JSON.parse(version.snapshotJson));
           const validation = version.validationJson

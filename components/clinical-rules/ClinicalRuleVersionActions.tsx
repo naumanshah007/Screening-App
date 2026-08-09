@@ -2,10 +2,50 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, CheckCircle2, Copy, Download, FileCheck2, Play, RotateCcw, Send, ShieldOff } from "lucide-react";
+import { Archive, CheckCircle2, Copy, DatabaseZap, Download, FileCheck2, Play, RotateCcw, Send, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+
+export function ClinicalRuleBootstrapAction() {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+
+  async function bootstrap() {
+    setPending(true);
+    try {
+      const response = await fetch("/api/clinical-rules/bootstrap-demo", {
+        method: "POST",
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error ?? "Unable to load the governed snapshot");
+      }
+      toast.success("Governed canonical snapshots loaded as inactive drafts");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to load the governed snapshot"
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant="primary"
+      loading={pending}
+      onClick={() => void bootstrap()}
+      icon={<DatabaseZap className="h-4 w-4" />}
+    >
+      Load governed validation snapshot
+    </Button>
+  );
+}
 
 export function ClinicalRuleVersionActions({
   id,
