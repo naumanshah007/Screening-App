@@ -29,18 +29,28 @@
   --color-navy-800:   #0f1e32;
   --color-navy-900:   #080f1c;
 
-  /* ---------- Semantic surface tokens (light) ---------- */
-  --color-bg:            #f0f5f9;
-  --color-surface:       #ffffff;
-  --color-surface-raised:#f8fafc;
-  --color-surface-overlay:#ffffff;
-  --color-border:        #e2e8f0;
-  --color-border-strong: #cbd5e1;
-  --color-text:          #0f172a;
-  --color-text-muted:    #475569;
-  --color-text-subtle:   #94a3b8;
-  --color-accent:        #0d9488;
-  --color-accent-fg:     #ffffff;
+  /* ---------- Semantic surface tokens ----------
+     Premium clinical: a cool, near-white canvas so white cards read as raised
+     rather than merging into the page. The previous #f0f5f9 was heavy enough
+     that cards lost separation without strong shadows.
+
+     These MUST be `var()` references, not literals. Under `@theme inline`
+     Tailwind inlines the token's value straight into the utility, so a literal
+     here compiles to e.g. `.border-border { border-color: #e7ecf3 }` — frozen
+     at the light value, and the [data-theme="dark"] override never applies.
+     Pointing at a :root custom property keeps the utility theme-reactive.
+     Actual values live in the :root / [data-theme="dark"] blocks below. */
+  --color-bg:            var(--background);
+  --color-surface:       var(--surface);
+  --color-surface-raised:var(--surface-raised);
+  --color-surface-overlay:var(--surface-overlay);
+  --color-border:        var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text:          var(--foreground);
+  --color-text-muted:    var(--muted-foreground);
+  --color-text-subtle:   var(--text-subtle);
+  --color-accent:        var(--accent-color);
+  --color-accent-fg:     var(--accent-foreground);
 
   /* ---------- Semantic status colours ---------- */
   --color-success:       #16a34a;
@@ -64,11 +74,35 @@
   --radius-2xl: 24px;
   --radius-full: 9999px;
 
-  /* ---------- Shadow ---------- */
-  --shadow-sm:      0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md:      0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg:      0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  /* ---------- Shadow ----------
+     Navy-tinted rather than neutral black: on a cool canvas, black shadows read
+     as grey smudge, while a navy tint keeps edges crisp and looks intentional. */
+  --shadow-sm:      0 1px 2px 0 rgb(13 27 42 / 0.05);
+  --shadow-md:      0 4px 6px -1px rgb(13 27 42 / 0.07), 0 2px 4px -2px rgb(13 27 42 / 0.05);
+  --shadow-lg:      0 10px 15px -3px rgb(13 27 42 / 0.07), 0 4px 6px -4px rgb(13 27 42 / 0.05);
+  --shadow-overlay: 0 20px 25px -5px rgb(13 27 42 / 0.1), 0 8px 10px -6px rgb(13 27 42 / 0.05);
+
+  /* Two-step elevation used by every surface in the design system.
+     `card` is the resting state; `raised` is hover/active. Replaces the ad-hoc
+     shadow-[0_1px_2px_rgba(...)] literals that had crept into components. */
+  --shadow-card:    0 1px 3px 0 rgb(13 27 42 / 0.07), 0 1px 2px -1px rgb(13 27 42 / 0.05);
+  --shadow-raised:  0 8px 24px -4px rgb(13 27 42 / 0.12), 0 3px 8px -3px rgb(13 27 42 / 0.07);
+
+  /* ---------- Type scale ----------
+     One ladder for the whole product, so headings stop drifting per page. */
+  --text-display:   1.875rem;  /* 30px — page title */
+  --text-h1:        1.5rem;    /* 24px */
+  --text-h2:        1.125rem;  /* 18px — panel title */
+  --text-h3:        0.9375rem; /* 15px */
+  --text-body:      0.875rem;  /* 14px — default UI text */
+  --text-caption:   0.75rem;   /* 12px — supporting copy */
+  --text-micro:     0.6875rem; /* 11px — eyebrow, table headers */
+
+  /* ---------- Spacing rhythm ----------
+     Panel padding and gaps reference these so density is uniform. */
+  --space-panel:    1rem;      /* 16px inner padding */
+  --space-gap:      1rem;      /* 16px between panels */
+  --space-section:  1.25rem;   /* 20px between major bands */
 
   /* ---------- Bridge: map :root CSS vars → Tailwind utilities ---------- */
   /* These allow bg-background, text-foreground, bg-card, bg-muted, etc. to
@@ -91,19 +125,27 @@
    CSS custom properties — light theme (default)
    ============================================================ */
 :root {
-  --background:         #f0f5f9;
-  --foreground:         #0f172a;
+  --background:         #f7f9fc;
+  --foreground:         #0d1b2a;
   --card:               #ffffff;
-  --card-foreground:    #0f172a;
-  --border:             #e2e8f0;
-  --input:              #e2e8f0;
+  --card-foreground:    #0d1b2a;
+  --border:             #e7ecf3;
+  --input:              #e7ecf3;
   --ring:               #0d9488;
   --muted:              #f1f5f9;
-  --muted-foreground:   #475569;
+  --muted-foreground:   #566579;
   --accent-color:       #0d9488;
   --accent-foreground:  #ffffff;
   --destructive:        #dc2626;
   --destructive-fg:     #ffffff;
+
+  /* Backing values for the semantic surface tokens above. */
+  --surface:            #ffffff;
+  --surface-raised:     #fbfcfe;
+  --surface-overlay:    #ffffff;
+  --border-strong:      #cfd8e3;
+  --text-subtle:        #90a0b3;
+
   --sidebar-width:      256px;
   --topbar-height:      56px;
 }
@@ -126,16 +168,15 @@
   --destructive:        #ef4444;
   --destructive-fg:     #ffffff;
 
-  /* Override @theme tokens for dark */
-  --color-bg:            #0a0f1a;
-  --color-surface:       #111827;
-  --color-surface-raised:#1e293b;
-  --color-surface-overlay:#1e293b;
-  --color-border:        #1e293b;
-  --color-border-strong: #334155;
-  --color-text:          #f1f5f9;
-  --color-text-muted:    #94a3b8;
-  --color-text-subtle:   #475569;
+  /* Backing values for the semantic surface tokens. Overriding the base
+     custom properties is what actually flips the utilities — overriding
+     --color-* here would do nothing, because @theme inline has already
+     inlined those tokens' values into the generated utility classes. */
+  --surface:            #111827;
+  --surface-raised:     #1e293b;
+  --surface-overlay:    #1e293b;
+  --border-strong:      #334155;
+  --text-subtle:        #475569;
 }
 
 /* ============================================================

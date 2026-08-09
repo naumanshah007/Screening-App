@@ -1,8 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageShell } from "@/components/system";
 
 export default function BatchLoading() {
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <PageShell>
       {/* Header */}
       <div className="space-y-2">
         <Skeleton className="h-4 w-32" />
@@ -24,6 +25,6 @@ export default function BatchLoading() {
           ))}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

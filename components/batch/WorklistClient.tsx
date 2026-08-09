@@ -12,7 +12,7 @@ import { Badge, RiskBadge, PriorityBadge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
-import { BatchResultDetail } from "@/components/batch/BatchResultDetail";
+import { BatchResultDetail, type CaseReviewContext } from "@/components/batch/BatchResultDetail";
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
 
@@ -98,7 +98,10 @@ export function WorklistClient({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const [detail, setDetail] = useState<BatchCaseResult | null>(null);
+  // Holds the item that was opened. The live row is preferred on every render
+  // so the drawer reflects a disposition recorded from anywhere; the snapshot
+  // is the fallback for queues that drop rows once actioned.
+  const [detailItem, setDetailItem] = useState<WorklistItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   // Reason modal for reject / needs-info
@@ -229,9 +232,50 @@ export function WorklistClient({
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
 
   const openDetail = useCallback((item: WorklistItem) => {
-    setDetail(item.result);
+    setDetailItem(item);
     setDetailOpen(true);
   }, []);
+
+  const detail = detailItem
+    ? (items.find((i) => i.id === detailItem.id) ?? detailItem)
+    : null;
+
+  /**
+   * Review controls for the drawer.
+   *
+   * These are the same three dispositions the worklist rows already apply
+   * through /api/batch/review — the drawer only surfaces them next to the full
+   * case context. They are withheld entirely when the role cannot review or the
+   * case already has a final disposition, so no unsupported action is offered.
+   */
+  const detailReview: CaseReviewContext | undefined = detail
+    ? {
+        disposition: detail.disposition,
+        reviewedByName: detail.reviewedByName,
+        reviewedAt: detail.reviewedAt,
+        reviewNote: detail.reviewNote,
+        overrideReason: detail.overrideReason,
+        busy,
+        ...(canReview && detail.disposition === "PENDING"
+          ? {
+              onAccept: () => {
+                setDetailOpen(false);
+                void applyDisposition([detail.id], "ACCEPTED");
+              },
+              // Reject and needs-info both require a reason, collected by the
+              // existing modal; the drawer closes so the dialog is unobstructed.
+              onReject: () => {
+                setDetailOpen(false);
+                requestReason("REJECTED", [detail.id]);
+              },
+              onNeedsInfo: () => {
+                setDetailOpen(false);
+                requestReason("NEEDS_INFO", [detail.id]);
+              },
+            }
+          : {}),
+      }
+    : undefined;
 
   return (
     <div className="space-y-4">
@@ -452,7 +496,14 @@ export function WorklistClient({
       </p>
 
       {/* Drill-in: full picture (reuses the batch result detail) */}
-      <BatchResultDetail result={detail} open={detailOpen} onClose={() => setDetailOpen(false)} />
+      <BatchResultDetail
+        result={detail?.result ?? null}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        reviewItemId={detail?.result?.canonicalShadow?.reviewItemId}
+        canCorrectCanonicalFacts={canReview}
+        review={detailReview}
+      />
 
       {/* Reason modal for reject / needs-info */}
       <Dialog

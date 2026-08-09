@@ -1,0 +1,52 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Pregnancy Pathway\nFigure 9 — pregnancy-specific colposcopy, MDM, invasion assessment and postpartum follow-up\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f9 { label="FIGURE 9 - Pregnancy"; color="#7E22CE"; style="rounded"; penwidth=1.6;
+F9_ENTRY [label="Pregnant + HPV16/18 OR ASC-H/HSIL/AGC/AIS"];
+F9_COMP [label="Pregnancy pathway facts complete?\nGestational age, EDD/delivery date, exact cytology, TZ/lesion, invasion/MDM state", shape="diamond"];
+F9_CSTOP [label="Missing pregnancy-pathway facts -> mandatory specialist review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F9_MALIGN [label="Malignant/invasive cytology in pregnancy\nURGENT experienced colposcopy + oncology/MDT as appropriate", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F9_LOW [label="LOW-RISK PREGNANCY BRANCH\nHPV Other + negative/ASC-US/LSIL\nRepeat HPV in 12 months; do not enter high-grade Figure 9 colposcopy pathway", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F9_COL [label="Colposcopy by experienced pregnancy colposcopist", fillcolor="#FFF4CC", color="#B7791F"];
+F9_INV [label="Invasion suspected from cytology OR colposcopy?", shape="diamond"];
+F9_BIO [label="Biopsy"];
+F9_POS [label="Positive invasion\nGynaecological oncology / MDT within 2 weeks", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F9_NEG [label="Negative for invasion\nMDM review", fillcolor="#FFF4CC", color="#B7791F"];
+F9_VIS [label="Normal TZ / no visible lesion?", shape="diamond"];
+F9_MDM [label="MDM cytology review", fillcolor="#FFF4CC", color="#B7791F"];
+F9_DOWNN [label="Downgraded negative\nFollow Figure 3"];
+F9_DOWNL [label="Downgraded ASC-US/LSIL\nApplicable low-grade pathway"];
+F9_CONF [label="Confirmed high-grade / CIN2-3 / AIS\nNo definitive treatment during pregnancy unless invasion"];
+F9_PP [label="Colposcopy review at 6 months\nor 6-12 weeks postpartum\nPostpartum assessment no earlier than 6 weeks after documented delivery"];
+F9_ENTRY -> F9_COMP;
+F9_COMP -> F9_CSTOP [label="No"];
+F9_COMP -> F9_MALIGN [label="Malignant/invasive cytology"];
+F9_COMP -> F9_COL [label="Complete, non-invasive entry"];
+F9_COL -> F9_INV;
+F9_INV -> F9_BIO [label="Yes"];
+F9_BIO -> F9_POS [label="Positive"];
+F9_BIO -> F9_NEG [label="Negative"];
+F9_INV -> F9_VIS [label="No"];
+F9_VIS -> F9_MDM [label="Normal/no lesion"];
+F9_VIS -> F9_CONF [label="Abnormal lesion, no invasion"];
+F9_MDM -> F9_DOWNN [label="Negative"];
+F9_MDM -> F9_DOWNL [label="ASC-US/LSIL"];
+F9_MDM -> F9_CONF [label="High-grade confirmed"];
+F9_CONF -> F9_PP;
+}
+
+V9_START [label="Pregnant participant with a cervical-screening result", shape="oval", fillcolor="#DBEAFE", color="#1D4ED8"];
+V9_CAT [label="Pregnancy result category?", shape="diamond"];
+V9_F3 [label="Open Figure 3 — primary HPV pathway", fillcolor="#EDE9FE", color="#6D28D9"];
+V9_START -> V9_CAT;
+V9_CAT -> F9_LOW [label="HPV Other + negative/ASC-US/LSIL"];
+V9_CAT -> F9_ENTRY [label="HPV16/18 or ASC-H/HSIL/AGC/AIS"];
+F9_DOWNN -> V9_F3 [style="dashed"];
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

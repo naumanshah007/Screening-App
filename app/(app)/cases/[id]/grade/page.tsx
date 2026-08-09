@@ -54,6 +54,7 @@ import { DecisionSaveForm } from "./DecisionSaveForm";
 import { GradeEvaluateButton } from "./GradeEvaluateButton";
 import { AiAssistButton } from "./AiAssistButton";
 import { GynaecologyGradeWorkbenchForm } from "./GynaecologyGradeWorkbenchForm";
+import { PageShell } from "@/components/system";
 
 type StoredEvidencePayload = {
   lines: string[];
@@ -174,7 +175,7 @@ export default async function CaseGradePage({
     : provisionalOperationalState;
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <Link
         href={`/cases/${referralCase.id}`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"
@@ -681,6 +682,6 @@ export default async function CaseGradePage({
             </Card>
           </div>
         </div>
-    </div>
+    </PageShell>
   );
 }

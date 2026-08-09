@@ -86,12 +86,17 @@ const reviewerSelect = {
 
 const completedDecisionInclude = {
   reviewedBy: reviewerSelect,
+  ruleEvaluation: true,
   batchRun: {
     select: {
       id: true,
       source: true,
       sourceSystem: true,
       sourceFileName: true,
+      engineVersion: true,
+      pinnedRuleVersionId: true,
+      pinnedRuleVersionDisplay: true,
+      pinnedRulesetChecksum: true,
       createdAt: true,
       createdBy: reviewerSelect,
     },

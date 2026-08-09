@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-08-03",
+  "allThreeResolvedFromPrimarySource": true,
+  "dossiers": [
+    {
+      "id": "A",
+      "caseId": "F5-CONFIRMED-ASC-H-TREATMENT-RECOMMENDED",
+      "title": "Confirmed ASC-H with Type 1/2 TZ and no visible lesion",
+      "sourceArea": "Figure 5",
+      "sourcePages": {
+        "recommendationPrintedPage": 46,
+        "recommendationPdfIndex": 48,
+        "figurePrintedPage": 47,
+        "figurePdfIndex": 49
+      },
+      "recommendationIds": [
+        "R6.08",
+        "R6.09"
+      ],
+      "evidence": [
+        "R6.08 says diagnostic excision should be considered and expressly retains observation as an option.",
+        "R6.09 makes deferral conditional on an informed participant and a documented colposcopist-led observation plan.",
+        "The Figure 5 box 'Treatment recommended' abbreviates the prose and does not establish treatment completion.",
+        "The 2026 addendum and immune guidance do not supersede this decision point."
+      ],
+      "priorConflict": "The earlier oracle represented the figure label as a deterministic TREATMENT terminal.",
+      "disposition": "ORACLE_CORRECTION_REQUIRED",
+      "resolvedInterpretation": "SPECIALIST_TREATMENT_DECISION_REQUIRED; diagnostic excision considered, with observation available after informed specialist discussion.",
+      "prohibitedInference": "TREATMENT_SELECTED or treatment completed",
+      "affectedRuleIds": [
+        "F5-01",
+        "F5-04"
+      ],
+      "affectedGraphNodes": [
+        "node:rule:F5-01",
+        "node:rule:F5-04",
+        "node:outcome:F5-04"
+      ],
+      "affectedTests": [
+        "CV2-F5-CONFIRMED-ASC-H-TREATMENT-RECOMMENDED"
+      ],
+      "historicalEvaluationImpact": "Presentation and reviewer-boundary regrade may differ; no historical evaluation is rewritten.",
+      "interimSafetyStopNeeded": false
+    },
+    {
+      "id": "B",
+      "caseId": "F5-TREATMENT-DEFERRED-HPV-NOT-DETECTED-TOC",
+      "title": "Figure 5 observation after a reassuring six-month co-test",
+      "sourceArea": "Figure 5",
+      "sourcePages": {
+        "recommendationPrintedPage": 46,
+        "recommendationPdfIndex": 48,
+        "figurePrintedPage": 47,
+        "figurePdfIndex": 49
+      },
+      "recommendationIds": [
+        "R6.09"
+      ],
+      "evidence": [
+        "R6.09 requires repeat HPV, cytology and colposcopy at six months after observation is selected.",
+        "If HPV is not detected, cytology is negative and the impression is unchanged, R6.09 requires another co-test in 12 months.",
+        "Only a second HPV-not-detected/negative co-test returns the participant to regular screening.",
+        "The Figure 5 'Test of Cure (co-testing)' label does not say that HSIL treatment occurred; the 2026 documents do not replace R6.09."
+      ],
+      "priorConflict": "The earlier oracle interpreted the figure label as ordinary post-treatment Figure 6 Test of Cure.",
+      "disposition": "ORACLE_CORRECTION_REQUIRED",
+      "resolvedInterpretation": "FIGURE_5_COTEST_SURVEILLANCE with Figure 5 provenance and a two-stage negative sequence.",
+      "prohibitedInference": "prior HSIL treatment, treatment date, or ordinary Figure 6 eligibility",
+      "affectedRuleIds": [
+        "F5-05",
+        "F5-08"
+      ],
+      "affectedGraphNodes": [
+        "node:rule:F5-05",
+        "node:rule:F5-08",
+        "node:outcome:F5-08"
+      ],
+      "affectedTests": [
+        "CV2-F5-TREATMENT-DEFERRED-HPV-NOT-DETECTED-TOC"
+      ],
+      "historicalEvaluationImpact": "A regrade may change provenance and sequence wording; the prior evaluation remains immutable.",
+      "interimSafetyStopNeeded": false
+    },
+    {
+      "id": "C",
+      "caseId": "F6-18M-HPV-NOT-DETECTED-LOW-GRADE-REPEAT",
+      "title": "Low-grade cytology during Test of Cure",
+      "sourceArea": "Figure 6",
+      "sourcePages": {
+        "recommendationPrintedPage": 55,
+        "recommendationPdfIndex": 57,
+        "figurePrintedPage": 56,
+        "figurePdfIndex": 58
+      },
+      "recommendationIds": [
+        "R8.06",
+        "R8.07",
+        "R8.08"
+      ],
+      "evidence": [
+        "R8.07 sends any HPV-positive post-treatment result with negative/ASC-US/LSIL cytology to colposcopy.",
+        "For HPV-negative results, R8.07 requires colposcopy after two consecutive low-grade cytology results.",
+        "The Figure 6 arrows retain repeat co-testing for the first HPV-negative low-grade result.",
+        "R8.08 separately sends ASC-H/HSIL or glandular cytology to colposcopy regardless of HPV status."
+      ],
+      "priorConflict": "The earlier oracle did not distinguish a first low-grade result from the second consecutive low-grade result.",
+      "disposition": "ORACLE_CORRECTION_REQUIRED",
+      "resolvedInterpretation": "First HPV-negative low-grade cytology repeats co-testing; second consecutive low-grade cytology routes to colposcopy.",
+      "prohibitedInference": "that any single low-grade result automatically completes Test of Cure or always requires colposcopy",
+      "affectedRuleIds": [
+        "F6-07",
+        "F6-09",
+        "F6-14"
+      ],
+      "affectedGraphNodes": [
+        "node:rule:F6-07",
+        "node:rule:F6-09",
+        "node:rule:F6-14"
+      ],
+      "affectedTests": [
+        "CV2-F6-18M-HPV-NOT-DETECTED-LOW-GRADE-REPEAT"
+      ],
+      "historicalEvaluationImpact": "A regrade may differ if consecutive-result provenance is present; missing sequence history remains a review stop.",
+      "interimSafetyStopNeeded": false
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "01_global_router_safety",
+  "title": "Global Router and Safety Gates",
+  "description": "Pathway precedence, minimum routing facts, under-25, DES and immune-status safety handling",
+  "clusters": [
+    "cluster_router",
+    "cluster_des",
+    "cluster_immune"
+  ],
+  "nodeCount": 35,
+  "edgeCount": 31,
+  "ruleCount": 28,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

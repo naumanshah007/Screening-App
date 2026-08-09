@@ -5,6 +5,7 @@ import { Download, FileSearch, ShieldAlert } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { PageIntro } from "@/components/layout/PageIntro";
+import { PageShell } from "@/components/system";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -87,8 +88,7 @@ export default async function AuditPage({
   }).toString()}`;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="page-aura">
+    <PageShell width="wide">
         <PageIntro
           eyebrow={workspace.label}
           title="Audit Investigation"
@@ -98,7 +98,6 @@ export default async function AuditPage({
             { href: "/admin", label: "Open admin" },
           ]}
         />
-      </div>
 
       <Card>
         <CardHeader>
@@ -268,6 +267,6 @@ export default async function AuditPage({
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

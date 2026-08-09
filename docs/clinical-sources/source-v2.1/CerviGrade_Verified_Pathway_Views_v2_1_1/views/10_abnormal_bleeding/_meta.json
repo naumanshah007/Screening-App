@@ -1,0 +1,14 @@
+{
+  "id": "10_abnormal_bleeding",
+  "title": "Abnormal Vaginal Bleeding",
+  "description": "Figure 10 \u2014 symptom assessment, abnormal cervix, cancer suspicion and persistent bleeding overrides",
+  "clusters": [
+    "cluster_f10"
+  ],
+  "nodeCount": 25,
+  "edgeCount": 25,
+  "ruleCount": 15,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

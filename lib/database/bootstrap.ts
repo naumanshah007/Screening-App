@@ -101,10 +101,34 @@ function shouldApplySchemaPatches(url: string) {
 }
 
 function splitSqlStatements(sql: string) {
-  return sql
-    .split(/;\s*(?:\r?\n|$)/)
-    .map((statement) => statement.trim())
-    .filter(Boolean);
+  const statements: string[] = [];
+  let buffer: string[] = [];
+  let inTrigger = false;
+
+  for (const line of sql.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!inTrigger && /^CREATE\s+TRIGGER\b/i.test(trimmed)) inTrigger = true;
+    buffer.push(line);
+
+    if (inTrigger) {
+      if (/^END;$/i.test(trimmed)) {
+        statements.push(buffer.join("\n").trim());
+        buffer = [];
+        inTrigger = false;
+      }
+      continue;
+    }
+
+    if (trimmed.endsWith(";")) {
+      const statement = buffer.join("\n").trim();
+      if (statement) statements.push(statement);
+      buffer = [];
+    }
+  }
+
+  const remainder = buffer.join("\n").trim();
+  if (remainder) statements.push(remainder);
+  return statements;
 }
 
 async function applyCurrentSchema(url: string) {

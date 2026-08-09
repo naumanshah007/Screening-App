@@ -13,6 +13,7 @@ import {
   AlertTriangle, Shield, Clock, Activity, ArrowLeft,
   Microscope, ClipboardList
 } from "lucide-react";
+import { PageShell } from "@/components/system";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -56,7 +57,7 @@ export default async function PatientDetailPage({ params }: Props) {
   const initials = `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`;
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <PageIntro
         eyebrow={`NHI: ${patient.nhi} · ${age} years · DOB: ${formatDate(patient.dateOfBirth)}`}
         title={`${patient.firstName} ${patient.lastName}`}
@@ -360,6 +361,6 @@ export default async function PatientDetailPage({ params }: Props) {
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

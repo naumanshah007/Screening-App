@@ -1,7 +1,8 @@
 "use client";
 
-import { StatCard } from "@/components/ui/card";
 import { Users, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
+
+import { MetricTile, MetricGrid } from "@/components/system";
 import type { BatchProcessingResult } from "@/lib/batch/types";
 
 function formatMs(ms: number): string {
@@ -14,6 +15,12 @@ interface BatchStatCardsProps {
   result: BatchProcessingResult;
 }
 
+/**
+ * Run summary for a completed batch.
+ *
+ * Every figure is counted from the run's own results — no series is passed to
+ * MetricTile because a single run has no daily history to trend.
+ */
 export function BatchStatCards({ result }: BatchStatCardsProps) {
   const riskCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, URGENT: 0 };
   for (const r of result.results) {
@@ -28,35 +35,35 @@ export function BatchStatCards({ result }: BatchStatCardsProps) {
   ).length;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard
+    <MetricGrid columns={4}>
+      <MetricTile
         label="Processed"
         value={result.processedCount}
-        subtext={result.errorCount > 0 ? `${result.errorCount} error(s)` : "All successful"}
-        variant={result.errorCount > 0 ? "warning" : "success"}
-        icon={<Users className="h-5 w-5" />}
+        caption={result.errorCount > 0 ? `${result.errorCount} error(s)` : "All successful"}
+        tone={result.errorCount > 0 ? "warn" : "success"}
+        icon={<Users className="h-4.5 w-4.5" />}
       />
-      <StatCard
-        label="Urgent / High Risk"
+      <MetricTile
+        label="Urgent / High risk"
         value={riskCounts.URGENT + riskCounts.HIGH}
-        subtext={`${riskCounts.URGENT} urgent, ${riskCounts.HIGH} high`}
-        variant={riskCounts.URGENT > 0 ? "urgent" : riskCounts.HIGH > 0 ? "warning" : "success"}
-        icon={<AlertTriangle className="h-5 w-5" />}
+        caption={`${riskCounts.URGENT} urgent, ${riskCounts.HIGH} high`}
+        tone={riskCounts.URGENT > 0 ? "danger" : riskCounts.HIGH > 0 ? "warn" : "success"}
+        icon={<AlertTriangle className="h-4.5 w-4.5" />}
       />
-      <StatCard
+      <MetricTile
         label="Referrals"
         value={referralCount}
-        subtext={`of ${result.processedCount} cases`}
-        variant={referralCount > 0 ? "info" : "default"}
-        icon={<ShieldCheck className="h-5 w-5" />}
+        caption={`of ${result.processedCount} cases`}
+        tone={referralCount > 0 ? "brand" : "neutral"}
+        icon={<ShieldCheck className="h-4.5 w-4.5" />}
       />
-      <StatCard
-        label="Processing Time"
+      <MetricTile
+        label="Processing time"
         value={formatMs(result.totalTimeMs)}
-        subtext={`~${formatMs(result.totalTimeMs / Math.max(result.processedCount, 1))} per case`}
-        variant="default"
-        icon={<Clock className="h-5 w-5" />}
+        caption={`~${formatMs(result.totalTimeMs / Math.max(result.processedCount, 1))} per case`}
+        tone="neutral"
+        icon={<Clock className="h-4.5 w-4.5" />}
       />
-    </div>
+    </MetricGrid>
   );
 }

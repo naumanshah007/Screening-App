@@ -383,6 +383,69 @@ export async function getCaseEvaluationFactsPreview(caseId: string) {
   return toEvaluationFactPreview(buildEvaluationFacts(referralCase));
 }
 
+export type SupersededRuleDecision = {
+  auditLogId: string;
+  supersededAt: Date;
+  supersededByUserId: string | null;
+  decision: {
+    id: string;
+    ruleSetReleaseId: string | null;
+    priority: string;
+    category: string;
+    outcome: string;
+    rationale: string;
+    generatedBy: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+/**
+ * Every recommendation this stack has replaced for a case, newest first.
+ *
+ * `RuleDecision` is upserted, so only the current recommendation lives in the
+ * table. Superseded ones are recorded on the append-only `AuditLog` as
+ * `REEVALUATE` events carrying the full prior decision in `oldValue`. This
+ * function is the proof that replaced clinical history remains recoverable.
+ *
+ * Decisions replaced BEFORE this change are not recoverable — `oldValue` was not
+ * populated then. That gap is stated in
+ * docs/canonical-cutover/14-third-stack-resolution.md and is not retrospectively
+ * fixable.
+ */
+export async function getSupersededRuleDecisions(
+  caseId: string
+): Promise<SupersededRuleDecision[]> {
+  const current = await prisma.ruleDecision.findUnique({
+    where: { caseId },
+    select: { id: true },
+  });
+  if (!current) return [];
+
+  const events = await prisma.auditLog.findMany({
+    where: { entity: "RuleDecision", entityId: current.id, action: "REEVALUATE" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, createdAt: true, userId: true, oldValue: true },
+  });
+
+  return events.flatMap((event) => {
+    if (!event.oldValue) return [];
+    try {
+      return [
+        {
+          auditLogId: event.id,
+          supersededAt: event.createdAt,
+          supersededByUserId: event.userId,
+          decision: JSON.parse(event.oldValue),
+        } satisfies SupersededRuleDecision,
+      ];
+    } catch {
+      // A malformed audit payload must not hide the remaining history.
+      return [];
+    }
+  });
+}
+
 export async function getStoredRuleDecision(caseId: string) {
   return prisma.ruleDecision.findUnique({
     where: { caseId },
@@ -514,6 +577,34 @@ export async function generateRuleDecision(args: {
   });
   const traceJson = JSON.stringify(payload);
 
+  // STACK-01. `RuleDecision` is keyed uniquely on caseId and is upserted, so a
+  // re-evaluation REPLACES the prior recommendation in place. Capture the prior
+  // decision first so it is recoverable from the append-only audit log.
+  //
+  // This does not make RuleDecision immutable — that would need a schema change
+  // and belongs to this stack's own owner (see
+  // docs/canonical-cutover/14-third-stack-resolution.md). It does mean no
+  // clinical recommendation is destroyed without a recoverable record.
+  //
+  // Note this stack never writes RuleEvaluation, so no governed evaluation is
+  // affected by this path.
+  const supersededDecision = await prisma.ruleDecision.findUnique({
+    where: { caseId: referralCase.id },
+    select: {
+      id: true,
+      ruleSetReleaseId: true,
+      priority: true,
+      category: true,
+      outcome: true,
+      rationale: true,
+      evidenceJson: true,
+      traceJson: true,
+      generatedBy: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
   const ruleDecision = await prisma.ruleDecision.upsert({
     where: { caseId: referralCase.id },
     update: {
@@ -549,9 +640,12 @@ export async function generateRuleDecision(args: {
   await prisma.auditLog.create({
     data: {
       userId: args.generatedByUserId,
-      action: "EVALUATE",
+      action: supersededDecision ? "REEVALUATE" : "EVALUATE",
       entity: "RuleDecision",
       entityId: ruleDecision.id,
+      // The full superseded decision, so a replaced clinical recommendation
+      // stays recoverable from the append-only audit log.
+      oldValue: supersededDecision ? JSON.stringify(supersededDecision) : undefined,
       newValue: JSON.stringify({
         caseId: referralCase.id,
         ruleSetReleaseId: activeRuleSetRelease.id,

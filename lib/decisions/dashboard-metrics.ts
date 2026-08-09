@@ -278,12 +278,17 @@ export async function getCommandCentreMetrics(
       where: completedWhere,
       include: {
         reviewedBy: { select: { id: true, name: true, email: true, role: true } },
+        ruleEvaluation: true,
         batchRun: {
           select: {
             id: true,
             source: true,
             sourceSystem: true,
             sourceFileName: true,
+            engineVersion: true,
+            pinnedRuleVersionId: true,
+            pinnedRuleVersionDisplay: true,
+            pinnedRulesetChecksum: true,
             createdAt: true,
             createdBy: { select: { id: true, name: true, email: true, role: true } },
           },

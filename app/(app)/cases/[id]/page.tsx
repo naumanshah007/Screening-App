@@ -27,6 +27,7 @@ import { getServiceIntegrationStatuses } from "@/lib/ops/integration-status";
 import { prisma } from "@/lib/prisma";
 import { calculateAge, formatDate, formatDateTime } from "@/lib/utils";
 import { getWorkspaceContext } from "@/lib/workspace/context";
+import { PageShell } from "@/components/system";
 
 function integrationBadgeVariant(status: "ready" | "warning" | "blocked" | "info") {
   switch (status) {
@@ -102,7 +103,7 @@ export default async function CaseDetailPage({
   });
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <Link
         href="/cases"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"
@@ -428,6 +429,6 @@ export default async function CaseDetailPage({
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

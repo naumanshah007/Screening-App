@@ -2,11 +2,18 @@
  * Realistic NZ Demo Dataset Generator
  *
  * Produces synthetic-but-believable cervical screening cases for demos:
- * NZ-realistic names, NHI-format identifiers, a Counties Manukau ethnicity
- * mix, South Auckland GP practices, referral dates spread across a chosen
- * range, and clinically-coherent inputs that route through the real decision
- * engine to a realistic spread of outcomes (including cases the engine
- * correctly flags for clinician review).
+ * NZ-realistic names, NHI-format identifiers, GP practices spread across
+ * five regions (Northland, Auckland, Counties Manukau, Canterbury,
+ * Wellington), referral dates spread across a chosen range, and
+ * clinically-coherent inputs that route through the real decision engine
+ * to a realistic spread of outcomes (including cases the engine correctly
+ * flags for clinician review).
+ *
+ * Regions are modelled explicitly (rather than one Auckland-only pool)
+ * because production will eventually link real per-region patient data —
+ * lab results (e.g. Awanui), eReferrals, and NCSR records — across these
+ * same regional boundaries. Keeping the demo data region-aware now means
+ * the shape of the data won't need to change when real feeds are wired in.
  *
  * IMPORTANT: This is SYNTHETIC data. No real patients. In production these
  * cases arrive from the lab HL7v2 feed / eReferral / NCSR via the adapter
@@ -26,12 +33,17 @@ export const CONNECTOR_PRESETS: Record<
 > = {
   hl7: {
     sourceType: "hl7",
+    // Per-case sourceSystem is overridden below using REGION_LAB_SYSTEM —
+    // Awanui runs a lab in each region, not just Auckland. This default is
+    // only used as a fallback.
     sourceSystem: "Awanui Labs — Auckland (HL7v2)",
     mappingVersion: "hl7v2-oru-r01-v1",
   },
   erms: {
     sourceType: "erms",
-    sourceSystem: "Counties Manukau eReferrals (HealthLink EDI)",
+    // eReferrals route through one national HealthLink EDI integration
+    // regardless of region, so this stays a single system.
+    sourceSystem: "HealthLink eReferrals (National EDI)",
     mappingVersion: "erms-eref-v1",
   },
   ncsr: {
@@ -41,7 +53,23 @@ export const CONNECTOR_PRESETS: Record<
   },
 };
 
-// ─── Identity pools (South Auckland / Counties Manukau flavour) ──────────────
+// ─── Regions ─────────────────────────────────────────────────────────────────
+// Five regions covering the spread of real NZ health-system boundaries this
+// data will eventually need to line up with: Northland, Auckland, Counties
+// Manukau, Canterbury (CDHB), and Wellington.
+
+export type Region = "Northland" | "Auckland" | "Counties Manukau" | "Canterbury" | "Wellington";
+
+// Awanui Labs site used for the per-case HL7 sourceSystem string.
+const REGION_LAB_CITY: Record<Region, string> = {
+  Northland: "Whangārei",
+  Auckland: "Auckland",
+  "Counties Manukau": "Manukau",
+  Canterbury: "Christchurch",
+  Wellington: "Wellington",
+};
+
+// ─── Identity pools ──────────────────────────────────────────────────────────
 
 const FIRST_NAMES = [
   // Pacific
@@ -61,28 +89,87 @@ const LAST_NAMES = [
   "Mafileʻo", "Tupou", "Walker", "Hughes", "Brown",
 ];
 
-const GP_PRACTICES = [
-  "Ōtara Family Health Centre",
-  "Māngere Health Centre",
-  "Papatoetoe Family Doctors",
-  "East Tāmaki Healthcare — Ōtāhuhu",
-  "TaPasefika Health Trust",
-  "Greenstone Family Clinic, Manurewa",
-  "Bairds Mainfreight Primary Health",
-  "Clendon Medical Centre",
-  "Tamaki Health — Flat Bush",
-  "Manukau Superclinic GP",
+const GP_PRACTICES: { name: string; region: Region }[] = [
+  // Northland
+  { name: "Kaitaia Rural Health", region: "Northland" },
+  { name: "Whangārei Central Health", region: "Northland" },
+  { name: "Kerikeri Bay Medical Centre", region: "Northland" },
+  // Auckland
+  { name: "Auckland City Medical Centre", region: "Auckland" },
+  { name: "Ponsonby Road Health Centre", region: "Auckland" },
+  { name: "Mt Eden Family Doctors", region: "Auckland" },
+  // Counties Manukau
+  { name: "Ōtara Family Health Centre", region: "Counties Manukau" },
+  { name: "Māngere Health Centre", region: "Counties Manukau" },
+  { name: "Papatoetoe Family Doctors", region: "Counties Manukau" },
+  { name: "East Tāmaki Healthcare — Ōtāhuhu", region: "Counties Manukau" },
+  { name: "TaPasefika Health Trust", region: "Counties Manukau" },
+  { name: "Greenstone Family Clinic, Manurewa", region: "Counties Manukau" },
+  { name: "Bairds Mainfreight Primary Health", region: "Counties Manukau" },
+  { name: "Clendon Medical Centre", region: "Counties Manukau" },
+  { name: "Tamaki Health — Flat Bush", region: "Counties Manukau" },
+  { name: "Manukau Superclinic GP", region: "Counties Manukau" },
+  // Canterbury
+  { name: "Riccarton Family Health", region: "Canterbury" },
+  { name: "Addington Medical Centre", region: "Canterbury" },
+  { name: "Rangiora Health Hub", region: "Canterbury" },
+  // Wellington
+  { name: "Newtown Family Health Centre", region: "Wellington" },
+  { name: "Karori Medical Centre", region: "Wellington" },
+  { name: "Lower Hutt Community Health", region: "Wellington" },
 ];
 
-// NZ ethnicity codes the app uses (see Patient.ethnicityPrimary).
-// Weighted to Counties Manukau demographics.
-const ETHNICITY_WEIGHTS: { code: string; weight: number }[] = [
-  { code: "PACIFIC", weight: 22 },
-  { code: "ASIAN", weight: 28 },
-  { code: "MAORI", weight: 16 },
-  { code: "EUROPEAN", weight: 30 },
-  { code: "OTHER", weight: 4 },
+// Patients with a stable NHI so a repeat pull re-encounters them (drives the
+// "Seen before" flag + previous-vs-now comparison). Synthetic — not real NHIs.
+const RETURNING_PATIENTS: { name: string; nhi: string; gpPractice: string; region: Region; age: number; ethnicity: string }[] = [
+  { name: "Aroha Williams", nhi: "ZAB1042", gpPractice: "Ōtara Family Health Centre", region: "Counties Manukau", age: 38, ethnicity: "MAORI" },
+  { name: "Litia Taufa", nhi: "ZBC2071", gpPractice: "TaPasefika Health Trust", region: "Counties Manukau", age: 46, ethnicity: "PACIFIC" },
+  { name: "Priya Reddy", nhi: "ZCD3088", gpPractice: "Auckland City Medical Centre", region: "Auckland", age: 52, ethnicity: "ASIAN" },
+  { name: "Hine Rāwiri", nhi: "ZDE4019", gpPractice: "Whangārei Central Health", region: "Northland", age: 41, ethnicity: "MAORI" },
+  { name: "Charlotte Hughes", nhi: "ZEF5023", gpPractice: "Riccarton Family Health", region: "Canterbury", age: 34, ethnicity: "EUROPEAN" },
+  { name: "Grace Thompson", nhi: "ZFG6087", gpPractice: "Newtown Family Health Centre", region: "Wellington", age: 58, ethnicity: "EUROPEAN" },
 ];
+
+// NZ ethnicity codes the app uses (see Patient.ethnicityPrimary), weighted per
+// region so the mix looks plausible for that part of the country rather than
+// a single national average. Directional, not census-precise.
+const REGION_ETHNICITY_WEIGHTS: Record<Region, { code: string; weight: number }[]> = {
+  Northland: [
+    { code: "MAORI", weight: 38 },
+    { code: "EUROPEAN", weight: 42 },
+    { code: "PACIFIC", weight: 6 },
+    { code: "ASIAN", weight: 8 },
+    { code: "OTHER", weight: 6 },
+  ],
+  Auckland: [
+    { code: "EUROPEAN", weight: 34 },
+    { code: "ASIAN", weight: 31 },
+    { code: "PACIFIC", weight: 12 },
+    { code: "MAORI", weight: 10 },
+    { code: "OTHER", weight: 13 },
+  ],
+  "Counties Manukau": [
+    { code: "PACIFIC", weight: 22 },
+    { code: "ASIAN", weight: 28 },
+    { code: "MAORI", weight: 16 },
+    { code: "EUROPEAN", weight: 30 },
+    { code: "OTHER", weight: 4 },
+  ],
+  Canterbury: [
+    { code: "EUROPEAN", weight: 70 },
+    { code: "ASIAN", weight: 12 },
+    { code: "MAORI", weight: 9 },
+    { code: "PACIFIC", weight: 2 },
+    { code: "OTHER", weight: 7 },
+  ],
+  Wellington: [
+    { code: "EUROPEAN", weight: 60 },
+    { code: "ASIAN", weight: 15 },
+    { code: "MAORI", weight: 12 },
+    { code: "PACIFIC", weight: 8 },
+    { code: "OTHER", weight: 5 },
+  ],
+};
 
 // ─── Clinical archetypes (route coherently through the engine) ───────────────
 
@@ -233,33 +320,33 @@ export function generateRealisticCases(opts: GenerateOptions): CanonicalBatchCas
   const importedAt = new Date().toISOString();
   const cases: CanonicalBatchCase[] = [];
 
-  for (let i = 0; i < opts.count; i++) {
-    const archetype = weightedPick(ARCHETYPES);
-    const firstName = pick(FIRST_NAMES);
-    const lastName = pick(LAST_NAMES);
-    const nhi = randomNHI();
-    const receivedDate = randomDateBetween(opts.rangeStart, opts.rangeEnd);
+  type Identity = { name: string; nhi: string; gpPractice: string; region: Region; age: number; ethnicity: string };
 
-    cases.push({
+  const buildCase = (identity: Identity): CanonicalBatchCase => {
+    const archetype = weightedPick(ARCHETYPES);
+    const receivedDate = randomDateBetween(opts.rangeStart, opts.rangeEnd);
+    const sourceSystem =
+      opts.connector === "hl7"
+        ? `Awanui Labs — ${REGION_LAB_CITY[identity.region]} (HL7v2)`
+        : preset.sourceSystem;
+    return {
       caseId: crypto.randomUUID(),
       label: archetype.reason,
-      patientName: `${firstName} ${lastName}`,
-      nhi,
-      gpPractice: pick(GP_PRACTICES),
+      patientName: identity.name,
+      nhi: identity.nhi,
+      gpPractice: identity.gpPractice,
       receivedDate: receivedDate.toISOString(),
       source: {
         sourceType: preset.sourceType,
-        sourceSystem: preset.sourceSystem,
+        sourceSystem,
         mappingVersion: preset.mappingVersion,
         engineVersion: ENGINE_VERSION,
-        rowNumber: i + 1,
+        rowNumber: cases.length + 1,
         importedAt,
-        externalPatientId: nhi,
+        externalPatientId: identity.nhi,
       },
-
-      // Required defaults
-      patientAge: randomAge(),
-      ethnicityPrimary: weightedPick(ETHNICITY_WEIGHTS).code,
+      patientAge: identity.age,
+      ethnicityPrimary: identity.ethnicity,
       isFirstTimeHPVTransition: false,
       isPostHysterectomy: false,
       immunocompromised: false,
@@ -267,15 +354,34 @@ export function generateRealisticCases(opts: GenerateOptions): CanonicalBatchCas
       consecutiveNegativeCoTestCount: 0,
       consecutiveLowGradeCount: 0,
       unsatisfactoryCytologyCount: 0,
-
-      // Validation — synthetic data is pre-validated
       validationStatus: "valid",
       validationErrors: [],
       validationWarnings: [],
-
-      // Clinical archetype overrides
       ...archetype.fields(),
-    });
+    };
+  };
+
+  // A few patients have a STABLE NHI so a second pull re-encounters them — this
+  // is what makes the "Seen before" / previous-vs-now comparison demonstrable.
+  // Their clinical archetype is re-rolled each pull, so the result can change.
+  const returningCount = opts.count >= 6 ? Math.min(3, RETURNING_PATIENTS.length) : 0;
+  for (let i = 0; i < returningCount; i++) {
+    const p = RETURNING_PATIENTS[i];
+    cases.push(buildCase({ name: p.name, nhi: p.nhi, gpPractice: p.gpPractice, region: p.region, age: p.age, ethnicity: p.ethnicity }));
+  }
+
+  for (let i = returningCount; i < opts.count; i++) {
+    const practice = pick(GP_PRACTICES);
+    cases.push(
+      buildCase({
+        name: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,
+        nhi: randomNHI(),
+        gpPractice: practice.name,
+        region: practice.region,
+        age: randomAge(),
+        ethnicity: weightedPick(REGION_ETHNICITY_WEIGHTS[practice.region]).code,
+      })
+    );
   }
 
   // Stable sort by received date (newest first) so the worklist reads naturally.

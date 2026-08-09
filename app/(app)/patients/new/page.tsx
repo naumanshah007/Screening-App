@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { PageShell } from "@/components/system";
 
 export default function NewPatientPage() {
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function NewPatientPage() {
   }
 
   return (
-    <div className="page-aura p-6 max-w-2xl space-y-6">
+    <PageShell width="narrow">
       <div className="flex items-center gap-3">
         <Link href="/patients" className="text-sm text-[#0D9488] hover:underline">
           ← Patients
@@ -193,6 +194,6 @@ export default function NewPatientPage() {
           </Button>
         </div>
       </form>
-    </div>
+    </PageShell>
   );
 }

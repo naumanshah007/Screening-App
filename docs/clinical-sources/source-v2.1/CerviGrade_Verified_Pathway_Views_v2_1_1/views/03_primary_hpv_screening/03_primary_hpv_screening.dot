@@ -1,0 +1,117 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Primary HPV Screening\nFigure 3 with validity, adequacy, age, repeat-stage and immune-deficiency handling\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f3 { label="FIGURE 3 - HPV primary screening for asymptomatic participants"; color="#0F766E"; style="rounded"; penwidth=1.6;
+F3_ENTRY [label="Primary HPV screening\nSwab or LBC"];
+F3_COMP [label="Figure 3 mandatory facts complete?\nAge/DOB, HPV validity/result, sample type, event stage, immune status where relevant", shape="diamond"];
+F3_CSTOP [label="Missing critical Figure 3 facts -> request information", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F3_U25 [label="Asymptomatic age <25?", shape="diamond"];
+F3_U25STOP [label="Routine screening not recommended\nIf already in follow-up, use next indicated appointment\nEarly sexual activity/abuse -> clinician/safeguarding review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F3_AGE75 [label="Asymptomatic age >=75?", shape="diamond"];
+F3_NOSCR [label="Routine screening not recommended", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F3_EXIT [label="Age 70-74 exit-test context?", shape="diamond"];
+F3_EXITRES [label="Exit-test HPV result?", shape="diamond"];
+F3_EXITSTOP [label="HPV not detected\nDischarge from NCSP", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F3_EXITCOL [label="HPV detected any type\nColposcopy", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F3_VALID [label="HPV test valid and processable?", shape="diamond"];
+F3_INV [label="Invalid / unsuitable\nRepeat HPV as soon as practicable", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F3_RES [label="Ordinary-screening HPV result?", shape="diamond"];
+F3_NEG [label="HPV not detected"];
+F3_IMM [label="Verified immune-deficient classification?", shape="diamond"];
+F3_5Y [label="Return in 5 years", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F3_3Y [label="Return in 3 years", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F3_1618 [label="HPV 16 or 18\nColposcopy regardless of cytology", fillcolor="#FEE2E2", color="#B91C1C"];
+F3_1618M [label="If cytology suspicious/definite invasive cancer\nURGENT colposcopy/oncology evaluation", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F3_SWAB1618 [label="If swab: obtain LBC/cytology at colposcopy"];
+F3_OTHER [label="HPV Other"];
+F3_SAMPLE [label="LBC available?", shape="diamond"];
+F3_RET_LBC [label="Return for clinical examination and clinician-taken LBC"];
+F3_CYTO [label="Cytology result / adequacy?", shape="diamond"];
+F3_UNSAT [label="Unsatisfactory cytology?", shape="diamond"];
+F3_UNSAT1 [label="First HPV Other + unsatisfactory\nRepeat LBC in 6 weeks-3 months"];
+F3_UNSAT2 [label="Two consecutive unsatisfactory\nColposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+F3_MALIGN [label="Suspicious/definite invasive cytology\nURGENT colposcopy within 2 weeks", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F3_HIGH [label="ASC-H / HSIL / SCC / AGC / AIS\nColposcopy or glandular specialist route"];
+F3_ENDO [label="Atypical/malignant endometrial cells\nSpecialist gynaecology", fillcolor="#FFF4CC", color="#B7791F"];
+F3_LOW [label="Negative / ASC-US / LSIL"];
+F3_R1 [label="First repeat HPV + cytology in 12 months\nRecommend LBC"];
+F3_R1OV [label="At every repeat: apply invalid/unsuitable, unsatisfactory-cytology,\nand endometrial specialist overlays first", shape="note", fillcolor="#F8FAFC", color="#64748B"];
+F3_R1RES [label="First-repeat result?", shape="diamond"];
+F3_R1NEG [label="HPV not detected\nReturn 5 years if immune competent / 3 years if verified immune deficient"];
+F3_R1AGE [label="HPV Other + low-grade\nAge >=50?", shape="diamond"];
+F3_R1COL [label="Colposcopy"];
+F3_R2 [label="Second repeat in another 12 months\nRecommend LBC"];
+F3_R2RES [label="Second-repeat result?", shape="diamond"];
+F3_R2NEG [label="HPV not detected\nReturn 5 years if immune competent / 3 years if verified immune deficient"];
+F3_R2POS [label="Any HPV detected\nColposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+F3_ENTRY -> F3_COMP;
+F3_COMP -> F3_CSTOP [label="No"];
+F3_COMP -> F3_U25 [label="Yes"];
+F3_U25 -> F3_U25STOP [label="Yes"];
+F3_U25 -> F3_AGE75 [label="No"];
+F3_AGE75 -> F3_NOSCR [label="Yes"];
+F3_AGE75 -> F3_EXIT [label="No"];
+F3_EXIT -> F3_EXITRES [label="Yes"];
+F3_EXITRES -> F3_EXITSTOP [label="HPV not detected"];
+F3_EXITRES -> F3_EXITCOL [label="HPV detected any type"];
+F3_EXIT -> F3_VALID [label="No"];
+F3_VALID -> F3_INV [label="No"];
+F3_VALID -> F3_RES [label="Yes"];
+F3_RES -> F3_NEG [label="HPV not detected"];
+F3_RES -> F3_1618 [label="HPV16/18"];
+F3_RES -> F3_OTHER [label="HPV Other"];
+F3_NEG -> F3_IMM;
+F3_IMM -> F3_3Y [label="Yes"];
+F3_IMM -> F3_5Y [label="No"];
+F3_1618 -> F3_1618M [label="Malignant cytology", constraint="false"];
+F3_1618 -> F3_SWAB1618 [label="Otherwise"];
+F3_OTHER -> F3_SAMPLE;
+F3_SAMPLE -> F3_RET_LBC [label="No / swab"];
+F3_SAMPLE -> F3_CYTO [label="Yes"];
+F3_RET_LBC -> F3_CYTO;
+F3_CYTO -> F3_UNSAT [label="Unsatisfactory"];
+F3_CYTO -> F3_MALIGN [label="Suspicious/definite invasive"];
+F3_CYTO -> F3_HIGH [label="High-grade / glandular"];
+F3_CYTO -> F3_ENDO [label="Endometrial"];
+F3_CYTO -> F3_LOW [label="Negative/ASC-US/LSIL"];
+F3_UNSAT -> F3_UNSAT2 [label="Second consecutive"];
+F3_UNSAT -> F3_UNSAT1 [label="First"];
+F3_LOW -> F3_R1;
+F3_R1 -> F3_R1OV [style="dashed"];
+F3_R1 -> F3_R1RES;
+F3_R1RES -> F3_R1NEG [label="HPV not detected"];
+F3_R1RES -> F3_R1COL [label="HPV16/18 or high-grade"];
+F3_R1RES -> F3_R1AGE [label="HPV Other + low-grade"];
+F3_R1AGE -> F3_R1COL [label="Yes"];
+F3_R1AGE -> F3_R2 [label="No"];
+F3_R2 -> F3_R2RES;
+F3_R2RES -> F3_R2NEG [label="HPV not detected"];
+F3_R2RES -> F3_R2POS [label="Any HPV detected"];
+}
+subgraph cluster_immune { label="2026 IMMUNE-DEFICIENCY CLASSIFIER"; color="#059669"; style="rounded"; penwidth=1.6;
+IMM_ENTRY [label="Condition/therapy assessed"];
+IMM_PROV [label="Record classifier, evidence, date, rationale, specialist input
+and whether immune status was sent on laboratory request", shape="note", fillcolor="#F8FAFC", color="#64748B"];
+IMM_CLASS [label="NCSP classification?", shape="diamond"];
+IMM_REC [label="3-year interval recommended", fillcolor="#DCFCE7", color="#15803D"];
+IMM_CONS [label="3-year interval highly considered\nCase-by-case clinician review", fillcolor="#FFF4CC", color="#B7791F"];
+IMM_NO [label="Not immune deficient on this fact alone\nUse ordinary interval unless another indication"];
+IMM_UNK [label="Unlisted/uncertain condition or combination\nSpecialist/clinician review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+IMM_ENTRY -> IMM_PROV;
+IMM_PROV -> IMM_CLASS;
+IMM_CLASS -> IMM_REC [label="Recommended"];
+IMM_CLASS -> IMM_CONS [label="Highly considered"];
+IMM_CLASS -> IMM_NO [label="Explicitly not considered"];
+IMM_CLASS -> IMM_UNK [label="Unlisted/uncertain"];
+}
+
+V3_GLAND [label="Open Figure 7 — glandular/AIS specialist pathway", fillcolor="#EDE9FE", color="#6D28D9"];
+F3_HIGH -> V3_GLAND [label="AGC / AIS", style="dashed", color="#6D28D9"];
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

@@ -27,6 +27,7 @@ import { formatDateTime } from "@/lib/utils";
 import { getWorkspaceContext } from "@/lib/workspace/context";
 import { DocumentIngestButton } from "./DocumentIngestButton";
 import { DocumentUploadForm } from "./DocumentUploadForm";
+import { PageShell } from "@/components/system";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -120,7 +121,7 @@ export default async function CaseDocumentsPage({
   });
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <Link
         href={`/cases/${referralCase.id}`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"
@@ -341,6 +342,6 @@ export default async function CaseDocumentsPage({
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

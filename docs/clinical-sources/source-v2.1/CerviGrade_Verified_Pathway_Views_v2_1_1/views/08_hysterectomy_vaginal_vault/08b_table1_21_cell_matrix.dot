@@ -1,0 +1,15 @@
+digraph Table1Matrix {
+graph [rankdir=TB, bgcolor="#FFFFFF", pad=0.3, fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Table 1 — all 21 total-hysterectomy combinations\nScreen-readable detail view; exact rule IDs retained in the rulebook"];
+node [shape=plain, fontname="DejaVu Sans"];
+M [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+<TR><TD BGCOLOR="#172554"><FONT COLOR="white"><B>Prior-history group</B></FONT></TD><TD BGCOLOR="#172554"><FONT COLOR="white"><B>No cervical pathology</B></FONT></TD><TD BGCOLOR="#172554"><FONT COLOR="white"><B>LSIL/CIN1</B></FONT></TD><TD BGCOLOR="#172554"><FONT COLOR="white"><B>HSIL/AIS completely excised</B></FONT></TD><TD BGCOLOR="#172554"><FONT COLOR="white"><B>HSIL/AIS incompletely excised</B></FONT></TD></TR>
+<TR><TD BGCOLOR="#DFF7F4"><B>G1 Negative/resolved low-grade</B></TD><TD BGCOLOR="#EDE9FE">No further screening<BR/><FONT POINT-SIZE="9">T1-01</FONT></TD><TD>Vault HPV test<BR/><FONT POINT-SIZE="9">T1-02</FONT></TD><TD>Vault ToC<BR/><FONT POINT-SIZE="9">T1-03</FONT></TD><TD BGCOLOR="#FEE2E2">Colposcopy<BR/><FONT POINT-SIZE="9">T1-04</FONT></TD></TR>
+<TR><TD BGCOLOR="#DFF7F4"><B>G2 Low-grade not returned to regular</B></TD><TD>Vault HPV test<BR/><FONT POINT-SIZE="9">T1-05</FONT></TD><TD>Vault HPV test<BR/><FONT POINT-SIZE="9">T1-06</FONT></TD><TD>Vault ToC<BR/><FONT POINT-SIZE="9">T1-07</FONT></TD><TD BGCOLOR="#FEE2E2">Colposcopy<BR/><FONT POINT-SIZE="9">T1-08</FONT></TD></TR>
+<TR><TD BGCOLOR="#DFF7F4"><B>G3 Treated HSIL with completed ToC</B></TD><TD BGCOLOR="#EDE9FE">No further screening<BR/><FONT POINT-SIZE="9">T1-09</FONT></TD><TD>Vault HPV test<BR/><FONT POINT-SIZE="9">T1-10</FONT></TD><TD>New vault ToC<BR/><FONT POINT-SIZE="9">T1-11</FONT></TD><TD BGCOLOR="#FEE2E2">Colposcopy<BR/><FONT POINT-SIZE="9">T1-12</FONT></TD></TR>
+<TR><TD BGCOLOR="#DFF7F4"><B>G4 Untreated/incompletely treated HSIL/AIS</B></TD><TD COLSPAN="2">Vault ToC for no/low-grade pathology<BR/><FONT POINT-SIZE="9">T1-13</FONT></TD><TD>Vault ToC<BR/><FONT POINT-SIZE="9">T1-14</FONT></TD><TD BGCOLOR="#FEE2E2">Colposcopy<BR/><FONT POINT-SIZE="9">T1-15</FONT></TD></TR>
+<TR><TD BGCOLOR="#DFF7F4"><B>G5 Prior treatment with incomplete ToC</B></TD><TD COLSPAN="2">Vault ToC for no/low-grade pathology<BR/><FONT POINT-SIZE="9">T1-16</FONT></TD><TD>Vault ToC<BR/><FONT POINT-SIZE="9">T1-17</FONT></TD><TD BGCOLOR="#FEE2E2">Colposcopy<BR/><FONT POINT-SIZE="9">T1-18</FONT></TD></TR>
+<TR><TD BGCOLOR="#DFF7F4"><B>G6 No known screening history</B></TD><TD COLSPAN="2">Vault HPV test at 6 months<BR/><FONT POINT-SIZE="9">T1-19</FONT></TD><TD>Vault ToC<BR/><FONT POINT-SIZE="9">T1-20</FONT></TD><TD BGCOLOR="#FEE2E2">Colposcopy<BR/><FONT POINT-SIZE="9">T1-21</FONT></TD></TR>
+</TABLE>>];
+N [shape=note, label="Vault provenance is mandatory. Two consecutive double-negative vault co-tests 12 months apart complete vault ToC and cease screening. Any HPV detected or abnormal vaginal cytology requires colposcopy/specialist review.", fillcolor="#F8FAFC", style="filled", color="#64748B"];
+M -> N [style="dashed", arrowhead="none"];
+}

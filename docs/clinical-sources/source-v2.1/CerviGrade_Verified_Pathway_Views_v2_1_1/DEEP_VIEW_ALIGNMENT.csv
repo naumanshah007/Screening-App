@@ -1,0 +1,11 @@
+﻿view_id,title,rule_count,canonical_clusters,node_ids_exact,edges_labels_exact,unexpected_attribute_differences,allowed_label_augmentations,status
+01_global_router_safety,Global Router and Safety Gates,28,cluster_router; cluster_des; cluster_immune,True,True,0,12,PASS
+02_transition_to_hpv,Transition to HPV Primary Screening,13,cluster_f1; cluster_f2,True,True,0,0,PASS
+03_primary_hpv_screening,Primary HPV Screening,23,cluster_f3; cluster_immune,True,True,0,0,PASS
+04_normal_colposcopy_low_grade,Normal Colposcopy after Low-Grade Cytology,18,cluster_f4; cluster_immune,True,True,0,0,PASS
+05_normal_colposcopy_high_grade,Normal Colposcopy after High-Grade Cytology,18,cluster_f5; cluster_cin2,True,True,0,0,PASS
+06_hsil_treatment_test_of_cure,HSIL Treatment and Test of Cure,17,cluster_f6,True,True,0,0,PASS
+07_glandular_abnormalities_ais,Glandular Abnormalities and AIS,19,cluster_f7,True,True,0,0,PASS
+08_hysterectomy_vaginal_vault,Total Hysterectomy and Vaginal Vault Follow-Up,40,cluster_hyst; cluster_cancer,True,True,0,0,PASS
+09_pregnancy,Pregnancy Pathway,14,cluster_f9,True,True,0,0,PASS
+10_abnormal_bleeding,Abnormal Vaginal Bleeding,15,cluster_f10,True,True,0,0,PASS

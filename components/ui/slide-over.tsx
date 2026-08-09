@@ -10,10 +10,16 @@ interface SlideOverProps {
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  width?: "sm" | "md" | "lg";
+  width?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
-const widthClasses = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg" };
+const widthClasses = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+};
 
 export function SlideOver({ open, onClose, title, subtitle, children, footer, width = "md" }: SlideOverProps) {
   useEffect(() => {

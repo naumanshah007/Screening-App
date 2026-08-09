@@ -1,0 +1,96 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Global Router and Safety Gates\nPathway precedence, minimum routing facts, under-25, DES and immune-status safety handling\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_router { label="GLOBAL ROUTER AND SAFETY GATES"; color="#1E3A8A"; style="rounded"; penwidth=1.6;
+START [label="Case intake\nSynthetic/de-identified data only", shape="oval", fillcolor="#DBEAFE", color="#1D4ED8", fontsize=12];
+MIN [label="Minimum routing facts complete?", shape="diamond", fillcolor="#F8FAFC", color="#475569"];
+STOP [label="INSUFFICIENT_INFORMATION / EXTERNAL_HISTORY_REQUIRED\nUnknown is not false or normal", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+SYM [label="Abnormal bleeding or cancer concern?
+YES -> Figure 10", shape="diamond"];
+PREG [label="Pregnant?
+YES: high-grade/HPV16/18 -> Figure 9
+HPV Other + low-grade -> repeat HPV in 12 months", shape="diamond"];
+HYSTQ [label="Hysterectomy / cervix status relevant?
+YES -> Figure 8 / Table 1", shape="diamond"];
+CANCQ [label="Previous cervical/vaginal/gynaecological cancer?
+YES -> 2026 cancer overlay", shape="diamond"];
+DESQ [label="Known in-utero DES exposure?
+YES -> DES specialist pathway", shape="diamond"];
+UNRES [label="Unresolved prior high-grade or glandular history?
+YES -> Figure 2", shape="diamond"];
+TOCQ [label="Active or required high-grade squamous Test of Cure?
+YES -> Figure 6", shape="diamond"];
+GLQ [label="Current glandular abnormality / AIS / adenocarcinoma?
+YES -> Figure 7", shape="diamond"];
+F4Q [label="Normal colposcopy after low-grade cytology?
+YES -> Figure 4", shape="diamond"];
+F5Q [label="Normal colposcopy after cytology >= ASC-H?
+YES -> Figure 5", shape="diamond"];
+TRANSQ [label="First transition from cytology programme?
+Resolved -> Figure 1 | unresolved -> Figure 2", shape="diamond"];
+U25Q [label="Asymptomatic and age <25?", shape="diamond"];
+U25STOP [label="Routine screening not recommended\nSymptoms/follow-up override; clinician review for early sexual activity/abuse", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+PRIMARYQ [label="Asymptomatic primary HPV screening
+-> Figure 3", fillcolor="#DFF7F4", color="#0F766E"];
+PWC [label="After selecting a pathway:\nvalidate that pathway's mandatory facts\nbefore any terminal recommendation", shape="note", fillcolor="#F8FAFC", color="#64748B"];
+GS_INV [label="Global software invariants\n• same input + same ruleset = same provisional result\n• confirmed historic decisions are immutable; regrade creates a new evaluation\n• clinician-only branches stop for reviewer confirmation\n• national clinical route stays separate from local booking priority\n• demo exports remain clearly labelled", shape="note", fillcolor="#F8FAFC", color="#64748B"];
+START -> MIN;
+MIN -> STOP [label="No"];
+MIN -> SYM [label="Yes"];
+SYM -> PREG [label="No"];
+PREG -> HYSTQ [label="No"];
+HYSTQ -> CANCQ [label="No"];
+CANCQ -> DESQ [label="No"];
+DESQ -> UNRES [label="No"];
+UNRES -> TOCQ [label="No"];
+TOCQ -> GLQ [label="No"];
+GLQ -> F4Q [label="No"];
+F4Q -> F5Q [label="No"];
+F5Q -> TRANSQ [label="No"];
+TRANSQ -> U25Q [label="No"];
+U25Q -> U25STOP [label="Yes"];
+U25Q -> PRIMARYQ [label="No"];
+START -> PWC [style="dotted", constraint="false"];
+PWC -> GS_INV [style="dotted", constraint="false"];
+}
+subgraph cluster_des { label="SPECIAL POPULATION - In-utero DES exposure"; color="#A16207"; style="rounded"; penwidth=1.6;
+DES_ENTRY [label="Known in-utero DES exposure"];
+DES_COMP [label="DES pathway facts complete?", shape="diamond"];
+DES_STOP [label="Missing DES/colposcopy facts -> specialist review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+DES_COL [label="Initial specialist colposcopy", fillcolor="#FFF4CC", color="#B7791F"];
+DES_AD [label="Vaginal adenosis?", shape="diamond"];
+DES_ANN [label="Adenosis present\nAnnual colposcopy"];
+DES_REG [label="Adenosis absent\nApplicable regular interval after specialist confirmation", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+DES_ABN [label="Any detected abnormality\nColposcopist-directed management", fillcolor="#FFF4CC", color="#B7791F"];
+DES_ENTRY -> DES_COMP;
+DES_COMP -> DES_STOP [label="No"];
+DES_COMP -> DES_COL [label="Yes"];
+DES_COL -> DES_AD;
+DES_AD -> DES_ANN [label="Yes"];
+DES_AD -> DES_REG [label="No"];
+DES_COL -> DES_ABN [label="Abnormality", constraint="false"];
+}
+subgraph cluster_immune { label="2026 IMMUNE-DEFICIENCY CLASSIFIER"; color="#059669"; style="rounded"; penwidth=1.6;
+IMM_ENTRY [label="Condition/therapy assessed"];
+IMM_PROV [label="Record classifier, evidence, date, rationale, specialist input
+and whether immune status was sent on laboratory request", shape="note", fillcolor="#F8FAFC", color="#64748B"];
+IMM_CLASS [label="NCSP classification?", shape="diamond"];
+IMM_REC [label="3-year interval recommended", fillcolor="#DCFCE7", color="#15803D"];
+IMM_CONS [label="3-year interval highly considered\nCase-by-case clinician review", fillcolor="#FFF4CC", color="#B7791F"];
+IMM_NO [label="Not immune deficient on this fact alone\nUse ordinary interval unless another indication"];
+IMM_UNK [label="Unlisted/uncertain condition or combination\nSpecialist/clinician review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+IMM_ENTRY -> IMM_PROV;
+IMM_PROV -> IMM_CLASS;
+IMM_CLASS -> IMM_REC [label="Recommended"];
+IMM_CLASS -> IMM_CONS [label="Highly considered"];
+IMM_CLASS -> IMM_NO [label="Explicitly not considered"];
+IMM_CLASS -> IMM_UNK [label="Unlisted/uncertain"];
+}
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

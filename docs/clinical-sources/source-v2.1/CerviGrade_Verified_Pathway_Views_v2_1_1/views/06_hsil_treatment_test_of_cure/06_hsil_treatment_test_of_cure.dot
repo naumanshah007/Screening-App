@@ -1,0 +1,61 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="HSIL Treatment and Test of Cure\nFigure 6 — eligibility, treatment modality, 6/18-month co-testing and longitudinal completion\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f6 { label="FIGURE 6 - Test of Cure for eligible high-grade squamous follow-up"; color="#15803D"; style="rounded"; penwidth=1.6;
+F6_ENTRY [label="High-grade squamous history / treated HSIL\nToC eligibility requires confirmation"];
+F6_COMP [label="Figure 6 mandatory facts complete?\nEligibility basis, treatment/history records, modality, dates, cervix status", shape="diamond"];
+F6_STOP [label="Missing treatment/history records -> request information\nDo not exclude wider high-grade ToC eligibility", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F6_MOD [label="Treatment/follow-up basis?", shape="diamond"];
+F6_EXC [label="Excision\nMargins: clear / positive / unassessable"];
+F6_ABL [label="Ablation or non-excisional treatment\nMargins = not applicable"];
+F6_HIST [label="Historical high-grade squamous follow-up\nClinician confirms ToC eligibility"];
+F6_SET [label="Follow-up setting?", shape="diamond"];
+F6_PC [label="Primary/community care\nClear margins; positive margins age <50 (2026); other eligible plans", fillcolor="#DCFCE7", color="#15803D"];
+F6_CC [label="Colposcopy clinic\nPositive/incomplete margins age >=50 or specialist indication", fillcolor="#FFF4CC", color="#B7791F"];
+F6_6 [label="Co-test at 6 months"];
+F6_QUAL [label="HPV valid and cytology satisfactory?", shape="diamond"];
+F6_QBAD [label="Apply Section 3 / endometrial overlay\nDo not count as qualifying negative", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F6_RES [label="Result?", shape="diamond"];
+F6_COL [label="Any HPV detected OR ASC-H/HSIL/glandular cytology\nColposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+F6_LOW [label="HPV not detected + low-grade cytology\nRepeat co-test in 12 months"];
+F6_NEG [label="HPV not detected + negative cytology\nRepeat co-test at 18 months"];
+F6_NEXT [label="Next annual co-test / sequence"];
+F6_SEQ [label="Sequence status?", shape="diamond"];
+F6_DONE [label="Two consecutive double-negative co-tests\n12 months apart -> ToC complete\nReturn 5 years if immune competent / 3 years if verified immune deficient", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F6_ESC [label="HPV detected, high-grade/glandular,\nor two consecutive low-grade cytologies\nColposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+F6_CONT [label="One negative after prior abnormality\nContinue annual ToC until complete"];
+F6_ENTRY -> F6_COMP;
+F6_COMP -> F6_STOP [label="No"];
+F6_COMP -> F6_MOD [label="Yes"];
+F6_MOD -> F6_EXC [label="Excision"];
+F6_MOD -> F6_ABL [label="Ablation/non-excisional"];
+F6_MOD -> F6_HIST [label="Historical high-grade"];
+F6_EXC -> F6_SET;
+F6_ABL -> F6_SET;
+F6_HIST -> F6_SET;
+F6_SET -> F6_PC [label="Primary/community"];
+F6_SET -> F6_CC [label="Colposcopy/specialist"];
+F6_PC -> F6_6;
+F6_CC -> F6_6;
+F6_6 -> F6_QUAL;
+F6_QUAL -> F6_QBAD [label="No"];
+F6_QUAL -> F6_RES [label="Yes"];
+F6_RES -> F6_COL [label="HPV+ or high-grade"];
+F6_RES -> F6_LOW [label="HPV- + low-grade"];
+F6_RES -> F6_NEG [label="HPV- + negative"];
+F6_LOW -> F6_NEXT;
+F6_NEG -> F6_NEXT;
+F6_NEXT -> F6_SEQ;
+F6_SEQ -> F6_DONE [label="Second consecutive double-negative"];
+F6_SEQ -> F6_ESC [label="Escalation criteria"];
+F6_SEQ -> F6_CONT [label="Negative but sequence incomplete"];
+F6_CONT -> F6_NEXT [label="Repeat annually"];
+}
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

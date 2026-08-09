@@ -1,0 +1,15 @@
+{
+  "id": "04_normal_colposcopy_low_grade",
+  "title": "Normal Colposcopy after Low-Grade Cytology",
+  "description": "Figure 4 \u2014 12- and 24-month surveillance with immune-status and Type 3 TZ safeguards",
+  "clusters": [
+    "cluster_f4",
+    "cluster_immune"
+  ],
+  "nodeCount": 34,
+  "edgeCount": 33,
+  "ruleCount": 18,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}
