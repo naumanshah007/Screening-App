@@ -71,6 +71,7 @@ test("clinical governance and Production activation have a dedicated guarded wor
   assert.ok(permissions.includes('prefix: "/governance/clinical"'));
   assert.ok(page.includes("CLINICAL_GOVERNANCE_CASES"));
   assert.ok(page.includes("ACTIVATION_GATE_DEFINITIONS"));
+  assert.ok(page.includes("ClinicalRuleVersionActions"));
   assert.ok(panel.includes("Activate Production authority"));
   assert.ok(panel.includes("Roll back Production to Legacy"));
   assert.ok(panel.includes("REQUEST CHANGE"));
