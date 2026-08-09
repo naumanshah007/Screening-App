@@ -4,10 +4,13 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { getApiPermissionError } from "@/lib/auth/api-permissions";
 import { requestAuditMetadata } from "@/lib/clinical-rules/governance";
-import { activateClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
+import {
+  activateClinicalRuleVersion,
+  rollbackClinicalRuleAuthorityToLegacy,
+} from "@/lib/clinical-rules/lifecycle";
 
 const BodySchema = z.object({
-  environment: z.enum(["DEMO", "TEST", "VALIDATION"]).default("DEMO"),
+  environment: z.enum(["DEMO", "TEST", "VALIDATION", "PRODUCTION"]).default("DEMO"),
   organisationKey: z.string().trim().min(1).nullable().optional(),
   reason: z.string().trim().min(1),
 });
@@ -20,9 +23,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const parsed = BodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Rollback reason is required" }, { status: 400 });
   try {
+    const id = (await params).id;
+    if (parsed.data.environment === "PRODUCTION") {
+      return NextResponse.json(
+        await rollbackClinicalRuleAuthorityToLegacy({
+          id,
+          actorUserId: user!.id!,
+          ...parsed.data,
+          metadata: requestAuditMetadata(request),
+        })
+      );
+    }
     return NextResponse.json(
       await activateClinicalRuleVersion({
-        id: (await params).id,
+        id,
         actorUserId: user!.id!,
         ...parsed.data,
         rollback: true,

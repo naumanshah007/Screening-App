@@ -10,6 +10,10 @@ import { calculateRuleSnapshotChecksum, deterministicJson } from "./checksum";
 import { NATIONAL_RULE_SET_KEY } from "./constants";
 import { ClinicalRuleSnapshotSchema, parseSnapshot, type ClinicalRuleSnapshot } from "./schema";
 import { validateClinicalRuleSnapshot } from "./validation";
+import {
+  assertProductionGovernanceGates,
+  assertProductionRollbackOperator,
+} from "./activation-governance";
 
 export type AuditMetadata = {
   ipAddress?: string | null;
@@ -422,11 +426,15 @@ export async function publishClinicalRuleVersion(args: {
 export function assertProductionActivationPermitted(
   environment: RuleActivationEnvironment
 ): void {
-  if (environment === "PRODUCTION") {
+  if (
+    environment === "PRODUCTION" &&
+    !new Set(["1", "true", "yes", "on"]).has(
+      process.env.CLINICAL_AUTHORITY_LIVE_PRODUCTION?.trim().toLowerCase() ?? ""
+    )
+  ) {
     throw new Error(
-      "Production clinical authority activation is blocked. " +
-        "CG-NCSP-3.1.0 may not be made authoritative for real participants until the " +
-        "governance and security gates are signed. See docs/canonical-cutover/."
+      "Production clinical authority activation control is off. " +
+        "Enable CLINICAL_AUTHORITY_LIVE_PRODUCTION only for the controlled, signed activation."
     );
   }
 }
@@ -459,6 +467,9 @@ export async function activateClinicalRuleVersion(args: {
 }) {
   if (!args.reason.trim()) throw new Error("An activation or rollback reason is required.");
   assertProductionActivationPermitted(args.environment);
+  if (args.environment === "PRODUCTION") {
+    await assertProductionGovernanceGates(args.id, args.actorUserId);
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     const target = await tx.clinicalRuleVersion.findUnique({ where: { id: args.id } });
@@ -556,6 +567,72 @@ export async function activateClinicalRuleVersion(args: {
       metadata: args.metadata,
     });
     return { target: updated, previous, activation, unchanged: false };
+  });
+
+  invalidateClinicalRuleVersionCache(result.target.ruleSetId);
+  return result;
+}
+
+export async function rollbackClinicalRuleAuthorityToLegacy(args: {
+  id: string;
+  actorUserId: string;
+  environment: RuleActivationEnvironment;
+  organisationKey?: string | null;
+  reason: string;
+  metadata?: AuditMetadata;
+}) {
+  if (!args.reason.trim()) throw new Error("A rollback reason is required.");
+  if (args.environment === "PRODUCTION") {
+    await assertProductionRollbackOperator(args.id, args.actorUserId);
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const target = await tx.clinicalRuleVersion.findUnique({ where: { id: args.id } });
+    if (!target) throw new Error("Clinical rule version not found.");
+    const activation = await tx.ruleSetActivation.findFirst({
+      where: {
+        ruleVersionId: target.id,
+        ruleSetId: target.ruleSetId,
+        environment: args.environment,
+        organisationKey: args.organisationKey ?? null,
+        isDefault: true,
+        deactivatedAt: null,
+      },
+      orderBy: { activatedAt: "desc" },
+    });
+    if (!activation) return { target, activation: null, unchanged: true };
+
+    const rolledBackAt = new Date();
+    await tx.ruleSetActivation.update({
+      where: { id: activation.id },
+      data: { deactivatedAt: rolledBackAt },
+    });
+    const otherActive = await tx.ruleSetActivation.count({
+      where: { ruleVersionId: target.id, deactivatedAt: null },
+    });
+    const updated = otherActive === 0
+      ? await tx.clinicalRuleVersion.update({
+          where: { id: target.id },
+          data: { status: "PUBLISHED" },
+        })
+      : target;
+    await createVersionAudit(tx, {
+      ruleSetId: target.ruleSetId,
+      ruleVersionId: target.id,
+      actorUserId: args.actorUserId,
+      eventType: "ROLLBACK_TO_LEGACY",
+      reason: args.reason,
+      before: { activationId: activation.id, authority: "CANONICAL" },
+      after: {
+        activationId: activation.id,
+        authority: "LEGACY",
+        environment: args.environment,
+        organisationKey: args.organisationKey ?? null,
+        rolledBackAt,
+      },
+      metadata: args.metadata,
+    });
+    return { target: updated, activation, unchanged: false };
   });
 
   invalidateClinicalRuleVersionCache(result.target.ruleSetId);

@@ -62,6 +62,20 @@ test("the persistent authority indicator is mounted in the sidebar", () => {
   assert.ok(sidebar.includes("clinicalAuthority"));
 });
 
+test("clinical governance and Production activation have a dedicated guarded workspace", () => {
+  const sidebar = read("components/layout/Sidebar.tsx");
+  const permissions = read("lib/auth/permissions.ts");
+  const page = read("app/(app)/governance/clinical/page.tsx");
+  const panel = read("components/clinical-rules/ActivationGovernancePanel.tsx");
+  assert.ok(sidebar.includes('/governance/clinical", "Clinical Governance & Activation'));
+  assert.ok(permissions.includes('prefix: "/governance/clinical"'));
+  assert.ok(page.includes("CLINICAL_GOVERNANCE_CASES"));
+  assert.ok(page.includes("ACTIVATION_GATE_DEFINITIONS"));
+  assert.ok(panel.includes("Activate Production authority"));
+  assert.ok(panel.includes("Roll back Production to Legacy"));
+  assert.ok(panel.includes("REQUEST CHANGE"));
+});
+
 test("the app layout resolves authority for display", () => {
   const layout = read("app/(app)/layout.tsx");
   assert.ok(layout.includes("getClinicalAuthorityDisplay"));

@@ -69,10 +69,10 @@ function GovernanceCaseCard({
     item.sourceSupportedDisposition
   );
   const [comments, setComments] = useState("");
-  const [busy, setBusy] = useState<"PROPOSE" | "APPROVE" | "REJECT" | null>(null);
+  const [busy, setBusy] = useState<"PROPOSE" | "APPROVE" | "REJECT" | "REQUEST_CHANGE" | null>(null);
   const [error, setError] = useState("");
 
-  async function submit(action: "PROPOSE" | "APPROVE" | "REJECT") {
+  async function submit(action: "PROPOSE" | "APPROVE" | "REJECT" | "REQUEST_CHANGE") {
     setBusy(action);
     setError("");
     try {
@@ -108,8 +108,12 @@ function GovernanceCaseCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="info">{item.caseId}</Badge>
+            <Badge variant="low">Engineering: implemented</Badge>
             <Badge variant={item.approvalStatus.startsWith("APPROVED") ? "low" : "high"}>
-              {item.approvalStatus.replaceAll("_", " ")}
+              Clinical: {item.approvalStatus.replaceAll("_", " ")}
+            </Badge>
+            <Badge variant={item.approvalStatus.startsWith("APPROVED") ? "low" : "high"}>
+              Governance: {item.approvalStatus.startsWith("APPROVED") ? "approved" : "pending"}
             </Badge>
           </div>
           <CardTitle className="mt-3">{item.title}</CardTitle>
@@ -196,7 +200,7 @@ function GovernanceCaseCard({
             onClick={() => void submit("PROPOSE")}
             icon={busy === "PROPOSE" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
           >
-            Propose disposition
+            Submit proposal
           </Button>
           <Button
             variant="primary"
@@ -204,7 +208,7 @@ function GovernanceCaseCard({
             onClick={() => void submit("APPROVE")}
             icon={busy === "APPROVE" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           >
-            Approve recorded disposition
+            APPROVE
           </Button>
           <Button
             variant="danger"
@@ -212,7 +216,15 @@ function GovernanceCaseCard({
             onClick={() => void submit("REJECT")}
             loading={busy === "REJECT"}
           >
-            Reject proposed behaviour
+            REJECT
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!canApprove || status !== "DRAFT" || comments.trim().length < 10 || busy !== null}
+            onClick={() => void submit("REQUEST_CHANGE")}
+            loading={busy === "REQUEST_CHANGE"}
+          >
+            REQUEST CHANGE
           </Button>
         </div>
       </CardContent>

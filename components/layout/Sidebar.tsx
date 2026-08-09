@@ -8,6 +8,7 @@ import {
   BarChart2, Activity, Settings, FileSearch,
   Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight, ChevronDown,
   Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDefaultAppRouteForRole, isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
@@ -38,6 +39,7 @@ const ICONS: Record<string, React.ElementType> = {
   "/batch/runs": ClipboardCheck,
   "/review":     Inbox,
   "/decisions":  FileCheck2,
+  "/governance/clinical": ShieldCheck,
 };
 
 function getIcon(href: string): React.ElementType {
@@ -95,14 +97,12 @@ function buildSidebarSections(args: {
       : [];
 
   // ── Configuration: governance & settings ───────────────────────────────────
-  const configuration =
-    isAdmin || isIntegrationAdmin
-      ? [
-          ...(showCases ? authed("/rules", "Rule Governance") : []),
-          link("/guidelines", "Guidelines"),
-          ...authed("/admin", "Admin"),
-        ]
-      : [];
+  const configuration = [
+    ...authed("/governance/clinical", "Clinical Governance & Activation"),
+    ...((isAdmin || isIntegrationAdmin) && showCases ? authed("/rules", "Rule Governance") : []),
+    ...(isAdmin || isIntegrationAdmin ? [link("/guidelines", "Guidelines")] : []),
+    ...(isAdmin || isIntegrationAdmin ? authed("/admin", "Admin") : []),
+  ];
 
   // ── Advanced: legacy tools & session-grouped views (collapsed by default) ───
   const advanced =

@@ -16,7 +16,7 @@ export type ClinicalGovernanceDisposition = z.infer<
 >;
 
 export const ClinicalGovernanceReviewActionSchema = z.object({
-  action: z.enum(["PROPOSE", "APPROVE", "REJECT"]),
+  action: z.enum(["PROPOSE", "APPROVE", "REJECT", "REQUEST_CHANGE"]),
   caseId: z.string().trim().min(1).max(160),
   disposition: ClinicalGovernanceDispositionSchema,
   comments: z.string().trim().min(10).max(4_000),
@@ -343,7 +343,7 @@ export function assertSeparateGovernanceActors(
 export async function recordClinicalGovernanceReview(args: {
   versionId: string;
   actorUserId: string;
-  action: "PROPOSE" | "APPROVE" | "REJECT";
+  action: "PROPOSE" | "APPROVE" | "REJECT" | "REQUEST_CHANGE";
   caseId: string;
   disposition: ClinicalGovernanceDisposition;
   comments: string;
@@ -369,26 +369,35 @@ export async function recordClinicalGovernanceReview(args: {
       );
     }
 
-    if (args.action === "REJECT") {
+    if (args.action === "REJECT" || args.action === "REQUEST_CHANGE") {
+      const requestedChange = args.action === "REQUEST_CHANGE";
       await tx.ruleVersionAuditEvent.create({
         data: {
           ruleSetId: version.ruleSetId,
           ruleVersionId: version.id,
           actorUserId: args.actorUserId,
-          eventType: "GOVERNANCE_INTERPRETATION_REJECTED",
+          eventType: requestedChange
+            ? "GOVERNANCE_INTERPRETATION_CHANGE_REQUESTED"
+            : "GOVERNANCE_INTERPRETATION_REJECTED",
           reason: args.comments,
           afterJson: JSON.stringify({
             caseId: args.caseId,
             disposition: args.disposition,
-            approvalStatus: "REJECTED_REQUIRES_REVISION",
+            approvalStatus: requestedChange
+              ? "CHANGES_REQUESTED"
+              : "REJECTED_REQUIRES_REVISION",
             versionRevision: version.revision,
+            checksum: version.checksum,
             publicationPermitted: false,
           }),
           ipAddress: args.ipAddress,
           userAgent: args.userAgent,
         },
       });
-      return { action: "REJECTED" as const, revision: version.revision };
+      return {
+        action: requestedChange ? ("CHANGES_REQUESTED" as const) : ("REJECTED" as const),
+        revision: version.revision,
+      };
     }
 
     if (args.action === "PROPOSE") {
@@ -404,6 +413,7 @@ export async function recordClinicalGovernanceReview(args: {
             disposition: args.disposition,
             approvalStatus: "PROPOSED",
             versionRevision: version.revision,
+            checksum: version.checksum,
           }),
           ipAddress: args.ipAddress,
           userAgent: args.userAgent,
@@ -422,7 +432,9 @@ export async function recordClinicalGovernanceReview(args: {
     });
     const proposal = events.find((event) => {
       const details = parseAfterJson(event.afterJson);
-      return details?.caseId === args.caseId && details.disposition === args.disposition;
+      return details?.caseId === args.caseId &&
+        details.disposition === args.disposition &&
+        details.checksum === version.checksum;
     });
     if (!proposal) {
       throw new Error("A matching proposal is required before approval.");
@@ -477,6 +489,7 @@ export async function recordClinicalGovernanceReview(args: {
           disposition: args.disposition,
           approvalStatus: "APPROVED_IN_DRAFT_REVISION",
           revision: nextRevision,
+          checksum: version.checksum,
           publicationPermitted: false,
         }),
         ipAddress: args.ipAddress,

@@ -25,7 +25,7 @@ export async function POST(
   }
   const permissionError = getApiPermissionError(
     user,
-    parsed.data.action === "APPROVE" || parsed.data.action === "REJECT"
+    parsed.data.action === "APPROVE" || parsed.data.action === "REJECT" || parsed.data.action === "REQUEST_CHANGE"
       ? "rules:approve"
       : "rules:validate"
   );

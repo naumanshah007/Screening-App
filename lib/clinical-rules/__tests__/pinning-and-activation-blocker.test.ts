@@ -17,10 +17,11 @@ import { applyPin, isOperativeMode, type AuthorityPin } from "../pinning";
 
 // ── The production activation blocker ───────────────────────────────────────
 
-test("PRODUCTION activation is blocked", () => {
+test("PRODUCTION activation is blocked while the explicit control is off", () => {
+  delete process.env.CLINICAL_AUTHORITY_LIVE_PRODUCTION;
   assert.throws(
     () => assertProductionActivationPermitted("PRODUCTION"),
-    /Production clinical authority activation is blocked/
+    /activation control is off/
   );
 });
 
@@ -30,8 +31,10 @@ test("non-production environments are permitted", () => {
   }
 });
 
-test("the blocker names where the governance gates are recorded", () => {
-  assert.throws(() => assertProductionActivationPermitted("PRODUCTION"), /docs\/canonical-cutover/);
+test("PRODUCTION activation reaches persisted governance checks only when explicitly enabled", () => {
+  process.env.CLINICAL_AUTHORITY_LIVE_PRODUCTION = "1";
+  assert.doesNotThrow(() => assertProductionActivationPermitted("PRODUCTION"));
+  delete process.env.CLINICAL_AUTHORITY_LIVE_PRODUCTION;
 });
 
 // ── Cache split-brain ───────────────────────────────────────────────────────

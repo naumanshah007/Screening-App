@@ -128,6 +128,11 @@ const DEFAULT_APP_ROUTE_BY_ROLE: Record<UserRole, string> = {
 
 export const ROUTE_GUARDS: RouteGuard[] = [
   {
+    prefix: "/governance/clinical",
+    requiredRoles: ["ADMIN", "INTEGRATION_ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS"],
+    description: "Clinical governance and activation",
+  },
+  {
     prefix: "/review",
     requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
     description: "Review queue",
