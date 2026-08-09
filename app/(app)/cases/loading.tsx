@@ -1,8 +1,9 @@
 import { Skeleton, SkeletonTable } from "@/components/ui/skeleton";
+import { PageShell } from "@/components/system";
 
 export default function CasesLoading() {
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <PageShell width="wide">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <Skeleton className="h-3 w-20" />
@@ -25,6 +26,6 @@ export default function CasesLoading() {
         </div>
         <SkeletonTable rows={8} cols={7} />
       </div>
-    </div>
+    </PageShell>
   );
 }
