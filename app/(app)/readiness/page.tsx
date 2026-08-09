@@ -11,6 +11,7 @@ import {
 import { auth } from "@/lib/auth";
 import { isAuthorizedForRoute } from "@/lib/auth/permissions";
 import { PageIntro } from "@/components/layout/PageIntro";
+import { PageShell } from "@/components/system";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { getProductReadinessReport, type ProductReadinessOwner, type ProductReadinessState } from "@/lib/ops/product-readiness";
@@ -63,8 +64,7 @@ export default async function ReadinessPage() {
   const blockedCount = report.steps.filter((step) => step.state === "blocked").length;
 
   return (
-    <div className="space-y-6 p-6 animate-fade-in">
-      <div className="page-aura">
+    <PageShell>
         <PageIntro
           eyebrow={workspace.label}
           title="Launch Readiness"
@@ -74,7 +74,6 @@ export default async function ReadinessPage() {
             { href: "/admin", label: "Open admin" },
           ]}
         />
-      </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
@@ -217,6 +216,6 @@ export default async function ReadinessPage() {
           </Card>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }

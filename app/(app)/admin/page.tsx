@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { PageIntro } from "@/components/layout/PageIntro";
+import { PageShell } from "@/components/system";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { StatCard, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -191,8 +192,7 @@ export default async function AdminPage({
   const activeTab: AdminTab = tabs.some((t) => t.id === requestedTab) ? requestedTab! : defaultTab;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="page-aura">
+    <PageShell>
         <PageIntro
           eyebrow={workspace.label}
           title="Admin Dashboard"
@@ -202,7 +202,6 @@ export default async function AdminPage({
             { href: "/analytics", label: "View analytics" },
           ]}
         />
-      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -694,6 +693,6 @@ export default async function AdminPage({
           </Card>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

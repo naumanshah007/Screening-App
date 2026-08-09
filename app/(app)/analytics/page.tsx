@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, Clock, TrendingUp, Stethoscope, Brain, ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { PageIntro } from "@/components/layout/PageIntro";
+import { PageShell } from "@/components/system";
 import { StatCard, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, PriorityBadge, WorkflowBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -336,18 +337,16 @@ export default async function AnalyticsPage() {
   ).toString()}`;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="page-aura">
-        <PageIntro
-          eyebrow={workspace.label}
-          title="Analytics"
-          description="Grading throughput, concordance, and backlog across the enterprise workflow."
-          actions={[
-            { href: "/cases", label: "Open cases" },
-            { href: "/rules", label: "Review rules" },
-          ]}
-        />
-      </div>
+    <PageShell width="wide">
+      <PageIntro
+        eyebrow={workspace.label}
+        title="Analytics"
+        description="Grading throughput, concordance, and backlog across the enterprise workflow."
+        actions={[
+          { href: "/cases", label: "Open cases" },
+          { href: "/rules", label: "Review rules" },
+        ]}
+      />
 
       {/* ─── KPI strip ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
@@ -832,6 +831,6 @@ export default async function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

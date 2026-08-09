@@ -136,7 +136,7 @@ function GuidelinesPageInner() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header + tab bar */}
-      <div className="page-aura border-b border-border bg-card px-6 pt-5 flex-shrink-0">
+      <div className="flex-shrink-0 border-b border-border bg-card px-5 pt-5 lg:px-7">
         <PageIntro
           eyebrow="Reference"
           title="Clinical Guidance Library"
@@ -187,7 +187,7 @@ function GuidelinesPageInner() {
 
       {/* Colposcopy */}
       {tab === "colposcopy" && (
-        <div role="tabpanel" id="panel-colposcopy" className="flex-1 overflow-y-auto p-6 animate-fade-in">
+        <div role="tabpanel" id="panel-colposcopy" className="animate-fade-in flex-1 overflow-y-auto px-5 py-5 lg:px-7 lg:py-6">
           <div className="max-w-4xl mx-auto space-y-5">
             <div>
               <h2 className="text-h3 text-foreground">Colposcopy referral triage guide</h2>
@@ -222,7 +222,7 @@ function GuidelinesPageInner() {
 
       {/* Gynaecology */}
       {tab === "gynaecology" && (
-        <div role="tabpanel" id="panel-gynaecology" className="flex-1 overflow-y-auto p-6 animate-fade-in">
+        <div role="tabpanel" id="panel-gynaecology" className="animate-fade-in flex-1 overflow-y-auto px-5 py-5 lg:px-7 lg:py-6">
           <div className="max-w-5xl mx-auto space-y-5">
             <div>
               <h2 className="text-h3 text-foreground">Gynaecology grading guideline</h2>
