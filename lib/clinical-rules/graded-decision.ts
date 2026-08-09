@@ -28,6 +28,7 @@ import { evaluateClinicalCase } from "./evaluator";
 import { normalizeClinicalFactMap } from "./facts";
 import { resolveShadowClinicalRuleVersion } from "./lifecycle";
 import { applyPin, getCaseAuthorityPin } from "./pinning";
+import { recordAuthorityComparison } from "./monitoring";
 
 /**
  * Facts the legacy batch/wizard mappers assume rather than observe. Canonical
@@ -176,7 +177,52 @@ export async function evaluateGradedDecision(args: {
     };
   }
 
-  // ── 4. Adapter — only when canonical is authoritative ─────────────────────
+  // ── 4. Adapter — always computed for monitoring, but only authoritative
+  // when the governed authority selector says CANONICAL. ────────────────────
+  let adapted: ReturnType<typeof canonicalToClinicalDecision> | null = null;
+  try {
+    adapted = canonicalToClinicalDecision({
+      canonical: evaluated.result,
+      legacyDecision,
+      evaluationId: evaluated.evaluationId,
+    });
+  } catch (error) {
+    await prisma.auditLog
+      .create({
+        data: {
+          action: "CLINICAL_AUTHORITY_ADAPTER_FAILED",
+          entity: "RuleEvaluation",
+          entityId: evaluated.evaluationId,
+          severity: "ERROR",
+          newValue: JSON.stringify({
+            caseId: args.caseId ?? null,
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        },
+      })
+      .catch(() => undefined);
+  }
+
+  if (!adapted) {
+    return {
+      decision: legacyDecision,
+      legacyDecision,
+      authority: { ...authority, authorityEngine: "LEGACY" },
+      pinned,
+      authorityReason: `${authorityReason} Canonical adapter failed; legacy decision stands.`,
+      evaluationId: evaluated.evaluationId,
+      adapterNotices: [],
+    };
+  }
+
+  await recordAuthorityComparison({
+    evaluationId: evaluated.evaluationId,
+    caseId: args.caseId,
+    legacy: legacyDecision,
+    canonical: evaluated.result,
+    adapted: adapted.decision,
+  });
+
   if (authority.authorityEngine !== "CANONICAL") {
     return {
       decision: legacyDecision,
@@ -185,15 +231,9 @@ export async function evaluateGradedDecision(args: {
       pinned,
       authorityReason,
       evaluationId: evaluated.evaluationId,
-      adapterNotices: [],
+      adapterNotices: adapted.adapterNotices,
     };
   }
-
-  const adapted = canonicalToClinicalDecision({
-    canonical: evaluated.result,
-    legacyDecision,
-    evaluationId: evaluated.evaluationId,
-  });
 
   // ── 5. Final guardrail: the adapter may never relax a safety control ──────
   const deEscalations = findDeEscalations(adapted.decision, legacyDecision);

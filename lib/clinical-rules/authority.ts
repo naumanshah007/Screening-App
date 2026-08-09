@@ -192,6 +192,20 @@ export async function resolveClinicalAuthority(args: {
     }
   } catch (error) {
     // A resolution failure must never escalate an engine. Fail to legacy.
+    await prisma.auditLog
+      .create({
+        data: {
+          action: "CLINICAL_AUTHORITY_RESOLUTION_FAILED",
+          entity: "RuleSetActivation",
+          severity: "ERROR",
+          newValue: JSON.stringify({
+            environment,
+            organisationKey,
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        },
+      })
+      .catch(() => undefined);
     return legacyAuthority({
       environment,
       organisationKey,
