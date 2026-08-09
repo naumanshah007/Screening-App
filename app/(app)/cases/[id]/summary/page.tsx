@@ -24,6 +24,7 @@ import { formatDateTime } from "@/lib/utils";
 import { getWorkspaceContext } from "@/lib/workspace/context";
 import { SummaryGenerateButton } from "./SummaryGenerateButton";
 import { SummaryReviewForm } from "./SummaryReviewForm";
+import { PageShell } from "@/components/system";
 
 export default async function CaseSummaryPage({
   params,
@@ -68,7 +69,7 @@ export default async function CaseSummaryPage({
   const summaryApproved = summary?.status === "APPROVED";
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <Link
         href={`/cases/${referralCase.id}`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"
@@ -247,6 +248,6 @@ export default async function CaseSummaryPage({
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

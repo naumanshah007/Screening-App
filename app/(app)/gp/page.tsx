@@ -14,6 +14,7 @@ import {
   Search, CheckCircle, AlertTriangle, Activity,
   ClipboardList, Calendar, ChevronRight, BookOpen, FlaskConical
 } from "lucide-react";
+import { PageShell } from "@/components/system";
 
 // ─── Form option lists ────────────────────────────────────────────────────────
 
@@ -342,7 +343,7 @@ export default function GPPortalPage() {
   };
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <PageIntro
         eyebrow="Legacy cervical tool"
         title="Cervical Results Entry"
@@ -552,6 +553,6 @@ export default function GPPortalPage() {
           <DecisionPreviewPanel decision={decision} isPreview={!submitted} />
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

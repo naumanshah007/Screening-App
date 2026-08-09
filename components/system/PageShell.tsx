@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
  * padding were the main reason screens felt like separate products.
  *
  * `width`:
+ *   - "narrow"             — single-column forms, where a wide measure hurts
  *   - "standard" (default) — most screens; comfortable reading measure
  *   - "wide"               — dense operational screens (worklists, dashboards)
  *   - "full"               — canvas screens that manage their own scrolling
@@ -19,13 +20,14 @@ export function PageShell({
   className,
 }: {
   children: React.ReactNode;
-  width?: "standard" | "wide" | "full";
+  width?: "narrow" | "standard" | "wide" | "full";
   className?: string;
 }) {
   return (
     <div
       className={cn(
         "animate-fade-in px-5 py-5 lg:px-7 lg:py-6",
+        width === "narrow" && "mx-auto w-full max-w-[900px]",
         width === "standard" && "mx-auto w-full max-w-[1400px]",
         width === "wide" && "mx-auto w-full max-w-[1680px]",
         width === "full" && "w-full",

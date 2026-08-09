@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/utils";
 import { getWorkspaceContext } from "@/lib/workspace/context";
 
 import { CaseEditForm } from "./CaseEditForm";
+import { PageShell } from "@/components/system";
 
 export default async function EditReferralCasePage({
   params,
@@ -35,7 +36,7 @@ export default async function EditReferralCasePage({
   const workspace = getWorkspaceContext(user?.role, true);
 
   return (
-    <div className="page-aura p-6 max-w-5xl space-y-6 animate-fade-in">
+    <PageShell width="narrow">
       <Link href={`/cases/${referralCase.id}`} className="text-sm text-brand-600 hover:underline">
         ← Case
       </Link>
@@ -70,6 +71,6 @@ export default async function EditReferralCasePage({
       </Card>
 
       <CaseEditForm referralCase={referralCase} assignees={intakeOptions.assignees} />
-    </div>
+    </PageShell>
   );
 }

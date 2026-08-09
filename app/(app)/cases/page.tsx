@@ -15,6 +15,7 @@ import { formatDate, formatDateTime } from "@/lib/utils";
 import { isFeatureEnabled } from "@/lib/features";
 import { getWorkspaceContext } from "@/lib/workspace/context";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/system";
 
 const SERVICE_LINE_OPTIONS = ["COLPOSCOPY", "GYNAECOLOGY"] as const;
 const WORKFLOW_OPTIONS = ["PENDING_REVIEW", "BOOKABLE", "VIRTUAL_CLINIC", "RETURN_TO_GP", "NEEDS_MORE_INFO"] as const;
@@ -160,7 +161,7 @@ export default async function CasesPage({
   const activeFilters = [selectedServiceLine, selectedStatus, selectedWorkflow, selectedSlaBucket, selectedSmoOnly].filter(Boolean).length;
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6 animate-fade-in">
+    <PageShell width="wide">
       <div className="page-aura">
         <PageIntro
           eyebrow={workspace.label}
@@ -399,6 +400,6 @@ export default async function CasesPage({
           </div>
         )}
       </Card>
-    </div>
+    </PageShell>
   );
 }

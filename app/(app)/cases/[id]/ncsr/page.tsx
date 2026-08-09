@@ -10,6 +10,7 @@ import { getIntegrationStatusById } from "@/lib/ops/integration-status";
 import { getNcsrUserAccessStatus } from "@/lib/integrations/colposcopy-registry/access";
 import { NcsrPullClient } from "./NcsrPullClient";
 import type { UserRole } from "@prisma/client";
+import { PageShell } from "@/components/system";
 
 function integrationBadgeVariant(status: "ready" | "warning" | "blocked" | "info") {
   switch (status) {
@@ -50,7 +51,7 @@ export default async function NcsrPage({
   const patient = referralCase.patient;
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <Link
         href={`/cases/${id}`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"
@@ -87,6 +88,6 @@ export default async function NcsrPage({
         statusInfo={ncsrStatus ?? null}
         accessInfo={accessInfo}
       />
-    </div>
+    </PageShell>
   );
 }

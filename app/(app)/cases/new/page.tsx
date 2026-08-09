@@ -9,6 +9,7 @@ import { getReferralCaseIntakeOptions } from "@/lib/cases/service";
 import { getWorkspaceContext } from "@/lib/workspace/context";
 
 import { CaseCreateForm } from "./CaseCreateForm";
+import { PageShell } from "@/components/system";
 
 export default async function NewReferralCasePage() {
   if (!isFeatureEnabled("casesV2")) {
@@ -22,7 +23,7 @@ export default async function NewReferralCasePage() {
   const workspace = getWorkspaceContext(user?.role, true);
 
   return (
-    <div className="page-aura p-6 max-w-5xl space-y-6 animate-fade-in">
+    <PageShell width="narrow">
       <Link href="/cases" className="text-sm text-brand-600 hover:underline">
         ← Cases
       </Link>
@@ -45,6 +46,6 @@ export default async function NewReferralCasePage() {
         assignees={assignees}
         documentsEnabled={documentsEnabled}
       />
-    </div>
+    </PageShell>
   );
 }

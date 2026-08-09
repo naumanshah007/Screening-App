@@ -11,6 +11,7 @@ import { formatDate, calculateAge } from "@/lib/utils";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import Link from "next/link";
 import { Users, Search, Plus, ChevronRight, Activity, Copy } from "lucide-react";
+import { PageShell } from "@/components/system";
 
 interface Patient {
   id: string;
@@ -85,7 +86,7 @@ export default function PatientsPage() {
   }, [search, loadPatients]);
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6 animate-fade-in">
+    <PageShell width="wide">
       <div className="page-aura">
         <PageIntro
           eyebrow="Legacy tools"
@@ -163,6 +164,6 @@ export default function PatientsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
