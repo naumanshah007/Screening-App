@@ -188,7 +188,7 @@ async function handleSubmit(e: React.FormEvent) {
             convenience. tests/security/login-no-credential-exposure.test.ts
             fails if it is.
 
-            See docs/rule-studio/30a-retained-risk-acceptance-register.md §R6.
+            Historical credential rotation remains a separate, human-owned R6 gate.
           */}
         </div>
       </div>
