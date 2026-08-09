@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-08-03",
+  "correctedAt": "2026-08-04",
+  "documentStatus": "CORRECTED — the 2026-08-03 identity inference was disproven by the Vercel dashboard on 2026-08-04",
+  "correction": {
+    "previousInference": {
+      "gitCommit": "418e3b8",
+      "confidence": "STRONGLY_INFERRED",
+      "claimedRole": "active Production commit",
+      "claimedBranchTracking": "origin/codex/versioned-clinical-rule-studio",
+      "verdict": "DISPROVEN"
+    },
+    "verifiedFinding": {
+      "commit418e3b8ActualRole": "PREVIEW_DEPLOYMENT",
+      "commit418e3b8Branch": "codex/versioned-clinical-rule-studio",
+      "commit418e3b8DeploymentId": "C5nFUkkzS2r92dKAjXY2gyCpAYUg",
+      "commit418e3b8ServedProduction": false
+    },
+    "verifiedProduction": {
+      "vercelProject": "cervical-screening-app",
+      "team": "nauman-shahs-projects",
+      "plan": "Hobby",
+      "connectedRepository": "naumanshah007/Screening-App",
+      "productionBranch": "main",
+      "productionCommit": "fb933c3",
+      "productionCommitMessage": "Admin UX phase 2+3: onboarding, NCSR, integration validation, automation",
+      "productionDeploymentId": "az2UHKSaXg49Upho6U1BgakTJojs",
+      "productionDeploymentStatus": "Ready / Current",
+      "productionTrigger": "MANUAL_REDEPLOY",
+      "productionTriggerDetail": "Redeploy of 5YZSUhZ8; not a fresh Git push",
+      "productionDeploymentDate": "2026-08-02",
+      "productionDeploymentTimeConfidence": "APPROXIMATE — dashboard shows relative time only; build clock approximately 09:07-09:09 UTC",
+      "productionCommitAuthoredAt": "2026-07-08T06:24:45Z",
+      "confidence": "VERIFIED"
+    },
+    "verifiedDeploymentConfiguration": {
+      "automaticProductionDeploymentsOnMain": "ENABLED",
+      "previewDeployments": "ENABLED_FOR_ALL_UNASSIGNED_BRANCHES",
+      "deploymentProtection": "VERCEL_AUTHENTICATION_STANDARD_PROTECTION",
+      "previewUrlsRequireVercelLogin": true,
+      "customProductionDomainsPublic": true,
+      "passwordProtection": "NOT_ENABLED_PRO_ONLY",
+      "ignoredBuildStep": "AUTOMATIC",
+      "deployHooks": "NONE",
+      "deploymentChecks": "NONE",
+      "cronScope": "PRODUCTION_DEPLOYMENTS_ONLY",
+      "confidence": "VERIFIED",
+      "caveat": "Preview protection verified from project configuration; no unauthenticated request was made to a preview URL"
+    },
+    "whyTheInferenceFailed": [
+      "Deployment timestamps overlapped: the production redeploy and the 418e3b8 preview were both created on 2026-08-02.",
+      "418e3b8 was the only locally known remote commit matching the derived build window, and was the exact parent of the first Rule Studio commit.",
+      "Local origin/main was stale (last fetch 2026-07-07T22:05 local); the eleven main commits of 7-8 July, including fb933c3, did not exist locally, so the true production commit was absent from the candidate set.",
+      "A manual redeploy breaks the commit-time ordering assumption: fb933c3 was authored 2026-07-08 and redeployed 2026-08-02, 25 days apart."
+    ],
+    "downstreamImpact": {
+      "comparisonBaseline": "fb933c3",
+      "baselineIsTipOfOriginMain": true,
+      "candidateForkPoint": "578b4b0",
+      "candidateMissingMainCommits": 11,
+      "pushSafety": "VERIFIED_PREVIEW_ONLY_AND_PROTECTED",
+      "r6Status": "OPEN_SECURITY_REMEDIATION_REQUIRED — unaffected by branch pushes because Standard Protection exempts custom production domains"
+    }
+  },
+  "target": "https://screening.privexa.co",
+  "reconnaissance": {
+    "method": "read-only HTTP",
+    "rateLimit": "approximately 1 request per second",
+    "authenticationAttempted": false,
+    "authenticationBypassAttempted": false,
+    "pathEnumerationAggressive": false,
+    "vulnerabilityExploitation": false,
+    "caseDataSubmitted": false,
+    "patientDataUsed": false
+  },
+  "identity": {
+    "buildId": { "value": "HZKNUX6TfkW88sakoDj6n", "confidence": "VERIFIED" },
+    "hosting": { "value": "Vercel", "confidence": "VERIFIED", "evidence": "server header, x-vercel-id syd1::bom1" },
+    "framework": { "value": "Next.js App Router", "confidence": "VERIFIED", "evidence": "x-powered-by, RSC payload" },
+    "authFramework": { "value": "Auth.js / NextAuth v5", "confidence": "VERIFIED", "evidence": "__Host-authjs.csrf-token, __Secure-authjs.callback-url" },
+    "gitCommit": { "value": "fb933c3", "confidence": "VERIFIED", "subject": "Admin UX phase 2+3: onboarding, NCSR, integration validation, automation", "supersedes": { "value": "418e3b8", "confidence": "STRONGLY_INFERRED", "verdict": "DISPROVEN — was a Preview deployment" } },
+    "branchLineage": { "value": "origin/main", "confidence": "VERIFIED", "evidence": "Vercel dashboard: Production deployment source branch main; alias cervical-screening-app-git-main-*.vercel.app", "supersedes": { "value": "origin/codex/versioned-clinical-rule-studio", "note": "ref-containment arithmetic was correct but described the Preview, not Production" } },
+    "correspondsToOriginMain": { "value": true, "confidence": "VERIFIED", "evidence": "post-fetch origin/main == fb933c3; the production commit is the tip of main" },
+    "buildEraUtc": { "value": "2026-08-02T09:14:01Z", "confidence": "VERIFIED_ASSET_TIMESTAMP", "caveat": "content-hashed immutable chunk; records asset creation, not guaranteed current deploy time" },
+    "applicationVersion": { "value": null, "confidence": "UNKNOWN" },
+    "engineVersion": { "value": null, "confidence": "UNKNOWN" },
+    "rulesetVersion": { "value": null, "confidence": "STRONGLY_INFERRED", "note": "no CG-NCSP versioned ruleset exists in the inferred build" },
+    "rulesetChecksum": { "value": null, "confidence": "STRONGLY_INFERRED" },
+    "schemaGeneration": { "value": null, "confidence": "UNKNOWN" },
+    "migrationCount": { "value": null, "confidence": "UNKNOWN" },
+    "canonicalRuleStudioPresent": { "value": false, "confidence": "STRONGLY_INFERRED" },
+    "authorityStatus": { "value": "legacy-only", "confidence": "STRONGLY_INFERRED" },
+    "evaluationMode": { "value": "legacy direct; no SHADOW/SIMULATION concept", "confidence": "STRONGLY_INFERRED" },
+    "featureFlags": { "value": null, "confidence": "UNKNOWN" },
+    "tenantDemoStatus": { "value": "landing page 'Live in demo' badge; login publishes demo accounts; no documented dedicated test tenant", "confidence": "WEAKLY_INFERRED" },
+    "writesPermitted": { "value": false, "confidence": "UNKNOWN_TREATED_AS_NOT_PERMITTED" }
+  },
+  "timelineUtc": [
+    { "time": "2026-06-19T21:22:19Z", "commit": "578b4b0", "note": "current origin/main HEAD" },
+    { "time": "2026-08-02T09:06:44Z", "commit": "418e3b8", "note": "last commit before deployed asset; inferred deployed build" },
+    { "time": "2026-08-02T09:14:01Z", "commit": null, "note": "deployed static chunk last-modified" },
+    { "time": "2026-08-02T09:22:40Z", "commit": "30e8dfb", "note": "first Rule Studio commit; parent is 418e3b8" }
+  ],
+  "structuralEvidence": {
+    "firstRuleStudioCommitParent": "418e3b8",
+    "clinicalRulesFilesAt418e3b8": 0,
+    "clinicalRulesFilesAtHead": 48
+  },
+  "routeProbes": {
+    "middlewareGatesAllPaths": true,
+    "controlTestNonexistentPathsRedirect": true,
+    "routeExistenceProvableUnauthenticated": false,
+    "rootIsMarketingLandingPage": true,
+    "publicVersionOrHealthEndpoint": false,
+    "apiUnauthenticatedStatus": 401
+  },
+  "bundleAnalysis": {
+    "chunksDownloaded": 13,
+    "totalBytesApprox": 770048,
+    "engineMarkersFound": 0,
+    "ruleIdPatternsFound": 0,
+    "sourceMapsExposed": false,
+    "buildManifestEnumeratesAppRoutes": false,
+    "interpretationLimit": "clinical engine executes server-side; absence from public client bundles is expected and is not evidence of absence from the deployment"
+  },
+  "securityObservations": {
+    "publicDemoCredentialExposure": {
+      "present": true,
+      "location": "unauthenticated /login HTML",
+      "detail": "demo account buttons for admin, clinician, coordinator, specialist reviewer with a shared published password",
+      "verifiedBy": "direct read of public HTML",
+      "signInAttempted": false,
+      "alsoPresentInLocalCandidate": true,
+      "regressionIntroducedByRuleStudio": false,
+      "routeTo": "security/product risk owner",
+      "inExistingRetainedRiskRegister": false
+    },
+    "headers": {
+      "hsts": true,
+      "cspPresent": true,
+      "cspWeaknesses": ["script-src 'unsafe-inline'", "script-src 'unsafe-eval'"],
+      "xFrameOptions": "DENY",
+      "xContentTypeOptions": "nosniff",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "permissionsPolicy": "camera=(), microphone=(), geolocation=(), payment=()"
+    }
+  },
+  "releaseSafetyImplication": {
+    "status": "CORRECTED_2026-08-04",
+    "deployedHostnameTracksBranch": "main",
+    "pushSafety": "VERIFIED_PREVIEW_ONLY_AND_PROTECTED",
+    "pushOfCandidateBranchCreates": "PREVIEW_DEPLOYMENT_REQUIRING_VERCEL_LOGIN",
+    "remainingReleaseRisk": "merge to main auto-deploys to screening.privexa.co and rewrites the production cron; GOV-01..GOV-04 and R1..R6 gate the merge, not the push",
+    "r6Unaffected": "Standard Protection exempts custom production domains; the public demo-credential exposure persists regardless of any branch push",
+    "confidence": "VERIFIED",
+    "supersedes": {
+      "deployedHostnameAppearsToTrackBranch": "origin/codex/versioned-clinical-rule-studio",
+      "risk": "pushing the branch could auto-deploy the unreviewed Rule Studio programme to production, bypassing authenticated QA, GOV-01..GOV-04 and R1..R5",
+      "confidence": "INFERRED",
+      "verdict": "DISPROVEN — but was the correct precaution under the uncertainty available at the time"
+    }
+  },
+  "conclusion": "DEPLOYMENT_IDENTITY_VERIFIED; COMPARISON_BASELINE_IS_fb933c3"
+}

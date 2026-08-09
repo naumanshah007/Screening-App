@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { GitBranch, ShieldCheck, Plus } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { PageIntro } from "@/components/layout/PageIntro";
+import { PageShell, PageHeader } from "@/components/system";
 import { Badge, ServiceLineBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -33,20 +33,18 @@ export default async function RulesPage() {
   const releases = await listCaseRuleSetReleases();
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="page-aura">
-        <PageIntro
-          eyebrow="Governance"
-          title="Case Rule Releases"
-          description="Enterprise release control for colposcopy and gynaecology deterministic rules."
-          trailing={
-            <div className="flex flex-wrap gap-3">
-              <CreateCaseRuleDraftButton serviceLine="COLPOSCOPY" label="New colposcopy draft" />
-              <CreateCaseRuleDraftButton serviceLine="GYNAECOLOGY" label="New gynaecology draft" />
-            </div>
-          }
-        />
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Governance"
+        title="Case Rule Releases"
+        description="Enterprise release control for colposcopy and gynaecology deterministic rules."
+        actions={
+          <>
+            <CreateCaseRuleDraftButton serviceLine="COLPOSCOPY" label="New colposcopy draft" />
+            <CreateCaseRuleDraftButton serviceLine="GYNAECOLOGY" label="New gynaecology draft" />
+          </>
+        }
+      />
 
       {releases.length === 0 ? (
         <Card>
@@ -276,6 +274,6 @@ export default async function RulesPage() {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

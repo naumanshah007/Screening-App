@@ -12,6 +12,7 @@ import {
   RefreshCw, AlertTriangle, CheckCircle2,
   Clock, Filter, LayoutGrid, List, Calendar
 } from "lucide-react";
+import { PageShell } from "@/components/system";
 
 type ReferralStatus = "PENDING" | "APPROVED" | "AWAITING_APPOINTMENT" | "COMPLETE" | "REJECTED" | "ESCALATED";
 
@@ -169,7 +170,7 @@ export default function CoordinatorPage() {
   ) : null;
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <PageIntro
         eyebrow="Coordinator Portal — NZ Cervical Screening"
         title="Referral Queue"
@@ -457,6 +458,6 @@ export default function CoordinatorPage() {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -21,6 +21,9 @@ import type {
   BatchCaseResult,
   SourceType,
 } from "@/lib/batch/types";
+import { getRuntimeClinicalEnvironment, resolveClinicalAuthority } from "@/lib/clinical-rules/authority";
+import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
+import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 
 // ─── Source mapping ───────────────────────────────────────────────────────────
 
@@ -68,7 +71,7 @@ const batchRunDetailInclude = {
   createdBy: reviewerSelect,
   items: {
     orderBy: [{ reviewRequired: "desc" }, { rowNumber: "asc" }],
-    include: { reviewedBy: reviewerSelect },
+    include: { reviewedBy: reviewerSelect, ruleEvaluation: true },
   },
 } satisfies Prisma.BatchRunInclude;
 
@@ -92,6 +95,17 @@ export async function saveBatchRun(args: {
   const { result, actorUserId } = args;
 
   const reviewRequiredCount = result.results.filter(isReviewRequired).length;
+  const runtimeEnvironment = getRuntimeClinicalEnvironment();
+  const resolvedAuthority = await resolveClinicalAuthority({ environment: runtimeEnvironment });
+  const shadowRuleVersion = await resolveShadowClinicalRuleVersion().catch(() => null);
+  const runRuleVersion =
+    resolvedAuthority.authorityEngine === "CANONICAL" && resolvedAuthority.ruleSetVersionId
+      ? {
+          id: resolvedAuthority.ruleSetVersionId,
+          displayVersion: resolvedAuthority.ruleSetVersion,
+          checksum: resolvedAuthority.ruleSetChecksum,
+        }
+      : shadowRuleVersion;
 
   const itemData: Prisma.BatchReviewItemCreateWithoutBatchRunInput[] =
     result.results.map((item) => {
@@ -128,6 +142,9 @@ export async function saveBatchRun(args: {
       sourceSystem: args.sourceSystem ?? null,
       sourceFileName: result.sourceFileName ?? null,
       engineVersion: result.engineVersion,
+      pinnedRuleVersionId: runRuleVersion?.id ?? null,
+      pinnedRuleVersionDisplay: runRuleVersion?.displayVersion ?? null,
+      pinnedRulesetChecksum: runRuleVersion?.checksum ?? null,
       totalCases: result.results.length,
       pendingCount: result.results.length,
       reviewRequiredCount,
@@ -154,7 +171,78 @@ export async function saveBatchRun(args: {
     },
   });
 
-  return run;
+  if (runRuleVersion) {
+    const resultByRow = new Map(
+      result.results.map((item) => [item.case.source.rowNumber, item])
+    );
+    for (const reviewItem of run.items) {
+      const sourceResult = resultByRow.get(reviewItem.rowNumber);
+      if (!sourceResult) continue;
+      try {
+        const graded = await evaluateGradedDecision({
+          input: sourceResult.input,
+          subjectReference:
+            sourceResult.case.nhi ??
+            sourceResult.case.source.externalPatientId ??
+            `batch:${run.id}:row:${reviewItem.rowNumber}`,
+          enteredBy: actorUserId,
+          canonicalFactsV2: sourceResult.canonicalFactsV2,
+          batchRunId: run.id,
+          environment: runtimeEnvironment,
+          factSource: "REVIEWER_ENTRY",
+        });
+        const operativeResult = { ...sourceResult, decision: graded.decision };
+        await prisma.batchReviewItem.update({
+          where: { id: reviewItem.id },
+          data: {
+            ruleEvaluationId: graded.evaluationId,
+            authorityEngine: graded.authority.authorityEngine,
+            authorityReason: graded.authorityReason,
+            legacyDecisionJson: JSON.stringify(graded.legacyDecision),
+            decisionJson: JSON.stringify(graded.decision),
+            figure: graded.decision.figure,
+            riskLevel: graded.decision.riskLevel,
+            recommendationCode: graded.decision.recommendationCode,
+            recommendation: graded.decision.recommendation,
+            referralPriority: graded.decision.referralPriority ?? null,
+            referralType: graded.decision.referralType ?? null,
+            safetyOutcome: graded.decision.safetyOutcome ?? null,
+            reviewRequired: isReviewRequired(operativeResult),
+          },
+        });
+      } catch (error) {
+        await prisma.auditLog.create({
+          data: {
+            userId: actorUserId,
+            action: "CLINICAL_RULE_AUTHORITY_EVALUATION_FAILED",
+            entity: "BatchReviewItem",
+            entityId: reviewItem.id,
+            severity: "ERROR",
+            newValue: JSON.stringify({
+              ruleVersionId: runRuleVersion.id,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          },
+        });
+      }
+    }
+  }
+
+  const persisted = await prisma.batchRun.findUnique({
+    where: { id: run.id },
+    include: batchRunDetailInclude,
+  });
+  if (!persisted) throw new Error("Persisted batch run could not be reloaded.");
+  await prisma.batchRun.update({
+    where: { id: run.id },
+    data: {
+      reviewRequiredCount: persisted.items.filter((item) => item.reviewRequired).length,
+    },
+  });
+  return (await prisma.batchRun.findUnique({
+    where: { id: run.id },
+    include: batchRunDetailInclude,
+  }))!;
 }
 
 // ─── Read ───────────────────────────────────────────────────────────────────
@@ -178,10 +266,49 @@ export async function getBatchRunWithItems(
 
 /** Reconstruct the BatchCaseResult shape from a stored item for the drill-in UI. */
 export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCaseResult {
+  const evaluationTrace = item.ruleEvaluation
+    ? JSON.parse(item.ruleEvaluation.evaluationTrace) as {
+        factDiagnostics?: BatchCaseResult["canonicalShadow"] extends infer T
+          ? T extends { factDiagnostics?: infer D }
+            ? D
+            : never
+          : never;
+        legacyComparison?: unknown;
+      }
+    : undefined;
   return {
     case: JSON.parse(item.caseJson),
     input: JSON.parse(item.inputJson),
     decision: JSON.parse(item.decisionJson),
+    legacyDecision: item.legacyDecisionJson ? JSON.parse(item.legacyDecisionJson) : undefined,
+    clinicalAuthority: {
+      authorityEngine: item.authorityEngine === "CANONICAL" ? "CANONICAL" : "LEGACY",
+      reason: item.authorityReason,
+    },
+    ...(item.ruleEvaluation
+      ? {
+          canonicalFactsV2: JSON.parse(item.ruleEvaluation.canonicalInputSnapshot),
+          canonicalShadow: {
+            reviewItemId: item.id,
+            evaluationId: item.ruleEvaluation.id,
+            evaluationMode: item.ruleEvaluation.evaluationMode,
+            ruleVersionDisplay: item.ruleEvaluation.ruleVersionDisplay,
+            rulesetChecksum: item.ruleEvaluation.rulesetChecksum,
+            engineVersion: item.ruleEvaluation.engineVersion,
+            provisionalRecommendation: item.ruleEvaluation.provisionalRecommendation,
+            reviewerRequirement: item.ruleEvaluation.reviewerRequirement,
+            clinicianOnly: item.ruleEvaluation.clinicianOnly,
+            repeatInterval: item.ruleEvaluation.repeatInterval,
+            evaluatedAt: item.ruleEvaluation.evaluatedAt.toISOString(),
+            matchedRuleIds: JSON.parse(item.ruleEvaluation.matchedRuleIds),
+            branchPath: JSON.parse(item.ruleEvaluation.branchPath),
+            missingInformation: JSON.parse(item.ruleEvaluation.missingInformation),
+            sourceReferences: JSON.parse(item.ruleEvaluation.sourceReferences),
+            factDiagnostics: evaluationTrace?.factDiagnostics,
+            legacyComparison: evaluationTrace?.legacyComparison,
+          },
+        }
+      : {}),
     processingTimeMs: 0,
     status: item.engineStatus === "error" ? "error" : "success",
     error: undefined,
@@ -192,6 +319,7 @@ export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCa
 
 const reviewQueueInclude = {
   reviewedBy: reviewerSelect,
+  ruleEvaluation: true,
   batchRun: {
     select: { id: true, source: true, sourceSystem: true, sourceFileName: true },
   },

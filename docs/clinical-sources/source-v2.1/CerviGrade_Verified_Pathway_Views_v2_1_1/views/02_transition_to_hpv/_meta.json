@@ -1,0 +1,15 @@
+{
+  "id": "02_transition_to_hpv",
+  "title": "Transition to HPV Primary Screening",
+  "description": "NCSP Figures 1 and 2 \u2014 resolved versus unresolved previous history",
+  "clusters": [
+    "cluster_f1",
+    "cluster_f2"
+  ],
+  "nodeCount": 25,
+  "edgeCount": 23,
+  "ruleCount": 13,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

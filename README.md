@@ -1,6 +1,6 @@
 # CerviGrade Screening App
 
-CerviGrade is a cervical-screening decision-support prototype for demo and early pilot conversations. The buyer-demo story is:
+CerviGrade is a governed cervical-screening decision-support application. Its primary workflow is:
 
 Command Centre -> Pull Cases -> Review Queue -> Completed Decisions -> Simulated export package -> Audit Trail
 
@@ -11,8 +11,8 @@ Clinical safety posture: the product shows provisional recommendations only. Rev
 ```bash
 npm install
 cp .env.example .env
-npm run db:seed
-npm run demo:reset
+DEMO_SEED_PASSWORD='<operator-supplied local password>' npm run db:seed
+DEMO_SEED_PASSWORD='<operator-supplied local password>' npm run demo:reset
 npm run dev
 ```
 
@@ -27,7 +27,7 @@ Demo reset creates deterministic synthetic batch data:
 - 1 needs-information decision
 - 2 simulated package audit events
 
-Demo users are printed by `npm run demo:reset`. The seeded demo password is intentionally local-demo only.
+Demo users are printed by `npm run demo:reset`. The operator-supplied password is never printed. Both seed entry points refuse Production and remote/shared databases.
 
 ## Required Environment
 
@@ -38,6 +38,7 @@ Key flags:
 - `ENABLE_BATCH_DEMO=true` enables the buyer-demo flow.
 - `DATABASE_URL=file:./prisma/dev.db` uses the local SQLite/libSQL development database.
 - `AUTH_SECRET` and `NEXTAUTH_SECRET` must be unique per environment.
+- `DEMO_SEED_PASSWORD` is required for local synthetic seeding and has no default.
 - Real HL7, FHIR, PAS, NCSR, and eReferral integrations are not connected in this demo.
 
 ## Scripts
@@ -66,6 +67,12 @@ For hosted demo deployments:
 - Set strong auth secrets in the platform secret store.
 - Keep real integration credentials unset unless a separate integration workstream has been approved.
 - Run `npm run demo:reset` after migrations/seeding to make the demo reproducible.
+
+## Clinical authority architecture
+
+`CG-NCSP-3.1.0` is the target governed within-pathway clinical recommendation ruleset. The Legacy engine remains a technical pathway router and the safe default authority until every clinical, governance, durability, monitoring, rollback, security and licensing gate is signed. Resolver, adapter or persistence failures fail closed to Legacy; stored evaluations are append-only and pinned. Once legitimately activated, canonical recommendations are primary for eligible new cases and Legacy routing appears as technical provenance.
+
+Current controlled-integration evidence and the exact human sign-off checkpoint are recorded in [`docs/canonical-cutover/18-controlled-production-integration.md`](docs/canonical-cutover/18-controlled-production-integration.md). The full activation sequence remains in [`docs/canonical-cutover/07-cutover-runbook.md`](docs/canonical-cutover/07-cutover-runbook.md).
 
 ## Demo Script
 

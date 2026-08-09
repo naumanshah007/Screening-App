@@ -1,0 +1,150 @@
+{
+  "system": "A_PRODUCTION_fb933c3",
+  "generatedAt": "2026-08-04T06:55:06.774Z",
+  "emissions": [
+    {
+      "id": "AGE-U25-HSIL-HPVOTHER",
+      "clinicalConcern": "under 25 with HSIL must not be reassured",
+      "error": null,
+      "recommendationCode": "F3-HPV-OTHER-HIGH-GRADE-COLP",
+      "riskLevel": "HIGH",
+      "figure": "FIGURE_3",
+      "referralRequired": true,
+      "referralType": "COLPOSCOPY",
+      "safetyOutcome": null,
+      "recommendation": "HPV Other with possible/definite high-grade cytology. Refer to colposcopy."
+    },
+    {
+      "id": "AGE-U25-AG3",
+      "clinicalConcern": "under 25 glandular AG3 must reach specialist review",
+      "error": null,
+      "recommendationCode": "F7-GLANDULAR-COLPOSCOPY",
+      "riskLevel": "HIGH",
+      "figure": "FIGURE_7",
+      "referralRequired": true,
+      "referralType": "COLPOSCOPY",
+      "safetyOutcome": null,
+      "recommendation": "Glandular abnormality requires colposcopy."
+    },
+    {
+      "id": "AGE-U25-CANCER-SYMPTOMS",
+      "clinicalConcern": "under 25 with cancer symptoms must not be reassured",
+      "error": null,
+      "recommendationCode": "F3-HPV-REQUIRED",
+      "riskLevel": "MEDIUM",
+      "figure": "FIGURE_3",
+      "referralRequired": false,
+      "referralType": null,
+      "safetyOutcome": "INSUFFICIENT_INFORMATION",
+      "recommendation": "Insufficient information to safely determine pathway."
+    },
+    {
+      "id": "AGE-U25-ASYMPTOMATIC",
+      "clinicalConcern": "under 25 asymptomatic — reassurance is correct here",
+      "error": null,
+      "recommendationCode": "AGE-UNDER-25",
+      "riskLevel": "LOW",
+      "figure": "FIGURE_3",
+      "referralRequired": false,
+      "referralType": null,
+      "safetyOutcome": null,
+      "recommendation": "Participant is under 25 years old with no symptoms or high-grade result. Routine cervical screening does not apply."
+    },
+    {
+      "id": "AGE-25-HPV-NEG",
+      "clinicalConcern": "age 25 HPV negative routine recall",
+      "error": null,
+      "recommendationCode": "F3-HPV-NOT-DETECTED-5Y",
+      "riskLevel": "LOW",
+      "figure": "FIGURE_3",
+      "referralRequired": false,
+      "referralType": null,
+      "safetyOutcome": null,
+      "recommendation": "HPV not detected."
+    },
+    {
+      "id": "AGE-70-HPV-NEG",
+      "clinicalConcern": "age 70 HPV negative exit",
+      "error": null,
+      "recommendationCode": "AGE-70-74-HPV-NOT-DETECTED-DISCHARGE",
+      "riskLevel": "LOW",
+      "figure": "FIGURE_3",
+      "referralRequired": false,
+      "referralType": null,
+      "safetyOutcome": null,
+      "recommendation": "Participant aged 70-74 with HPV not detected on exit testing. Discharge from routine cervical screening at exit."
+    },
+    {
+      "id": "AGE-72-HPV-1618",
+      "clinicalConcern": "age 72 HPV 16/18 must reach colposcopy, not a final-screen offer",
+      "error": null,
+      "recommendationCode": "AGE-70-74-HPV-DETECTED-COLP",
+      "riskLevel": "HIGH",
+      "figure": "FIGURE_3",
+      "referralRequired": true,
+      "referralType": "COLPOSCOPY",
+      "safetyOutcome": "CLINICIAN_REVIEW_REQUIRED",
+      "recommendation": "Participant aged 70-74 with HPV detected on exit testing. Refer to colposcopy; clinician review required."
+    },
+    {
+      "id": "AGE-72-HPV-OTHER",
+      "clinicalConcern": "age 72 HPV other must reach colposcopy",
+      "error": null,
+      "recommendationCode": "AGE-70-74-HPV-DETECTED-COLP",
+      "riskLevel": "HIGH",
+      "figure": "FIGURE_3",
+      "referralRequired": true,
+      "referralType": "COLPOSCOPY",
+      "safetyOutcome": "CLINICIAN_REVIEW_REQUIRED",
+      "recommendation": "Participant aged 70-74 with HPV detected on exit testing. Refer to colposcopy; clinician review required."
+    },
+    {
+      "id": "AGE-72-NO-HPV",
+      "clinicalConcern": "age 72 with no HPV result must request information",
+      "error": null,
+      "recommendationCode": "AGE-70-74-HPV-REQUIRED",
+      "riskLevel": "MEDIUM",
+      "figure": "FIGURE_3",
+      "referralRequired": false,
+      "referralType": null,
+      "safetyOutcome": "INSUFFICIENT_INFORMATION",
+      "recommendation": "Insufficient information to safely determine pathway."
+    },
+    {
+      "id": "AGE-75-ASYMPTOMATIC",
+      "clinicalConcern": "age 75 asymptomatic discharge",
+      "error": null,
+      "recommendationCode": "AGE-75-DISCHARGE",
+      "riskLevel": "LOW",
+      "figure": "FIGURE_3",
+      "referralRequired": false,
+      "referralType": null,
+      "safetyOutcome": null,
+      "recommendation": "Participant is 75 or older with no symptoms or abnormal current result. Discharge from routine cervical screening programme."
+    },
+    {
+      "id": "AGE-76-AG1",
+      "clinicalConcern": "age 76 glandular AG1 must not be discharged",
+      "error": null,
+      "recommendationCode": "F7-GLANDULAR-COLPOSCOPY",
+      "riskLevel": "HIGH",
+      "figure": "FIGURE_7",
+      "referralRequired": true,
+      "referralType": "COLPOSCOPY",
+      "safetyOutcome": null,
+      "recommendation": "Glandular abnormality requires colposcopy."
+    },
+    {
+      "id": "AGE-76-HPV-1618",
+      "clinicalConcern": "age 76 HPV 16/18 must not be discharged",
+      "error": null,
+      "recommendationCode": "F3-1618-COLP",
+      "riskLevel": "HIGH",
+      "figure": "FIGURE_3",
+      "referralRequired": true,
+      "referralType": "COLPOSCOPY",
+      "safetyOutcome": null,
+      "recommendation": "HPV 16/18 detected. Cytology should be reported if LBC, but colposcopy referral is required."
+    }
+  ]
+}

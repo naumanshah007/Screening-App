@@ -1,0 +1,14 @@
+{
+  "id": "06_hsil_treatment_test_of_cure",
+  "title": "HSIL Treatment and Test of Cure",
+  "description": "Figure 6 \u2014 eligibility, treatment modality, 6/18-month co-testing and longitudinal completion",
+  "clusters": [
+    "cluster_f6"
+  ],
+  "nodeCount": 24,
+  "edgeCount": 26,
+  "ruleCount": 17,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

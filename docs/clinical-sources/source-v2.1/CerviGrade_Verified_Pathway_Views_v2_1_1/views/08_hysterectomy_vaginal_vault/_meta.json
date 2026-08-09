@@ -1,0 +1,15 @@
+{
+  "id": "08_hysterectomy_vaginal_vault",
+  "title": "Total Hysterectomy and Vaginal Vault Follow-Up",
+  "description": "Figure 8, all 21 Table 1 combinations and the 2026 cancer-history overlay",
+  "clusters": [
+    "cluster_hyst",
+    "cluster_cancer"
+  ],
+  "nodeCount": 49,
+  "edgeCount": 59,
+  "ruleCount": 40,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

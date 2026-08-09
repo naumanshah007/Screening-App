@@ -12,6 +12,7 @@ import { getReferralCaseById } from "@/lib/cases/service";
 import { isFeatureEnabled } from "@/lib/features";
 import { formatDateTime } from "@/lib/utils";
 import { getWorkspaceContext } from "@/lib/workspace/context";
+import { PageShell } from "@/components/system";
 
 function documentsFeatureEnabled() {
   return isFeatureEnabled("casesV2") && isFeatureEnabled("documentIngest");
@@ -69,7 +70,7 @@ export default async function CaseEvidencePage({
   ).length;
 
   return (
-    <div className="page-aura p-6 space-y-6 animate-fade-in">
+    <PageShell>
       <Link
         href={`/cases/${referralCase.id}`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground"
@@ -244,6 +245,6 @@ export default async function CaseEvidencePage({
           )}
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

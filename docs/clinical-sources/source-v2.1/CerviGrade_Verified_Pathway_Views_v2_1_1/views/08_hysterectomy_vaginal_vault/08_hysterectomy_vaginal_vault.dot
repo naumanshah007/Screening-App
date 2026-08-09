@@ -1,0 +1,104 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Total Hysterectomy and Vaginal Vault Follow-Up\nFigure 8, all 21 Table 1 combinations and the 2026 cancer-history overlay\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_hyst { label="FIGURE 8 + TABLE 1 - Screening after hysterectomy (all 21 cells preserved)"; color="#0369A1"; style="rounded"; penwidth=1.6;
+HYST_ENTRY [label="Hysterectomy / cervix status"];
+H_COMP [label="Figure 8/Table 1 mandatory facts complete?\nType, indication, prior history, specimen pathology, completeness", shape="diamond"];
+H_STOP [label="Unknown operative/history/pathology state -> obtain records", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+H_TYPE [label="Subtotal or total?", shape="diamond"];
+H_SUB [label="Subtotal: cervix remains\nOrdinary cervical screening"];
+H_TOTAL [label="Total hysterectomy"];
+H_BLEED [label="Bleeding or cancer concern?", shape="diamond"];
+H_F10 [label="Use Figure 10 symptom investigation"];
+H_CANC [label="Cancer history?", shape="diamond"];
+H_CA [label="Apply 2026 cancer overlay"];
+H_HIST [label="Prior history group?", shape="diamond"];
+H_G1 [label="G1: negative/resolved low-grade"];
+H_G2 [label="G2: low-grade not returned to regular"];
+H_G3 [label="G3: treated HSIL with completed ToC"];
+H_G4 [label="G4: untreated/incompletely treated HSIL/AIS"];
+H_G5 [label="G5: prior treatment with incomplete ToC"];
+H_G6 [label="G6: no known screening history"];
+H_P1 [label="G1 pathology/completeness?", shape="diamond"];
+H_P2 [label="G2 pathology/completeness?", shape="diamond"];
+H_P3 [label="G3 pathology/completeness?", shape="diamond"];
+H_P4 [label="G4 pathology/completeness?", shape="diamond"];
+H_P5 [label="G5 pathology/completeness?", shape="diamond"];
+H_P6 [label="G6 pathology/completeness?", shape="diamond"];
+H_NONE [label="No further screening", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+H_VHPV [label="Vaginal-vault HPV test\nPreserve cervix-absent / vault provenance"];
+H_V6 [label="Vault HPV test at 6 months"];
+H_VRES [label="Vault HPV result?", shape="diamond"];
+H_VSTOP [label="HPV not detected\nCease screening", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+H_VDET [label="HPV detected\nReviewer-confirmed vault pathway / colposcopy as required"];
+H_VTOC [label="Vaginal-vault Test of Cure\n6 months then annually"];
+H_VSEQ [label="Vault sequence?", shape="diamond"];
+H_VDONE [label="Two consecutive double-negative vault co-tests\n12 months apart -> cease screening", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+H_VCOL [label="Any HPV detected or abnormal vaginal cytology\nColposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+H_COL [label="Incomplete excision\nImmediate colposcopy / specialist review"];
+H_CONT [label="Further treatment/surveillance plan\nLongitudinal vault follow-up as directed", fillcolor="#FFF4CC", color="#B7791F"];
+HYST_ENTRY -> H_COMP;
+H_COMP -> H_STOP [label="No"];
+H_COMP -> H_TYPE [label="Yes"];
+H_TYPE -> H_SUB [label="Subtotal"];
+H_TYPE -> H_TOTAL [label="Total"];
+H_TOTAL -> H_BLEED;
+H_BLEED -> H_F10 [label="Yes"];
+H_BLEED -> H_CANC [label="No"];
+H_CANC -> H_CA [label="Yes"];
+H_CANC -> H_HIST [label="No"];
+H_HIST -> H_G1 [label="G1"]; H_G1 -> H_P1;
+H_HIST -> H_G2 [label="G2"]; H_G2 -> H_P2;
+H_HIST -> H_G3 [label="G3"]; H_G3 -> H_P3;
+H_HIST -> H_G4 [label="G4"]; H_G4 -> H_P4;
+H_HIST -> H_G5 [label="G5"]; H_G5 -> H_P5;
+H_HIST -> H_G6 [label="G6"]; H_G6 -> H_P6;
+H_P1 -> H_NONE [label="No pathology"]; H_P1 -> H_VHPV [label="LSIL/CIN1"]; H_P1 -> H_VTOC [label="HSIL/AIS complete"]; H_P1 -> H_COL [label="HSIL/AIS incomplete"];
+H_P2 -> H_VHPV [label="No pathology or LSIL"]; H_P2 -> H_VTOC [label="HSIL/AIS complete"]; H_P2 -> H_COL [label="HSIL/AIS incomplete"];
+H_P3 -> H_NONE [label="No pathology"]; H_P3 -> H_VHPV [label="LSIL/CIN1"]; H_P3 -> H_VTOC [label="New HSIL/AIS complete"]; H_P3 -> H_COL [label="New HSIL/AIS incomplete"];
+H_P4 -> H_VTOC [label="No/low-grade or HSIL/AIS complete"]; H_P4 -> H_COL [label="HSIL/AIS incomplete"];
+H_P5 -> H_VTOC [label="No/low-grade or HSIL/AIS complete"]; H_P5 -> H_COL [label="HSIL/AIS incomplete"];
+H_P6 -> H_V6 [label="No/low-grade"]; H_P6 -> H_VTOC [label="HSIL/AIS complete"]; H_P6 -> H_COL [label="HSIL/AIS incomplete"];
+H_VHPV -> H_VRES; H_V6 -> H_VRES;
+H_VRES -> H_VSTOP [label="HPV not detected"];
+H_VRES -> H_VDET [label="HPV detected"];
+H_VTOC -> H_VSEQ;
+H_VSEQ -> H_VDONE [label="Two consecutive double-negative"];
+H_VSEQ -> H_VCOL [label="HPV detected / abnormal cytology"];
+H_COL -> H_CONT;
+}
+subgraph cluster_cancer { label="2026 ADDENDUM - Cancer history"; color="#D97706"; style="rounded"; penwidth=1.6;
+CA_ENTRY [label="Previous cervical/vaginal/gynaecological cancer"];
+CA_STAGE [label="Stage 1a1 cervical cancer?", shape="diamond"];
+CA_TX [label="Treatment?", shape="diamond"];
+CA_LOCAL [label="Local excision\nComplete Test of Cure"];
+CA_LRES [label="During ToC: HPV detected or cytology abnormal?", shape="diamond"];
+CA_LCOL [label="Colposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+CA_LREG [label="Successful treatment + ToC complete\nReturn regular screening", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+CA_HYST [label="Total hysterectomy\nComplete vault ToC"];
+CA_HSTOP [label="Successful vault ToC\nCease screening", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+CA_OTHER [label="Other prior cervical/vaginal cancer\nOutside NCSP screening recommendations\nClinician + participant determine testing", fillcolor="#FFF4CC", color="#B7791F"];
+CA_NONC [label="Non-cervical gyn cancer + prior HSIL without ToC\nComplete vault ToC; cease after two double-negative co-tests"];
+CA_SUB [label="Gynaecological cancer + subtotal hysterectomy\nContinue cervical screening"];
+CA_ENTRY -> CA_STAGE;
+CA_STAGE -> CA_TX [label="Yes"];
+CA_STAGE -> CA_OTHER [label="No"];
+CA_TX -> CA_LOCAL [label="Local excision"];
+CA_TX -> CA_HYST [label="Total hysterectomy"];
+CA_TX -> CA_SUB [label="Subtotal hysterectomy"];
+CA_LOCAL -> CA_LRES;
+CA_LRES -> CA_LCOL [label="Yes"];
+CA_LRES -> CA_LREG [label="No, complete"];
+CA_HYST -> CA_HSTOP;
+}
+
+V8_F10 [label="Open Figure 10 — symptom investigation", fillcolor="#EDE9FE", color="#6D28D9"];
+H_F10 -> V8_F10 [style="dashed"];
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

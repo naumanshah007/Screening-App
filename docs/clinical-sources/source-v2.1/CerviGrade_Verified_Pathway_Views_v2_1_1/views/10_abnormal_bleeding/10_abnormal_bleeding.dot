@@ -1,0 +1,61 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Abnormal Vaginal Bleeding\nFigure 10 — symptom assessment, abnormal cervix, cancer suspicion and persistent bleeding overrides\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f10 { label="FIGURE 10 - Abnormal vaginal bleeding"; color="#B91C1C"; style="rounded"; penwidth=1.6;
+F10_START [label="Abnormal vaginal bleeding\nIMB / PCB / postmenopausal"];
+F10_COMP [label="Figure 10 assessment facts complete?\nBleeding type, history, examination, cervix appearance, cancer suspicion", shape="diamond"];
+F10_CSTOP [label="Incomplete symptom workup -> clinician review\nNever fabricate completed facts", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F10_ASSESS [label="History: menstrual, contraceptive, sexual\nSpeculum + pelvic examination\nDiagnostic co-test where indicated"];
+F10_PM [label="Postmenopausal bleeding?", shape="diamond"];
+F10_PMREF [label="Examine + co-test + specialist gynaecology referral\nDo not delay referral", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F10_CERV [label="Abnormal cervix?", shape="diamond"];
+F10_SUSP [label="Suspicion of cancer?", shape="diamond"];
+F10_URG [label="Urgent investigation / colposcopy\nDo not delay for blood or co-test result", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F10_ABN [label="Abnormal cervix without cancer suspicion\nLocal Healthcare Pathway or gynaecology", fillcolor="#FFF4CC", color="#B7791F"];
+F10_SINGLE [label="Single premenopausal PCB + normal cervix + double-negative co-test?", shape="diamond"];
+F10_NOCOL [label="No colposcopy solely for this episode\nClinical follow-up as appropriate"];
+F10_OC [label="Likely contraceptive cause?", shape="diamond"];
+F10_ADJ [label="Clinician adjusts treatment"];
+F10_STI [label="STI identified?", shape="diamond"];
+F10_TSTI [label="Clinician treats STI"];
+F10_LOCAL [label="Local Healthcare Pathway / gynaecology investigation", fillcolor="#FFF4CC", color="#B7791F"];
+F10_PERSIST [label="Persistent/recurrent PCB OR unexplained IMB?", shape="diamond"];
+F10_REF [label="Specialist gynaecology regardless of reassuring tests", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F10_RES [label="Bleeding resolved in 6-8 weeks?", shape="diamond"];
+F10_SCHED [label="Resume screening when due\nor commence at age 25", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F10_PREG [label="Pregnant with bleeding\nClinician/obstetric assessment; retain cancer-suspicion route", fillcolor="#FFF4CC", color="#B7791F"];
+F10_HYST [label="Post-hysterectomy bleeding\nRemain in symptom pathway regardless of vault result", fillcolor="#FFF4CC", color="#B7791F"];
+F10_START -> F10_COMP;
+F10_COMP -> F10_CSTOP [label="No"];
+F10_COMP -> F10_ASSESS [label="Yes"];
+F10_START -> F10_PREG [style="dashed", constraint="false"];
+F10_START -> F10_HYST [style="dashed", constraint="false"];
+F10_ASSESS -> F10_PM;
+F10_PM -> F10_PMREF [label="Yes"];
+F10_PM -> F10_CERV [label="No"];
+F10_CERV -> F10_SUSP [label="Yes"];
+F10_CERV -> F10_SINGLE [label="No"];
+F10_SUSP -> F10_URG [label="Yes"];
+F10_SUSP -> F10_ABN [label="No"];
+F10_SINGLE -> F10_NOCOL [label="Yes"];
+F10_SINGLE -> F10_OC [label="No"];
+F10_OC -> F10_ADJ [label="Yes"];
+F10_OC -> F10_STI [label="No"];
+F10_STI -> F10_TSTI [label="Yes"];
+F10_STI -> F10_LOCAL [label="No"];
+F10_ADJ -> F10_PERSIST;
+F10_TSTI -> F10_PERSIST;
+F10_LOCAL -> F10_PERSIST;
+F10_PERSIST -> F10_REF [label="Yes"];
+F10_PERSIST -> F10_RES [label="No"];
+F10_RES -> F10_SCHED [label="Yes"];
+F10_RES -> F10_REF [label="No"];
+}
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

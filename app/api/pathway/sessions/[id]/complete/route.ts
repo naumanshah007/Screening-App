@@ -20,10 +20,10 @@ import {
 } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
 import { answersToInputFields, getVisibleAnswerMap } from "@/lib/wizard/steps";
 import type { ClinicalInput } from "@/lib/engine/types";
 import { addMonths } from "date-fns";
+import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
 
 // Priority → target working days mapping
 const PRIORITY_DAYS: Record<string, number> = {
@@ -41,6 +41,7 @@ export async function POST(
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
+  const actorUserId = session.user.id;
 
   const { id } = await params;
 
@@ -119,8 +120,23 @@ export async function POST(
     unsatisfactoryCytologyCount: baseUnsatisfactoryCytologyCount,
   };
 
-  // ── Evaluate decision ─────────────────────────────────────────────────────
-  const decision = evaluateClinicalDecision(clinicalInput);
+  // ── Evaluate decision via the governed authority path ─────────────────────
+  // legacy router → authority resolver → engine → adapter → provenance.
+  // The resolver answers LEGACY today, so `graded.decision` IS the legacy
+  // decision and the canonical evaluation is written as SHADOW alongside it.
+  const graded = await evaluateGradedDecision({
+    input: clinicalInput,
+    subjectReference: patient.id,
+    enteredBy: actorUserId,
+    caseId: undefined,
+    factSource: "REVIEWER_ENTRY",
+    caseCreatedAt: wizardSession.startedAt,
+  });
+
+  const decision = graded.decision;
+  const versionedShadow = graded.evaluationId
+    ? { evaluationId: graded.evaluationId }
+    : null;
 
   // ── Create a fresh ScreeningSession for this wizard completion ───────────
   // Each wizard run produces its own clinical record (counters carry forward from
@@ -308,6 +324,7 @@ export async function POST(
       decisionJson: JSON.stringify(decision),
       determinedFigure: decision.figure as PathwayFigure,
       screeningSessionId: screeningSession.id,
+      ruleEvaluationId: versionedShadow?.evaluationId ?? null,
     },
   });
 
@@ -323,5 +340,6 @@ export async function POST(
       dateOfBirth: patient.dateOfBirth,
       email: patient.email,
     },
+    versionedShadow,
   });
 }

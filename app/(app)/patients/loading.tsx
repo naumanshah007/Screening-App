@@ -1,8 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageShell } from "@/components/system";
 
 export default function PatientsLoading() {
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <PageShell width="wide">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <Skeleton className="h-3 w-20" />
@@ -24,6 +25,6 @@ export default function PatientsLoading() {
           </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }

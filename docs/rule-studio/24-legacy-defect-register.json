@@ -1,0 +1,2270 @@
+{
+  "generatedAt": "2026-08-03",
+  "defectCount": 26,
+  "nonExecutingSyntheticPreview": true,
+  "groupCounts": {
+    "INCOMPLETE_LONGITUDINAL_STATE": 5,
+    "MISSING_DATA_COLLAPSE": 4,
+    "PRESENTATION_CODE_MISMATCH": 3,
+    "WRONG_INTERVAL": 4,
+    "WRONG_REFERRAL_OR_PATHWAY": 10
+  },
+  "rows": [
+    {
+      "defectId": "LEGACY-001",
+      "sourceCase": "F3-BASELINE-HPV-OTHER-NEGATIVE-REPEAT-12M",
+      "sourceArea": "Figure 3",
+      "sourceExpectation": "Repeat HPV testing in 12 months; LBC is recommended.",
+      "legacyOutput": {
+        "actionClass": "UNMAPPED_ACTUAL:F3-HPV-OTHER-NEG-ASCUS-LSIL-12M",
+        "recommendationCode": "F3-HPV-OTHER-NEG-ASCUS-LSIL-12M"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "REPEAT_HPV"
+        ],
+        "outcome": "Repeat HPV test in 12 months, using LBC",
+        "timing": "12 months",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F3-07"
+        ],
+        "controllingRuleId": "F3-07",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-3",
+          "node:rule:F3-07",
+          "node:outcome:F3-07"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 3 p24; R4.02"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "12 months",
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "HPV genotype",
+        "cytology result",
+        "repeat stage"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "PRESENTATION_CODE_MISMATCH",
+      "testId": "LEGACY-DIFF-F3-BASELINE-HPV-OTHER-NEGATIVE-REPEAT-12M",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 24,
+        "pdfIndex": 26,
+        "recommendations": [
+          "R4.04-R4.06"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-002",
+      "sourceCase": "F3-BASELINE-HPV-OTHER-ASC-US-REPEAT-12M",
+      "sourceArea": "Figure 3",
+      "sourceExpectation": "Repeat HPV testing in 12 months; LBC is recommended.",
+      "legacyOutput": {
+        "actionClass": "UNMAPPED_ACTUAL:F3-HPV-OTHER-NEG-ASCUS-LSIL-12M",
+        "recommendationCode": "F3-HPV-OTHER-NEG-ASCUS-LSIL-12M"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "REPEAT_HPV"
+        ],
+        "outcome": "Repeat HPV test in 12 months, using LBC",
+        "timing": "12 months",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F3-07"
+        ],
+        "controllingRuleId": "F3-07",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-3",
+          "node:rule:F3-07",
+          "node:outcome:F3-07"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 3 p24; R4.02"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "12 months",
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "HPV genotype",
+        "cytology result",
+        "repeat stage"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "PRESENTATION_CODE_MISMATCH",
+      "testId": "LEGACY-DIFF-F3-BASELINE-HPV-OTHER-ASC-US-REPEAT-12M",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 24,
+        "pdfIndex": 26,
+        "recommendations": [
+          "R4.04-R4.06"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-003",
+      "sourceCase": "F3-BASELINE-HPV-OTHER-LSIL-REPEAT-12M",
+      "sourceArea": "Figure 3",
+      "sourceExpectation": "Repeat HPV testing in 12 months; LBC is recommended.",
+      "legacyOutput": {
+        "actionClass": "UNMAPPED_ACTUAL:F3-HPV-OTHER-NEG-ASCUS-LSIL-12M",
+        "recommendationCode": "F3-HPV-OTHER-NEG-ASCUS-LSIL-12M"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "REPEAT_HPV"
+        ],
+        "outcome": "Repeat HPV test in 12 months, using LBC",
+        "timing": "12 months",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F3-07"
+        ],
+        "controllingRuleId": "F3-07",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-3",
+          "node:rule:F3-07",
+          "node:outcome:F3-07"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 3 p24; R4.02"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "12 months",
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "HPV genotype",
+        "cytology result",
+        "repeat stage"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "PRESENTATION_CODE_MISMATCH",
+      "testId": "LEGACY-DIFF-F3-BASELINE-HPV-OTHER-LSIL-REPEAT-12M",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 24,
+        "pdfIndex": 26,
+        "recommendations": [
+          "R4.04-R4.06"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-004",
+      "sourceCase": "F3-INVALID-HPV-REPEAT-ASAP",
+      "sourceArea": "Figure 3",
+      "sourceExpectation": "Repeat the HPV test as soon as practicable without a mandatory delay.",
+      "legacyOutput": {
+        "actionClass": "REPEAT_HPV",
+        "recommendationCode": "F3-INAD-3M"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "REPEAT_ASAP",
+          "REPEAT_HPV"
+        ],
+        "outcome": "Repeat HPV test as soon as practicable with no required delay",
+        "timing": "ASAP",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F3-18",
+          "F3-22"
+        ],
+        "controllingRuleId": "F3-18",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-3",
+          "node:rule:F3-18",
+          "node:outcome:F3-18"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "R3.04"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "as soon as practicable",
+      "missingDataImplications": "Remain incomplete or stop; never default to a routine recall.",
+      "affectedInputFields": [
+        "complete validated laboratory result",
+        "sample type",
+        "repeat stage",
+        "age and immune status where outcome depends on them"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "INCOMPLETE_LONGITUDINAL_STATE",
+      "testId": "LEGACY-DIFF-F3-INVALID-HPV-REPEAT-ASAP",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 24,
+        "pdfIndex": 26,
+        "recommendations": [
+          "R3.04-R3.06"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-005",
+      "sourceCase": "F3-CYTOLOGY-PENDING-INCOMPLETE",
+      "sourceArea": "Figure 3",
+      "sourceExpectation": "Keep the result incomplete; do not issue a terminal recommendation.",
+      "legacyOutput": {
+        "actionClass": "SAFETY_STOP",
+        "recommendationCode": "F3-HPV-OTHER-CYTOLOGY-REQUIRED"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "SAFETY_STOP"
+        ],
+        "outcome": "Insufficient governed executable rule coverage. Stop automated routing and obtain clinician review.",
+        "timing": null,
+        "destination": null,
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "branchPath": [
+          "node:root",
+          "node:clinician-review:unresolved-source-condition"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 15; Fig. 10"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 11; Fig. 9"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 11; Fig. 3/9"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 10; Fig. 8; Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "2026 addendum p6"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 2; Fig. 2"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 9; Fig. 7"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 6; Fig. 4"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 6; Fig. 5"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + Feb/Mar 2026 controlling guidance where applicable",
+            "reference": "Software-safety synthesis of Figs 1-10/Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + Feb/Mar 2026 controlling guidance where applicable",
+            "reference": "Software-safety synthesis of Figs 1-10/Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline-wide professional judgement + software safety design"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Software verification invariant"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Software governance requirement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline-wide clinician judgement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline + local governance"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Product safety requirement"
+          },
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 3 p24; R4.04-R4.05"
+          },
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "R3.03/R4.08"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "R4.05"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 3; R4.04; Figure 3"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum R8.03/Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum R8.06"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum p6"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026)",
+            "reference": "2026 addendum CIN2 surveillance figure"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026)",
+            "reference": "2026 addendum CIN2 surveillance figure"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Remain incomplete or stop; never default to a routine recall.",
+      "affectedInputFields": [
+        "complete validated laboratory result",
+        "sample type",
+        "repeat stage",
+        "age and immune status where outcome depends on them"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "MISSING_DATA_COLLAPSE",
+      "testId": "LEGACY-DIFF-F3-CYTOLOGY-PENDING-INCOMPLETE",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 24,
+        "pdfIndex": 26,
+        "recommendations": [
+          "R4.01-R4.15"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-006",
+      "sourceCase": "F3-MISSING-SAMPLE-TYPE-SAFETY-STOP",
+      "sourceArea": "Figure 3",
+      "sourceExpectation": "Request sample type before deciding whether cytology is available or a return visit is required.",
+      "legacyOutput": {
+        "actionClass": "ROUTINE_RECALL",
+        "recommendationCode": "F3-HPV-NOT-DETECTED-5Y"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "SAFETY_STOP"
+        ],
+        "outcome": "Insufficient governed executable rule coverage. Stop automated routing and obtain clinician review.",
+        "timing": null,
+        "destination": null,
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "branchPath": [
+          "node:root",
+          "node:clinician-review:unresolved-source-condition"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 15; Fig. 10"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 11; Fig. 9"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 10; Fig. 8; Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "2026 addendum p6"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 2; Fig. 2"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 9; Fig. 7"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 6; Fig. 4"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 6; Fig. 5"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + Feb/Mar 2026 controlling guidance where applicable",
+            "reference": "Software-safety synthesis of Figs 1-10/Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + Feb/Mar 2026 controlling guidance where applicable",
+            "reference": "Software-safety synthesis of Figs 1-10/Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline-wide professional judgement + software safety design"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Software verification invariant"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Software governance requirement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline-wide clinician judgement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline + local governance"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Product safety requirement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 3; R4.04; Figure 3"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum R8.03/Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum R8.06"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum p6"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026)",
+            "reference": "2026 addendum CIN2 surveillance figure"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026)",
+            "reference": "2026 addendum CIN2 surveillance figure"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Remain incomplete or stop; never default to a routine recall.",
+      "affectedInputFields": [
+        "complete validated laboratory result",
+        "sample type",
+        "repeat stage",
+        "age and immune status where outcome depends on them"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "MISSING_DATA_COLLAPSE",
+      "testId": "LEGACY-DIFF-F3-MISSING-SAMPLE-TYPE-SAFETY-STOP",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 24,
+        "pdfIndex": 26,
+        "recommendations": [
+          "R4.01-R4.15"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-007",
+      "sourceCase": "F3-HPV-NOT-DETECTED-UNKNOWN-IMMUNE-SAFETY-STOP",
+      "sourceArea": "Figure 3",
+      "sourceExpectation": "Resolve immune-deficiency classification before selecting three- versus five-year recall.",
+      "legacyOutput": {
+        "actionClass": "ROUTINE_RECALL",
+        "recommendationCode": "F3-HPV-NOT-DETECTED-5Y"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "SAFETY_STOP"
+        ],
+        "outcome": "Insufficient governed executable rule coverage. Stop automated routing and obtain clinician review.",
+        "timing": null,
+        "destination": null,
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [],
+        "controllingRuleId": null,
+        "branchPath": [
+          "node:root",
+          "node:clinician-review:unresolved-source-condition"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 15; Fig. 10"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 11; Fig. 9"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 10; Fig. 8; Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "2026 addendum p6"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 2; Fig. 2"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 9; Fig. 7"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 6; Fig. 4"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Sec. 6; Fig. 5"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + Feb/Mar 2026 controlling guidance where applicable",
+            "reference": "Software-safety synthesis of Figs 1-10/Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + Feb/Mar 2026 controlling guidance where applicable",
+            "reference": "Software-safety synthesis of Figs 1-10/Table 1"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline-wide professional judgement + software safety design"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Software verification invariant"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Software governance requirement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline-wide clinician judgement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Guideline + local governance"
+          },
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Product safety requirement"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 3; R4.04; Figure 3"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP June 2023 v1.1",
+            "reference": "Section 14"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum R8.03/Fig. 1"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum R8.06"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026) + June 2023 base",
+            "reference": "2026 addendum p6"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026)",
+            "reference": "2026 addendum CIN2 surveillance figure"
+          },
+          {
+            "document": "NCSP guideline addendum v1.0 (2 Feb 2026)",
+            "reference": "2026 addendum CIN2 surveillance figure"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Remain incomplete or stop; never default to a routine recall.",
+      "affectedInputFields": [
+        "complete validated laboratory result",
+        "sample type",
+        "repeat stage",
+        "age and immune status where outcome depends on them"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "MISSING_DATA_COLLAPSE",
+      "testId": "LEGACY-DIFF-F3-HPV-NOT-DETECTED-UNKNOWN-IMMUNE-SAFETY-STOP",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 24,
+        "pdfIndex": 26,
+        "recommendations": [
+          "R4.01-R4.15"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-008",
+      "sourceCase": "F4-REPEAT-HPV-NOT-DETECTED-REGULAR-5Y",
+      "sourceArea": "Figure 4",
+      "sourceExpectation": "Return to five-year regular screening.",
+      "legacyOutput": {
+        "actionClass": "REPEAT_HPV",
+        "recommendationCode": "F4-REPEAT-HPV-NOT-DETECTED-REGULAR"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "ROUTINE_RECALL"
+        ],
+        "outcome": "Return to regular interval screening: 5 years if immune competent or 3 years if verified immune deficient.",
+        "timing": "5 years or 3 years if immune deficient",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F4-02"
+        ],
+        "controllingRuleId": "F4-02",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-4",
+          "node:rule:F4-02",
+          "node:outcome:F4-02"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 4; R6.03"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "5 years",
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "HPV result",
+        "immune-deficiency status"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_INTERVAL",
+      "testId": "LEGACY-DIFF-F4-REPEAT-HPV-NOT-DETECTED-REGULAR-5Y",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 45,
+        "pdfIndex": 47,
+        "recommendations": [
+          "R6.03-R6.07"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-009",
+      "sourceCase": "F4-REPEAT-HPV-NOT-DETECTED-IMMUNE-3Y",
+      "sourceArea": "Figure 4",
+      "sourceExpectation": "Return to three-year screening.",
+      "legacyOutput": {
+        "actionClass": "REPEAT_HPV",
+        "recommendationCode": "F4-REPEAT-HPV-NOT-DETECTED-REGULAR"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "ROUTINE_RECALL"
+        ],
+        "outcome": "Return to regular interval screening: 5 years if immune competent or 3 years if verified immune deficient.",
+        "timing": "5 years or 3 years if immune deficient",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F4-02"
+        ],
+        "controllingRuleId": "F4-02",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-4",
+          "node:rule:F4-02",
+          "node:outcome:F4-02"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 4; R6.03"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "3 years",
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "HPV result",
+        "immune-deficiency status"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_INTERVAL",
+      "testId": "LEGACY-DIFF-F4-REPEAT-HPV-NOT-DETECTED-IMMUNE-3Y",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand; Cervical screening for immune deficient participants",
+        "version": "June 2023 final v1.1; v1.0.1",
+        "printedPage": 45,
+        "pdfIndex": 47,
+        "recommendations": [
+          "R6.03-R6.07"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-010",
+      "sourceCase": "F4-SECOND-REPEAT-NOT-DETECTED-REGULAR-5Y",
+      "sourceArea": "Figure 4",
+      "sourceExpectation": "Return to regular five-year screening.",
+      "legacyOutput": {
+        "actionClass": "REPEAT_HPV",
+        "recommendationCode": "F4-REPEAT-HPV-NOT-DETECTED-REGULAR"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "ROUTINE_RECALL"
+        ],
+        "outcome": "Return to regular screening in 5 years.",
+        "timing": "5 years",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F4-07"
+        ],
+        "controllingRuleId": "F4-07",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-4",
+          "node:rule:F4-07",
+          "branch:immune-competent-five-year-recall",
+          "node:outcome:F4-07"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "R6.03"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "5 years",
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "HPV result",
+        "immune-deficiency status"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_INTERVAL",
+      "testId": "LEGACY-DIFF-F4-SECOND-REPEAT-NOT-DETECTED-REGULAR-5Y",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 45,
+        "pdfIndex": 47,
+        "recommendations": [
+          "R6.03-R6.07"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-011",
+      "sourceCase": "F4-SECOND-REPEAT-NOT-DETECTED-IMMUNE-3Y",
+      "sourceArea": "Figure 4",
+      "sourceExpectation": "Return to three-year screening.",
+      "legacyOutput": {
+        "actionClass": "REPEAT_HPV",
+        "recommendationCode": "F4-REPEAT-HPV-NOT-DETECTED-REGULAR"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "ROUTINE_RECALL"
+        ],
+        "outcome": "Return for screening in 3 years.",
+        "timing": "3 years",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F4-07"
+        ],
+        "controllingRuleId": "F4-07",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-4",
+          "node:rule:F4-07",
+          "branch:immune-deficient-three-year-recall",
+          "node:outcome:F4-07"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "R6.03"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "3 years",
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "HPV result",
+        "immune-deficiency status"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_INTERVAL",
+      "testId": "LEGACY-DIFF-F4-SECOND-REPEAT-NOT-DETECTED-IMMUNE-3Y",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 45,
+        "pdfIndex": 47,
+        "recommendations": [
+          "R6.03-R6.07"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-012",
+      "sourceCase": "F5-MDM-DOWNGRADED-LSIL-PATHWAY",
+      "sourceArea": "Figure 5",
+      "sourceExpectation": "Follow the LSIL pathway.",
+      "legacyOutput": {
+        "actionClass": "MDM_REVIEW",
+        "recommendationCode": "F5-MDM-DOWNGRADED-LSIL"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "REPEAT_HPV",
+          "ROUTE_LSIL"
+        ],
+        "outcome": "Follow amended low-grade pathway, generally repeat HPV in 12 months",
+        "timing": "12 months",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F5-02",
+          "F5-01"
+        ],
+        "controllingRuleId": "F5-02",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-5",
+          "node:rule:F5-02",
+          "node:outcome:F5-02"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 5; R6.10/R6.14"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": null,
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer MDM, lesion, biopsy, treatment, or Test of Cure eligibility.",
+      "affectedInputFields": [
+        "MDM outcome",
+        "treatment decision",
+        "HPV/cytology/visible-lesion follow-up facts"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F5-MDM-DOWNGRADED-LSIL-PATHWAY",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 47,
+        "pdfIndex": 49,
+        "recommendations": [
+          "R6.08-R6.16"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-013",
+      "sourceCase": "F5-MDM-UPGRADED-HSIL-PATHWAY",
+      "sourceArea": "Figure 5",
+      "sourceExpectation": "Follow the HSIL pathway; specialist treatment decision required.",
+      "legacyOutput": {
+        "actionClass": "COLPOSCOPY",
+        "recommendationCode": "F5-MDM-UPGRADED-HSIL-TREAT"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "ROUTE_HSIL",
+          "TREATMENT"
+        ],
+        "outcome": "Follow HSIL pathway; diagnostic excision/treatment recommended",
+        "timing": null,
+        "destination": "Reviewer-confirmed pathway",
+        "reviewerRequirement": "SPECIALIST_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F5-03",
+          "F5-01"
+        ],
+        "controllingRuleId": "F5-03",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-5",
+          "node:rule:F5-03",
+          "node:outcome:F5-03"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 5; R6.11-R6.13"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer MDM, lesion, biopsy, treatment, or Test of Cure eligibility.",
+      "affectedInputFields": [
+        "MDM outcome",
+        "treatment decision",
+        "HPV/cytology/visible-lesion follow-up facts"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F5-MDM-UPGRADED-HSIL-PATHWAY",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 47,
+        "pdfIndex": 49,
+        "recommendations": [
+          "R6.08-R6.16"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-014",
+      "sourceCase": "F5-TREATMENT-DEFERRED-HPV-DETECTED-NORMAL-12M",
+      "sourceArea": "Figure 5",
+      "sourceExpectation": "Repeat colposcopy, HPV, and cytology in 12 months.",
+      "legacyOutput": {
+        "actionClass": "UNMAPPED_ACTUAL:F5-CONFIRMED-ASCH-HPV-DETECTED-NORMAL-NEG-12M",
+        "recommendationCode": "F5-CONFIRMED-ASCH-HPV-DETECTED-NORMAL-NEG-12M"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "COLPOSCOPY",
+          "REPEAT_COLPOSCOPY"
+        ],
+        "outcome": "Repeat colposcopy, HPV and cytology",
+        "timing": "12 months",
+        "destination": "Colposcopy service",
+        "reviewerRequirement": "SPECIALIST_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F5-07",
+          "F5-04",
+          "F5-05"
+        ],
+        "controllingRuleId": "F5-07",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-5",
+          "node:rule:F5-07",
+          "node:outcome:F5-07"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 5"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "12 months",
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer MDM, lesion, biopsy, treatment, or Test of Cure eligibility.",
+      "affectedInputFields": [
+        "MDM outcome",
+        "treatment decision",
+        "HPV/cytology/visible-lesion follow-up facts"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F5-TREATMENT-DEFERRED-HPV-DETECTED-NORMAL-12M",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 47,
+        "pdfIndex": 49,
+        "recommendations": [
+          "R6.08-R6.16"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-015",
+      "sourceCase": "F6-MISSING-TREATMENT-DATE-SAFETY-STOP",
+      "sourceArea": "Figure 6",
+      "sourceExpectation": "Stop and obtain the treatment date before calculating the six- or eighteen-month event.",
+      "legacyOutput": {
+        "actionClass": "REPEAT_COTEST",
+        "recommendationCode": "F6-FIRST-NEGATIVE-REPEAT-12M"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "SAFETY_STOP"
+        ],
+        "outcome": "Do not issue a terminal Test-of-Cure disposition; request treatment records.",
+        "timing": "Immediate",
+        "destination": "Review queue",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [
+          "treatmentConfirmed",
+          "treatmentDate"
+        ],
+        "matchedRuleIds": [
+          "F6-12",
+          "F6-09",
+          "F6-14"
+        ],
+        "controllingRuleId": "F6-12",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-6",
+          "node:rule:F6-12",
+          "node:outcome:F6-12"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP June 2023 v1.1 + 2026 addendum/immune guidance as applicable",
+            "reference": "Fig. 6; Sec. 8"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Do not calculate or complete Test of Cure without its treatment anchor and longitudinal sequence.",
+      "affectedInputFields": [
+        "treatment diagnosis",
+        "treatment date",
+        "co-test stage",
+        "HPV result",
+        "cytology result",
+        "prior qualifying co-test sequence"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "MISSING_DATA_COLLAPSE",
+      "testId": "LEGACY-DIFF-F6-MISSING-TREATMENT-DATE-SAFETY-STOP",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 56,
+        "pdfIndex": 58,
+        "recommendations": [
+          "R8.04-R8.08"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-016",
+      "sourceCase": "F7-NO-LESION-CYTOLOGY-CONFIRMED-TYPE3-EXCISION",
+      "sourceArea": "Figure 7",
+      "sourceExpectation": "Specialist Type 3 excision.",
+      "legacyOutput": {
+        "actionClass": "COLPOSCOPY",
+        "recommendationCode": "F7-MDM-CONFIRMED-NOT-AG2-TYPE3"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "TYPE3_EXCISION"
+        ],
+        "outcome": "Type 3 diagnostic excision, with D&C or appropriate endometrial assessment where indicated by the confirmed glandular category and specialist plan.",
+        "timing": null,
+        "destination": "Reviewer-confirmed pathway",
+        "reviewerRequirement": "SPECIALIST_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F7-04",
+          "F7-18",
+          "F7-03",
+          "F7-02"
+        ],
+        "controllingRuleId": "F7-04",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-7",
+          "node:rule:F7-04",
+          "node:outcome:F7-04"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 7; R9.03/R9.08"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer MDM, biopsy, lesion, or cancer status.",
+      "affectedInputFields": [
+        "visible-lesion status",
+        "MDM result when no lesion",
+        "biopsy result when lesion"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F7-NO-LESION-CYTOLOGY-CONFIRMED-TYPE3-EXCISION",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 59,
+        "pdfIndex": 61,
+        "recommendations": [
+          "R9.04-R9.13"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-017",
+      "sourceCase": "F7-NO-LESION-AG2-CONFIRMED-INVESTIGATE",
+      "sourceArea": "Figure 7",
+      "sourceExpectation": "Investigate further for other gynaecological malignancies.",
+      "legacyOutput": {
+        "actionClass": "GYNAECOLOGY",
+        "recommendationCode": "F7-MDM-AG2-INVESTIGATE-MALIGNANCIES"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "GYNAECOLOGY"
+        ],
+        "outcome": "Investigate other gynaecological malignancies",
+        "timing": null,
+        "destination": "Specialist gynaecology",
+        "reviewerRequirement": "SPECIALIST_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F7-05",
+          "F7-18",
+          "F7-03",
+          "F7-02"
+        ],
+        "controllingRuleId": "F7-05",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-7",
+          "node:rule:F7-05",
+          "node:outcome:F7-05"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 7; R9.03"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": null,
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer MDM, biopsy, lesion, or cancer status.",
+      "affectedInputFields": [
+        "visible-lesion status",
+        "MDM result when no lesion",
+        "biopsy result when lesion"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F7-NO-LESION-AG2-CONFIRMED-INVESTIGATE",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 59,
+        "pdfIndex": 61,
+        "recommendations": [
+          "R9.04-R9.13"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-018",
+      "sourceCase": "F7-NO-LESION-CYTOLOGY-NOT-CONFIRMED-6M",
+      "sourceArea": "Figure 7",
+      "sourceExpectation": "Repeat colposcopy in six months.",
+      "legacyOutput": {
+        "actionClass": "MDM_REVIEW",
+        "recommendationCode": "F7-MDM-CYTOLOGY-NOT-CONFIRMED-6M"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "COLPOSCOPY",
+          "REPEAT_COLPOSCOPY"
+        ],
+        "outcome": "Repeat colposcopy",
+        "timing": "6 months",
+        "destination": "Colposcopy service",
+        "reviewerRequirement": "SPECIALIST_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F7-06",
+          "F7-18",
+          "F7-03",
+          "F7-02"
+        ],
+        "controllingRuleId": "F7-06",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-7",
+          "node:rule:F7-06",
+          "node:outcome:F7-06"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 7; R9.04"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "6 months",
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer MDM, biopsy, lesion, or cancer status.",
+      "affectedInputFields": [
+        "visible-lesion status",
+        "MDM result when no lesion",
+        "biopsy result when lesion"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F7-NO-LESION-CYTOLOGY-NOT-CONFIRMED-6M",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 59,
+        "pdfIndex": 61,
+        "recommendations": [
+          "R9.04-R9.13"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-019",
+      "sourceCase": "F8-LOW-RISK-COMPLETE-HSIL-AIS-TOC",
+      "sourceArea": "Figure 8",
+      "sourceExpectation": "Complete Test of Cure.",
+      "legacyOutput": {
+        "actionClass": "NO_FURTHER_SCREENING",
+        "recommendationCode": "F8-NEG-RETURNED-NO-PATH-NO-FURTHER"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "TEST_OF_CURE"
+        ],
+        "outcome": "Test of Cure",
+        "timing": "Vault co-testing",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F8-03"
+        ],
+        "controllingRuleId": "F8-03",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-8",
+          "node:rule:F8-03",
+          "node:outcome:F8-03"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 8/Table 1"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "hysterectomy type",
+        "prior screening/treatment history",
+        "specimen pathology",
+        "excision completeness"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "INCOMPLETE_LONGITUDINAL_STATE",
+      "testId": "LEGACY-DIFF-F8-LOW-RISK-COMPLETE-HSIL-AIS-TOC",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 67,
+        "pdfIndex": 69,
+        "recommendations": [
+          "R10.01-R10.10"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-020",
+      "sourceCase": "F8-LOW-RISK-INCOMPLETE-HSIL-AIS-COLPOSCOPY",
+      "sourceArea": "Figure 8",
+      "sourceExpectation": "Refer to colposcopy.",
+      "legacyOutput": {
+        "actionClass": "NO_FURTHER_SCREENING",
+        "recommendationCode": "F8-NEG-RETURNED-NO-PATH-NO-FURTHER"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "COLPOSCOPY"
+        ],
+        "outcome": "Colposcopy",
+        "timing": null,
+        "destination": "Colposcopy service",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F8-04"
+        ],
+        "controllingRuleId": "F8-04",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-8",
+          "node:rule:F8-04",
+          "node:outcome:F8-04"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 8/Table 1"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "hysterectomy type",
+        "prior screening/treatment history",
+        "specimen pathology",
+        "excision completeness"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F8-LOW-RISK-INCOMPLETE-HSIL-AIS-COLPOSCOPY",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 67,
+        "pdfIndex": 69,
+        "recommendations": [
+          "R10.01-R10.10"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-021",
+      "sourceCase": "F8-UNTREATED-HSIL-AIS-NO-LOW-PATH-TOC",
+      "sourceArea": "Figure 8",
+      "sourceExpectation": "Complete Test of Cure.",
+      "legacyOutput": {
+        "actionClass": "CONTINUE_TOC",
+        "recommendationCode": "F8-UNTREATED-HSIL-AIS-NO-PATH-LOWGRADE-TOC"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "TEST_OF_CURE"
+        ],
+        "outcome": "Test of Cure",
+        "timing": "Vault co-tests",
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F8-06"
+        ],
+        "controllingRuleId": "F8-06",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-8",
+          "node:rule:F8-06",
+          "node:outcome:F8-06"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 8/Table 1"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "hysterectomy type",
+        "prior screening/treatment history",
+        "specimen pathology",
+        "excision completeness"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "INCOMPLETE_LONGITUDINAL_STATE",
+      "testId": "LEGACY-DIFF-F8-UNTREATED-HSIL-AIS-NO-LOW-PATH-TOC",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 67,
+        "pdfIndex": 69,
+        "recommendations": [
+          "R10.01-R10.10"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-022",
+      "sourceCase": "T1-HSIL-AIS-UNTREATED-INCOMPLETE-NO-OR-LOW-PATHOLOGY",
+      "sourceArea": "Table 1",
+      "sourceExpectation": "Test of Cure.",
+      "legacyOutput": {
+        "actionClass": "CONTINUE_TOC",
+        "recommendationCode": "T1-UNTREATED-HSIL-AIS-NO-PATH-LOWGRADE-TOC"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "TEST_OF_CURE"
+        ],
+        "outcome": "Test of Cure",
+        "timing": "As specified by outcome",
+        "destination": "Reviewer-confirmed pathway",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "T1-13"
+        ],
+        "controllingRuleId": "T1-13",
+        "branchPath": [
+          "node:root",
+          "node:section:table-1",
+          "node:rule:T1-13",
+          "node:outcome:T1-13"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Table 1 p66"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "HIGH",
+      "urgency": null,
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "hysterectomy type",
+        "indication",
+        "prior screening/treatment history",
+        "specimen pathology",
+        "excision completeness when high-grade/AIS"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "INCOMPLETE_LONGITUDINAL_STATE",
+      "testId": "LEGACY-DIFF-T1-HSIL-AIS-UNTREATED-INCOMPLETE-NO-OR-LOW-PATHOLOGY",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 66,
+        "pdfIndex": 68,
+        "recommendations": [
+          "R10.01-R10.10"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-023",
+      "sourceCase": "T1-PREVIOUS-TREATMENT-INCOMPLETE-TOC-NO-OR-LOW-PATHOLOGY",
+      "sourceArea": "Table 1",
+      "sourceExpectation": "Test of Cure.",
+      "legacyOutput": {
+        "actionClass": "CONTINUE_TOC",
+        "recommendationCode": "T1-INCOMPLETE-TOC-NO-PATH-LOWGRADE-TOC"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "TEST_OF_CURE"
+        ],
+        "outcome": "Test of Cure",
+        "timing": "As specified by outcome",
+        "destination": "Reviewer-confirmed pathway",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": false,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "T1-16"
+        ],
+        "controllingRuleId": "T1-16",
+        "branchPath": [
+          "node:root",
+          "node:section:table-1",
+          "node:rule:T1-16",
+          "node:outcome:T1-16"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Table 1 p66"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": null,
+      "missingDataImplications": "Do not select this terminal action; request the missing source fact and require reviewer confirmation.",
+      "affectedInputFields": [
+        "hysterectomy type",
+        "indication",
+        "prior screening/treatment history",
+        "specimen pathology",
+        "excision completeness when high-grade/AIS"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "INCOMPLETE_LONGITUDINAL_STATE",
+      "testId": "LEGACY-DIFF-T1-PREVIOUS-TREATMENT-INCOMPLETE-TOC-NO-OR-LOW-PATHOLOGY",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 66,
+        "pdfIndex": 68,
+        "recommendations": [
+          "R10.01-R10.10"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-024",
+      "sourceCase": "F9-NORMAL-TZ-MDM-DOWNGRADE-NEGATIVE-F3",
+      "sourceArea": "Figure 9",
+      "sourceExpectation": "Follow Figure 3 HPV primary screening.",
+      "legacyOutput": {
+        "actionClass": "MDM_REVIEW",
+        "recommendationCode": "F9-MDM-DOWNGRADED-NEGATIVE-FIG3"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "ROUTE_FIGURE_3"
+        ],
+        "outcome": "Follow primary HPV screening pathway Figure 3",
+        "timing": null,
+        "destination": "Primary/community care or programme follow-up",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F9-03",
+          "F9-01",
+          "F9-02"
+        ],
+        "controllingRuleId": "F9-03",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-9",
+          "node:rule:F9-03",
+          "node:outcome:F9-03"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 9"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": null,
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer colposcopic impression, biopsy, MDM, invasion, or postpartum timing.",
+      "affectedInputFields": [
+        "transformation-zone/visible-lesion assessment",
+        "MDM outcome or biopsy result as applicable",
+        "pregnancy/postpartum timing"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F9-NORMAL-TZ-MDM-DOWNGRADE-NEGATIVE-F3",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 71,
+        "pdfIndex": 73,
+        "recommendations": [
+          "R11.01-R11.11"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-025",
+      "sourceCase": "F9-NORMAL-TZ-MDM-DOWNGRADE-LOW-GRADE",
+      "sourceArea": "Figure 9",
+      "sourceExpectation": "Follow the LSIL pathway.",
+      "legacyOutput": {
+        "actionClass": "MDM_REVIEW",
+        "recommendationCode": "F9-MDM-DOWNGRADED-LSIL"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "ROUTE_LSIL"
+        ],
+        "outcome": "Follow the applicable low-grade pathway after reviewer confirmation; do not automatically force every case into Figure 4.",
+        "timing": null,
+        "destination": "Reviewer-confirmed pathway",
+        "reviewerRequirement": "CLINICIAN_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F9-04",
+          "F9-01",
+          "F9-02"
+        ],
+        "controllingRuleId": "F9-04",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-9",
+          "node:rule:F9-04",
+          "node:outcome:F9-04"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 9"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": null,
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer colposcopic impression, biopsy, MDM, invasion, or postpartum timing.",
+      "affectedInputFields": [
+        "transformation-zone/visible-lesion assessment",
+        "MDM outcome or biopsy result as applicable",
+        "pregnancy/postpartum timing"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F9-NORMAL-TZ-MDM-DOWNGRADE-LOW-GRADE",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 71,
+        "pdfIndex": 73,
+        "recommendations": [
+          "R11.01-R11.11"
+        ]
+      }
+    },
+    {
+      "defectId": "LEGACY-026",
+      "sourceCase": "F9-NORMAL-TZ-MDM-CONFIRMS-HIGH-GRADE-REVIEW",
+      "sourceArea": "Figure 9",
+      "sourceExpectation": "Colposcopy review in six months or 6–12 weeks postpartum.",
+      "legacyOutput": {
+        "actionClass": "MDM_REVIEW",
+        "recommendationCode": "F9-MDM-CONFIRMED-HIGH-GRADE-REVIEW"
+      },
+      "canonicalOutput": {
+        "actionClasses": [
+          "COLPOSCOPY"
+        ],
+        "outcome": "Colposcopy review in 6 months or 6-12 weeks postpartum",
+        "timing": "6 months, or 6-12 weeks postpartum",
+        "destination": "Colposcopy service",
+        "reviewerRequirement": "SPECIALIST_REVIEW",
+        "mandatoryReviewerConfirmation": true,
+        "clinicianOnly": true,
+        "missingInformation": [],
+        "matchedRuleIds": [
+          "F9-05",
+          "F9-01",
+          "F9-02"
+        ],
+        "controllingRuleId": "F9-05",
+        "branchPath": [
+          "node:root",
+          "node:section:figure-9",
+          "node:rule:F9-05",
+          "node:outcome:F9-05"
+        ],
+        "sourceReferences": [
+          {
+            "document": "NCSP Clinical Practice Guidelines June 2023 v1.1",
+            "reference": "Fig. 9; R11.09-R11.10"
+          }
+        ]
+      },
+      "clinicalRiskCategory": "MEDIUM",
+      "urgency": "6 months or 6–12 weeks postpartum",
+      "missingDataImplications": "CLINICIAN_REVIEW_REQUIRED; do not infer colposcopic impression, biopsy, MDM, invasion, or postpartum timing.",
+      "affectedInputFields": [
+        "transformation-zone/visible-lesion assessment",
+        "MDM outcome or biopsy result as applicable",
+        "pregnancy/postpartum timing"
+      ],
+      "affectedProductFlows": [
+        "manual wizard",
+        "batch",
+        "preview API",
+        "review queue",
+        "completed decision",
+        "simulated export"
+      ],
+      "affectedStoredRecords": [
+        "RuleEvaluation",
+        "Case",
+        "BatchRunCase",
+        "CompletedDecision"
+      ],
+      "historicalRegradeMayChangeOutcome": true,
+      "suggestedMigrationAction": "Do not mutate history. Offer explicit reviewer-authorised regrade to the unpublished successor after governance approval.",
+      "group": "WRONG_REFERRAL_OR_PATHWAY",
+      "testId": "LEGACY-DIFF-F9-NORMAL-TZ-MDM-CONFIRMS-HIGH-GRADE-REVIEW",
+      "sourceReferences": {
+        "document": "Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand",
+        "version": "June 2023 final v1.1",
+        "printedPage": 71,
+        "pdfIndex": 73,
+        "recommendations": [
+          "R11.01-R11.11"
+        ]
+      }
+    }
+  ]
+}

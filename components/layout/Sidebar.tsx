@@ -12,6 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 import { getDefaultAppRouteForRole, isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { ThemeToggle } from "./ThemeToggle";
+import { ActiveClinicalAuthorityIndicator } from "@/components/clinical-rules/ClinicalAuthorityBadge";
+import type { ClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -198,6 +200,7 @@ export function Sidebar({
   showBatch = false,
   reviewPending = 0,
   reviewUrgent = 0,
+  clinicalAuthority,
 }: {
   userRole?: string;
   userName?: string;
@@ -206,6 +209,8 @@ export function Sidebar({
   showBatch?: boolean;
   reviewPending?: number;
   reviewUrgent?: number;
+  /** Which engine is clinically authoritative, shown persistently. */
+  clinicalAuthority?: ClinicalAuthorityDisplay;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -317,6 +322,18 @@ export function Sidebar({
           })}
         </div>
       </nav>
+
+      {/* Clinical authority — persistent, so a reviewer can always tell which
+          engine decided what they are looking at. */}
+      {!collapsed && clinicalAuthority && (
+        <div className="border-t border-border px-4 py-3">
+          <ActiveClinicalAuthorityIndicator
+            authorityEngine={clinicalAuthority.authorityEngine}
+            ruleSetVersion={clinicalAuthority.canonicalVersion}
+            canonicalStatus={clinicalAuthority.canonicalStatus}
+          />
+        </div>
+      )}
 
       {/* Bottom user section */}
       <div className="border-t border-border p-2 space-y-1">

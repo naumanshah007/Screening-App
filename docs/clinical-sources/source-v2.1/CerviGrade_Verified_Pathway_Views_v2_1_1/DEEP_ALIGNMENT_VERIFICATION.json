@@ -1,0 +1,411 @@
+{
+  "status": "PASS",
+  "method": "Canonical node IDs, complete edge endpoints/labels, relevant node attributes, and master-delta preservation",
+  "views": [
+    {
+      "viewId": "01_global_router_safety",
+      "title": "Global Router and Safety Gates",
+      "ruleCount": 28,
+      "clusters": [
+        "cluster_router",
+        "cluster_des",
+        "cluster_immune"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_router",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [
+            {
+              "node": "CANCQ",
+              "attribute": "label",
+              "master": "Previous cervical/vaginal/gynaecological cancer?",
+              "view": "Previous cervical/vaginal/gynaecological cancer?\nYES -> 2026 cancer overlay",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "DESQ",
+              "attribute": "label",
+              "master": "Known in-utero DES exposure?",
+              "view": "Known in-utero DES exposure?\nYES -> DES specialist pathway",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "F4Q",
+              "attribute": "label",
+              "master": "Normal colposcopy after low-grade cytology?",
+              "view": "Normal colposcopy after low-grade cytology?\nYES -> Figure 4",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "F5Q",
+              "attribute": "label",
+              "master": "Normal colposcopy after cytology >= ASC-H?",
+              "view": "Normal colposcopy after cytology >= ASC-H?\nYES -> Figure 5",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "GLQ",
+              "attribute": "label",
+              "master": "Current glandular abnormality / AIS / adenocarcinoma?",
+              "view": "Current glandular abnormality / AIS / adenocarcinoma?\nYES -> Figure 7",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "HYSTQ",
+              "attribute": "label",
+              "master": "Hysterectomy / cervix status relevant?",
+              "view": "Hysterectomy / cervix status relevant?\nYES -> Figure 8 / Table 1",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "PREG",
+              "attribute": "label",
+              "master": "Pregnant?",
+              "view": "Pregnant?\nYES: high-grade/HPV16/18 -> Figure 9\nHPV Other + low-grade -> repeat HPV in 12 months",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "PRIMARYQ",
+              "attribute": "label",
+              "master": "Asymptomatic primary HPV screening",
+              "view": "Asymptomatic primary HPV screening\n-> Figure 3",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "SYM",
+              "attribute": "label",
+              "master": "Abnormal bleeding or cancer concern?",
+              "view": "Abnormal bleeding or cancer concern?\nYES -> Figure 10",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "TOCQ",
+              "attribute": "label",
+              "master": "Active or required high-grade squamous Test of Cure?",
+              "view": "Active or required high-grade squamous Test of Cure?\nYES -> Figure 6",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "TRANSQ",
+              "attribute": "label",
+              "master": "First transition from cytology programme?",
+              "view": "First transition from cytology programme?\nResolved -> Figure 1 | unresolved -> Figure 2",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            },
+            {
+              "node": "UNRES",
+              "attribute": "label",
+              "master": "Unresolved prior high-grade or glandular history?",
+              "view": "Unresolved prior high-grade or glandular history?\nYES -> Figure 2",
+              "classification": "VIEW_LABEL_AUGMENTATION"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "cluster": "cluster_des",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        },
+        {
+          "cluster": "cluster_immune",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "02_transition_to_hpv",
+      "title": "Transition to HPV Primary Screening",
+      "ruleCount": 13,
+      "clusters": [
+        "cluster_f1",
+        "cluster_f2"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f1",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        },
+        {
+          "cluster": "cluster_f2",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "03_primary_hpv_screening",
+      "title": "Primary HPV Screening",
+      "ruleCount": 23,
+      "clusters": [
+        "cluster_f3",
+        "cluster_immune"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f3",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        },
+        {
+          "cluster": "cluster_immune",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "04_normal_colposcopy_low_grade",
+      "title": "Normal Colposcopy after Low-Grade Cytology",
+      "ruleCount": 18,
+      "clusters": [
+        "cluster_f4",
+        "cluster_immune"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f4",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        },
+        {
+          "cluster": "cluster_immune",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "05_normal_colposcopy_high_grade",
+      "title": "Normal Colposcopy after High-Grade Cytology",
+      "ruleCount": 18,
+      "clusters": [
+        "cluster_f5",
+        "cluster_cin2"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f5",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        },
+        {
+          "cluster": "cluster_cin2",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "06_hsil_treatment_test_of_cure",
+      "title": "HSIL Treatment and Test of Cure",
+      "ruleCount": 17,
+      "clusters": [
+        "cluster_f6"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f6",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "07_glandular_abnormalities_ais",
+      "title": "Glandular Abnormalities and AIS",
+      "ruleCount": 19,
+      "clusters": [
+        "cluster_f7"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f7",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "08_hysterectomy_vaginal_vault",
+      "title": "Total Hysterectomy and Vaginal Vault Follow-Up",
+      "ruleCount": 40,
+      "clusters": [
+        "cluster_hyst",
+        "cluster_cancer"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_hyst",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        },
+        {
+          "cluster": "cluster_cancer",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "09_pregnancy",
+      "title": "Pregnancy Pathway",
+      "ruleCount": 14,
+      "clusters": [
+        "cluster_f9"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f9",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "viewId": "10_abnormal_bleeding",
+      "title": "Abnormal Vaginal Bleeding",
+      "ruleCount": 15,
+      "clusters": [
+        "cluster_f10"
+      ],
+      "pass": true,
+      "details": [
+        {
+          "cluster": "cluster_f10",
+          "nodeIdsExact": true,
+          "edgesAndLabelsExact": true,
+          "unexpectedAttributeDifferences": [],
+          "allowedViewLabelAugmentations": [],
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "masterAlignment": {
+    "originalStableNodeIdsPreserved": true,
+    "missingOriginalNodeIds": [],
+    "addedVisualExpansionNodeIds": [
+      "F4_TZ3_ECC",
+      "F4_TZ3_NOEXC",
+      "F4_TZ3_SEL",
+      "GS_INV"
+    ],
+    "originalRoutingEdgesPreserved": true,
+    "missingOriginalRoutingEdges": [],
+    "addedVisualExpansionEdges": [
+      [
+        "F4_TZ3",
+        "F4_TZ3_ECC",
+        ""
+      ],
+      [
+        "F4_TZ3",
+        "F4_TZ3_NOEXC",
+        ""
+      ],
+      [
+        "F4_TZ3",
+        "F4_TZ3_SEL",
+        ""
+      ],
+      [
+        "PWC",
+        "GS_INV",
+        ""
+      ]
+    ],
+    "changedNodeLabels": [
+      {
+        "nodeId": "F3_R1NEG",
+        "original": "HPV not detected\nReturn regular interval",
+        "verified": "HPV not detected\nReturn 5 years if immune competent / 3 years if verified immune deficient"
+      },
+      {
+        "nodeId": "F3_R2NEG",
+        "original": "HPV not detected\nReturn regular interval",
+        "verified": "HPV not detected\nReturn 5 years if immune competent / 3 years if verified immune deficient"
+      },
+      {
+        "nodeId": "F4_TZ3",
+        "original": "Type 3 TZ sidecar\n2026: MDM cytology review not required before observation\nDo not routinely excise; selected diagnostic excision/ECC remain clinician-led",
+        "verified": "Type 3 TZ + HPV positive + low-grade cytology + normal colposcopy\n2026: MDM cytology review not required before observation"
+      },
+      {
+        "nodeId": "F5_REG",
+        "original": "Subsequent double-negative sequence complete\nRegular interval",
+        "verified": "Subsequent double-negative sequence complete\nReturn 5 years if immune competent / 3 years if verified immune deficient"
+      },
+      {
+        "nodeId": "F6_DONE",
+        "original": "Two consecutive double-negative co-tests\n12 months apart -> ToC complete\nRegular interval",
+        "verified": "Two consecutive double-negative co-tests\n12 months apart -> ToC complete\nReturn 5 years if immune competent / 3 years if verified immune deficient"
+      },
+      {
+        "nodeId": "F9_LOW",
+        "original": "Pregnant + HPV Other + negative/ASC-US/LSIL\nRepeat HPV in 12 months",
+        "verified": "LOW-RISK PREGNANCY BRANCH\nHPV Other + negative/ASC-US/LSIL\nRepeat HPV in 12 months; do not enter high-grade Figure 9 colposcopy pathway"
+      }
+    ],
+    "pass": true
+  }
+}
