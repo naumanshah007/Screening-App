@@ -184,6 +184,10 @@ export function BatchResultDetail({
   const c = result.case;
   const inp = result.input;
   const shadow = result.canonicalShadow;
+  const canonicalIsOperative =
+    result.clinicalAuthority?.authorityEngine === "CANONICAL" &&
+    Boolean(shadow && ["LIVE_DEMO", "LIVE_PRODUCTION"].includes(shadow.evaluationMode));
+  const legacyDecision = canonicalIsOperative ? result.legacyDecision ?? decision : decision;
 
   const patientId =
     c.nhi ?? c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`;
@@ -265,7 +269,9 @@ export function BatchResultDetail({
     },
     {
       id: "legacy",
-      title: "Evaluated by the authoritative legacy engine",
+      title: canonicalIsOperative
+        ? "Pathway selected by the Legacy router"
+        : "Evaluated by the authoritative Legacy engine",
       description: (
         <span className="font-mono">{c.source.engineVersion}</span>
       ),
@@ -429,16 +435,16 @@ export function BatchResultDetail({
         />
       </DrawerSection>
 
-      {/* ── Clinical authority: legacy is operative, canonical is shadow ── */}
+      {/* The operative authority is derived from the persisted evaluation mode. */}
       <DrawerSection title="Clinical decision">
         <AuthorityComparison
           legacy={{
-            recommendation: decision?.recommendation ?? "No recommendation recorded",
-            recommendationCode: decision?.recommendationCode,
-            figure: decision?.figure,
-            riskLevel: decision?.riskLevel,
-            referralPriority: decision?.referralPriority ?? null,
-            recallIntervalMonths: decision?.recallIntervalMonths ?? null,
+            recommendation: legacyDecision?.recommendation ?? "No recommendation recorded",
+            recommendationCode: legacyDecision?.recommendationCode,
+            figure: legacyDecision?.figure,
+            riskLevel: legacyDecision?.riskLevel,
+            referralPriority: legacyDecision?.referralPriority ?? null,
+            recallIntervalMonths: legacyDecision?.recallIntervalMonths ?? null,
           }}
           shadow={
             shadow
@@ -452,11 +458,13 @@ export function BatchResultDetail({
                   reviewerRequirement: shadow.reviewerRequirement,
                   clinicianOnly: shadow.clinicianOnly,
                   repeatInterval: shadow.repeatInterval ?? null,
+                  pathway: decision?.figure ?? null,
+                  priority: decision?.referralPriority ?? null,
+                  sourceReferences: shadow.sourceReferences,
                   evaluatedAt: shadow.evaluatedAt ?? null,
                 }
               : null
           }
-          canonicalStatus="DRAFT"
         />
       </DrawerSection>
 

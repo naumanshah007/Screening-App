@@ -71,7 +71,7 @@ test("the app layout resolves authority for display", () => {
 test("the decision detail renders the authority comparison", () => {
   const detail = read("components/batch/BatchResultDetail.tsx");
   assert.ok(detail.includes("AuthorityComparison"));
-  assert.ok(detail.includes("canonicalStatus=\"DRAFT\""));
+  assert.ok(detail.includes("canonicalIsOperative"));
 });
 
 // ── 3. The UI cannot imply canonical is active ─────────────────────────────
@@ -114,9 +114,10 @@ test("legacy and canonical recommendations render in separate blocks", () => {
   assert.ok(comparison.includes("Shadow difference detected"));
 });
 
-test("an unexpected live evaluation mode is surfaced, not hidden", () => {
+test("a legitimate live evaluation mode becomes the canonical primary card", () => {
   const comparison = read("components/clinical-rules/AuthorityComparison.tsx");
-  assert.ok(comparison.includes("Unexpected live mode"));
+  assert.ok(comparison.includes("Provisional clinical recommendation"));
+  assert.ok(comparison.includes("Technical provenance"));
 });
 
 // ── 4. Timing UX (Phase 7) ─────────────────────────────────────────────────
@@ -137,17 +138,16 @@ test("a non-schedulable timing is never rendered as a blank", () => {
 
 // ── 5. Guidelines labelling (Phase 4) ──────────────────────────────────────
 
-test("the Guidelines page names the rules system behind each tab", () => {
+test("the Guidelines page separates governed guidance from the technical router", () => {
   const guidelines = read("app/(app)/guidelines/page.tsx");
-  assert.ok(guidelines.includes("Operational referral grading · Case Rule Release"));
   assert.ok(guidelines.includes("Legacy pathway router reference"));
 });
 
-test("the Guidelines page renders CG-NCSP-3.1.0 as governed but non-authoritative", () => {
+test("the Guidelines page renders CG-NCSP-3.1.0 from live authority state", () => {
   const guidelines = read("app/(app)/guidelines/page.tsx");
   assert.ok(guidelines.includes("CG-NCSP-3.1.0"));
-  assert.ok(guidelines.includes("DRAFT · SHADOW / SIMULATION"));
-  assert.ok(guidelines.includes("Clinical authority remains"));
+  assert.ok(guidelines.includes("/api/clinical-rules/status"));
+  assert.ok(guidelines.includes("canonicalIsAuthoritative"));
   assert.ok(guidelines.includes("ClinicalRuleGraphStudio"));
   assert.ok(guidelines.includes("GOVERNED_CHECKSUM"));
 });

@@ -44,6 +44,9 @@ export type AuthorityComparisonProps = {
     clinicianOnly?: boolean;
     /** Raw governed timing text, e.g. "12 months" or "6-8 weeks". */
     repeatInterval?: string | null;
+    pathway?: string | null;
+    priority?: string | null;
+    sourceReferences?: Array<{ document: string; reference: string }>;
   } | null;
   /** The canonical version's lifecycle status, e.g. "DRAFT". */
   canonicalStatus?: string | null;
@@ -123,11 +126,31 @@ export function AuthorityComparison({
 
   return (
     <div className={cn("space-y-2.5", className)}>
-      {/* ── Authoritative ─────────────────────────────────────────────────────
-           Deliberately the heaviest block on the screen: solid surface, brand
-           rail, full-size type, raised elevation. The shadow block below is
-           built to read as strictly secondary at a glance, before any label is
-           read — see the styling note there. */}
+      {shadowIsOperative && shadow ? (
+        <section className="overflow-hidden rounded-lg border border-border border-l-4 border-l-brand-600 bg-card shadow-card">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-brand-50/60 px-4 py-2 dark:bg-brand-950/30">
+            <StatusBadge tone="brand" size="sm" dot>Canonical authority</StatusBadge>
+            <StatusBadge tone="canonical" size="sm" mono>{shadow.ruleVersionDisplay}</StatusBadge>
+            <StatusBadge tone="neutral" size="sm" mono>{shadow.evaluationMode}</StatusBadge>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-muted-foreground">Provisional clinical recommendation</p>
+            <p className="mt-1 text-base font-semibold leading-snug text-foreground">{shadow.provisionalRecommendation}</p>
+            <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+              <div><dt className="text-muted-foreground">Pathway</dt><dd className="font-mono font-medium text-foreground">{shadow.pathway ?? legacy.figure ?? "—"}</dd></div>
+              <div><dt className="text-muted-foreground">Rule</dt><dd className="font-mono font-medium text-foreground">{shadow.matchedRuleIds.join(", ") || "governance stop"}</dd></div>
+              <div><dt className="text-muted-foreground">Priority</dt><dd className="font-medium text-foreground">{shadow.priority ?? "Clinician determination"}</dd></div>
+              <div><dt className="text-muted-foreground">Ruleset / version</dt><dd className="font-mono font-medium text-foreground">{shadow.ruleVersionDisplay}</dd></div>
+            </dl>
+            <div className="mt-3"><TimingLine repeatInterval={shadow.repeatInterval} /></div>
+            <p className="mt-3 text-xs font-semibold text-amber-700 dark:text-amber-300">Reviewer confirmation required.</p>
+            <div className="mt-2 text-[0.6875rem] text-muted-foreground">
+              <span className="font-mono">checksum {shadow.rulesetChecksum}</span>
+              {shadow.sourceReferences?.length ? <p className="mt-1">Source: {shadow.sourceReferences.map((source) => `${source.document} · ${source.reference}`).join("; ")}</p> : null}
+            </div>
+          </div>
+        </section>
+      ) : (
       <section className="overflow-hidden rounded-lg border border-border border-l-4 border-l-brand-600 bg-card shadow-card">
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-brand-50/60 px-4 py-2 dark:bg-brand-950/30">
           <StatusBadge tone="brand" size="sm" dot>
@@ -179,6 +202,7 @@ export function AuthorityComparison({
           </dl>
         </div>
       </section>
+      )}
 
       {/* ── Canonical shadow ──────────────────────────────────────────────────
            Held visually below the authoritative block on every axis that
@@ -186,7 +210,7 @@ export function AuthorityComparison({
            colour rail, smaller type. This is a clinical-safety requirement, not
            a stylistic choice — the shadow must never be mistaken for the
            operative decision, so do not raise it to parity when restyling. */}
-      {shadow ? (
+      {shadow && !shadowIsOperative ? (
         <section className="rounded-lg border border-dashed border-border bg-muted/40 px-4 py-3">
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <StatusBadge tone="canonical" size="sm">
@@ -203,12 +227,6 @@ export function AuthorityComparison({
             <StatusBadge tone="neutral" size="sm" mono>
               {shadow.evaluationMode}
             </StatusBadge>
-            {/* Defensive: a live mode here would be a defect, and must be visible. */}
-            {shadowIsOperative && (
-              <StatusBadge tone="danger" size="sm">
-                Unexpected live mode
-              </StatusBadge>
-            )}
           </div>
 
           <p className="text-sm leading-snug text-muted-foreground">
@@ -249,6 +267,19 @@ export function AuthorityComparison({
               the authoritative decision; reviewer confirmation is still required.
             </p>
           )}
+        </section>
+      ) : shadowIsOperative ? (
+        <section className="rounded-lg border border-dashed border-border bg-muted/40 px-4 py-3">
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <StatusBadge tone="neutral" size="sm">Technical provenance</StatusBadge>
+            <StatusBadge tone="neutral" size="sm">Legacy pathway router</StatusBadge>
+          </div>
+          <p className="text-sm text-muted-foreground">{legacy.recommendation}</p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {legacy.figure && <span>Selected pathway <span className="font-mono text-foreground">{legacy.figure}</span></span>}
+            {legacy.recommendationCode && <span>Legacy code <span className="font-mono text-foreground">{legacy.recommendationCode}</span></span>}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Legacy remains the pathway-selection component; it is not a competing within-pathway clinical authority.</p>
         </section>
       ) : (
         <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">

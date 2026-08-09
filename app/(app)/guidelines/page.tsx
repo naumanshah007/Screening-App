@@ -1,14 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, GitBranch, Search, ShieldCheck } from "lucide-react";
+import { BookOpen, GitBranch, ShieldCheck } from "lucide-react";
 import { PageIntro } from "@/components/layout/PageIntro";
-import { FlowDiagram } from "@/components/clinical/FlowDiagram";
-import { ALL_FIGURES } from "@/lib/decision-trees";
 import { Alert } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ClinicalRuleGraphStudio } from "@/components/clinical-rules/ClinicalRuleGraphStudio";
 import type { ClinicalRuleSnapshot } from "@/lib/clinical-rules/schema";
@@ -92,22 +89,12 @@ const TABS = [
   {
     id: "canonical" as const,
     label: "Governed pathways",
-    system: "CG-NCSP-3.1.0 · canonical within-pathway layer · DRAFT / SHADOW",
+    system: "CG-NCSP-3.1.0 · governed within-pathway recommendation layer",
   },
   {
     id: "legacy" as const,
-    label: "Legacy router",
+    label: "Technical Reference",
     system: "Legacy pathway router reference · age gates / figure selection",
-  },
-  {
-    id: "colposcopy" as const,
-    label: "Colposcopy triage",
-    system: "Operational referral grading · Case Rule Release",
-  },
-  {
-    id: "gynaecology" as const,
-    label: "Gynaecology grading",
-    system: "Operational referral grading · Case Rule Release",
   },
 ];
 
@@ -122,28 +109,30 @@ export default function GuidelinesPage() {
 function GuidelinesPageInner() {
   const searchParams = useSearchParams();
   const figureParam = searchParams.get("figure");
-  const initialFigure = ALL_FIGURES.find((f) => f.id === figureParam)?.id ?? ALL_FIGURES[0].id;
   // Initialised from the ?figure= URL param (set when arriving from a figure link
   // elsewhere in the app); the page mounts fresh on cross-route navigation so the
   // initial state reliably reflects the requested figure.
   const [tab, setTab] = useState<GuidelineTab>(figureParam ? "legacy" : "canonical");
-  const [selectedId, setSelectedId] = useState(initialFigure);
-  const [figureSearch, setFigureSearch] = useState("");
-  const selected = ALL_FIGURES.find((f) => f.id === selectedId) ?? ALL_FIGURES[0];
-  const filteredFigures = figureSearch
-    ? ALL_FIGURES.filter((f) => `${f.title} ${f.subtitle}`.toLowerCase().includes(figureSearch.toLowerCase()))
-    : ALL_FIGURES;
-
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(520);
-
+  const [authorityState, setAuthorityState] = useState<{
+    authorityEngine: "LEGACY" | "CANONICAL";
+    canonicalVersion: string | null;
+    canonicalStatus: string | null;
+    canonicalMode: string;
+  } | null>(null);
   useEffect(() => {
-    const el = panelRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setHeight(Math.max(300, entry.contentRect.height - 1)));
-    ro.observe(el);
-    return () => ro.disconnect();
+    let cancelled = false;
+    void fetch("/api/clinical-rules/status", { headers: { Accept: "application/json" } })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (!cancelled && payload?.authority) setAuthorityState(payload.authority);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
   }, []);
+
+  const canonicalIsAuthoritative = authorityState?.authorityEngine === "CANONICAL";
+  const lifecycle = authorityState?.canonicalStatus ?? "Loading lifecycle…";
+  const evaluationMode = authorityState?.canonicalMode ?? "Loading mode…";
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -151,8 +140,8 @@ function GuidelinesPageInner() {
       <div className="flex-shrink-0 border-b border-border bg-card px-5 pt-5 lg:px-7">
         <PageIntro
           eyebrow="Reference"
-          title="Clinical Guidance Library"
-          description="Governed canonical pathway views, the architecturally retained Legacy router reference, and operational referral-grading guidance—kept visibly separate so lifecycle and authority are never overstated."
+          title="Clinical Guidelines"
+          description="CG-NCSP-3.1.0 is CerviGrade’s governed clinical recommendation ruleset. Every pathway view below is rendered from the checksum-controlled canonical snapshot."
           trailing={
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
               <BookOpen className="h-3.5 w-3.5 text-accent-color" aria-hidden />
@@ -187,10 +176,9 @@ function GuidelinesPageInner() {
             {TABS.find((t) => t.id === tab)?.system}
           </span>
           {" · "}
-          Clinical authority remains{" "}
-          <span className="font-medium text-foreground">Legacy</span>. Governed ruleset{" "}
-          <span className="font-mono text-foreground">CG-NCSP-3.1.0</span> is{" "}
-          <span className="font-medium text-foreground">DRAFT · SHADOW / SIMULATION · not for direct clinical action</span>.{" "}
+          Clinical authority: <span className="font-medium text-foreground">{canonicalIsAuthoritative ? "Canonical" : "Legacy"}</span>.{" "}
+          <span className="font-mono text-foreground">{authorityState?.canonicalVersion ?? "CG-NCSP-3.1.0"}</span>: {" "}
+          <span className="font-medium text-foreground">{lifecycle} · {evaluationMode}</span>.{" "}
           <Link href="/rules/clinical" className="underline hover:text-foreground">
             Open governance record
           </Link>
@@ -205,7 +193,7 @@ function GuidelinesPageInner() {
           <div className="mx-auto max-w-[112rem] space-y-5">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                ["Lifecycle", "DRAFT · SHADOW", "Not clinically authoritative"],
+                ["Lifecycle", `${lifecycle} · ${evaluationMode}`, canonicalIsAuthoritative ? "Authoritative for new, unpinned cases" : "Shadow / simulation only"],
                 ["Governed rules", GOVERNED_SNAPSHOT.rules.length.toString(), "Shared across every view"],
                 ["Graph identity", `${GOVERNED_SNAPSHOT.nodes.length} nodes · ${GOVERNED_SNAPSHOT.edges.length} edges`, "Checksum protected"],
                 ["Synchronized views", GOVERNED_SNAPSHOT.views.length.toString(), "Generated from governed data"],
@@ -221,7 +209,7 @@ function GuidelinesPageInner() {
             <Alert variant="info">
               <span className="inline-flex items-start gap-2">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                <span><strong>Decision-support boundary:</strong> provisional recommendation; reviewer confirmation required; not for direct clinical action. The Legacy router continues to select the pathway. Canonical rules shown here are the governed within-pathway layer only.</span>
+                <span><strong>Decision-support boundary:</strong> provisional recommendation; reviewer confirmation required. The Legacy router continues to select the pathway. {canonicalIsAuthoritative ? "Governed canonical rules determine the within-pathway recommendation for eligible new cases." : "Canonical results remain shadow/simulation and are not clinically authoritative."}</span>
               </span>
             </Alert>
 
@@ -239,6 +227,14 @@ function GuidelinesPageInner() {
               <div className="flex items-center gap-2 font-semibold text-foreground"><GitBranch className="h-4 w-4" aria-hidden />Snapshot provenance</div>
               <p className="mt-2 break-all font-mono">CG-NCSP-3.1.0 · SHA-256 {GOVERNED_CHECKSUM}</p>
               <p className="mt-2">Source package v{governedManifest.sourcePackageVersion} · source JSON SHA-256 {governedManifest.sourceJsonSha256}</p>
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Technical Reference</p>
+                <p className="mt-1 text-sm text-foreground">The Legacy router remains responsible for pathway selection. Governed canonical rules determine the within-pathway recommendation when canonical clinical authority is enabled.</p>
+              </div>
+              <button type="button" onClick={() => setTab("legacy")} className="shrink-0 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted">View routing details</button>
             </div>
           </div>
         </div>
@@ -329,55 +325,32 @@ function GuidelinesPageInner() {
         </div>
       )}
 
-      {/* Pathways */}
+      {/* Technical routing reference only. Superseded Legacy recommendation
+          trees are intentionally not rendered as current clinical guidance. */}
       {tab === "legacy" && (
-        <div role="tabpanel" id="panel-legacy" className="flex flex-1 min-h-0 animate-fade-in">
-          {/* Sidebar */}
-          <aside className="w-64 border-r border-border bg-card flex flex-col flex-shrink-0">
-            <div className="p-3 border-b border-border">
-              <Input
-                value={figureSearch}
-                onChange={(e) => setFigureSearch(e.target.value)}
-                placeholder="Search pathways…"
-                icon={<Search className="h-3.5 w-3.5" />}
-              />
+        <div role="tabpanel" id="panel-legacy" className="flex-1 overflow-y-auto px-4 py-6 lg:px-7">
+          <div className="mx-auto max-w-5xl space-y-5">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Technical Reference</p>
+              <h2 className="mt-2 text-xl font-semibold text-foreground">Legacy Pathway Router</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">The Legacy router remains responsible for pathway selection. Governed canonical rules determine the within-pathway recommendation when canonical clinical authority is enabled.</p>
             </div>
-            <nav className="flex-1 overflow-y-auto p-2 space-y-0.5" aria-label="Clinical pathways">
-              {filteredFigures.map((fig) => (
-                <button
-                  key={fig.id}
-                  onClick={() => setSelectedId(fig.id)}
-                  className={cn(
-                    "w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    selectedId === fig.id
-                      ? "bg-accent-color text-white"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <p className="font-semibold leading-snug">{fig.title}</p>
-                  <p className={cn("truncate mt-0.5 text-[11px]", selectedId === fig.id ? "text-white/70" : "text-muted-foreground/60")}>
-                    {fig.subtitle}
-                  </p>
-                </button>
+            <div className="grid gap-3 md:grid-cols-2">
+              {[
+                ["1", "Global safety and eligibility", "Applies age eligibility, missing-data safety gates and cancer-suspicion precedence."],
+                ["2", "Context precedence", "Selects special contexts such as abnormal bleeding, pregnancy and post-hysterectomy before ordinary screening."],
+                ["3", "Clinical pathway selection", "Chooses the applicable governed pathway identifier (Figures 2–10 or Table 1)."],
+                ["4", "Canonical hand-off", "Passes the selected pathway as DERIVED_ROUTER provenance to CG-NCSP-3.1.0."],
+              ].map(([step, title, detail]) => (
+                <div key={step} className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-800 text-xs font-bold text-white">{step}</span>
+                    <div><h3 className="font-semibold text-foreground">{title}</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p></div>
+                  </div>
+                </div>
               ))}
-              {filteredFigures.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-6">No pathways match</p>
-              )}
-            </nav>
-          </aside>
-
-          {/* Diagram panel */}
-          <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-            <div className="border-b border-border bg-card px-6 py-4 flex-shrink-0">
-              <h2 className="text-base font-semibold text-foreground">{selected.title}</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">{selected.subtitle}</p>
-              <p className="mt-2 text-xs font-medium text-muted-foreground">
-                Simplified visual reference under validation. Use rule trace and validation log for clinical parity review.
-              </p>
             </div>
-            <div ref={panelRef} className="flex-1 min-h-0 bg-bg p-4">
-              <FlowDiagram key={selected.id} figure={selected} height={height} className="h-full shadow-sm" />
-            </div>
+            <Alert variant="warning"><strong>Scope boundary:</strong> this reference documents pathway selection only. It does not present Legacy recommendation trees as current clinical guidance.</Alert>
           </div>
         </div>
       )}
