@@ -1,0 +1,313 @@
+{
+  "status": "PASS",
+  "visualVersion": "2.1.1",
+  "clinicalRuleSetVersion": "2.1",
+  "sourceRuleCount": 203,
+  "mappedUniqueRuleCount": 203,
+  "unmappedRuleIds": [],
+  "unknownMappedRuleIds": [],
+  "table1RuleCount": 21,
+  "viewCount": 10,
+  "structuralAlignment": [
+    {
+      "viewId": "01_global_router_safety",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_router",
+          "masterNodes": 19,
+          "viewNodes": 19,
+          "masterEdges": 18,
+          "viewEdges": 18,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        },
+        {
+          "cluster": "cluster_des",
+          "masterNodes": 8,
+          "viewNodes": 8,
+          "masterEdges": 7,
+          "viewEdges": 7,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        },
+        {
+          "cluster": "cluster_immune",
+          "masterNodes": 7,
+          "viewNodes": 7,
+          "masterEdges": 6,
+          "viewEdges": 6,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "02_transition_to_hpv",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f1",
+          "masterNodes": 8,
+          "viewNodes": 8,
+          "masterEdges": 8,
+          "viewEdges": 8,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        },
+        {
+          "cluster": "cluster_f2",
+          "masterNodes": 15,
+          "viewNodes": 15,
+          "masterEdges": 15,
+          "viewEdges": 15,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "03_primary_hpv_screening",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f3",
+          "masterNodes": 42,
+          "viewNodes": 42,
+          "masterEdges": 43,
+          "viewEdges": 43,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        },
+        {
+          "cluster": "cluster_immune",
+          "masterNodes": 7,
+          "viewNodes": 7,
+          "masterEdges": 6,
+          "viewEdges": 6,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "04_normal_colposcopy_low_grade",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f4",
+          "masterNodes": 28,
+          "viewNodes": 28,
+          "masterEdges": 29,
+          "viewEdges": 29,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        },
+        {
+          "cluster": "cluster_immune",
+          "masterNodes": 7,
+          "viewNodes": 7,
+          "masterEdges": 6,
+          "viewEdges": 6,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "05_normal_colposcopy_high_grade",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f5",
+          "masterNodes": 27,
+          "viewNodes": 27,
+          "masterEdges": 32,
+          "viewEdges": 32,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        },
+        {
+          "cluster": "cluster_cin2",
+          "masterNodes": 11,
+          "viewNodes": 11,
+          "masterEdges": 11,
+          "viewEdges": 11,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "06_hsil_treatment_test_of_cure",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f6",
+          "masterNodes": 22,
+          "viewNodes": 22,
+          "masterEdges": 26,
+          "viewEdges": 26,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "07_glandular_abnormalities_ais",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f7",
+          "masterNodes": 34,
+          "viewNodes": 34,
+          "masterEdges": 35,
+          "viewEdges": 35,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "08_hysterectomy_vaginal_vault",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_hyst",
+          "masterNodes": 35,
+          "viewNodes": 35,
+          "masterEdges": 48,
+          "viewEdges": 48,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        },
+        {
+          "cluster": "cluster_cancer",
+          "masterNodes": 12,
+          "viewNodes": 12,
+          "masterEdges": 10,
+          "viewEdges": 10,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "09_pregnancy",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f9",
+          "masterNodes": 16,
+          "viewNodes": 16,
+          "masterEdges": 15,
+          "viewEdges": 15,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    },
+    {
+      "viewId": "10_abnormal_bleeding",
+      "internalClusterAlignment": true,
+      "details": [
+        {
+          "cluster": "cluster_f10",
+          "masterNodes": 23,
+          "viewNodes": 23,
+          "masterEdges": 25,
+          "viewEdges": 25,
+          "exactInternalMatch": true,
+          "missingNodes": [],
+          "extraNodes": [],
+          "missingEdges": [],
+          "extraEdges": []
+        }
+      ]
+    }
+  ],
+  "criticalAssertions": {
+    "exit_detected_to_colposcopy": true,
+    "exit_negative_to_discharge": true,
+    "f5_isolated_hpv_repeat": true,
+    "f6_two_negative_completion": true,
+    "f7_ais_success_endpoint": true,
+    "vault_positive_to_colposcopy": true,
+    "pregnancy_low_risk_connected_in_view": true,
+    "figure10_abnormal_cervix_split": true,
+    "figure4_type3_three_sidecars": true,
+    "global_router_destinations_visible": true
+  },
+  "undefinedNodes": {
+    "CerviGrade_NCSP_Master_Decision_Tree_v2_1_1_verified.dot": [],
+    "views/01_global_router_safety/01_global_router_safety.dot": [],
+    "views/02_transition_to_hpv/02_transition_to_hpv.dot": [],
+    "views/03_primary_hpv_screening/03_primary_hpv_screening.dot": [],
+    "views/04_normal_colposcopy_low_grade/04_normal_colposcopy_low_grade.dot": [],
+    "views/05_normal_colposcopy_high_grade/05_normal_colposcopy_high_grade.dot": [],
+    "views/06_hsil_treatment_test_of_cure/06_hsil_treatment_test_of_cure.dot": [],
+    "views/07_glandular_abnormalities_ais/07_glandular_abnormalities_ais.dot": [],
+    "views/08_hysterectomy_vaginal_vault/08_hysterectomy_vaginal_vault.dot": [],
+    "views/08_hysterectomy_vaginal_vault/08b_table1_21_cell_matrix.dot": [],
+    "views/09_pregnancy/09_pregnancy.dot": [],
+    "views/10_abnormal_bleeding/10_abnormal_bleeding.dot": []
+  },
+  "visualPatchesApplied": [
+    "Global router now shows every Yes/subflow destination and the GS-02 to GS-06 software invariants.",
+    "Transition view now shows explicit Figure 2, Figure 3 and AIS-follow-up cross-links.",
+    "Figure 3 first- and second-repeat negative endpoints now state 5-year versus verified immune-deficient 3-year intervals.",
+    "Figure 4 Type 3 TZ rules F4-10, F4-11 and F4-12 are displayed as distinct sidecars.",
+    "Figure 5 and Figure 6 completion endpoints now state the applicable 5-year/3-year interval.",
+    "Figure 5 histology outputs now expose Figure 6 and AIS subflow links; CIN2 surveillance is visibly separated.",
+    "Figure 8 now exposes the Figure 10 cross-link; a supplemental 21-cell Table 1 matrix is provided.",
+    "Figure 9 now begins with an explicit high-risk versus low-risk pregnancy split and connects downgrade-to-negative to Figure 3."
+  ]
+}

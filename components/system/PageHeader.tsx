@@ -49,8 +49,10 @@ export function PageHeader({
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
 
+      {/* Hugs its content rather than spanning the page: a full-width band
+          holding three short values reads as an unfinished row. */}
       {meta && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-4 py-2.5 shadow-card">
+        <div className="inline-flex max-w-full flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-card px-4 py-2 shadow-card">
           {meta}
         </div>
       )}
@@ -71,17 +73,17 @@ export function HeaderMeta({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 border-l border-border pl-5 first:border-0 first:pl-0">
       {icon && (
         <span className="text-muted-foreground" aria-hidden>
           {icon}
         </span>
       )}
       <div className="leading-tight">
-        <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="text-[0.625rem] font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <p className="text-xs font-medium text-foreground">{value}</p>
+        <p className="mt-0.5 text-xs font-medium text-foreground">{value}</p>
       </div>
     </div>
   );

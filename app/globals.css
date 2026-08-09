@@ -85,8 +85,8 @@
   /* Two-step elevation used by every surface in the design system.
      `card` is the resting state; `raised` is hover/active. Replaces the ad-hoc
      shadow-[0_1px_2px_rgba(...)] literals that had crept into components. */
-  --shadow-card:    0 1px 2px 0 rgb(13 27 42 / 0.04), 0 0 0 1px rgb(13 27 42 / 0.02);
-  --shadow-raised:  0 4px 16px -2px rgb(13 27 42 / 0.08), 0 2px 6px -2px rgb(13 27 42 / 0.04);
+  --shadow-card:    0 1px 3px 0 rgb(13 27 42 / 0.07), 0 1px 2px -1px rgb(13 27 42 / 0.05);
+  --shadow-raised:  0 8px 24px -4px rgb(13 27 42 / 0.12), 0 3px 8px -3px rgb(13 27 42 / 0.07);
 
   /* ---------- Type scale ----------
      One ladder for the whole product, so headings stop drifting per page. */

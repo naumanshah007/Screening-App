@@ -1,0 +1,15 @@
+{
+  "id": "03_primary_hpv_screening",
+  "title": "Primary HPV Screening",
+  "description": "Figure 3 with validity, adequacy, age, repeat-stage and immune-deficiency handling",
+  "clusters": [
+    "cluster_f3",
+    "cluster_immune"
+  ],
+  "nodeCount": 51,
+  "edgeCount": 50,
+  "ruleCount": 23,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

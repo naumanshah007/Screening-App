@@ -1,0 +1,69 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Transition to HPV Primary Screening\nNCSP Figures 1 and 2 — resolved versus unresolved previous history\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f1 { label="FIGURE 1 - Transition: resolved/no previous abnormal history"; color="#7C3AED"; style="rounded"; penwidth=1.6;
+F1_ENTRY [label="Transition participant"];
+F1_COMP [label="Figure 1 mandatory facts complete?", shape="diamond"];
+F1_CSTOP [label="Missing transition/history facts -> request information", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F1_HIST [label="Screening/history state?", shape="diamond"];
+F1_NOW [label="Never screened / under-screened / overdue\nInvite now"];
+F1_NEXT [label="Regular/normal, previous low-grade returned,\nor previous high-grade with completed ToC\nInvite at next scheduled visit"];
+F1_F3 [label="HPV primary screening at next visit\n-> Figure 3", fillcolor="#EDE9FE", color="#6D28D9"];
+F1_UNRES [label="Unresolved high-grade/glandular history\nDo not use Figure 1 -> Figure 2", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F1_ENTRY -> F1_COMP;
+F1_COMP -> F1_CSTOP [label="No"];
+F1_COMP -> F1_HIST [label="Yes"];
+F1_HIST -> F1_NOW [label="Never/under/overdue"];
+F1_HIST -> F1_NEXT [label="Resolved/regular"];
+F1_HIST -> F1_UNRES [label="Unresolved"];
+F1_NOW -> F1_F3;
+F1_NEXT -> F1_F3;
+}
+subgraph cluster_f2 { label="FIGURE 2 - Transition: unresolved prior high-grade/glandular history"; color="#8B5CF6"; style="rounded"; penwidth=1.6;
+F2_ENTRY [label="Previous high-grade / glandular history"];
+F2_COMP [label="Figure 2 mandatory history facts complete?", shape="diamond"];
+F2_CSTOP [label="Missing history/date/specialist status -> request information", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F2_TYPE [label="History type?", shape="diamond"];
+F2_HSIL [label="Previous HSIL or atypical glandular cells\n(excluding atypical endometrial)"];
+F2_COLQ [label="Was colposcopy recommended and not completed?", shape="diamond"];
+F2_COL [label="Refer to colposcopy", fillcolor="#FFF4CC", color="#B7791F"];
+F2_FU [label="Complete the appropriate ToC / specialist follow-up"];
+F2_DONE [label="Successful resolution / ToC complete\n-> regular screening / Figure 3", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F2_AIS [label="Previous AIS without total hysterectomy"];
+F2_AISFU [label="Enter AIS post-treatment follow-up\nDo not restart initial Figure 7 diagnosis", fillcolor="#DCFCE7", color="#15803D"];
+F2_ENDO [label="Previous atypical endometrial cells"];
+F2_ENDOQ [label="Report >3 years OR specialist assessed and discharged?", shape="diamond"];
+F2_GYN [label="Refer to specialist gynaecology", fillcolor="#FFF4CC", color="#B7791F"];
+F2_PHPV [label="Primary HPV screening at next scheduled visit\n-> Figure 3"];
+F2_ENTRY -> F2_COMP;
+F2_COMP -> F2_CSTOP [label="No"];
+F2_COMP -> F2_TYPE [label="Yes"];
+F2_TYPE -> F2_HSIL [label="HSIL / AGC"];
+F2_TYPE -> F2_AIS [label="AIS"];
+F2_TYPE -> F2_ENDO [label="Atypical endometrial"];
+F2_HSIL -> F2_COLQ;
+F2_COLQ -> F2_COL [label="Yes"];
+F2_COLQ -> F2_FU [label="No"];
+F2_COL -> F2_FU [label="After colposcopy plan"];
+F2_FU -> F2_DONE [label="Completed"];
+F2_AIS -> F2_AISFU;
+F2_ENDO -> F2_ENDOQ;
+F2_ENDOQ -> F2_PHPV [label="Yes"];
+F2_ENDOQ -> F2_GYN [label="No / exactly 3 years without discharge"];
+}
+
+V2_F3 [label="Open Figure 3 — Primary HPV screening", fillcolor="#EDE9FE", color="#6D28D9"];
+V2_AIS [label="Open AIS post-treatment follow-up\nFigure 7 / 2026 AIS overlay", fillcolor="#EDE9FE", color="#6D28D9"];
+F1_UNRES -> F2_ENTRY [label="Open Figure 2", style="dashed", color="#6D28D9"];
+F1_F3 -> V2_F3 [style="dashed"];
+F2_DONE -> V2_F3 [style="dashed"];
+F2_PHPV -> V2_F3 [style="dashed"];
+F2_AISFU -> V2_AIS [style="dashed"];
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

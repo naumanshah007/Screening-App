@@ -1,0 +1,160 @@
+{
+  "visualVersion": "2.1.1",
+  "clinicalRuleSetVersion": "2.1",
+  "master": {
+    "dot": "CerviGrade_NCSP_Master_Decision_Tree_v2_1_1_verified.dot",
+    "svg": "CerviGrade_NCSP_Master_Decision_Tree_v2_1_1_verified.svg",
+    "png": "CerviGrade_NCSP_Master_Decision_Tree_v2_1_1_verified.png"
+  },
+  "views": [
+    {
+      "id": "01_global_router_safety",
+      "title": "Global Router and Safety Gates",
+      "description": "Pathway precedence, minimum routing facts, under-25, DES and immune-status safety handling",
+      "clusters": [
+        "cluster_router",
+        "cluster_des",
+        "cluster_immune"
+      ],
+      "nodeCount": 35,
+      "edgeCount": 31,
+      "ruleCount": 28,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "02_transition_to_hpv",
+      "title": "Transition to HPV Primary Screening",
+      "description": "NCSP Figures 1 and 2 \u2014 resolved versus unresolved previous history",
+      "clusters": [
+        "cluster_f1",
+        "cluster_f2"
+      ],
+      "nodeCount": 25,
+      "edgeCount": 23,
+      "ruleCount": 13,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "03_primary_hpv_screening",
+      "title": "Primary HPV Screening",
+      "description": "Figure 3 with validity, adequacy, age, repeat-stage and immune-deficiency handling",
+      "clusters": [
+        "cluster_f3",
+        "cluster_immune"
+      ],
+      "nodeCount": 51,
+      "edgeCount": 50,
+      "ruleCount": 23,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "04_normal_colposcopy_low_grade",
+      "title": "Normal Colposcopy after Low-Grade Cytology",
+      "description": "Figure 4 \u2014 12- and 24-month surveillance with immune-status and Type 3 TZ safeguards",
+      "clusters": [
+        "cluster_f4",
+        "cluster_immune"
+      ],
+      "nodeCount": 34,
+      "edgeCount": 33,
+      "ruleCount": 18,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "05_normal_colposcopy_high_grade",
+      "title": "Normal Colposcopy after High-Grade Cytology",
+      "description": "Figure 5 plus the related 2026 CIN2 active-surveillance pathway",
+      "clusters": [
+        "cluster_f5",
+        "cluster_cin2"
+      ],
+      "nodeCount": 40,
+      "edgeCount": 43,
+      "ruleCount": 18,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "06_hsil_treatment_test_of_cure",
+      "title": "HSIL Treatment and Test of Cure",
+      "description": "Figure 6 \u2014 eligibility, treatment modality, 6/18-month co-testing and longitudinal completion",
+      "clusters": [
+        "cluster_f6"
+      ],
+      "nodeCount": 24,
+      "edgeCount": 26,
+      "ruleCount": 17,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "07_glandular_abnormalities_ais",
+      "title": "Glandular Abnormalities and AIS",
+      "description": "Figure 7 \u2014 exact subtype routing, MDM, biopsy, excision, oncology and AIS follow-up",
+      "clusters": [
+        "cluster_f7"
+      ],
+      "nodeCount": 36,
+      "edgeCount": 35,
+      "ruleCount": 19,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "08_hysterectomy_vaginal_vault",
+      "title": "Total Hysterectomy and Vaginal Vault Follow-Up",
+      "description": "Figure 8, all 21 Table 1 combinations and the 2026 cancer-history overlay",
+      "clusters": [
+        "cluster_hyst",
+        "cluster_cancer"
+      ],
+      "nodeCount": 49,
+      "edgeCount": 59,
+      "ruleCount": 40,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "09_pregnancy",
+      "title": "Pregnancy Pathway",
+      "description": "Figure 9 \u2014 pregnancy-specific colposcopy, MDM, invasion assessment and postpartum follow-up",
+      "clusters": [
+        "cluster_f9"
+      ],
+      "nodeCount": 18,
+      "edgeCount": 15,
+      "ruleCount": 14,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    },
+    {
+      "id": "10_abnormal_bleeding",
+      "title": "Abnormal Vaginal Bleeding",
+      "description": "Figure 10 \u2014 symptom assessment, abnormal cervix, cancer suspicion and persistent bleeding overrides",
+      "clusters": [
+        "cluster_f10"
+      ],
+      "nodeCount": 25,
+      "edgeCount": 25,
+      "ruleCount": 15,
+      "visualVersion": "2.1.1",
+      "sourceRuleSet": "2.1",
+      "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+    }
+  ],
+  "qa": "QA_VERIFICATION.json",
+  "report": "VERIFICATION_REPORT.md"
+}

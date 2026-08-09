@@ -1,0 +1,5461 @@
+{
+  "name": "CerviGradeVerifiedView",
+  "directed": true,
+  "strict": false,
+  "_draw_": 
+  [
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#fffffe00"
+    },
+    {
+      "op": "C",
+      "grad": "none",
+      "color": "#ffffff"
+    },
+    {
+      "op": "P",
+      "points": [[-21.600,-21.600],[-21.600,1984.770],[4142.100,1984.770],[4142.100,-21.600]]
+    }
+  ],
+  "_ldraw_": 
+  [
+    {
+      "op": "F",
+      "size": 20.000,
+      "face": "DejaVu Sans"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [2060.250,1943.170],
+      "align": "c",
+      "width": 311.000,
+      "text": "Global Router and Safety Gates"
+    },
+    {
+      "op": "F",
+      "size": 20.000,
+      "face": "DejaVu Sans"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [2060.250,1921.170],
+      "align": "c",
+      "width": 958.000,
+      "text": "Pathway precedence, minimum routing facts, under-25, DES and immune-status safety handling"
+    },
+    {
+      "op": "F",
+      "size": 20.000,
+      "face": "DejaVu Sans"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [2060.250,1899.170],
+      "align": "c",
+      "width": 943.000,
+      "text": "Verified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"
+    }
+  ],
+  "bb": "0,0,4120.5,1963.2",
+  "bgcolor": "#FFFFFF",
+  "compound": "false",
+  "fontname": "DejaVu Sans",
+  "fontsize": "20",
+  "label": "Global Router and Safety Gates\\nPathway precedence, minimum routing facts, under-25, DES and immune-status safety handling\\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required",
+  "labelloc": "t",
+  "lheight": "0.92",
+  "lp": "2060.2,1926.2",
+  "lwidth": "13.31",
+  "newrank": "true",
+  "nodesep": "0.38",
+  "pad": "0.30",
+  "rankdir": "TB",
+  "ranksep": "0.58",
+  "splines": "polyline",
+  "xdotversion": "1.7",
+  "_subgraph_cnt": 3,
+  "objects": [
+    {
+      "name": "cluster_router",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.6)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#1e3a8a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "B",
+          "points": [[20.000,8.000],[20.000,8.000],[1136.000,8.000],[1136.000,8.000],[1142.000,8.000],[1148.000,14.000],[1148.000,20.000],[1148.000,20.000],[1148.000,1869.170],[1148.000,1869.170],[1148.000,1875.170],[1142.000,1881.170],[1136.000,1881.170],[1136.000,1881.170],[20.000,1881.170],[20.000,1881.170],[14.000,1881.170],[8.000,1875.170],[8.000,1869.170],[8.000,1869.170],[8.000,20.000],[8.000,20.000],[8.000,14.000],[14.000,8.000],[20.000,8.000]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 20.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [578.000,1861.170],
+          "align": "c",
+          "width": 373.000,
+          "text": "GLOBAL ROUTER AND SAFETY GATES"
+        }
+      ],
+      "bb": "8,8,1148,1881.2",
+      "bgcolor": "#FFFFFF",
+      "color": "#1E3A8A",
+      "compound": "false",
+      "fontname": "DejaVu Sans",
+      "fontsize": "20",
+      "label": "GLOBAL ROUTER AND SAFETY GATES",
+      "labelloc": "t",
+      "lheight": "0.31",
+      "lp": "578,1866.2",
+      "lwidth": "5.18",
+      "newrank": "true",
+      "nodesep": "0.38",
+      "pad": "0.30",
+      "penwidth": "1.6",
+      "rankdir": "TB",
+      "ranksep": "0.58",
+      "splines": "polyline",
+      "style": "rounded",
+      "_gvid": 0,
+      "nodes": [
+        3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21
+      ],
+      "edges": [
+        0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
+      ]
+    },
+    {
+      "name": "cluster_des",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.6)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#a16207"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "B",
+          "points": [[1170.000,1261.170],[1170.000,1261.170],[1819.000,1261.170],[1819.000,1261.170],[1825.000,1261.170],[1831.000,1267.170],[1831.000,1273.170],[1831.000,1273.170],[1831.000,1845.170],[1831.000,1845.170],[1831.000,1851.170],[1825.000,1857.170],[1819.000,1857.170],[1819.000,1857.170],[1170.000,1857.170],[1170.000,1857.170],[1164.000,1857.170],[1158.000,1851.170],[1158.000,1845.170],[1158.000,1845.170],[1158.000,1273.170],[1158.000,1273.170],[1158.000,1267.170],[1164.000,1261.170],[1170.000,1261.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 20.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1494.500,1837.170],
+          "align": "c",
+          "width": 458.000,
+          "text": "SPECIAL POPULATION - In-utero DES exposure"
+        }
+      ],
+      "bb": "1158,1261.2,1831,1857.2",
+      "bgcolor": "#FFFFFF",
+      "color": "#A16207",
+      "compound": "false",
+      "fontname": "DejaVu Sans",
+      "fontsize": "20",
+      "label": "SPECIAL POPULATION - In-utero DES exposure",
+      "labelloc": "t",
+      "lheight": "0.31",
+      "lp": "1494.5,1842.2",
+      "lwidth": "6.36",
+      "newrank": "true",
+      "nodesep": "0.38",
+      "pad": "0.30",
+      "penwidth": "1.6",
+      "rankdir": "TB",
+      "ranksep": "0.58",
+      "splines": "polyline",
+      "style": "rounded",
+      "_gvid": 1,
+      "nodes": [
+        22,23,24,25,26,27,28,29
+      ],
+      "edges": [
+        18,19,20,21,22,23,24
+      ]
+    },
+    {
+      "name": "cluster_immune",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.6)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#059669"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "B",
+          "points": [[1851.000,1395.080],[1851.000,1395.080],[2998.000,1395.080],[2998.000,1395.080],[3004.000,1395.080],[3010.000,1401.080],[3010.000,1407.080],[3010.000,1407.080],[3010.000,1844.170],[3010.000,1844.170],[3010.000,1850.170],[3004.000,1856.170],[2998.000,1856.170],[2998.000,1856.170],[1851.000,1856.170],[1851.000,1856.170],[1845.000,1856.170],[1839.000,1850.170],[1839.000,1844.170],[1839.000,1844.170],[1839.000,1407.080],[1839.000,1407.080],[1839.000,1401.080],[1845.000,1395.080],[1851.000,1395.080]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 20.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2424.500,1836.170],
+          "align": "c",
+          "width": 388.000,
+          "text": "2026 IMMUNE-DEFICIENCY CLASSIFIER"
+        }
+      ],
+      "bb": "1839,1395.1,3010,1856.2",
+      "bgcolor": "#FFFFFF",
+      "color": "#059669",
+      "compound": "false",
+      "fontname": "DejaVu Sans",
+      "fontsize": "20",
+      "label": "2026 IMMUNE-DEFICIENCY CLASSIFIER",
+      "labelloc": "t",
+      "lheight": "0.31",
+      "lp": "2424.5,1841.2",
+      "lwidth": "5.39",
+      "newrank": "true",
+      "nodesep": "0.38",
+      "pad": "0.30",
+      "penwidth": "1.6",
+      "rankdir": "TB",
+      "ranksep": "0.58",
+      "splines": "polyline",
+      "style": "rounded",
+      "_gvid": 2,
+      "nodes": [
+        30,31,32,33,34,35,36
+      ],
+      "edges": [
+        25,26,27,28,29,30
+      ]
+    },
+    {
+      "_gvid": 3,
+      "name": "START",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#1d4ed8"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dbeafe"
+        },
+        {
+          "op": "E",
+          "rect": [987.000,1800.170,152.970,28.070]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [987.000,1803.570],
+          "align": "c",
+          "width": 70.000,
+          "text": "Case intake"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [987.000,1790.570],
+          "align": "c",
+          "width": 194.000,
+          "text": "Synthetic\/de-identified data only"
+        }
+      ],
+      "color": "#1D4ED8",
+      "fillcolor": "#DBEAFE",
+      "fontname": "DejaVu Sans",
+      "fontsize": "12",
+      "height": "0.78567",
+      "label": "Case intake\\nSynthetic\/de-identified data only",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "987,1800.2",
+      "shape": "oval",
+      "style": "rounded,filled",
+      "width": "4.2426"
+    },
+    {
+      "_gvid": 4,
+      "name": "MIN",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#f8fafc"
+        },
+        {
+          "op": "B",
+          "points": [[856.090,1712.670],[856.090,1712.670],[672.910,1689.660],[672.910,1689.660],[666.950,1688.920],[666.950,1687.420],[672.910,1686.670],[672.910,1686.670],[856.090,1663.660],[856.090,1663.660],[862.050,1662.920],[873.950,1662.920],[879.910,1663.660],[879.910,1663.660],[1063.090,1686.670],[1063.090,1686.670],[1069.050,1687.420],[1069.050,1688.920],[1063.090,1689.660],[1063.090,1689.660],[879.910,1712.670],[879.910,1712.670],[873.950,1713.420],[862.050,1713.420],[856.090,1712.670]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [868.000,1685.370],
+          "align": "c",
+          "width": 185.000,
+          "text": "Minimum routing facts complete?"
+        }
+      ],
+      "color": "#475569",
+      "fillcolor": "#F8FAFC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.72222",
+      "label": "Minimum routing facts complete?",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "868,1688.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "5.75"
+    },
+    {
+      "_gvid": 5,
+      "name": "STOP",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#1d4ed8"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dbeafe"
+        },
+        {
+          "op": "B",
+          "points": [[607.130,1568.140],[607.130,1568.140],[607.130,1576.200],[607.130,1576.200],[607.130,1580.220],[603.120,1584.670],[599.120,1585.090],[599.120,1585.090],[452.800,1600.490],[452.800,1600.490],[448.790,1600.910],[440.760,1601.340],[436.730,1601.340],[436.730,1601.340],[223.270,1601.340],[223.270,1601.340],[219.240,1601.340],[211.210,1600.910],[207.200,1600.490],[207.200,1600.490],[60.880,1585.090],[60.880,1585.090],[56.880,1584.670],[52.870,1580.220],[52.870,1576.200],[52.870,1576.200],[52.870,1568.140],[52.870,1568.140],[52.870,1564.110],[56.880,1559.660],[60.880,1559.240],[60.880,1559.240],[207.200,1543.840],[207.200,1543.840],[211.210,1543.420],[219.240,1543.000],[223.270,1543.000],[223.270,1543.000],[436.730,1543.000],[436.730,1543.000],[440.760,1543.000],[448.790,1543.420],[452.800,1543.840],[452.800,1543.840],[599.120,1559.240],[599.120,1559.240],[603.120,1559.660],[607.130,1564.110],[607.130,1568.140]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [330.000,1575.370],
+          "align": "c",
+          "width": 340.000,
+          "text": "INSUFFICIENT_INFORMATION \/ EXTERNAL_HISTORY_REQUIRED"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [330.000,1563.370],
+          "align": "c",
+          "width": 172.000,
+          "text": "Unknown is not false or normal"
+        }
+      ],
+      "color": "#1D4ED8",
+      "fillcolor": "#DBEAFE",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.80789",
+      "label": "INSUFFICIENT_INFORMATION \/ EXTERNAL_HISTORY_REQUIRED\\nUnknown is not false or normal",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "330,1572.2",
+      "shape": "octagon",
+      "style": "rounded,filled",
+      "width": "7.6962"
+    },
+    {
+      "_gvid": 6,
+      "name": "SYM",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[856.160,1608.240],[856.160,1608.240],[645.840,1574.090],[645.840,1574.090],[639.920,1573.130],[639.920,1571.210],[645.840,1570.240],[645.840,1570.240],[856.160,1536.090],[856.160,1536.090],[862.080,1535.130],[873.920,1535.130],[879.840,1536.090],[879.840,1536.090],[1090.160,1570.240],[1090.160,1570.240],[1096.080,1571.210],[1096.080,1573.130],[1090.160,1574.090],[1090.160,1574.090],[879.840,1608.240],[879.840,1608.240],[873.920,1609.210],[862.080,1609.210],[856.160,1608.240]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [868.000,1575.370],
+          "align": "c",
+          "width": 212.000,
+          "text": "Abnormal bleeding or cancer concern?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [868.000,1563.370],
+          "align": "c",
+          "width": 91.000,
+          "text": "YES -> Figure 10"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Abnormal bleeding or cancer concern?\nYES -> Figure 10",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "868,1572.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "6.5"
+    },
+    {
+      "_gvid": 7,
+      "name": "PREG",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[817.150,1480.250],[817.150,1480.250],[531.850,1434.080],[531.850,1434.080],[525.920,1433.130],[525.920,1431.210],[531.850,1430.250],[531.850,1430.250],[817.150,1384.080],[817.150,1384.080],[823.080,1383.130],[834.920,1383.130],[840.850,1384.080],[840.850,1384.080],[1126.150,1430.250],[1126.150,1430.250],[1132.080,1431.210],[1132.080,1433.130],[1126.150,1434.080],[1126.150,1434.080],[840.850,1480.250],[840.850,1480.250],[834.920,1481.210],[823.080,1481.210],[817.150,1480.250]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [829.000,1441.370],
+          "align": "c",
+          "width": 56.000,
+          "text": "Pregnant?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [829.000,1429.370],
+          "align": "c",
+          "width": 208.000,
+          "text": "YES: high-grade\/HPV16\/18 -> Figure 9"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [829.000,1417.370],
+          "align": "c",
+          "width": 287.000,
+          "text": "HPV Other + low-grade -> repeat HPV in 12 months"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.3889",
+      "label": "Pregnant?\nYES: high-grade\/HPV16\/18 -> Figure 9\nHPV Other + low-grade -> repeat HPV in 12 months",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "829,1432.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "8.5833"
+    },
+    {
+      "_gvid": 8,
+      "name": "HYSTQ",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[816.150,1328.280],[816.150,1328.280],[600.850,1294.050],[600.850,1294.050],[594.930,1293.110],[594.930,1291.230],[600.850,1290.280],[600.850,1290.280],[816.150,1256.050],[816.150,1256.050],[822.070,1255.110],[833.930,1255.110],[839.850,1256.050],[839.850,1256.050],[1055.150,1290.280],[1055.150,1290.280],[1061.070,1291.230],[1061.070,1293.110],[1055.150,1294.050],[1055.150,1294.050],[839.850,1328.280],[839.850,1328.280],[833.930,1329.230],[822.070,1329.230],[816.150,1328.280]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [828.000,1295.370],
+          "align": "c",
+          "width": 217.000,
+          "text": "Hysterectomy \/ cervix status relevant?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [828.000,1283.370],
+          "align": "c",
+          "width": 135.000,
+          "text": "YES -> Figure 8 \/ Table 1"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Hysterectomy \/ cervix status relevant?\nYES -> Figure 8 \/ Table 1",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "828,1292.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "6.6389"
+    },
+    {
+      "_gvid": 9,
+      "name": "CANCQ",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[809.100,1200.620],[809.100,1200.620],[540.900,1165.720],[540.900,1165.720],[534.950,1164.940],[534.950,1163.390],[540.900,1162.620],[540.900,1162.620],[809.100,1127.720],[809.100,1127.720],[815.050,1126.940],[826.950,1126.940],[832.900,1127.720],[832.900,1127.720],[1101.100,1162.620],[1101.100,1162.620],[1107.050,1163.390],[1107.050,1164.940],[1101.100,1165.720],[1101.100,1165.720],[832.900,1200.620],[832.900,1200.620],[826.950,1201.390],[815.050,1201.390],[809.100,1200.620]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.000,1167.370],
+          "align": "c",
+          "width": 270.000,
+          "text": "Previous cervical\/vaginal\/gynaecological cancer?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.000,1155.370],
+          "align": "c",
+          "width": 154.000,
+          "text": "YES -> 2026 cancer overlay"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Previous cervical\/vaginal\/gynaecological cancer?\nYES -> 2026 cancer overlay",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "821,1164.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "8.1111"
+    },
+    {
+      "_gvid": 10,
+      "name": "DESQ",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[805.230,1071.840],[805.230,1071.840],[636.770,1038.500],[636.770,1038.500],[630.890,1037.330],[630.890,1035.000],[636.770,1033.840],[636.770,1033.840],[805.230,1000.500],[805.230,1000.500],[811.110,999.330],[822.890,999.330],[828.770,1000.500],[828.770,1000.500],[997.230,1033.840],[997.230,1033.840],[1003.110,1035.000],[1003.110,1037.330],[997.230,1038.500],[997.230,1038.500],[828.770,1071.840],[828.770,1071.840],[822.890,1073.000],[811.110,1073.000],[805.230,1071.840]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [817.000,1039.370],
+          "align": "c",
+          "width": 170.000,
+          "text": "Known in-utero DES exposure?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [817.000,1027.370],
+          "align": "c",
+          "width": 169.000,
+          "text": "YES -> DES specialist pathway"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Known in-utero DES exposure?\nYES -> DES specialist pathway",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "817,1036.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "5.3333"
+    },
+    {
+      "_gvid": 11,
+      "name": "UNRES",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[803.100,944.630],[803.100,944.630],[532.900,909.710],[532.900,909.710],[526.950,908.940],[526.950,907.400],[532.900,906.630],[532.900,906.630],[803.100,871.710],[803.100,871.710],[809.050,870.940],[820.950,870.940],[826.900,871.710],[826.900,871.710],[1097.100,906.630],[1097.100,906.630],[1103.050,907.400],[1103.050,908.940],[1097.100,909.710],[1097.100,909.710],[826.900,944.630],[826.900,944.630],[820.950,945.400],[809.050,945.400],[803.100,944.630]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,911.370],
+          "align": "c",
+          "width": 272.000,
+          "text": "Unresolved prior high-grade or glandular history?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,899.370],
+          "align": "c",
+          "width": 85.000,
+          "text": "YES -> Figure 2"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Unresolved prior high-grade or glandular history?\nYES -> Figure 2",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "815,908.17",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "8.1667"
+    },
+    {
+      "_gvid": 12,
+      "name": "TOCQ",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[803.080,816.750],[803.080,816.750],[507.920,781.590],[507.920,781.590],[501.960,780.880],[501.960,779.460],[507.920,778.750],[507.920,778.750],[803.080,743.590],[803.080,743.590],[809.040,742.880],[820.960,742.880],[826.920,743.590],[826.920,743.590],[1122.080,778.750],[1122.080,778.750],[1128.040,779.460],[1128.040,780.880],[1122.080,781.590],[1122.080,781.590],[826.920,816.750],[826.920,816.750],[820.960,817.460],[809.040,817.460],[803.080,816.750]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,783.370],
+          "align": "c",
+          "width": 297.000,
+          "text": "Active or required high-grade squamous Test of Cure?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,771.370],
+          "align": "c",
+          "width": 85.000,
+          "text": "YES -> Figure 6"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Active or required high-grade squamous Test of Cure?\nYES -> Figure 6",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "815,780.17",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "8.8611"
+    },
+    {
+      "_gvid": 13,
+      "name": "GLQ",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[803.080,688.770],[803.080,688.770],[501.920,653.560],[501.920,653.560],[495.960,652.860],[495.960,651.470],[501.920,650.770],[501.920,650.770],[803.080,615.560],[803.080,615.560],[809.040,614.860],[820.960,614.860],[826.920,615.560],[826.920,615.560],[1128.080,650.770],[1128.080,650.770],[1134.040,651.470],[1134.040,652.860],[1128.080,653.560],[1128.080,653.560],[826.920,688.770],[826.920,688.770],[820.960,689.470],[809.040,689.470],[803.080,688.770]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,655.370],
+          "align": "c",
+          "width": 303.000,
+          "text": "Current glandular abnormality \/ AIS \/ adenocarcinoma?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,643.370],
+          "align": "c",
+          "width": 85.000,
+          "text": "YES -> Figure 7"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Current glandular abnormality \/ AIS \/ adenocarcinoma?\nYES -> Figure 7",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "815,652.17",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "9.0278"
+    },
+    {
+      "_gvid": 14,
+      "name": "F4Q",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[803.120,560.510],[803.120,560.510],[554.880,525.830],[554.880,525.830],[548.940,525.000],[548.940,523.340],[554.880,522.510],[554.880,522.510],[803.120,487.830],[803.120,487.830],[809.060,487.000],[820.940,487.000],[826.880,487.830],[826.880,487.830],[1075.120,522.510],[1075.120,522.510],[1081.060,523.340],[1081.060,525.000],[1075.120,525.830],[1075.120,525.830],[826.880,560.510],[826.880,560.510],[820.940,561.340],[809.060,561.340],[803.120,560.510]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,527.370],
+          "align": "c",
+          "width": 250.000,
+          "text": "Normal colposcopy after low-grade cytology?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,515.370],
+          "align": "c",
+          "width": 85.000,
+          "text": "YES -> Figure 4"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Normal colposcopy after low-grade cytology?\nYES -> Figure 4",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "815,524.17",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "7.5556"
+    },
+    {
+      "_gvid": 15,
+      "name": "F5Q",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[803.110,432.520],[803.110,432.520],[552.890,397.820],[552.890,397.820],[546.940,396.990],[546.940,395.340],[552.890,394.520],[552.890,394.520],[803.110,359.820],[803.110,359.820],[809.060,358.990],[820.940,358.990],[826.890,359.820],[826.890,359.820],[1077.110,394.520],[1077.110,394.520],[1083.060,395.340],[1083.060,396.990],[1077.110,397.820],[1077.110,397.820],[826.890,432.520],[826.890,432.520],[820.940,433.340],[809.060,433.340],[803.110,432.520]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,399.370],
+          "align": "c",
+          "width": 252.000,
+          "text": "Normal colposcopy after cytology >= ASC-H?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,387.370],
+          "align": "c",
+          "width": 85.000,
+          "text": "YES -> Figure 5"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "Normal colposcopy after cytology >= ASC-H?\nYES -> Figure 5",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "815,396.17",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "7.6111"
+    },
+    {
+      "_gvid": 16,
+      "name": "TRANSQ",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[803.120,304.510],[803.120,304.510],[554.880,269.830],[554.880,269.830],[548.940,269.000],[548.940,267.340],[554.880,266.510],[554.880,266.510],[803.120,231.830],[803.120,231.830],[809.060,231.000],[820.940,231.000],[826.880,231.830],[826.880,231.830],[1075.120,266.510],[1075.120,266.510],[1081.060,267.340],[1081.060,269.000],[1075.120,269.830],[1075.120,269.830],[826.880,304.510],[826.880,304.510],[820.940,305.340],[809.060,305.340],[803.120,304.510]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,271.370],
+          "align": "c",
+          "width": 234.000,
+          "text": "First transition from cytology programme?"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,259.370],
+          "align": "c",
+          "width": 250.000,
+          "text": "Resolved -> Figure 1 | unresolved -> Figure 2"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.0556",
+      "label": "First transition from cytology programme?\nResolved -> Figure 1 | unresolved -> Figure 2",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "815,268.17",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "7.5556"
+    },
+    {
+      "_gvid": 17,
+      "name": "U25Q",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[803.120,176.470],[803.120,176.470],[644.880,153.860],[644.880,153.860],[638.940,153.020],[638.940,151.320],[644.880,150.470],[644.880,150.470],[803.120,127.860],[803.120,127.860],[809.060,127.020],[820.940,127.020],[826.880,127.860],[826.880,127.860],[985.120,150.470],[985.120,150.470],[991.060,151.320],[991.060,153.020],[985.120,153.860],[985.120,153.860],[826.880,176.470],[826.880,176.470],[820.940,177.320],[809.060,177.320],[803.120,176.470]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [815.000,149.370],
+          "align": "c",
+          "width": 160.000,
+          "text": "Asymptomatic and age <25?"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.72222",
+      "label": "Asymptomatic and age <25?",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "815,152.17",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "5.0556"
+    },
+    {
+      "_gvid": 18,
+      "name": "U25STOP",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#1d4ed8"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dbeafe"
+        },
+        {
+          "op": "B",
+          "points": [[790.770,41.060],[790.770,41.060],[790.770,49.110],[790.770,49.110],[790.770,53.140],[786.760,57.510],[782.740,57.850],[782.740,57.850],[598.010,73.570],[598.010,73.570],[593.990,73.910],[585.950,74.250],[581.920,74.250],[581.920,74.250],[314.080,74.250],[314.080,74.250],[310.050,74.250],[302.010,73.910],[297.990,73.570],[297.990,73.570],[113.260,57.850],[113.260,57.850],[109.240,57.510],[105.230,53.140],[105.230,49.110],[105.230,49.110],[105.230,41.060],[105.230,41.060],[105.230,37.030],[109.240,32.660],[113.260,32.320],[113.260,32.320],[297.990,16.600],[297.990,16.600],[302.010,16.260],[310.050,15.920],[314.080,15.920],[314.080,15.920],[581.920,15.920],[581.920,15.920],[585.950,15.920],[593.990,16.260],[598.010,16.600],[598.010,16.600],[782.740,32.320],[782.740,32.320],[786.760,32.660],[790.770,37.030],[790.770,41.060]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [448.000,48.280],
+          "align": "c",
+          "width": 204.000,
+          "text": "Routine screening not recommended"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [448.000,36.280],
+          "align": "c",
+          "width": 426.000,
+          "text": "Symptoms\/follow-up override; clinician review for early sexual activity\/abuse"
+        }
+      ],
+      "color": "#1D4ED8",
+      "fillcolor": "#DBEAFE",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.80789",
+      "label": "Routine screening not recommended\\nSymptoms\/follow-up override; clinician review for early sexual activity\/abuse",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "448,45.084",
+      "shape": "octagon",
+      "style": "rounded,filled",
+      "width": "9.5246"
+    },
+    {
+      "_gvid": 19,
+      "name": "PRIMARYQ",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#0f766e"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dff7f4"
+        },
+        {
+          "op": "B",
+          "points": [[1038.000,64.080],[1038.000,64.080],[830.000,64.080],[830.000,64.080],[824.000,64.080],[818.000,58.080],[818.000,52.080],[818.000,52.080],[818.000,38.080],[818.000,38.080],[818.000,32.080],[824.000,26.080],[830.000,26.080],[830.000,26.080],[1038.000,26.080],[1038.000,26.080],[1044.000,26.080],[1050.000,32.080],[1050.000,38.080],[1050.000,38.080],[1050.000,52.080],[1050.000,52.080],[1050.000,58.080],[1044.000,64.080],[1038.000,64.080]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [934.000,48.280],
+          "align": "c",
+          "width": 210.000,
+          "text": "Asymptomatic primary HPV screening"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [934.000,36.280],
+          "align": "c",
+          "width": 61.000,
+          "text": "-> Figure 3"
+        }
+      ],
+      "color": "#0F766E",
+      "fillcolor": "#DFF7F4",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.52778",
+      "label": "Asymptomatic primary HPV screening\n-> Figure 3",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "934,45.084",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "3.2222"
+    },
+    {
+      "_gvid": 20,
+      "name": "PWC",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#f8fafc"
+        },
+        {
+          "op": "P",
+          "points": [[775.000,1825.170],[533.000,1825.170],[533.000,1775.170],[781.000,1775.170],[781.000,1819.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[775.000,1825.170],[775.000,1819.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[781.000,1819.170],[775.000,1819.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [657.000,1809.370],
+          "align": "c",
+          "width": 145.000,
+          "text": "After selecting a pathway:"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [657.000,1797.370],
+          "align": "c",
+          "width": 226.000,
+          "text": "validate that pathway's mandatory facts"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [657.000,1785.370],
+          "align": "c",
+          "width": 206.000,
+          "text": "before any terminal recommendation"
+        }
+      ],
+      "color": "#64748B",
+      "fillcolor": "#F8FAFC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.69444",
+      "label": "After selecting a pathway:\\nvalidate that pathway's mandatory facts\\nbefore any terminal recommendation",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "657,1800.2",
+      "shape": "note",
+      "style": "rounded,filled",
+      "width": "3.4444"
+    },
+    {
+      "_gvid": 21,
+      "name": "GS_INV",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#f8fafc"
+        },
+        {
+          "op": "P",
+          "points": [[474.000,1843.170],[16.000,1843.170],[16.000,1757.170],[480.000,1757.170],[480.000,1837.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[474.000,1843.170],[474.000,1837.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[480.000,1837.170],[474.000,1837.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [248.000,1827.370],
+          "align": "c",
+          "width": 145.000,
+          "text": "Global software invariants"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [248.000,1815.370],
+          "align": "c",
+          "width": 307.000,
+          "text": "• same input + same ruleset = same provisional result"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [248.000,1803.370],
+          "align": "c",
+          "width": 442.000,
+          "text": "• confirmed historic decisions are immutable; regrade creates a new evaluation"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [248.000,1791.370],
+          "align": "c",
+          "width": 308.000,
+          "text": "• clinician-only branches stop for reviewer confirmation"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [248.000,1779.370],
+          "align": "c",
+          "width": 364.000,
+          "text": "• national clinical route stays separate from local booking priority"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [248.000,1767.370],
+          "align": "c",
+          "width": 217.000,
+          "text": "• demo exports remain clearly labelled"
+        }
+      ],
+      "color": "#64748B",
+      "fillcolor": "#F8FAFC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "1.1944",
+      "label": "Global software invariants\\n• same input + same ruleset = same provisional result\\n• confirmed historic decisions are immutable; regrade creates a new evaluation\\n• clinician-only branches stop for reviewer confirmation\\n• national clinical route stays separate from local booking priority\\n• demo exports remain clearly labelled",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "248,1800.2",
+      "shape": "note",
+      "style": "rounded,filled",
+      "width": "6.4444"
+    },
+    {
+      "_gvid": 22,
+      "name": "DES_ENTRY",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[1631.000,1818.170],[1631.000,1818.170],[1469.000,1818.170],[1469.000,1818.170],[1463.000,1818.170],[1457.000,1812.170],[1457.000,1806.170],[1457.000,1806.170],[1457.000,1794.170],[1457.000,1794.170],[1457.000,1788.170],[1463.000,1782.170],[1469.000,1782.170],[1469.000,1782.170],[1631.000,1782.170],[1631.000,1782.170],[1637.000,1782.170],[1643.000,1788.170],[1643.000,1794.170],[1643.000,1794.170],[1643.000,1806.170],[1643.000,1806.170],[1643.000,1812.170],[1637.000,1818.170],[1631.000,1818.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1550.000,1797.370],
+          "align": "c",
+          "width": 164.000,
+          "text": "Known in-utero DES exposure"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.5",
+      "label": "Known in-utero DES exposure",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1550,1800.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.5833"
+    },
+    {
+      "_gvid": 23,
+      "name": "DES_COMP",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[1538.110,1712.520],[1538.110,1712.520],[1374.890,1689.820],[1374.890,1689.820],[1368.940,1688.990],[1368.940,1687.340],[1374.890,1686.520],[1374.890,1686.520],[1538.110,1663.820],[1538.110,1663.820],[1544.060,1662.990],[1555.940,1662.990],[1561.890,1663.820],[1561.890,1663.820],[1725.110,1686.520],[1725.110,1686.520],[1731.060,1687.340],[1731.060,1688.990],[1725.110,1689.820],[1725.110,1689.820],[1561.890,1712.520],[1561.890,1712.520],[1555.940,1713.340],[1544.060,1713.340],[1538.110,1712.520]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1550.000,1685.370],
+          "align": "c",
+          "width": 165.000,
+          "text": "DES pathway facts complete?"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.72222",
+      "label": "DES pathway facts complete?",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1550,1688.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "5.1944"
+    },
+    {
+      "_gvid": 24,
+      "name": "DES_STOP",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#1d4ed8"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dbeafe"
+        },
+        {
+          "op": "B",
+          "points": [[1823.160,1569.430],[1823.160,1569.430],[1823.160,1574.900],[1823.160,1574.900],[1823.160,1577.640],[1820.440,1580.610],[1817.710,1580.840],[1817.710,1580.840],[1694.950,1591.490],[1694.950,1591.490],[1692.230,1591.730],[1686.770,1591.970],[1684.040,1591.970],[1684.040,1591.970],[1505.960,1591.970],[1505.960,1591.970],[1503.230,1591.970],[1497.770,1591.730],[1495.050,1591.490],[1495.050,1591.490],[1372.290,1580.840],[1372.290,1580.840],[1369.560,1580.610],[1366.840,1577.640],[1366.840,1574.900],[1366.840,1574.900],[1366.840,1569.430],[1366.840,1569.430],[1366.840,1566.700],[1369.560,1563.730],[1372.290,1563.490],[1372.290,1563.490],[1495.050,1552.840],[1495.050,1552.840],[1497.770,1552.600],[1503.230,1552.370],[1505.960,1552.370],[1505.960,1552.370],[1684.040,1552.370],[1684.040,1552.370],[1686.770,1552.370],[1692.230,1552.600],[1694.950,1552.840],[1694.950,1552.840],[1817.710,1563.490],[1817.710,1563.490],[1820.440,1563.730],[1823.160,1566.700],[1823.160,1569.430]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1595.000,1569.370],
+          "align": "c",
+          "width": 276.000,
+          "text": "Missing DES\/colposcopy facts -> specialist review"
+        }
+      ],
+      "color": "#1D4ED8",
+      "fillcolor": "#DBEAFE",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.55276",
+      "label": "Missing DES\/colposcopy facts -> specialist review",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1595,1572.2",
+      "shape": "octagon",
+      "style": "rounded,filled",
+      "width": "6.3355"
+    },
+    {
+      "_gvid": 25,
+      "name": "DES_COL",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#b7791f"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#fff4cc"
+        },
+        {
+          "op": "B",
+          "points": [[1327.500,1590.170],[1327.500,1590.170],[1178.500,1590.170],[1178.500,1590.170],[1172.500,1590.170],[1166.500,1584.170],[1166.500,1578.170],[1166.500,1578.170],[1166.500,1566.170],[1166.500,1566.170],[1166.500,1560.170],[1172.500,1554.170],[1178.500,1554.170],[1178.500,1554.170],[1327.500,1554.170],[1327.500,1554.170],[1333.500,1554.170],[1339.500,1560.170],[1339.500,1566.170],[1339.500,1566.170],[1339.500,1578.170],[1339.500,1578.170],[1339.500,1584.170],[1333.500,1590.170],[1327.500,1590.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1253.000,1569.370],
+          "align": "c",
+          "width": 151.000,
+          "text": "Initial specialist colposcopy"
+        }
+      ],
+      "color": "#B7791F",
+      "fillcolor": "#FFF4CC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.5",
+      "label": "Initial specialist colposcopy",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1253,1572.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.4028"
+    },
+    {
+      "_gvid": 26,
+      "name": "DES_AD",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[1275.270,1455.650],[1275.270,1455.650],[1177.730,1434.690],[1177.730,1434.690],[1171.870,1433.430],[1171.870,1430.910],[1177.730,1429.650],[1177.730,1429.650],[1275.270,1408.690],[1275.270,1408.690],[1281.130,1407.430],[1292.870,1407.430],[1298.730,1408.690],[1298.730,1408.690],[1396.270,1429.650],[1396.270,1429.650],[1402.130,1430.910],[1402.130,1433.430],[1396.270,1434.690],[1396.270,1434.690],[1298.730,1455.650],[1298.730,1455.650],[1292.870,1456.910],[1281.130,1456.910],[1275.270,1455.650]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1287.000,1429.370],
+          "align": "c",
+          "width": 99.000,
+          "text": "Vaginal adenosis?"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.72222",
+      "label": "Vaginal adenosis?",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1287,1432.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "3.3611"
+    },
+    {
+      "_gvid": 27,
+      "name": "DES_ANN",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[1281.500,1311.170],[1281.500,1311.170],[1180.500,1311.170],[1180.500,1311.170],[1174.500,1311.170],[1168.500,1305.170],[1168.500,1299.170],[1168.500,1299.170],[1168.500,1285.170],[1168.500,1285.170],[1168.500,1279.170],[1174.500,1273.170],[1180.500,1273.170],[1180.500,1273.170],[1281.500,1273.170],[1281.500,1273.170],[1287.500,1273.170],[1293.500,1279.170],[1293.500,1285.170],[1293.500,1285.170],[1293.500,1299.170],[1293.500,1299.170],[1293.500,1305.170],[1287.500,1311.170],[1281.500,1311.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1231.000,1295.370],
+          "align": "c",
+          "width": 96.000,
+          "text": "Adenosis present"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1231.000,1283.370],
+          "align": "c",
+          "width": 103.000,
+          "text": "Annual colposcopy"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.52778",
+      "label": "Adenosis present\\nAnnual colposcopy",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1231,1292.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "1.7361"
+    },
+    {
+      "_gvid": 28,
+      "name": "DES_REG",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#6d28d9"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ede9fe"
+        },
+        {
+          "op": "B",
+          "points": [[1639.000,1311.170],[1639.000,1311.170],[1337.000,1311.170],[1337.000,1311.170],[1331.000,1311.170],[1325.000,1305.170],[1325.000,1299.170],[1325.000,1299.170],[1325.000,1285.170],[1325.000,1285.170],[1325.000,1279.170],[1331.000,1273.170],[1337.000,1273.170],[1337.000,1273.170],[1639.000,1273.170],[1639.000,1273.170],[1645.000,1273.170],[1651.000,1279.170],[1651.000,1285.170],[1651.000,1285.170],[1651.000,1299.170],[1651.000,1299.170],[1651.000,1305.170],[1645.000,1311.170],[1639.000,1311.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#6d28d9"
+        },
+        {
+          "op": "b",
+          "points": [[1643.000,1315.170],[1643.000,1315.170],[1333.000,1315.170],[1333.000,1315.170],[1327.000,1315.170],[1321.000,1309.170],[1321.000,1303.170],[1321.000,1303.170],[1321.000,1281.170],[1321.000,1281.170],[1321.000,1275.170],[1327.000,1269.170],[1333.000,1269.170],[1333.000,1269.170],[1643.000,1269.170],[1643.000,1269.170],[1649.000,1269.170],[1655.000,1275.170],[1655.000,1281.170],[1655.000,1281.170],[1655.000,1303.170],[1655.000,1303.170],[1655.000,1309.170],[1649.000,1315.170],[1643.000,1315.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1488.000,1295.370],
+          "align": "c",
+          "width": 91.000,
+          "text": "Adenosis absent"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1488.000,1283.370],
+          "align": "c",
+          "width": 304.000,
+          "text": "Applicable regular interval after specialist confirmation"
+        }
+      ],
+      "color": "#6D28D9",
+      "fillcolor": "#EDE9FE",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.63889",
+      "label": "Adenosis absent\\nApplicable regular interval after specialist confirmation",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "peripheries": "2",
+      "pos": "1488,1292.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "4.6389"
+    },
+    {
+      "_gvid": 29,
+      "name": "DES_ABN",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#b7791f"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#fff4cc"
+        },
+        {
+          "op": "B",
+          "points": [[1373.000,1819.170],[1373.000,1819.170],[1179.000,1819.170],[1179.000,1819.170],[1173.000,1819.170],[1167.000,1813.170],[1167.000,1807.170],[1167.000,1807.170],[1167.000,1793.170],[1167.000,1793.170],[1167.000,1787.170],[1173.000,1781.170],[1179.000,1781.170],[1179.000,1781.170],[1373.000,1781.170],[1373.000,1781.170],[1379.000,1781.170],[1385.000,1787.170],[1385.000,1793.170],[1385.000,1793.170],[1385.000,1807.170],[1385.000,1807.170],[1385.000,1813.170],[1379.000,1819.170],[1373.000,1819.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1276.000,1803.370],
+          "align": "c",
+          "width": 144.000,
+          "text": "Any detected abnormality"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1276.000,1791.370],
+          "align": "c",
+          "width": 196.000,
+          "text": "Colposcopist-directed management"
+        }
+      ],
+      "color": "#B7791F",
+      "fillcolor": "#FFF4CC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.52778",
+      "label": "Any detected abnormality\\nColposcopist-directed management",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1276,1800.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "3.0278"
+    },
+    {
+      "_gvid": 30,
+      "name": "IMM_ENTRY",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[2335.000,1818.170],[2335.000,1818.170],[2183.000,1818.170],[2183.000,1818.170],[2177.000,1818.170],[2171.000,1812.170],[2171.000,1806.170],[2171.000,1806.170],[2171.000,1794.170],[2171.000,1794.170],[2171.000,1788.170],[2177.000,1782.170],[2183.000,1782.170],[2183.000,1782.170],[2335.000,1782.170],[2335.000,1782.170],[2341.000,1782.170],[2347.000,1788.170],[2347.000,1794.170],[2347.000,1794.170],[2347.000,1806.170],[2347.000,1806.170],[2347.000,1812.170],[2341.000,1818.170],[2335.000,1818.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2259.000,1797.370],
+          "align": "c",
+          "width": 154.000,
+          "text": "Condition\/therapy assessed"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.5",
+      "label": "Condition\/therapy assessed",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "2259,1800.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.4444"
+    },
+    {
+      "_gvid": 31,
+      "name": "IMM_PROV",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#f8fafc"
+        },
+        {
+          "op": "P",
+          "points": [[2430.500,1707.170],[2081.500,1707.170],[2081.500,1669.170],[2436.500,1669.170],[2436.500,1701.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[2430.500,1707.170],[2430.500,1701.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[2436.500,1701.170],[2430.500,1701.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2259.000,1691.370],
+          "align": "c",
+          "width": 328.000,
+          "text": "Record classifier, evidence, date, rationale, specialist input"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2259.000,1679.370],
+          "align": "c",
+          "width": 333.000,
+          "text": "and whether immune status was sent on laboratory request"
+        }
+      ],
+      "color": "#64748B",
+      "fillcolor": "#F8FAFC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.52778",
+      "label": "Record classifier, evidence, date, rationale, specialist input\nand whether immune status was sent on laboratory request",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "2259,1688.2",
+      "shape": "note",
+      "style": "rounded,filled",
+      "width": "4.9306"
+    },
+    {
+      "_gvid": 32,
+      "name": "IMM_CLASS",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[2247.220,1595.870],[2247.220,1595.870],[2137.780,1574.470],[2137.780,1574.470],[2131.890,1573.320],[2131.890,1571.020],[2137.780,1569.870],[2137.780,1569.870],[2247.220,1548.470],[2247.220,1548.470],[2253.110,1547.320],[2264.890,1547.320],[2270.780,1548.470],[2270.780,1548.470],[2380.220,1569.870],[2380.220,1569.870],[2386.110,1571.020],[2386.110,1573.320],[2380.220,1574.470],[2380.220,1574.470],[2270.780,1595.870],[2270.780,1595.870],[2264.890,1597.020],[2253.110,1597.020],[2247.220,1595.870]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2259.000,1569.370],
+          "align": "c",
+          "width": 111.000,
+          "text": "NCSP classification?"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.72222",
+      "label": "NCSP classification?",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "2259,1572.2",
+      "shape": "diamond",
+      "style": "rounded,filled",
+      "width": "3.6944"
+    },
+    {
+      "_gvid": 33,
+      "name": "IMM_REC",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#15803d"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dcfce7"
+        },
+        {
+          "op": "B",
+          "points": [[2021.000,1450.170],[2021.000,1450.170],[1859.000,1450.170],[1859.000,1450.170],[1853.000,1450.170],[1847.000,1444.170],[1847.000,1438.170],[1847.000,1438.170],[1847.000,1426.170],[1847.000,1426.170],[1847.000,1420.170],[1853.000,1414.170],[1859.000,1414.170],[1859.000,1414.170],[2021.000,1414.170],[2021.000,1414.170],[2027.000,1414.170],[2033.000,1420.170],[2033.000,1426.170],[2033.000,1426.170],[2033.000,1438.170],[2033.000,1438.170],[2033.000,1444.170],[2027.000,1450.170],[2021.000,1450.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1940.000,1429.370],
+          "align": "c",
+          "width": 164.000,
+          "text": "3-year interval recommended"
+        }
+      ],
+      "color": "#15803D",
+      "fillcolor": "#DCFCE7",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.5",
+      "label": "3-year interval recommended",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "1940,1432.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.5833"
+    },
+    {
+      "_gvid": 34,
+      "name": "IMM_CONS",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#b7791f"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#fff4cc"
+        },
+        {
+          "op": "B",
+          "points": [[2252.000,1451.170],[2252.000,1451.170],[2072.000,1451.170],[2072.000,1451.170],[2066.000,1451.170],[2060.000,1445.170],[2060.000,1439.170],[2060.000,1439.170],[2060.000,1425.170],[2060.000,1425.170],[2060.000,1419.170],[2066.000,1413.170],[2072.000,1413.170],[2072.000,1413.170],[2252.000,1413.170],[2252.000,1413.170],[2258.000,1413.170],[2264.000,1419.170],[2264.000,1425.170],[2264.000,1425.170],[2264.000,1439.170],[2264.000,1439.170],[2264.000,1445.170],[2258.000,1451.170],[2252.000,1451.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2162.000,1435.370],
+          "align": "c",
+          "width": 182.000,
+          "text": "3-year interval highly considered"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2162.000,1423.370],
+          "align": "c",
+          "width": 162.000,
+          "text": "Case-by-case clinician review"
+        }
+      ],
+      "color": "#B7791F",
+      "fillcolor": "#FFF4CC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.52778",
+      "label": "3-year interval highly considered\\nCase-by-case clinician review",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "2162,1432.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.8333"
+    },
+    {
+      "_gvid": 35,
+      "name": "IMM_NO",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[2560.500,1451.170],[2560.500,1451.170],[2303.500,1451.170],[2303.500,1451.170],[2297.500,1451.170],[2291.500,1445.170],[2291.500,1439.170],[2291.500,1439.170],[2291.500,1425.170],[2291.500,1425.170],[2291.500,1419.170],[2297.500,1413.170],[2303.500,1413.170],[2303.500,1413.170],[2560.500,1413.170],[2560.500,1413.170],[2566.500,1413.170],[2572.500,1419.170],[2572.500,1425.170],[2572.500,1425.170],[2572.500,1439.170],[2572.500,1439.170],[2572.500,1445.170],[2566.500,1451.170],[2560.500,1451.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2432.000,1435.370],
+          "align": "c",
+          "width": 219.000,
+          "text": "Not immune deficient on this fact alone"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2432.000,1423.370],
+          "align": "c",
+          "width": 259.000,
+          "text": "Use ordinary interval unless another indication"
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.52778",
+      "label": "Not immune deficient on this fact alone\\nUse ordinary interval unless another indication",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "2432,1432.2",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "3.9028"
+    },
+    {
+      "_gvid": 36,
+      "name": "IMM_UNK",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#1d4ed8"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dbeafe"
+        },
+        {
+          "op": "B",
+          "points": [[3002.080,1428.140],[3002.080,1428.140],[3002.080,1436.200],[3002.080,1436.200],[3002.080,1440.220],[2998.100,1444.830],[2994.110,1445.410],[2994.110,1445.410],[2892.260,1460.180],[2892.260,1460.180],[2888.280,1460.760],[2880.260,1461.340],[2876.240,1461.340],[2876.240,1461.340],[2725.760,1461.340],[2725.760,1461.340],[2721.740,1461.340],[2713.720,1460.760],[2709.740,1460.180],[2709.740,1460.180],[2607.890,1445.410],[2607.890,1445.410],[2603.900,1444.830],[2599.920,1440.220],[2599.920,1436.200],[2599.920,1436.200],[2599.920,1428.140],[2599.920,1428.140],[2599.920,1424.110],[2603.900,1419.510],[2607.890,1418.930],[2607.890,1418.930],[2709.740,1404.160],[2709.740,1404.160],[2713.720,1403.580],[2721.740,1403.000],[2725.760,1403.000],[2725.760,1403.000],[2876.240,1403.000],[2876.240,1403.000],[2880.260,1403.000],[2888.280,1403.580],[2892.260,1404.160],[2892.260,1404.160],[2994.110,1418.930],[2994.110,1418.930],[2998.100,1419.510],[3002.080,1424.110],[3002.080,1428.140]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2801.000,1435.370],
+          "align": "c",
+          "width": 241.000,
+          "text": "Unlisted\/uncertain condition or combination"
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2801.000,1423.370],
+          "align": "c",
+          "width": 142.000,
+          "text": "Specialist\/clinician review"
+        }
+      ],
+      "color": "#1D4ED8",
+      "fillcolor": "#DBEAFE",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.80789",
+      "label": "Unlisted\/uncertain condition or combination\\nSpecialist\/clinician review",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "2801,1432.2",
+      "shape": "octagon",
+      "style": "rounded,filled",
+      "width": "5.5914"
+    },
+    {
+      "_gvid": 37,
+      "name": "LEGEND",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "B",
+          "points": [[3529.330,1813.170],[3529.330,1813.170],[3026.670,1813.170],[3026.670,1813.170],[3022.330,1813.170],[3018.000,1808.830],[3018.000,1804.500],[3018.000,1804.500],[3018.000,1795.830],[3018.000,1795.830],[3018.000,1791.500],[3022.330,1787.170],[3026.670,1787.170],[3026.670,1787.170],[3529.330,1787.170],[3529.330,1787.170],[3533.670,1787.170],[3538.000,1791.500],[3538.000,1795.830],[3538.000,1795.830],[3538.000,1804.500],[3538.000,1804.500],[3538.000,1808.830],[3533.670,1813.170],[3529.330,1813.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e6f7fa"
+        },
+        {
+          "op": "P",
+          "points": [[3019.000,1788.170],[3019.000,1812.170],[3074.000,1812.170],[3074.000,1788.170]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3019.000,1788.170],[3019.000,1812.170],[3074.000,1812.170],[3074.000,1788.170]]
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3025.000,1797.370],
+          "align": "l",
+          "width": 43.000,
+          "text": "Process"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#f1f5f9"
+        },
+        {
+          "op": "P",
+          "points": [[3074.000,1788.170],[3074.000,1812.170],[3133.000,1812.170],[3133.000,1788.170]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3074.000,1788.170],[3074.000,1812.170],[3133.000,1812.170],[3133.000,1788.170]]
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3080.000,1797.370],
+          "align": "l",
+          "width": 47.000,
+          "text": "Decision"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dbeafe"
+        },
+        {
+          "op": "P",
+          "points": [[3133.000,1788.170],[3133.000,1812.170],[3209.000,1812.170],[3209.000,1788.170]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3133.000,1788.170],[3133.000,1812.170],[3209.000,1812.170],[3209.000,1788.170]]
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3139.000,1797.370],
+          "align": "l",
+          "width": 64.000,
+          "text": "Safety stop"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#fff4cc"
+        },
+        {
+          "op": "P",
+          "points": [[3209.000,1788.170],[3209.000,1812.170],[3299.000,1812.170],[3299.000,1788.170]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3209.000,1788.170],[3209.000,1812.170],[3299.000,1812.170],[3299.000,1788.170]]
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3215.000,1797.370],
+          "align": "l",
+          "width": 78.000,
+          "text": "Clinician\/MDM"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#fee2e2"
+        },
+        {
+          "op": "P",
+          "points": [[3299.000,1788.170],[3299.000,1812.170],[3349.000,1812.170],[3349.000,1788.170]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3299.000,1788.170],[3299.000,1812.170],[3349.000,1812.170],[3349.000,1788.170]]
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3305.000,1797.370],
+          "align": "l",
+          "width": 38.000,
+          "text": "Urgent"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ede9fe"
+        },
+        {
+          "op": "P",
+          "points": [[3349.000,1788.170],[3349.000,1812.170],[3455.000,1812.170],[3455.000,1788.170]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3349.000,1788.170],[3349.000,1812.170],[3455.000,1812.170],[3455.000,1788.170]]
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3355.000,1797.370],
+          "align": "l",
+          "width": 94.000,
+          "text": "Endpoint\/subflow"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#dcfce7"
+        },
+        {
+          "op": "P",
+          "points": [[3455.000,1788.170],[3455.000,1812.170],[3537.000,1812.170],[3537.000,1788.170]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3455.000,1788.170],[3455.000,1812.170],[3537.000,1812.170],[3537.000,1788.170]]
+        },
+        {
+          "op": "F",
+          "size": 11.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3461.000,1797.370],
+          "align": "l",
+          "width": 70.000,
+          "text": "2026 update"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#164e63"
+        },
+        {
+          "op": "p",
+          "points": [[3018.000,1787.170],[3018.000,1813.170],[3538.000,1813.170],[3538.000,1787.170]]
+        }
+      ],
+      "color": "#164E63",
+      "fillcolor": "#E6F7FA",
+      "fontname": "DejaVu Sans",
+      "fontsize": "11",
+      "height": "0.36111",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"5\"><TR><TD BGCOLOR=\"#E6F7FA\">Process<\/TD><TD BGCOLOR=\"#F1F5F9\">Decision<\/TD><TD BGCOLOR=\"#DBEAFE\">Safety stop<\/TD><TD BGCOLOR=\"#FFF4CC\">Clinician\/MDM<\/TD><TD BGCOLOR=\"#FEE2E2\">Urgent<\/TD><TD BGCOLOR=\"#EDE9FE\">Endpoint\/subflow<\/TD><TD BGCOLOR=\"#DCFCE7\">2026 update<\/TD><\/TR><\/TABLE>",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "3278,1800.2",
+      "shape": "plain",
+      "style": "rounded,filled",
+      "width": "7.2222"
+    },
+    {
+      "_gvid": 38,
+      "name": "VIEW_NOTE",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.4)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#f8fafc"
+        },
+        {
+          "op": "P",
+          "points": [[4114.500,1818.170],[3565.500,1818.170],[3565.500,1782.170],[4120.500,1782.170],[4120.500,1812.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[4114.500,1818.170],[4114.500,1812.170]]
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[4120.500,1812.170],[4114.500,1812.170]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3843.000,1803.170],
+          "align": "c",
+          "width": 282.000,
+          "text": "Verified visual projection of the canonical v2.1 rule graph."
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [3843.000,1792.170],
+          "align": "c",
+          "width": 533.000,
+          "text": "The 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic."
+        }
+      ],
+      "color": "#64748B",
+      "fillcolor": "#F8FAFC",
+      "fontname": "DejaVu Sans",
+      "fontsize": "10",
+      "height": "0.5",
+      "label": "Verified visual projection of the canonical v2.1 rule graph.\\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.",
+      "margin": "0.15,0.10",
+      "penwidth": "1.4",
+      "pos": "3843,1800.2",
+      "shape": "note",
+      "style": "rounded,filled",
+      "width": "7.7083"
+    }
+  ],
+  "edges": [
+    {
+      "_gvid": 0,
+      "tail": 3,
+      "head": 4,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[957.890,1772.260],[939.560,1755.310],[915.960,1733.500],[897.550,1716.480]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[899.300,1714.520],[892.010,1711.360],[895.730,1718.380]]
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "",
+      "penwidth": "1.15",
+      "pos": "e,892.01,1711.4 957.89,1772.3 939.56,1755.3 915.96,1733.5 897.55,1716.5"
+    },
+    {
+      "_gvid": 1,
+      "tail": 3,
+      "head": 20,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "dotted"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[834.120,1800.170],[818.640,1800.170],[801.820,1800.170],[788.880,1800.170]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[788.880,1797.540],[781.380,1800.170],[788.880,1802.790]]
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "constraint": "false",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "",
+      "penwidth": "1.15",
+      "pos": "e,781.38,1800.2 834.12,1800.2 818.64,1800.2 801.82,1800.2 788.88,1800.2",
+      "style": "dotted"
+    },
+    {
+      "_gvid": 2,
+      "tail": 4,
+      "head": 5,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[793.760,1671.440],[709.030,1653.480],[568.730,1623.750],[464.600,1601.690]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[465.040,1599.100],[457.160,1600.110],[463.950,1604.240]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [653.500,1633.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "653.5,1636.2",
+      "penwidth": "1.15",
+      "pos": "e,457.16,1600.1 793.76,1671.4 709.03,1653.5 568.73,1623.8 464.6,1601.7"
+    },
+    {
+      "_gvid": 3,
+      "tail": 4,
+      "head": 6,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[868.000,1662.150],[868.000,1649.200],[868.000,1633.000],[868.000,1617.980]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[870.630,1617.750],[868.000,1610.250],[865.380,1617.750]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [876.000,1633.570],
+          "align": "c",
+          "width": 16.000,
+          "text": "Yes"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Yes",
+      "lp": "876,1636.2",
+      "penwidth": "1.15",
+      "pos": "e,868,1610.3 868,1662.2 868,1649.2 868,1633 868,1618"
+    },
+    {
+      "_gvid": 4,
+      "tail": 6,
+      "head": 7,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[857.960,1535.630],[853.810,1520.950],[848.900,1503.600],[844.320,1487.390]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[846.810,1486.540],[842.250,1480.040],[841.760,1487.970]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [856.500,1505.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "856.5,1508.2",
+      "penwidth": "1.15",
+      "pos": "e,842.25,1480 857.96,1535.6 853.81,1520.9 848.9,1503.6 844.32,1487.4"
+    },
+    {
+      "_gvid": 5,
+      "tail": 7,
+      "head": 8,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[828.640,1382.130],[828.540,1367.750],[828.430,1352.100],[828.320,1338.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[830.950,1337.820],[828.270,1330.340],[825.700,1337.860]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [834.500,1353.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "834.5,1356.2",
+      "penwidth": "1.15",
+      "pos": "e,828.27,1330.3 828.64,1382.1 828.54,1367.7 828.43,1352.1 828.32,1338"
+    },
+    {
+      "_gvid": 6,
+      "tail": 8,
+      "head": 9,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[825.960,1254.380],[825.180,1240.410],[824.290,1224.330],[823.470,1209.710]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[826.100,1209.560],[823.060,1202.210],[820.850,1209.850]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [830.500,1225.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "830.5,1228.2",
+      "penwidth": "1.15",
+      "pos": "e,823.06,1202.2 825.96,1254.4 825.18,1240.4 824.29,1224.3 823.47,1209.7"
+    },
+    {
+      "_gvid": 7,
+      "tail": 9,
+      "head": 10,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[819.820,1126.050],[819.380,1112.200],[818.880,1096.340],[818.420,1081.890]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[821.030,1081.440],[818.170,1074.030],[815.780,1081.600]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [825.500,1097.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "825.5,1100.2",
+      "penwidth": "1.15",
+      "pos": "e,818.17,1074 819.82,1126 819.38,1112.2 818.88,1096.3 818.42,1081.9"
+    },
+    {
+      "_gvid": 8,
+      "tail": 10,
+      "head": 11,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[816.410,998.050],[816.190,984.330],[815.940,968.620],[815.720,954.270]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[818.340,953.920],[815.590,946.460],[813.090,954.000]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [822.500,969.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "822.5,972.17",
+      "penwidth": "1.15",
+      "pos": "e,815.59,946.46 816.41,998.05 816.19,984.33 815.94,968.62 815.72,954.27"
+    },
+    {
+      "_gvid": 9,
+      "tail": 11,
+      "head": 12,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[815.000,870.050],[815.000,856.330],[815.000,840.620],[815.000,826.270]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[817.630,825.960],[815.000,818.460],[812.380,825.960]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.500,841.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "821.5,844.17",
+      "penwidth": "1.15",
+      "pos": "e,815,818.46 815,870.05 815,856.33 815,840.62 815,826.27"
+    },
+    {
+      "_gvid": 10,
+      "tail": 12,
+      "head": 13,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[815.000,742.050],[815.000,728.330],[815.000,712.620],[815.000,698.270]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[817.630,697.960],[815.000,690.460],[812.380,697.960]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.500,713.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "821.5,716.17",
+      "penwidth": "1.15",
+      "pos": "e,815,690.46 815,742.05 815,728.33 815,712.62 815,698.27"
+    },
+    {
+      "_gvid": 11,
+      "tail": 13,
+      "head": 14,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[815.000,614.050],[815.000,600.330],[815.000,584.620],[815.000,570.270]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[817.630,569.960],[815.000,562.460],[812.380,569.960]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.500,585.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "821.5,588.17",
+      "penwidth": "1.15",
+      "pos": "e,815,562.46 815,614.05 815,600.33 815,584.62 815,570.27"
+    },
+    {
+      "_gvid": 12,
+      "tail": 14,
+      "head": 15,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[815.000,486.050],[815.000,472.330],[815.000,456.620],[815.000,442.270]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[817.630,441.960],[815.000,434.460],[812.380,441.960]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.500,457.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "821.5,460.17",
+      "penwidth": "1.15",
+      "pos": "e,815,434.46 815,486.05 815,472.33 815,456.62 815,442.27"
+    },
+    {
+      "_gvid": 13,
+      "tail": 15,
+      "head": 16,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[815.000,358.050],[815.000,344.330],[815.000,328.620],[815.000,314.270]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[817.630,313.960],[815.000,306.460],[812.380,313.960]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.500,329.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "821.5,332.17",
+      "penwidth": "1.15",
+      "pos": "e,815,306.46 815,358.05 815,344.33 815,328.62 815,314.27"
+    },
+    {
+      "_gvid": 14,
+      "tail": 16,
+      "head": 17,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[815.000,230.160],[815.000,216.020],[815.000,200.020],[815.000,186.270]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[817.630,185.970],[815.000,178.470],[812.380,185.970]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [821.500,201.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "821.5,204.17",
+      "penwidth": "1.15",
+      "pos": "e,815,178.47 815,230.16 815,216.02 815,200.02 815,186.27"
+    },
+    {
+      "_gvid": 15,
+      "tail": 17,
+      "head": 18,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[756.440,134.400],[702.080,118.830],[619.840,95.290],[553.960,76.420]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[554.350,73.800],[546.410,74.260],[552.900,78.850]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [661.000,97.570],
+          "align": "c",
+          "width": 16.000,
+          "text": "Yes"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Yes",
+      "lp": "661,100.17",
+      "penwidth": "1.15",
+      "pos": "e,546.41,74.263 756.44,134.4 702.08,118.83 619.84,95.288 553.96,76.423"
+    },
+    {
+      "_gvid": 16,
+      "tail": 17,
+      "head": 19,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[839.370,129.650],[859.170,112.160],[887.070,87.530],[907.440,69.540]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[909.350,71.350],[913.240,64.420],[905.880,67.410]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [884.500,97.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "884.5,100.17",
+      "penwidth": "1.15",
+      "pos": "e,913.24,64.418 839.37,129.65 859.17,112.16 887.07,87.528 907.44,69.538"
+    },
+    {
+      "_gvid": 17,
+      "tail": 20,
+      "head": 21,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "dotted"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[532.770,1800.170],[525.260,1800.170],[520.670,1800.170],[520.670,1800.170],[520.670,1800.170],[506.670,1800.170],[487.650,1800.170]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[487.630,1797.540],[480.130,1800.170],[487.630,1802.790]]
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "constraint": "false",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "",
+      "penwidth": "1.15",
+      "pos": "e,480.13,1800.2 532.77,1800.2 525.26,1800.2 520.67,1800.2 520.67,1800.2 520.67,1800.2 506.67,1800.2 487.65,1800.2",
+      "style": "dotted"
+    },
+    {
+      "_gvid": 18,
+      "tail": 22,
+      "head": 23,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[1550.000,1781.980],[1550.000,1765.980],[1550.000,1741.700],[1550.000,1721.980]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1552.630,1721.900],[1550.000,1714.400],[1547.380,1721.900]]
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "",
+      "penwidth": "1.15",
+      "pos": "e,1550,1714.4 1550,1782 1550,1766 1550,1741.7 1550,1722"
+    },
+    {
+      "_gvid": 19,
+      "tail": 23,
+      "head": 24,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[1559.430,1663.270],[1566.840,1644.510],[1577.130,1618.440],[1584.740,1599.160]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1587.200,1600.070],[1587.510,1592.130],[1582.320,1598.150]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1577.500,1633.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "1577.5,1636.2",
+      "penwidth": "1.15",
+      "pos": "e,1587.5,1592.1 1559.4,1663.3 1566.8,1644.5 1577.1,1618.4 1584.7,1599.2"
+    },
+    {
+      "_gvid": 20,
+      "tail": 23,
+      "head": 25,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[1501.950,1668.730],[1447.900,1647.980],[1360.430,1614.400],[1304.860,1593.080]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1305.520,1590.520],[1297.580,1590.280],[1303.640,1595.420]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1436.000,1633.570],
+          "align": "c",
+          "width": 16.000,
+          "text": "Yes"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Yes",
+      "lp": "1436,1636.2",
+      "penwidth": "1.15",
+      "pos": "e,1297.6,1590.3 1502,1668.7 1447.9,1648 1360.4,1614.4 1304.9,1593.1"
+    },
+    {
+      "_gvid": 21,
+      "tail": 25,
+      "head": 26,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[1257.240,1553.970],[1262.740,1531.650],[1272.440,1492.280],[1279.260,1464.560]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1281.860,1464.990],[1281.110,1457.080],[1276.770,1463.730]]
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "",
+      "penwidth": "1.15",
+      "pos": "e,1281.1,1457.1 1257.2,1554 1262.7,1531.6 1272.4,1492.3 1279.3,1464.6"
+    },
+    {
+      "_gvid": 22,
+      "tail": 25,
+      "head": 29,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[1254.760,1590.430],[1258.780,1629.920],[1268.660,1727.000],[1273.390,1773.510]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1270.790,1773.860],[1274.160,1781.060],[1276.010,1773.330]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1296.500,1685.570],
+          "align": "c",
+          "width": 59.000,
+          "text": "Abnormality"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "constraint": "false",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Abnormality",
+      "lp": "1296.5,1688.2",
+      "penwidth": "1.15",
+      "pos": "e,1274.2,1781.1 1254.8,1590.4 1258.8,1629.9 1268.7,1727 1273.4,1773.5"
+    },
+    {
+      "_gvid": 23,
+      "tail": 26,
+      "head": 27,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[1277.630,1408.070],[1267.590,1383.350],[1251.720,1344.240],[1241.340,1318.640]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1243.680,1317.440],[1238.430,1311.480],[1238.820,1319.420]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1265.000,1353.570],
+          "align": "c",
+          "width": 16.000,
+          "text": "Yes"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Yes",
+      "lp": "1265,1356.2",
+      "penwidth": "1.15",
+      "pos": "e,1238.4,1311.5 1277.6,1408.1 1267.6,1383.3 1251.7,1344.2 1241.3,1318.6"
+    },
+    {
+      "_gvid": 24,
+      "tail": 26,
+      "head": 28,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[1314.950,1411.980],[1349.820,1388.040],[1409.650,1346.960],[1449.020,1319.930]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1450.940,1321.800],[1455.640,1315.390],[1447.970,1317.470]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [1405.500,1353.570],
+          "align": "c",
+          "width": 13.000,
+          "text": "No"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "No",
+      "lp": "1405.5,1356.2",
+      "penwidth": "1.15",
+      "pos": "e,1455.6,1315.4 1314.9,1412 1349.8,1388 1409.7,1347 1449,1319.9"
+    },
+    {
+      "_gvid": 25,
+      "tail": 30,
+      "head": 31,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[2259.000,1781.980],[2259.000,1763.980],[2259.000,1735.500],[2259.000,1714.830]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[2261.630,1714.830],[2259.000,1707.330],[2256.380,1714.830]]
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "",
+      "penwidth": "1.15",
+      "pos": "e,2259,1707.3 2259,1782 2259,1764 2259,1735.5 2259,1714.8"
+    },
+    {
+      "_gvid": 26,
+      "tail": 31,
+      "head": 32,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[2259.000,1669.100],[2259.000,1652.180],[2259.000,1626.480],[2259.000,1605.940]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[2261.630,1605.850],[2259.000,1598.350],[2256.380,1605.850]]
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "",
+      "penwidth": "1.15",
+      "pos": "e,2259,1598.4 2259,1669.1 2259,1652.2 2259,1626.5 2259,1605.9"
+    },
+    {
+      "_gvid": 27,
+      "tail": 32,
+      "head": 33,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[2218.120,1554.010],[2156.520,1528.150],[2047.000,1482.170],[2047.000,1482.170],[2047.000,1482.170],[2013.600,1466.870],[1984.120,1453.370]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[1985.040,1450.900],[1977.120,1450.170],[1982.850,1455.680]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2151.000,1505.570],
+          "align": "c",
+          "width": 72.000,
+          "text": "Recommended"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Recommended",
+      "lp": "2151,1508.2",
+      "penwidth": "1.15",
+      "pos": "e,1977.1,1450.2 2218.1,1554 2156.5,1528.1 2047,1482.2 2047,1482.2 2047,1482.2 2013.6,1466.9 1984.1,1453.4"
+    },
+    {
+      "_gvid": 28,
+      "tail": 32,
+      "head": 34,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[2243.420,1549.000],[2225.840,1523.990],[2197.340,1483.450],[2179.150,1457.570]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[2181.220,1455.950],[2174.760,1451.320],[2176.920,1458.970]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2260.000,1505.570],
+          "align": "c",
+          "width": 88.000,
+          "text": "Highly considered"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Highly considered",
+      "lp": "2260,1508.2",
+      "penwidth": "1.15",
+      "pos": "e,2174.8,1451.3 2243.4,1549 2225.8,1524 2197.3,1483.5 2179.1,1457.6"
+    },
+    {
+      "_gvid": 29,
+      "tail": 32,
+      "head": 35,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[2284.530,1550.810],[2316.290,1525.470],[2370.380,1482.320],[2403.480,1455.920]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[2405.180,1457.920],[2409.400,1451.190],[2401.900,1453.820]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2399.500,1505.570],
+          "align": "c",
+          "width": 119.000,
+          "text": "Explicitly not considered"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Explicitly not considered",
+      "lp": "2399.5,1508.2",
+      "penwidth": "1.15",
+      "pos": "e,2409.4,1451.2 2284.5,1550.8 2316.3,1525.5 2370.4,1482.3 2403.5,1455.9"
+    },
+    {
+      "_gvid": 30,
+      "tail": 32,
+      "head": 36,
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "b",
+          "points": [[2314.710,1556.980],[2403.460,1534.390],[2578.540,1489.810],[2692.620,1460.760]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.15)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "P",
+          "points": [[2693.420,1463.270],[2700.040,1458.870],[2692.120,1458.180]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 9.500,
+          "face": "DejaVu Sans"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [2557.500,1505.570],
+          "align": "c",
+          "width": 89.000,
+          "text": "Unlisted\/uncertain"
+        }
+      ],
+      "arrowsize": "0.75",
+      "color": "#475569",
+      "fontname": "DejaVu Sans",
+      "fontsize": "9.5",
+      "label": "Unlisted\/uncertain",
+      "lp": "2557.5,1508.2",
+      "penwidth": "1.15",
+      "pos": "e,2700,1458.9 2314.7,1557 2403.5,1534.4 2578.5,1489.8 2692.6,1460.8"
+    }
+  ]
+}

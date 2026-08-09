@@ -1,0 +1,14 @@
+{
+  "id": "07_glandular_abnormalities_ais",
+  "title": "Glandular Abnormalities and AIS",
+  "description": "Figure 7 \u2014 exact subtype routing, MDM, biopsy, excision, oncology and AIS follow-up",
+  "clusters": [
+    "cluster_f7"
+  ],
+  "nodeCount": 36,
+  "edgeCount": 35,
+  "ruleCount": 19,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

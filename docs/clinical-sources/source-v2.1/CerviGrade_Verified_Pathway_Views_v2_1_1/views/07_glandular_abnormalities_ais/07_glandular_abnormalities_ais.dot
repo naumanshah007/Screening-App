@@ -1,0 +1,84 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Glandular Abnormalities and AIS\nFigure 7 — exact subtype routing, MDM, biopsy, excision, oncology and AIS follow-up\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f7 { label="FIGURE 7 - Atypical and abnormal glandular abnormalities"; color="#BE185D"; style="rounded"; penwidth=1.6;
+F7_ENTRY [label="AGC / AIS / adenocarcinoma"];
+F7_COMP [label="Figure 7 mandatory facts complete?
+Exact subtype, TZ, lesion/biopsy/MDM state", shape="diamond"];
+F7_CSTOP [label="Missing glandular-pathway facts -> specialist review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F7_TYPE [label="Exact subtype?", shape="diamond"];
+F7_MALIGN [label="Invasive adenocarcinoma / malignant glandular cytology
+URGENT colposcopist or gynaecology -> oncology when confirmed", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F7_GYN [label="AG2 / AC2\nSpecialist gynaecology", fillcolor="#FFF4CC", color="#B7791F"];
+F7_COL [label="AG1, AG3-5, AIS, AC1/3/4\nColposcopy"];
+F7_VIS [label="Visible lesion?", shape="diamond"];
+F7_TZ [label="No visible lesion: TZ type known?", shape="diamond"];
+F7_TZSTOP [label="TZ type unknown -> specialist safety stop", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F7_MDM [label="No lesion -> MDM/cytopathology review", fillcolor="#FFF4CC", color="#B7791F"];
+F7_BIO [label="Visible lesion -> biopsy"];
+F7_MDMRES [label="MDM result?", shape="diamond"];
+F7_CONF [label="Confirmed cervical glandular abnormality\nType 3 excision + D&C/endometrial assessment as applicable"];
+F7_AG2 [label="AG2/non-cervical abnormality confirmed\nInvestigate other gynaecological malignancy"];
+F7_NCONF [label="Cytology not confirmed\nRepeat colposcopy in 6 months"];
+F7_IMG [label="No lower-tract lesion\nConsider upper-genital-tract imaging/endometrial assessment", fillcolor="#FFF4CC", color="#B7791F"];
+F7_BRES [label="Biopsy result?", shape="diamond"];
+F7_AISX [label="AIS -> Type 3 diagnostic excision"];
+F7_CA [label="Cancer -> urgent gynaecological oncology", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F7_IND [label="Other/indeterminate biopsy\nMDM/specialist review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F7_HPVCHK [label="AIS confirmed: pre-treatment HPV known?", shape="diamond"];
+F7_HPVGET [label="Obtain HPV status before treatment where applicable"];
+F7_EXC [label="Type 3 excision"];
+F7_HIST [label="Post-excision histology / margins / HPV?", shape="diamond"];
+F7_BEN [label="Benign/no lesion\nMDM surveillance"];
+F7_AIS_FU [label="AIS follow-up state"];
+F7_CLEAR [label="HPV-detected AIS + clear margins\nPrimary/community co-tests at 6 and 18 months (2026)", fillcolor="#DCFCE7", color="#15803D"];
+F7_CLEARRES [label="6- and 18-month co-tests both\nHPV not detected + negative cytology?", shape="diamond"];
+F7_AISDONE [label="AIS Test of Cure complete\nCervix remains -> regular interval\nTotal hysterectomy -> vault cessation pathway", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F7_ABN [label="Any HPV detected or abnormal cytology\n-> colposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+F7_INC [label="Incomplete/unassessable margins\nFurther excision"];
+F7_LIFE [label="HPV-negative or unknown AIS\nAnnual co-testing for life unless qualifying hysterectomy"];
+F7_INV [label="Invasive adenocarcinoma\nOncology", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F7_ENTRY -> F7_COMP;
+F7_COMP -> F7_CSTOP [label="No"];
+F7_COMP -> F7_TYPE [label="Yes"];
+F7_TYPE -> F7_MALIGN [label="Invasive/malignant cytology"];
+F7_TYPE -> F7_GYN [label="AG2/AC2 non-cervical"];
+F7_TYPE -> F7_COL [label="Other glandular"];
+F7_COL -> F7_VIS;
+F7_VIS -> F7_TZ [label="No"];
+F7_TZ -> F7_TZSTOP [label="Unknown"];
+F7_TZ -> F7_MDM [label="Type 1/2 or Type 3 - review required"];
+F7_VIS -> F7_BIO [label="Yes"];
+F7_MDM -> F7_MDMRES;
+F7_MDM -> F7_IMG [style="dashed", constraint="false"];
+F7_MDMRES -> F7_CONF [label="Confirmed cervical glandular"];
+F7_MDMRES -> F7_AG2 [label="AG2/non-cervical"];
+F7_MDMRES -> F7_NCONF [label="Not confirmed"];
+F7_BIO -> F7_BRES;
+F7_BRES -> F7_AISX [label="AIS"];
+F7_BRES -> F7_CA [label="Cancer"];
+F7_BRES -> F7_IND [label="Other/unknown"];
+F7_CONF -> F7_HPVCHK;
+F7_AISX -> F7_HPVCHK;
+F7_HPVCHK -> F7_HPVGET [label="No"];
+F7_HPVCHK -> F7_EXC [label="Yes"];
+F7_HPVGET -> F7_EXC;
+F7_EXC -> F7_HIST;
+F7_HIST -> F7_BEN [label="Benign"];
+F7_HIST -> F7_AIS_FU [label="AIS"];
+F7_HIST -> F7_INV [label="Invasive"];
+F7_AIS_FU -> F7_CLEAR [label="HPV detected + clear margins"];
+F7_AIS_FU -> F7_INC [label="Incomplete margins"];
+F7_AIS_FU -> F7_LIFE [label="HPV negative/unknown"];
+F7_CLEAR -> F7_CLEARRES;
+F7_CLEARRES -> F7_ABN [label="No / abnormal follow-up"];
+F7_CLEARRES -> F7_AISDONE [label="Yes"];
+}
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

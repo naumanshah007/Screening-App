@@ -46,27 +46,27 @@ export function MetricTile({
   ariaSparklineLabel?: string;
   className?: string;
 }) {
+  const hasSeries = Boolean(series && series.length >= 2);
+
+  /*
+   * Every element sits in a fixed-height lane.
+   *
+   * This matters more than it looks: labels differ in length ("Pending review"
+   * vs "Clinician review required"), so without a reserved label height the
+   * long ones wrap and shove their number down a line — and a row of tiles ends
+   * up with its numbers on two or three different baselines. The label lane is
+   * exactly two lines tall and clamped, the caption is a single truncated line,
+   * and the sparkline lane is reserved whether or not a series exists, so tiles
+   * with and without history still line up along the bottom.
+   */
   const body = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
-          <p
-            className={cn(
-              "font-semibold leading-none tracking-tight text-foreground tabular-nums",
-              size === "sm" ? "mt-1.5 text-xl" : "mt-2 text-3xl"
-            )}
-          >
-            {value}
-          </p>
-        </div>
+      <div className="flex items-start gap-2.5">
         {icon && (
           <span
             className={cn(
               "flex flex-shrink-0 items-center justify-center rounded-lg",
-              size === "sm" ? "h-7 w-7" : "h-9 w-9",
+              size === "sm" ? "h-7 w-7" : "h-8 w-8",
               ICON_TONE[tone]
             )}
             aria-hidden
@@ -74,21 +74,43 @@ export function MetricTile({
             {icon}
           </span>
         )}
+        <p
+          className={cn(
+            "min-w-0 flex-1 font-semibold uppercase tracking-wider text-muted-foreground",
+            "line-clamp-2 text-[0.6875rem] leading-tight",
+            size === "sm" ? "h-[1.75rem]" : "h-[1.75rem]"
+          )}
+          title={label}
+        >
+          {label}
+        </p>
       </div>
 
-      {(caption || (series && series.length >= 2)) && (
-        <div className="mt-3 flex items-end justify-between gap-3">
-          {caption ? (
-            <p className="text-xs leading-snug text-muted-foreground">{caption}</p>
-          ) : (
-            <span />
-          )}
-          {series && series.length >= 2 ? (
+      <p
+        className={cn(
+          "font-semibold leading-none tracking-tight text-foreground tabular-nums",
+          size === "sm" ? "mt-2 text-xl" : "mt-2.5 text-[1.75rem]"
+        )}
+      >
+        {value}
+      </p>
+
+      {caption && (
+        <p className="mt-1.5 truncate text-xs leading-tight text-muted-foreground" title={caption}>
+          {caption}
+        </p>
+      )}
+
+      {size !== "sm" && (
+        // Full-bleed trend band flush with the card's bottom edge. The lane is
+        // reserved even with no series, so a row of tiles keeps one baseline.
+        <div className="-mx-4 -mb-4 mt-auto h-8 overflow-hidden">
+          {hasSeries && series ? (
             <MiniSparkline
               values={series}
               tone={tone === "neutral" || tone === "success" ? "brand" : tone}
               ariaLabel={ariaSparklineLabel ?? `${label} daily trend`}
-              className="flex-shrink-0"
+              className="block h-8 w-full"
             />
           ) : null}
         </div>
@@ -97,8 +119,8 @@ export function MetricTile({
   );
 
   const shell = cn(
-    "group relative flex flex-col justify-between rounded-xl border border-border bg-card shadow-card transition-shadow",
-    size === "sm" ? "min-h-[92px] p-3.5" : "min-h-[124px] p-4",
+    "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow",
+    size === "sm" ? "min-h-[86px] p-3.5" : "min-h-[136px] p-4",
     className
   );
 

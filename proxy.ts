@@ -27,6 +27,17 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // Development-only design harness. It renders design-system components with
+  // synthetic data so layout can be reviewed without a database or a session.
+  // Never reachable in a production build: this branch is compiled against
+  // NODE_ENV, and the route itself calls notFound() outside development.
+  if (
+    process.env.NODE_ENV === "development" &&
+    pathname.startsWith("/design-preview")
+  ) {
+    return NextResponse.next();
+  }
+
   // API routes: require session, role check is handled inside the route handler
   if (pathname.startsWith("/api/")) {
     if (!req.auth) {
