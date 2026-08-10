@@ -7,6 +7,9 @@ import {
   applyNodeChanges,
   Background,
   BackgroundVariant,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
   Handle,
   MarkerType,
   MiniMap,
@@ -19,6 +22,7 @@ import {
   type Connection,
   type Edge,
   type EdgeChange,
+  type EdgeProps,
   type Node,
   type NodeChange,
   type NodeProps,
@@ -84,6 +88,11 @@ type GraphSearchResult = {
   view: GraphView;
 };
 
+type GraphPosition = { x: number; y: number };
+
+const FLOW_NODE_WIDTH = 300;
+const FLOW_NODE_HEIGHT = 156;
+
 const NODE_META: Record<GraphNodeType, { label: string; classes: string }> = {
   START: { label: "Start", classes: "border-navy-600 bg-navy-50" },
   ROUTER: { label: "Router", classes: "border-navy-600 bg-navy-50" },
@@ -118,14 +127,14 @@ function RuleNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
     <div
       aria-label={`${meta.label}: ${data.canonical.label}`}
       className={cn(
-        "group relative w-[280px] overflow-hidden rounded-xl border-2 bg-white shadow-sm transition-all",
+        "group relative w-[300px] overflow-hidden rounded-2xl border-2 bg-white shadow-md transition-all",
         meta.classes,
         selected && "ring-4 ring-brand-400/30 shadow-lg",
         data.highlighted && "ring-4 ring-purple-400/25",
         data.dimmed && "opacity-25"
       )}
     >
-      <Handle type="target" position={Position.Left} isConnectable={data.editable} className={cn("!h-3 !w-3 !border-2 !border-white !bg-navy-600 transition-opacity", !data.editable ? "!opacity-0" : !selected && "!opacity-0 group-hover:!opacity-100")} />
+      <Handle type="target" position={Position.Left} isConnectable={data.editable} className="!h-4 !w-4 !border-[3px] !border-white !bg-navy-700 !opacity-100 shadow-sm" />
       <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white/70 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <span className="rounded-md bg-white p-1 text-navy-700 shadow-sm" aria-hidden>
@@ -153,7 +162,7 @@ function RuleNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
           <span className="max-w-[180px] truncate text-[9px] font-medium capitalize text-slate-500">{reviewLabel}</span>
         </div>
       </div>
-      <Handle type="source" position={Position.Right} isConnectable={data.editable} className={cn("!h-3 !w-3 !border-2 !border-white !bg-brand-600 transition-opacity", !data.editable ? "!opacity-0" : !selected && "!opacity-0 group-hover:!opacity-100")} />
+      <Handle type="source" position={Position.Right} isConnectable={data.editable} className="!h-4 !w-4 !border-[3px] !border-white !bg-brand-600 !opacity-100 shadow-sm" />
     </div>
   );
 }
@@ -179,6 +188,8 @@ function createFlowNode(
     },
     draggable: editable,
     deletable: false,
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
     ariaLabel: `${canonical.nodeType}: ${canonical.label}`,
   };
 }
@@ -188,6 +199,67 @@ function edgeColour(edge: GraphEdge) {
   if (edge.conditionExpression.type === "SOURCE_TEXT") return "#d97706";
   return "#334155";
 }
+
+function ClinicalEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  data,
+  selected,
+  style,
+}: EdgeProps<Edge<{ canonical: GraphEdge }>>) {
+  const canonical = data?.canonical;
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    borderRadius: 12,
+    offset: 38,
+  });
+  const stroke = String(style?.stroke ?? "#334155");
+
+  return (
+    <>
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        interactionWidth={30}
+        style={{ ...style, strokeWidth: selected ? 4 : style?.strokeWidth }}
+      />
+      <circle cx={sourceX} cy={sourceY} r={4.5} fill={stroke} stroke="white" strokeWidth={2} />
+      {canonical?.label && (
+        <EdgeLabelRenderer>
+          <div
+            title={canonical.label}
+            className={cn(
+              "pointer-events-none absolute max-w-44 -translate-x-1/2 -translate-y-1/2 truncate rounded-full border bg-white px-2.5 py-1 text-[10px] font-bold leading-none shadow-sm",
+              canonical.isSafetyOverride
+                ? "border-red-300 text-red-800"
+                : canonical.conditionExpression.type === "SOURCE_TEXT"
+                  ? "border-amber-300 text-amber-800"
+                  : "border-slate-300 text-slate-700",
+              selected && "ring-2 ring-brand-400/30"
+            )}
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px,${labelY - 14}px)` }}
+          >
+            {canonical.label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+}
+
+const edgeTypes = { clinicalEdge: ClinicalEdge };
 
 function createFlowEdge(
   canonical: GraphEdge,
@@ -199,21 +271,60 @@ function createFlowEdge(
     id: canonical.stableEdgeId,
     source: canonical.fromNodeId,
     target: canonical.toNodeId,
-    type: "smoothstep",
-    label: canonical.label,
+    type: "clinicalEdge",
     data: { canonical },
-    markerEnd: { type: MarkerType.ArrowClosed, color: edgeColour(canonical) },
+    markerEnd: { type: MarkerType.ArrowClosed, color: edgeColour(canonical), width: 22, height: 22 },
     style: {
       stroke: highlighted ? "#7c3aed" : edgeColour(canonical),
-      strokeWidth: highlighted ? 3.5 : 1.8,
+      strokeWidth: highlighted ? 4 : 2.4,
       opacity: hasHighlight && !highlighted ? 0.16 : 1,
       strokeDasharray: canonical.conditionExpression.type === "SOURCE_TEXT" ? "7 5" : undefined,
     },
-    labelStyle: { fontSize: 10, fontWeight: 600, fill: "#334155" },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.88 },
     interactionWidth: 24,
     reconnectable: true,
   };
+}
+
+async function calculateReadableLayout(
+  layoutNodes: Array<{ id: string }>,
+  layoutEdges: Array<{ id: string; source: string; target: string }>
+): Promise<Record<string, GraphPosition>> {
+  const { default: ELK } = await import("elkjs/lib/elk.bundled.js");
+  const elk = new ELK();
+  const result = await elk.layout({
+    id: "root",
+    layoutOptions: {
+      "elk.algorithm": "layered",
+      "elk.direction": "RIGHT",
+      "elk.edgeRouting": "ORTHOGONAL",
+      "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+      "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+      "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
+      "elk.layered.mergeEdges": "false",
+      "elk.layered.unnecessaryBendpoints": "true",
+      "elk.spacing.nodeNode": "72",
+      "elk.spacing.edgeEdge": "24",
+      "elk.spacing.edgeNode": "48",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
+      "elk.layered.spacing.edgeNodeBetweenLayers": "52",
+      "elk.layered.spacing.edgeEdgeBetweenLayers": "30",
+      "elk.componentCompaction.componentLayoutAlgorithm": "PACKED_RECT",
+      "elk.spacing.componentComponent": "110",
+      "elk.separateConnectedComponents": "true",
+      "elk.padding": "[top=90,left=90,bottom=90,right=90]",
+    },
+    children: layoutNodes.map((node) => ({
+      id: node.id,
+      width: FLOW_NODE_WIDTH,
+      height: FLOW_NODE_HEIGHT,
+      layoutOptions: { "elk.portConstraints": "FIXED_SIDE" },
+    })),
+    edges: layoutEdges.map((edge) => ({ id: edge.id, sources: [edge.source], targets: [edge.target] })),
+  });
+
+  return Object.fromEntries(
+    (result.children ?? []).map((child) => [child.id, { x: child.x ?? 0, y: child.y ?? 0 }])
+  );
 }
 
 function graphAncestorsAndDescendants(
@@ -319,7 +430,7 @@ function PathwayMap({
   );
 
   return (
-    <div className="h-[720px] overflow-y-auto bg-slate-50 p-5 sm:p-6">
+    <div className="h-[calc(100dvh-420px)] min-h-[720px] max-h-[1000px] overflow-y-auto bg-slate-50 p-5 sm:p-6">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -404,7 +515,7 @@ function GraphOutline({
   }, [edges]);
 
   return (
-    <div className="h-[720px] overflow-auto bg-slate-50 p-4 sm:p-5">
+    <div className="h-[calc(100dvh-420px)] min-h-[720px] max-h-[1000px] overflow-auto bg-slate-50 p-4 sm:p-5">
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[920px] text-left text-xs">
           <thead className="sticky top-0 z-10 bg-navy-800 text-white">
@@ -488,6 +599,8 @@ function ClinicalRuleGraphStudioInner({
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [pendingFocusNodeId, setPendingFocusNodeId] = useState<string | null>(null);
+  const [presentationLayout, setPresentationLayout] = useState<Record<string, GraphPosition>>({});
+  const [layoutPending, setLayoutPending] = useState(false);
   const [zoomPercent, setZoomPercent] = useState(100);
   const [routeScope, setRouteScope] = useState<RouteScope>("BOTH");
   const [saving, setSaving] = useState(false);
@@ -530,9 +643,17 @@ function ClinicalRuleGraphStudioInner({
     () => snapshot.nodes.filter((node) => visibleNodeIds.has(node.stableNodeId)),
     [snapshot.nodes, visibleNodeIds]
   );
+  const layoutSignature = useMemo(
+    () => `${currentView.key}:${canonicalNodes.map((node) => node.stableNodeId).join("|")}:${visibleEdges.map((edge) => edge.stableEdgeId).join("|")}`,
+    [canonicalNodes, currentView.key, visibleEdges]
+  );
   const baseNodes = useMemo(
-    () => canonicalNodes.map((node) => createFlowNode(node, currentView, highlightedIds, hasHighlight, editingEnabled)),
-    [canonicalNodes, currentView, editingEnabled, hasHighlight, highlightedIds]
+    () => canonicalNodes.map((node) => {
+      const flowNode = createFlowNode(node, currentView, highlightedIds, hasHighlight, editingEnabled);
+      flowNode.position = presentationLayout[node.stableNodeId] ?? flowNode.position;
+      return flowNode;
+    }),
+    [canonicalNodes, currentView, editingEnabled, hasHighlight, highlightedIds, presentationLayout]
   );
   const baseEdges = useMemo(
     () => visibleEdges.map((edge) => createFlowEdge(edge, highlightedIds, hasHighlight)),
@@ -543,6 +664,22 @@ function ClinicalRuleGraphStudioInner({
 
   useEffect(() => setNodes(baseNodes), [baseNodes]);
   useEffect(() => setEdges(baseEdges), [baseEdges]);
+  useEffect(() => {
+    if (workspaceMode !== "PATHWAY" || canonicalNodes.length === 0) return;
+    let cancelled = false;
+    setLayoutPending(true);
+    void calculateReadableLayout(
+      canonicalNodes.map((node) => ({ id: node.stableNodeId })),
+      visibleEdges.map((edge) => ({ id: edge.stableEdgeId, source: edge.fromNodeId, target: edge.toNodeId }))
+    ).then((layout) => {
+      if (cancelled) return;
+      setPresentationLayout(layout);
+      setLayoutPending(false);
+    }).catch(() => {
+      if (!cancelled) setLayoutPending(false);
+    });
+    return () => { cancelled = true; };
+  }, [canonicalNodes, layoutSignature, visibleEdges, workspaceMode]);
   useEffect(() => {
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
@@ -555,14 +692,18 @@ function ClinicalRuleGraphStudioInner({
     const targetNode = selectedNodeId
       ? canonicalNodes.find((node) => node.stableNodeId === selectedNodeId) ?? entryNode
       : entryNode;
-    const position = currentView.layout[targetNode.stableNodeId] ?? { x: 0, y: 0 };
+    const position = presentationLayout[targetNode.stableNodeId] ?? currentView.layout[targetNode.stableNodeId] ?? { x: 0, y: 0 };
     const zoom = selectedNodeId ? 1.05 : Math.max(0.8, Math.min(1, currentView.defaultZoom));
     const frame = requestAnimationFrame(() => {
-      setCenter(position.x + 140, position.y + 65, { zoom, duration: 350 });
+      setCenter(
+        position.x + FLOW_NODE_WIDTH / 2,
+        position.y + FLOW_NODE_HEIGHT / 2 + (selectedNodeId ? 0 : 220),
+        { zoom, duration: 350 }
+      );
       setZoomPercent(Math.round(zoom * 100));
     });
     return () => cancelAnimationFrame(frame);
-  }, [canonicalNodes, currentView.defaultZoom, currentView.layout, pendingFocusNodeId, selectedNodeId, setCenter, visibleEdges, workspaceMode]);
+  }, [canonicalNodes, currentView.defaultZoom, currentView.layout, pendingFocusNodeId, presentationLayout, selectedNodeId, setCenter, visibleEdges, workspaceMode]);
 
   const selectedNode = snapshot.nodes.find((node) => node.stableNodeId === selectedNodeId) ?? null;
   const selectedEdge = snapshot.edges.find((edge) => edge.stableEdgeId === selectedEdgeId) ?? null;
@@ -619,18 +760,18 @@ function ClinicalRuleGraphStudioInner({
 
   useEffect(() => {
     if (!pendingFocusNodeId || workspaceMode !== "PATHWAY") return;
-    const position = currentView.layout[pendingFocusNodeId];
+    const position = presentationLayout[pendingFocusNodeId] ?? currentView.layout[pendingFocusNodeId];
     if (!position) return;
     const frame = requestAnimationFrame(() => {
       setSelectedNodeId(pendingFocusNodeId);
       setSelectedEdgeId(null);
-      setCenter(position.x + 140, position.y + 65, { zoom: 1.05, duration: 450 });
+      setCenter(position.x + FLOW_NODE_WIDTH / 2, position.y + FLOW_NODE_HEIGHT / 2, { zoom: 1.05, duration: 450 });
       setZoomPercent(105);
       setInspectorOpen(true);
       setPendingFocusNodeId(null);
     });
     return () => cancelAnimationFrame(frame);
-  }, [currentView.layout, pendingFocusNodeId, setCenter, workspaceMode]);
+  }, [currentView.layout, pendingFocusNodeId, presentationLayout, setCenter, workspaceMode]);
 
   const updateSnapshot = useCallback((updater: (current: ClinicalRuleSnapshot) => ClinicalRuleSnapshot) => {
     dirtyRef.current = true;
@@ -731,6 +872,7 @@ function ClinicalRuleGraphStudioInner({
   const onNodeDragStop = useCallback(
     (_event: MouseEvent | TouchEvent, node: Node<FlowNodeData>) => {
       if (!editingEnabled) return;
+      setPresentationLayout((current) => ({ ...current, [node.id]: node.position }));
       updateSnapshot((next) => {
         const view = next.views.find((candidate) => candidate.key === currentViewKey);
         if (view) view.layout[node.id] = node.position;
@@ -877,7 +1019,6 @@ function ClinicalRuleGraphStudioInner({
   }, [editingEnabled, selectedEdge, updateSnapshot]);
 
   const autoLayout = useCallback(async (scope: "VIEW" | "BRANCH" = "VIEW") => {
-    if (!editingEnabled) return;
     const layoutNodes = scope === "BRANCH"
       ? nodes.filter((node) => highlightedIds.has(node.id))
       : nodes;
@@ -889,36 +1030,18 @@ function ClinicalRuleGraphStudioInner({
       toast.error("Select a connected branch before laying out the branch.");
       return;
     }
-    const { default: ELK } = await import("elkjs/lib/elk.bundled.js");
-    const elk = new ELK();
-    const result = await elk.layout({
-      id: "root",
-      layoutOptions: {
-        "elk.algorithm": "layered",
-        "elk.direction": "DOWN",
-        "elk.edgeRouting": "ORTHOGONAL",
-        "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-        "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-        "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
-        "elk.spacing.nodeNode": "44",
-        "elk.spacing.edgeNode": "28",
-        "elk.layered.spacing.nodeNodeBetweenLayers": "82",
-        "elk.layered.spacing.edgeEdgeBetweenLayers": "20",
-        "elk.separateConnectedComponents": "true",
-      },
-      children: layoutNodes.map((node) => ({ id: node.id, width: 280, height: 130 })),
-      edges: layoutEdges.map((edge) => ({ id: edge.id, sources: [edge.source], targets: [edge.target] })),
-    });
-    updateSnapshot((next) => {
-      const view = next.views.find((candidate) => candidate.key === currentViewKey)!;
-      for (const child of result.children ?? []) {
-        view.layout[child.id] = { x: child.x ?? 0, y: child.y ?? 0 };
-      }
-      return next;
-    });
-    if (scope === "VIEW") {
-      requestAnimationFrame(() => fitView({ padding: 0.15, duration: 450 }));
+    setLayoutPending(true);
+    const layout = await calculateReadableLayout(layoutNodes, layoutEdges);
+    setPresentationLayout((current) => scope === "VIEW" ? layout : { ...current, ...layout });
+    if (editingEnabled) {
+      updateSnapshot((next) => {
+        const view = next.views.find((candidate) => candidate.key === currentViewKey)!;
+        for (const [nodeId, position] of Object.entries(layout)) view.layout[nodeId] = position;
+        return next;
+      });
     }
+    setLayoutPending(false);
+    requestAnimationFrame(() => requestAnimationFrame(() => fitView({ padding: 0.12, duration: 500, maxZoom: 0.92 })));
   }, [currentViewKey, edges, editingEnabled, fitView, highlightedIds, nodes, updateSnapshot]);
 
   const focusSearchResult = useCallback(() => {
@@ -1065,6 +1188,7 @@ function ClinicalRuleGraphStudioInner({
                 }
                 setCurrentViewKey(activePathwayView.key);
                 setWorkspaceMode(item.mode);
+                setInspectorOpen(false);
               }}
               className={cn(
                 "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition",
@@ -1159,7 +1283,7 @@ function ClinicalRuleGraphStudioInner({
         </div>
       </div>
 
-      <div className={cn("relative grid min-h-[720px] grid-cols-1", inspectorOpen && workspaceMode !== "MAP" && "xl:grid-cols-[minmax(0,1fr)_390px]")}>
+      <div className="relative min-h-[720px]">
         <p id="clinical-graph-summary" className="sr-only" aria-live="polite">
           {currentView.title}. {nodes.length} visible nodes and {edges.length} visible edges.
           {selectedNode ? ` Selected node ${selectedNode.shortLabel}.` : " No node selected."}
@@ -1176,11 +1300,12 @@ function ClinicalRuleGraphStudioInner({
             onSelect={selectNode}
           />
         ) : (
-        <div ref={flowRef} className="relative h-[720px] min-h-[720px] w-full bg-slate-50 print:h-[900px] print:min-h-[900px]">
+        <div ref={flowRef} className="relative h-[calc(100dvh-420px)] min-h-[720px] max-h-[1000px] w-full bg-slate-50 print:h-[900px] print:min-h-[900px]">
           <ReactFlow
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeDragStop={onNodeDragStop}
@@ -1231,7 +1356,8 @@ function ClinicalRuleGraphStudioInner({
                 <span className="min-w-12 text-center font-mono text-[11px] font-semibold text-slate-600" aria-live="polite">{zoomPercent}%</span>
                 <Button size="icon" variant="ghost" aria-label="Zoom in" title="Zoom in" onClick={() => void zoomIn({ duration: 160 })}><ZoomIn className="h-4 w-4" /></Button>
                 <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden />
-                <Button size="sm" variant="outline" onClick={() => fitView({ padding: currentView.fitViewPadding, duration: 350 })} icon={<LocateFixed className="h-4 w-4" />}>Fit pathway</Button>
+                <Button size="sm" variant="outline" onClick={() => fitView({ padding: 0.12, duration: 450, maxZoom: 0.92 })} icon={<LocateFixed className="h-4 w-4" />}>Show all</Button>
+                <Button size="sm" variant="outline" onClick={() => void autoLayout("VIEW")} loading={layoutPending} icon={<LayoutDashboard className="h-4 w-4" />}>Space nodes</Button>
                 <label className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-600">
                   Route
                   <select value={routeScope} onChange={(event) => setRouteScope(event.target.value as RouteScope)} className="bg-transparent text-[11px] font-semibold text-slate-900 outline-none">
@@ -1245,7 +1371,6 @@ function ClinicalRuleGraphStudioInner({
                   <>
                     <Button size="sm" variant="outline" onClick={addNodeToView} icon={<Plus className="h-4 w-4" />}>Node</Button>
                     {selectedNode && <Button size="sm" variant="outline" onClick={() => void autoLayout("BRANCH")} icon={<LayoutDashboard className="h-4 w-4" />}>Layout branch</Button>}
-                    <Button size="sm" variant="outline" onClick={() => void autoLayout("VIEW")} icon={<LayoutDashboard className="h-4 w-4" />}>Auto-layout view</Button>
                   </>
                 )}
               </div>
@@ -1258,7 +1383,7 @@ function ClinicalRuleGraphStudioInner({
         )}
 
         {inspectorOpen && workspaceMode !== "MAP" && (
-        <aside className="min-h-0 border-l border-border bg-white xl:max-h-[820px] xl:overflow-y-auto">
+        <aside className="absolute inset-y-0 right-0 z-30 w-full min-h-0 overflow-y-auto border-l border-border bg-white shadow-2xl sm:w-[420px]">
           <div className="sticky top-0 z-10 border-b border-border bg-white px-4 py-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="flex min-w-0 flex-1 items-center gap-1">

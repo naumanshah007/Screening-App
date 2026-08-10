@@ -1,6 +1,6 @@
 # Clinical Rule Graph Studio — UX and Interaction Redesign Plan
 
-Status: Phase 1 foundation implemented; later phases remain planned
+Status: Phase 1 foundation and pathway-legibility pass implemented; later phases remain planned
 Scope: the canonical clinical graph editor rendered by
 `components/clinical-rules/ClinicalRuleGraphStudio.tsx`
 Baseline: 203 canonical rules, 422 nodes, 421 edges, and 12 synchronized views
@@ -10,9 +10,19 @@ the 422-node detail canvas; provides synchronized Map, Pathway, and Outline mode
 cross-pathway search; opens pathways at a readable node-level zoom; has explicit route-highlight
 scopes and zoom controls; uses redesigned node cards and smooth-step edges; supports a collapsible
 inspector; gates authoring behind an explicit View/Edit switch; and applies a stronger ELK layered
-profile for user-requested layout operations. The remaining phases cover true compound clusters,
-semantic rendering thresholds, Web Worker layout scoring, typed undo/redo, and impact-aware edit
-dialogs.
+profile for user-requested layout operations.
+
+Pathway-legibility checkpoint (2026-08-10): every pathway now receives a non-destructive
+left-to-right presentation layout on entry. Nodes use fixed measured dimensions, separate branch
+lanes, wider inter-layer channels, orthogonal routing, persistent endpoint ports, larger closed
+arrowheads, and branch-condition chips lifted away from connector lines. The initial viewport keeps
+cards at a readable scale instead of fitting the whole graph. The inspector overlays the full-width
+canvas rather than compressing it, and Map, Pathway, and Outline share a responsive full-height
+workspace. “Space nodes” reapplies the readable layout; in Edit mode the result is saved as view
+placement, while View mode remains non-destructive.
+
+The remaining phases cover true compound clusters, semantic rendering thresholds, Web Worker
+layout scoring, typed undo/redo, and impact-aware edit dialogs.
 
 ## 1. Outcome
 
