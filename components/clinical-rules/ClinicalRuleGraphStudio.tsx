@@ -7,7 +7,6 @@ import {
   applyNodeChanges,
   Background,
   BackgroundVariant,
-  Controls,
   Handle,
   MarkerType,
   MiniMap,
@@ -26,22 +25,30 @@ import {
 } from "@xyflow/react";
 import {
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
   ChevronRight,
   Copy,
   Download,
-  Expand,
   FileCheck2,
   GitBranch,
+  LayoutGrid,
   LayoutDashboard,
+  ListTree,
+  LocateFixed,
   Maximize2,
+  Network,
+  PanelRightClose,
+  PanelRightOpen,
   Plus,
   Printer,
-  RotateCcw,
   Save,
   Search,
   ShieldAlert,
   Trash2,
+  X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -65,9 +72,17 @@ type FlowNodeData = {
   canonical: GraphNode;
   highlighted: boolean;
   dimmed: boolean;
+  editable: boolean;
 };
 
 type InspectorTab = "display" | "condition" | "outcome" | "safety" | "source" | "layout" | "audit";
+type WorkspaceMode = "MAP" | "PATHWAY" | "OUTLINE";
+type RouteScope = "OFF" | "ANCESTORS" | "DESCENDANTS" | "BOTH";
+
+type GraphSearchResult = {
+  node: GraphNode;
+  view: GraphView;
+};
 
 const NODE_META: Record<GraphNodeType, { label: string; classes: string }> = {
   START: { label: "Start", classes: "border-navy-600 bg-navy-50" },
@@ -95,20 +110,25 @@ const REVIEWER_REQUIREMENTS: ReviewerRequirement[] = [
 
 function RuleNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   const meta = NODE_META[data.canonical.nodeType];
+  const ruleId = data.canonical.linkedRuleIds[0];
+  const reviewLabel = data.canonical.reviewerRequirement === "MANDATORY_CLINICIAN_CONFIRMATION"
+    ? "Confirmation required"
+    : data.canonical.reviewerRequirement.replace(/_/g, " ").toLowerCase();
   return (
     <div
       aria-label={`${meta.label}: ${data.canonical.label}`}
       className={cn(
-        "relative w-[250px] rounded-xl border-2 bg-white px-3 py-3 shadow-sm transition-all",
+        "group relative w-[280px] overflow-hidden rounded-xl border-2 bg-white shadow-sm transition-all",
         meta.classes,
         selected && "ring-4 ring-brand-400/30 shadow-lg",
         data.highlighted && "ring-4 ring-purple-400/25",
         data.dimmed && "opacity-25"
       )}
     >
-      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !border-white !bg-navy-600" />
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 rounded-md bg-white/80 p-1 text-navy-700" aria-hidden>
+      <Handle type="target" position={Position.Left} isConnectable={data.editable} className={cn("!h-3 !w-3 !border-2 !border-white !bg-navy-600 transition-opacity", !data.editable ? "!opacity-0" : !selected && "!opacity-0 group-hover:!opacity-100")} />
+      <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white/70 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="rounded-md bg-white p-1 text-navy-700 shadow-sm" aria-hidden>
           {data.canonical.nodeType === "SAFETY_STOP" ? (
             <ShieldAlert className="h-4 w-4" />
           ) : data.canonical.nodeType === "TERMINAL" ? (
@@ -116,29 +136,24 @@ function RuleNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
           ) : (
             <GitBranch className="h-4 w-4" />
           )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
-              {meta.label}
-            </span>
-            {data.canonical.clinicalRisk === "CRITICAL" && (
-              <span className="rounded-full border border-red-300 bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-800">
-                CRITICAL
-              </span>
-            )}
-          </div>
-          <p className="mt-1 line-clamp-4 text-xs font-semibold leading-4 text-slate-900">
-            {data.canonical.label}
-          </p>
-          {data.canonical.linkedRuleIds.length > 0 && (
-            <p className="mt-2 font-mono text-[10px] text-slate-600">
-              {data.canonical.linkedRuleIds.join(", ")}
-            </p>
-          )}
+          </span>
+          <span className="truncate text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">{meta.label}</span>
+        </div>
+        {ruleId && <span className="shrink-0 font-mono text-[10px] font-semibold text-slate-500">{ruleId}</span>}
+      </div>
+      <div className="px-3 py-3">
+        <p className="line-clamp-3 text-[13px] font-semibold leading-[18px] text-slate-950">{data.canonical.label}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className={cn(
+            "rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+            data.canonical.clinicalRisk === "CRITICAL" ? "border-red-300 bg-red-100 text-red-800" :
+              data.canonical.clinicalRisk === "HIGH" ? "border-amber-300 bg-amber-100 text-amber-900" :
+                "border-slate-200 bg-white/80 text-slate-600"
+          )}>{data.canonical.clinicalRisk}</span>
+          <span className="max-w-[180px] truncate text-[9px] font-medium capitalize text-slate-500">{reviewLabel}</span>
         </div>
       </div>
-      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-brand-600" />
+      <Handle type="source" position={Position.Right} isConnectable={data.editable} className={cn("!h-3 !w-3 !border-2 !border-white !bg-brand-600 transition-opacity", !data.editable ? "!opacity-0" : !selected && "!opacity-0 group-hover:!opacity-100")} />
     </div>
   );
 }
@@ -160,6 +175,7 @@ function createFlowNode(
       canonical,
       highlighted: highlightedIds.has(canonical.stableNodeId),
       dimmed: hasHighlight && !highlightedIds.has(canonical.stableNodeId),
+      editable,
     },
     draggable: editable,
     deletable: false,
@@ -183,6 +199,7 @@ function createFlowEdge(
     id: canonical.stableEdgeId,
     source: canonical.fromNodeId,
     target: canonical.toNodeId,
+    type: "smoothstep",
     label: canonical.label,
     data: { canonical },
     markerEnd: { type: MarkerType.ArrowClosed, color: edgeColour(canonical) },
@@ -194,45 +211,51 @@ function createFlowEdge(
     },
     labelStyle: { fontSize: 10, fontWeight: 600, fill: "#334155" },
     labelBgStyle: { fill: "#ffffff", fillOpacity: 0.88 },
+    interactionWidth: 24,
     reconnectable: true,
   };
 }
 
 function graphAncestorsAndDescendants(
   selectedNodeId: string | null,
-  edges: GraphEdge[]
+  edges: GraphEdge[],
+  scope: RouteScope = "BOTH"
 ): Set<string> {
-  if (!selectedNodeId) return new Set();
+  if (!selectedNodeId || scope === "OFF") return new Set();
   const highlighted = new Set<string>([selectedNodeId]);
 
-  const ancestorNodes = new Set<string>([selectedNodeId]);
-  const ancestorQueue = [selectedNodeId];
-  while (ancestorQueue.length > 0) {
-    const nodeId = ancestorQueue.shift();
-    if (!nodeId) continue;
-    for (const edge of edges) {
-      if (edge.toNodeId !== nodeId) continue;
-      highlighted.add(edge.stableEdgeId);
-      highlighted.add(edge.fromNodeId);
-      if (!ancestorNodes.has(edge.fromNodeId)) {
-        ancestorNodes.add(edge.fromNodeId);
-        ancestorQueue.push(edge.fromNodeId);
+  if (scope === "ANCESTORS" || scope === "BOTH") {
+    const ancestorNodes = new Set<string>([selectedNodeId]);
+    const ancestorQueue = [selectedNodeId];
+    while (ancestorQueue.length > 0) {
+      const nodeId = ancestorQueue.shift();
+      if (!nodeId) continue;
+      for (const edge of edges) {
+        if (edge.toNodeId !== nodeId) continue;
+        highlighted.add(edge.stableEdgeId);
+        highlighted.add(edge.fromNodeId);
+        if (!ancestorNodes.has(edge.fromNodeId)) {
+          ancestorNodes.add(edge.fromNodeId);
+          ancestorQueue.push(edge.fromNodeId);
+        }
       }
     }
   }
 
-  const descendantNodes = new Set<string>([selectedNodeId]);
-  const descendantQueue = [selectedNodeId];
-  while (descendantQueue.length > 0) {
-    const nodeId = descendantQueue.shift();
-    if (!nodeId) continue;
-    for (const edge of edges) {
-      if (edge.fromNodeId !== nodeId) continue;
-      highlighted.add(edge.stableEdgeId);
-      highlighted.add(edge.toNodeId);
-      if (!descendantNodes.has(edge.toNodeId)) {
-        descendantNodes.add(edge.toNodeId);
-        descendantQueue.push(edge.toNodeId);
+  if (scope === "DESCENDANTS" || scope === "BOTH") {
+    const descendantNodes = new Set<string>([selectedNodeId]);
+    const descendantQueue = [selectedNodeId];
+    while (descendantQueue.length > 0) {
+      const nodeId = descendantQueue.shift();
+      if (!nodeId) continue;
+      for (const edge of edges) {
+        if (edge.fromNodeId !== nodeId) continue;
+        highlighted.add(edge.stableEdgeId);
+        highlighted.add(edge.toNodeId);
+        if (!descendantNodes.has(edge.toNodeId)) {
+          descendantNodes.add(edge.toNodeId);
+          descendantQueue.push(edge.toNodeId);
+        }
       }
     }
   }
@@ -270,6 +293,171 @@ function sanitiseGraphExportMarkup(markup: string) {
   return parsed.body.firstElementChild?.innerHTML ?? "";
 }
 
+function riskBadgeVariant(risk: SafetyPriority) {
+  if (risk === "CRITICAL") return "urgent" as const;
+  if (risk === "HIGH") return "high" as const;
+  if (risk === "MEDIUM") return "medium" as const;
+  return "low" as const;
+}
+
+function PathwayMap({
+  snapshot,
+  onOpen,
+}: {
+  snapshot: ClinicalRuleSnapshot;
+  onOpen: (view: GraphView) => void;
+}) {
+  const pathwayViews = useMemo(
+    () => [...snapshot.views]
+      .filter((view) => view.viewType !== "MASTER")
+      .sort((a, b) => a.displayOrder - b.displayOrder),
+    [snapshot.views]
+  );
+  const nodesById = useMemo(
+    () => new Map(snapshot.nodes.map((node) => [node.stableNodeId, node])),
+    [snapshot.nodes]
+  );
+
+  return (
+    <div className="h-[720px] overflow-y-auto bg-slate-50 p-5 sm:p-6">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-brand-700">
+              <LayoutGrid className="h-4 w-4" /> Pathway map
+            </div>
+            <h2 className="mt-2 text-2xl font-bold text-slate-950">Choose a readable pathway</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+              The complete canonical model contains {snapshot.nodes.length} nodes. Open one governed
+              pathway at a time to read and edit it at a useful scale.
+            </p>
+          </div>
+          <Badge variant="info">{pathwayViews.length} synchronized pathway views</Badge>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          {pathwayViews.map((view, index) => {
+            const viewNodes = view.includedNodeIds
+              .map((id) => nodesById.get(id))
+              .filter((node): node is GraphNode => Boolean(node));
+            const ruleCount = new Set(viewNodes.flatMap((node) => node.linkedRuleIds)).size;
+            const criticalCount = viewNodes.filter((node) => node.clinicalRisk === "CRITICAL").length;
+            const reviewCount = viewNodes.filter((node) =>
+              ["CLINICIAN_REVIEW", "MDM_REVIEW", "SPECIALIST_REFERRAL"].includes(node.nodeType)
+            ).length;
+            return (
+              <button
+                key={view.key}
+                type="button"
+                onClick={() => onOpen(view)}
+                className="group flex min-h-52 flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 font-mono text-sm font-bold text-brand-700">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {view.visualSource && <Badge variant="low">Verified</Badge>}
+                    {criticalCount > 0 && <Badge variant="urgent">{criticalCount} critical</Badge>}
+                  </div>
+                </div>
+                <h3 className="mt-4 text-base font-bold leading-6 text-slate-950 group-hover:text-brand-800">
+                  {view.title}
+                </h3>
+                <p className="mt-2 line-clamp-3 text-sm leading-5 text-slate-600">{view.description}</p>
+                <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-4 text-xs text-slate-600">
+                  <span>{ruleCount} rules</span>
+                  <span>{viewNodes.length} nodes</span>
+                  <span>{reviewCount} review points</span>
+                  <span className="ml-auto inline-flex items-center gap-1 font-semibold text-brand-700">
+                    Open pathway <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GraphOutline({
+  nodes,
+  edges,
+  selectedNodeId,
+  onSelect,
+}: {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  selectedNodeId: string | null;
+  onSelect: (nodeId: string) => void;
+}) {
+  const incomingByNode = useMemo(() => {
+    const result = new Map<string, GraphEdge[]>();
+    for (const edge of edges) {
+      const current = result.get(edge.toNodeId) ?? [];
+      current.push(edge);
+      result.set(edge.toNodeId, current);
+    }
+    return result;
+  }, [edges]);
+
+  return (
+    <div className="h-[720px] overflow-auto bg-slate-50 p-4 sm:p-5">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[920px] text-left text-xs">
+          <thead className="sticky top-0 z-10 bg-navy-800 text-white">
+            <tr>
+              <th className="w-28 px-4 py-3">Type</th>
+              <th className="px-4 py-3">Clinical node</th>
+              <th className="w-64 px-4 py-3">Incoming branch</th>
+              <th className="w-32 px-4 py-3">Safety</th>
+              <th className="w-44 px-4 py-3">Review</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {nodes.map((node) => {
+              const incoming = incomingByNode.get(node.stableNodeId) ?? [];
+              return (
+                <tr
+                  key={node.stableNodeId}
+                  className={cn(
+                    "cursor-pointer align-top transition hover:bg-brand-50/60",
+                    selectedNodeId === node.stableNodeId && "bg-brand-50 ring-1 ring-inset ring-brand-300"
+                  )}
+                  onClick={() => onSelect(node.stableNodeId)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onSelect(node.stableNodeId);
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-selected={selectedNodeId === node.stableNodeId}
+                >
+                  <td className="px-4 py-3 font-semibold text-slate-600">{NODE_META[node.nodeType].label}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-semibold leading-5 text-slate-950">{node.label}</div>
+                    <div className="mt-1 font-mono text-[10px] text-slate-500">
+                      {node.linkedRuleIds.join(", ") || node.stableNodeId}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 leading-5 text-slate-600">
+                    {incoming.length > 0 ? incoming.map((edge) => edge.label).join("; ") : "Pathway entry"}
+                  </td>
+                  <td className="px-4 py-3"><Badge variant={riskBadgeVariant(node.clinicalRisk)}>{node.clinicalRisk}</Badge></td>
+                  <td className="px-4 py-3 leading-5 text-slate-600">{node.reviewerRequirement.replace(/_/g, " ")}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function ClinicalRuleGraphStudioInner({
   versionId,
   initialSnapshot,
@@ -291,26 +479,37 @@ function ClinicalRuleGraphStudioInner({
   const [currentViewKey, setCurrentViewKey] = useState(
     initialSnapshot.views.find((view) => view.viewType === "MASTER")?.key ?? initialSnapshot.views[0]!.key
   );
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("MAP");
+  const [authoringMode, setAuthoringMode] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("display");
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [highlightBranch, setHighlightBranch] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [pendingFocusNodeId, setPendingFocusNodeId] = useState<string | null>(null);
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [routeScope, setRouteScope] = useState<RouteScope>("BOTH");
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
   const [exporting, setExporting] = useState<"svg" | "png" | null>(null);
   const [auditEvents, setAuditEvents] = useState<Array<Record<string, unknown>>>([]);
-  const { fitView, setCenter } = useReactFlow();
+  const { fitView, setCenter, zoomIn, zoomOut } = useReactFlow();
+  const editingEnabled = editable && authoringMode;
 
   const currentView =
     snapshot.views.find((view) => view.key === currentViewKey) ?? snapshot.views[0]!;
+  const pathwayViews = useMemo(
+    () => [...snapshot.views]
+      .filter((view) => view.viewType !== "MASTER")
+      .sort((a, b) => a.displayOrder - b.displayOrder),
+    [snapshot.views]
+  );
+  const activePathwayView = currentView.viewType === "MASTER" ? pathwayViews[0]! : currentView;
   const visibleNodeIds = useMemo(() => {
-    if (!collapsed) return new Set(currentView.includedNodeIds);
-    return new Set(
-      currentView.includedNodeIds.filter((id) => id === "node:root" || id.startsWith("node:section:"))
-    );
-  }, [collapsed, currentView]);
+    if (workspaceMode === "MAP") return new Set<string>();
+    return new Set(currentView.includedNodeIds);
+  }, [currentView, workspaceMode]);
   const visibleEdges = useMemo(
     () =>
       snapshot.edges.filter(
@@ -322,8 +521,8 @@ function ClinicalRuleGraphStudioInner({
     [currentView, snapshot.edges, visibleNodeIds]
   );
   const highlightedIds = useMemo(
-    () => (highlightBranch ? graphAncestorsAndDescendants(selectedNodeId, visibleEdges) : new Set<string>()),
-    [highlightBranch, selectedNodeId, visibleEdges]
+    () => graphAncestorsAndDescendants(selectedNodeId, visibleEdges, routeScope),
+    [routeScope, selectedNodeId, visibleEdges]
   );
   const hasHighlight = highlightedIds.size > 0;
 
@@ -332,8 +531,8 @@ function ClinicalRuleGraphStudioInner({
     [snapshot.nodes, visibleNodeIds]
   );
   const baseNodes = useMemo(
-    () => canonicalNodes.map((node) => createFlowNode(node, currentView, highlightedIds, hasHighlight, editable)),
-    [canonicalNodes, currentView, editable, hasHighlight, highlightedIds]
+    () => canonicalNodes.map((node) => createFlowNode(node, currentView, highlightedIds, hasHighlight, editingEnabled)),
+    [canonicalNodes, currentView, editingEnabled, hasHighlight, highlightedIds]
   );
   const baseEdges = useMemo(
     () => visibleEdges.map((edge) => createFlowEdge(edge, highlightedIds, hasHighlight)),
@@ -347,14 +546,91 @@ function ClinicalRuleGraphStudioInner({
   useEffect(() => {
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
-    requestAnimationFrame(() => fitView({ padding: currentView.fitViewPadding, duration: 350 }));
-  }, [currentView.fitViewPadding, currentView.key, fitView]);
+    setInspectorOpen(false);
+  }, [currentView.key]);
+  useEffect(() => {
+    if (workspaceMode !== "PATHWAY" || canonicalNodes.length === 0 || pendingFocusNodeId) return;
+    const incomingNodeIds = new Set(visibleEdges.map((edge) => edge.toNodeId));
+    const entryNode = canonicalNodes.find((node) => !incomingNodeIds.has(node.stableNodeId)) ?? canonicalNodes[0]!;
+    const targetNode = selectedNodeId
+      ? canonicalNodes.find((node) => node.stableNodeId === selectedNodeId) ?? entryNode
+      : entryNode;
+    const position = currentView.layout[targetNode.stableNodeId] ?? { x: 0, y: 0 };
+    const zoom = selectedNodeId ? 1.05 : Math.max(0.8, Math.min(1, currentView.defaultZoom));
+    const frame = requestAnimationFrame(() => {
+      setCenter(position.x + 140, position.y + 65, { zoom, duration: 350 });
+      setZoomPercent(Math.round(zoom * 100));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [canonicalNodes, currentView.defaultZoom, currentView.layout, pendingFocusNodeId, selectedNodeId, setCenter, visibleEdges, workspaceMode]);
 
   const selectedNode = snapshot.nodes.find((node) => node.stableNodeId === selectedNodeId) ?? null;
   const selectedEdge = snapshot.edges.find((edge) => edge.stableEdgeId === selectedEdgeId) ?? null;
   const linkedRule = selectedNode?.linkedRuleIds[0]
     ? snapshot.rules.find((rule) => rule.stableRuleId === selectedNode.linkedRuleIds[0]) ?? null
     : null;
+  const searchResults = useMemo<GraphSearchResult[]>(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return [];
+    const pathwayViews = [...snapshot.views]
+      .filter((view) => view.viewType !== "MASTER")
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    const results: GraphSearchResult[] = [];
+    for (const node of snapshot.nodes) {
+      const haystack = [
+        node.label,
+        node.shortLabel,
+        node.description,
+        node.nodeType,
+        node.clinicalRisk,
+        node.reviewerRequirement,
+        ...node.linkedRuleIds,
+        ...node.sourceReferences.flatMap((source) => [source.document, source.reference]),
+      ].join(" ").toLowerCase();
+      if (!haystack.includes(query)) continue;
+      const view = pathwayViews.find((candidate) => candidate.includedNodeIds.includes(node.stableNodeId));
+      if (view) results.push({ node, view });
+      if (results.length === 10) break;
+    }
+    return results;
+  }, [search, snapshot.nodes, snapshot.views]);
+
+  const selectNode = useCallback((nodeId: string) => {
+    setSelectedNodeId(nodeId);
+    setSelectedEdgeId(null);
+    setInspectorOpen(true);
+  }, []);
+
+  const openPathway = useCallback((view: GraphView, mode: WorkspaceMode = "PATHWAY") => {
+    setCurrentViewKey(view.key);
+    setWorkspaceMode(mode);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    setInspectorOpen(false);
+  }, []);
+
+  const openSearchResult = useCallback((result: GraphSearchResult) => {
+    setCurrentViewKey(result.view.key);
+    setWorkspaceMode("PATHWAY");
+    setSelectedEdgeId(null);
+    setSearchOpen(false);
+    setPendingFocusNodeId(result.node.stableNodeId);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingFocusNodeId || workspaceMode !== "PATHWAY") return;
+    const position = currentView.layout[pendingFocusNodeId];
+    if (!position) return;
+    const frame = requestAnimationFrame(() => {
+      setSelectedNodeId(pendingFocusNodeId);
+      setSelectedEdgeId(null);
+      setCenter(position.x + 140, position.y + 65, { zoom: 1.05, duration: 450 });
+      setZoomPercent(105);
+      setInspectorOpen(true);
+      setPendingFocusNodeId(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [currentView.layout, pendingFocusNodeId, setCenter, workspaceMode]);
 
   const updateSnapshot = useCallback((updater: (current: ClinicalRuleSnapshot) => ClinicalRuleSnapshot) => {
     dirtyRef.current = true;
@@ -454,18 +730,18 @@ function ClinicalRuleGraphStudioInner({
   );
   const onNodeDragStop = useCallback(
     (_event: MouseEvent | TouchEvent, node: Node<FlowNodeData>) => {
-      if (!editable) return;
+      if (!editingEnabled) return;
       updateSnapshot((next) => {
         const view = next.views.find((candidate) => candidate.key === currentViewKey);
         if (view) view.layout[node.id] = node.position;
         return next;
       });
     },
-    [currentViewKey, editable, updateSnapshot]
+    [currentViewKey, editingEnabled, updateSnapshot]
   );
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (!editable || !connection.source || !connection.target) return;
+      if (!editingEnabled || !connection.source || !connection.target) return;
       const id = `edge:local:${crypto.randomUUID()}`;
       const canonical: GraphEdge = {
         stableEdgeId: id,
@@ -494,19 +770,19 @@ function ClinicalRuleGraphStudioInner({
       setSelectedEdgeId(id);
       setSelectedNodeId(null);
     },
-    [currentViewKey, editable, updateSnapshot]
+    [currentViewKey, editingEnabled, updateSnapshot]
   );
   const onReconnect = useCallback(
     (oldEdge: Edge<{ canonical: GraphEdge }>, connection: Connection) => {
-      if (!editable || !connection.source || !connection.target) return;
+      if (!editingEnabled || !connection.source || !connection.target) return;
       setEdges((current) => reconnectEdge(oldEdge, connection, current));
       mutateEdge(oldEdge.id, { fromNodeId: connection.source, toNodeId: connection.target });
     },
-    [editable, mutateEdge]
+    [editingEnabled, mutateEdge]
   );
 
   const addNodeToView = useCallback(() => {
-    if (!editable) return;
+    if (!editingEnabled) return;
     const id = `node:local:${crypto.randomUUID()}`;
     const canonical: GraphNode = {
       stableNodeId: id,
@@ -537,10 +813,10 @@ function ClinicalRuleGraphStudioInner({
     });
     setSelectedNodeId(id);
     setSelectedEdgeId(null);
-  }, [currentViewKey, editable, updateSnapshot]);
+  }, [currentViewKey, editingEnabled, updateSnapshot]);
 
   const duplicateSelectedNode = useCallback(() => {
-    if (!editable || !selectedNode) return;
+    if (!editingEnabled || !selectedNode) return;
     const id = `node:local:${crypto.randomUUID()}`;
     const duplicate: GraphNode = {
       ...structuredClone(selectedNode),
@@ -566,10 +842,10 @@ function ClinicalRuleGraphStudioInner({
       return next;
     });
     setSelectedNodeId(id);
-  }, [currentViewKey, editable, selectedNode, updateSnapshot]);
+  }, [currentViewKey, editingEnabled, selectedNode, updateSnapshot]);
 
   const deleteSelectedNode = useCallback(() => {
-    if (!editable || !selectedNode) return;
+    if (!editingEnabled || !selectedNode) return;
     const connected = snapshot.edges.some(
       (edge) => edge.fromNodeId === selectedNode.stableNodeId || edge.toNodeId === selectedNode.stableNodeId
     );
@@ -586,10 +862,10 @@ function ClinicalRuleGraphStudioInner({
       return next;
     });
     setSelectedNodeId(null);
-  }, [editable, selectedNode, snapshot.edges, updateSnapshot]);
+  }, [editingEnabled, selectedNode, snapshot.edges, updateSnapshot]);
 
   const deleteSelectedEdge = useCallback(() => {
-    if (!editable || !selectedEdge) return;
+    if (!editingEnabled || !selectedEdge) return;
     updateSnapshot((next) => {
       next.edges = next.edges.filter((edge) => edge.stableEdgeId !== selectedEdge.stableEdgeId);
       for (const view of next.views) {
@@ -598,9 +874,10 @@ function ClinicalRuleGraphStudioInner({
       return next;
     });
     setSelectedEdgeId(null);
-  }, [editable, selectedEdge, updateSnapshot]);
+  }, [editingEnabled, selectedEdge, updateSnapshot]);
 
   const autoLayout = useCallback(async (scope: "VIEW" | "BRANCH" = "VIEW") => {
+    if (!editingEnabled) return;
     const layoutNodes = scope === "BRANCH"
       ? nodes.filter((node) => highlightedIds.has(node.id))
       : nodes;
@@ -618,11 +895,18 @@ function ClinicalRuleGraphStudioInner({
       id: "root",
       layoutOptions: {
         "elk.algorithm": "layered",
-        "elk.direction": "RIGHT",
-        "elk.spacing.nodeNode": "60",
-        "elk.layered.spacing.nodeNodeBetweenLayers": "110",
+        "elk.direction": "DOWN",
+        "elk.edgeRouting": "ORTHOGONAL",
+        "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+        "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+        "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
+        "elk.spacing.nodeNode": "44",
+        "elk.spacing.edgeNode": "28",
+        "elk.layered.spacing.nodeNodeBetweenLayers": "82",
+        "elk.layered.spacing.edgeEdgeBetweenLayers": "20",
+        "elk.separateConnectedComponents": "true",
       },
-      children: layoutNodes.map((node) => ({ id: node.id, width: 250, height: 120 })),
+      children: layoutNodes.map((node) => ({ id: node.id, width: 280, height: 130 })),
       edges: layoutEdges.map((edge) => ({ id: edge.id, sources: [edge.source], targets: [edge.target] })),
     });
     updateSnapshot((next) => {
@@ -635,32 +919,20 @@ function ClinicalRuleGraphStudioInner({
     if (scope === "VIEW") {
       requestAnimationFrame(() => fitView({ padding: 0.15, duration: 450 }));
     }
-  }, [currentViewKey, edges, fitView, highlightedIds, nodes, updateSnapshot]);
+  }, [currentViewKey, edges, editingEnabled, fitView, highlightedIds, nodes, updateSnapshot]);
 
   const focusSearchResult = useCallback(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return;
-    const found = canonicalNodes.find((node) =>
-      [
-        node.label,
-        node.shortLabel,
-        node.description,
-        ...node.linkedRuleIds,
-        ...node.sourceReferences.flatMap((source) => [source.document, source.reference]),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
-    );
-    if (!found) {
-      toast.error("No matching node, rule ID, or source reference in this view.");
+    if (!search.trim()) {
+      setSearchOpen(true);
       return;
     }
-    const position = currentView.layout[found.stableNodeId] ?? { x: 0, y: 0 };
-    setSelectedNodeId(found.stableNodeId);
-    setSelectedEdgeId(null);
-    setCenter(position.x + 125, position.y + 60, { zoom: 1.2, duration: 450 });
-  }, [canonicalNodes, currentView.layout, search, setCenter]);
+    const first = searchResults[0];
+    if (!first) {
+      toast.error("No matching node, rule ID, or source reference.");
+      return;
+    }
+    openSearchResult(first);
+  }, [openSearchResult, search, searchResults]);
 
   const exportCurrentView = useCallback(
     async (format: "svg" | "png") => {
@@ -755,7 +1027,7 @@ function ClinicalRuleGraphStudioInner({
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-200">
               <span>{snapshot.rules.length} rules</span><span>·</span><span>{snapshot.nodes.length} nodes</span><span>·</span><span>{snapshot.views.length} synchronized views</span><span>·</span><span>revision {revision}</span>
-              {!editable && <Badge variant="info">Read only</Badge>}
+              <Badge variant={authoringMode ? "high" : "info"}>{editable ? (authoringMode ? "Edit mode" : "View mode") : "Read only"}</Badge>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -765,40 +1037,145 @@ function ClinicalRuleGraphStudioInner({
                 <Button size="sm" variant="warning" onClick={() => void validateDraft()} loading={validating} icon={<FileCheck2 className="h-4 w-4" />}>Validate</Button>
               </>
             )}
-            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("svg")} loading={exporting === "svg"} disabled={exporting !== null} icon={<Download className="h-4 w-4" />}>SVG</Button>
-            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("png")} loading={exporting === "png"} disabled={exporting !== null} icon={<Download className="h-4 w-4" />}>PNG</Button>
+            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("svg")} loading={exporting === "svg"} disabled={exporting !== null || workspaceMode !== "PATHWAY"} icon={<Download className="h-4 w-4" />}>SVG</Button>
+            <Button size="sm" variant="outline" onClick={() => void exportCurrentView("png")} loading={exporting === "png"} disabled={exporting !== null || workspaceMode !== "PATHWAY"} icon={<Download className="h-4 w-4" />}>PNG</Button>
             <Button size="icon" variant="outline" aria-label="Print current view" onClick={() => window.print()}><Printer className="h-4 w-4" /></Button>
             <Button size="icon" variant="outline" aria-label="Open full screen" onClick={() => void openFullscreen()}><Maximize2 className="h-4 w-4" /></Button>
           </div>
         </div>
       </div>
 
-      <div className="flex min-h-0 border-b border-border bg-slate-50 px-3 py-2">
-        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
-          {[...snapshot.views].sort((a, b) => a.displayOrder - b.displayOrder).map((view) => (
+      <div className="relative z-20 flex flex-wrap items-center gap-3 border-b border-border bg-white px-3 py-2.5">
+        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Graph workspace mode">
+          {([
+            { mode: "MAP" as const, label: "Map", icon: <LayoutGrid className="h-3.5 w-3.5" /> },
+            { mode: "PATHWAY" as const, label: "Pathway", icon: <Network className="h-3.5 w-3.5" /> },
+            { mode: "OUTLINE" as const, label: "Outline", icon: <ListTree className="h-3.5 w-3.5" /> },
+          ]).map((item) => (
             <button
-              key={view.key}
-              onClick={() => setCurrentViewKey(view.key)}
+              key={item.mode}
+              type="button"
+              role="tab"
+              aria-selected={workspaceMode === item.mode}
+              onClick={() => {
+                if (item.mode === "MAP") {
+                  setWorkspaceMode("MAP");
+                  setInspectorOpen(false);
+                  return;
+                }
+                setCurrentViewKey(activePathwayView.key);
+                setWorkspaceMode(item.mode);
+              }}
               className={cn(
-                "whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-semibold transition",
-                currentView.key === view.key
-                  ? "border-brand-600 bg-brand-600 text-white"
-                  : "border-border bg-white text-slate-700 hover:border-brand-300"
+                "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition",
+                workspaceMode === item.mode ? "bg-white text-brand-800 shadow-sm ring-1 ring-slate-200" : "text-slate-600 hover:text-slate-950"
               )}
             >
-              {view.viewType === "MASTER" ? "Master tree" : view.title}
+              {item.icon}{item.label}
             </button>
           ))}
         </div>
+
+        <div className="flex min-w-0 flex-1 items-center gap-1 text-xs text-slate-500">
+          <button type="button" className="shrink-0 font-semibold hover:text-brand-700" onClick={() => setWorkspaceMode("MAP")}>All pathways</button>
+          {workspaceMode !== "MAP" && (
+            <>
+              <ChevronRight className="h-3 w-3 shrink-0" />
+              <select
+                aria-label="Current clinical pathway"
+                value={activePathwayView.key}
+                onChange={(event) => {
+                  const view = pathwayViews.find((candidate) => candidate.key === event.target.value);
+                  if (view) openPathway(view, workspaceMode);
+                }}
+                className="min-w-0 max-w-[360px] truncate rounded-md border border-transparent bg-transparent px-1 py-1 font-semibold text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400"
+              >
+                {pathwayViews.map((view) => <option key={view.key} value={view.key}>{view.title}</option>)}
+              </select>
+            </>
+          )}
+        </div>
+
+        {editable && (
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" aria-label="Authoring mode">
+            <button
+              type="button"
+              aria-pressed={!authoringMode}
+              onClick={() => setAuthoringMode(false)}
+              className={cn("h-7 rounded-md px-2.5 text-[11px] font-semibold", !authoringMode ? "bg-white text-slate-950 shadow-sm" : "text-slate-500")}
+            >
+              View
+            </button>
+            <button
+              type="button"
+              aria-pressed={authoringMode}
+              onClick={() => setAuthoringMode(true)}
+              className={cn("h-7 rounded-md px-2.5 text-[11px] font-semibold", authoringMode ? "bg-amber-100 text-amber-950 shadow-sm" : "text-slate-500")}
+            >
+              Edit
+            </button>
+          </div>
+        )}
+
+        <div className="relative w-full sm:w-[360px]">
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input
+            value={search}
+            onFocus={() => setSearchOpen(true)}
+            onChange={(event) => { setSearch(event.target.value); setSearchOpen(true); }}
+            onKeyDown={(event) => event.key === "Enter" && focusSearchResult()}
+            placeholder="Search every pathway, rule or source…"
+            aria-label="Search all clinical pathways"
+            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-xs text-slate-950 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-500/20"
+          />
+          {search && (
+            <button type="button" aria-label="Clear search" onClick={() => { setSearch(""); setSearchOpen(false); }} className="absolute right-2 top-2 rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          {searchOpen && search.trim() && (
+            <div className="absolute right-0 top-11 z-40 max-h-[420px] w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl sm:w-[520px]">
+              {searchResults.length === 0 ? (
+                <p className="px-3 py-6 text-center text-xs text-slate-500">No matching rule, node, or source.</p>
+              ) : searchResults.map((result) => (
+                <button
+                  key={`${result.view.key}-${result.node.stableNodeId}`}
+                  type="button"
+                  onClick={() => openSearchResult(result)}
+                  className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  <span className="mt-0.5 rounded-md bg-slate-100 p-1.5 text-brand-700"><GitBranch className="h-3.5 w-3.5" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold leading-5 text-slate-950">{result.node.label}</span>
+                    <span className="mt-0.5 block truncate text-[11px] text-slate-500">
+                      {result.node.linkedRuleIds.join(", ") || NODE_META[result.node.nodeType].label} · {result.view.title}
+                    </span>
+                  </span>
+                  <Badge variant={riskBadgeVariant(result.node.clinicalRisk)}>{result.node.clinicalRisk}</Badge>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="grid min-h-[720px] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div className={cn("relative grid min-h-[720px] grid-cols-1", inspectorOpen && workspaceMode !== "MAP" && "xl:grid-cols-[minmax(0,1fr)_390px]")}>
         <p id="clinical-graph-summary" className="sr-only" aria-live="polite">
           {currentView.title}. {nodes.length} visible nodes and {edges.length} visible edges.
           {selectedNode ? ` Selected node ${selectedNode.shortLabel}.` : " No node selected."}
           {selectedEdge ? ` Selected edge ${selectedEdge.label}.` : ""}
           Use Tab to move through graph elements and Enter or Space to select one.
         </p>
+        {workspaceMode === "MAP" ? (
+          <PathwayMap snapshot={snapshot} onOpen={openPathway} />
+        ) : workspaceMode === "OUTLINE" ? (
+          <GraphOutline
+            nodes={canonicalNodes}
+            edges={visibleEdges}
+            selectedNodeId={selectedNodeId}
+            onSelect={selectNode}
+          />
+        ) : (
         <div ref={flowRef} className="relative h-[720px] min-h-[720px] w-full bg-slate-50 print:h-[900px] print:min-h-[900px]">
           <ReactFlow
             nodes={nodes}
@@ -809,8 +1186,9 @@ function ClinicalRuleGraphStudioInner({
             onNodeDragStop={onNodeDragStop}
             onConnect={onConnect}
             onReconnect={onReconnect}
-            onNodeClick={(_event, node) => { setSelectedNodeId(node.id); setSelectedEdgeId(null); }}
-            onEdgeClick={(_event, edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(null); }}
+            onNodeClick={(_event, node) => selectNode(node.id)}
+            onEdgeClick={(_event, edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(null); setInspectorOpen(true); }}
+            onMove={(_event, viewport) => setZoomPercent(Math.round(viewport.zoom * 100))}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 const target = event.target as HTMLElement;
@@ -818,28 +1196,26 @@ function ClinicalRuleGraphStudioInner({
                 const edge = target.closest<HTMLElement>(".react-flow__edge[data-id]");
                 if (node?.dataset.id) {
                   event.preventDefault();
-                  setSelectedNodeId(node.dataset.id);
-                  setSelectedEdgeId(null);
+                  selectNode(node.dataset.id);
                 } else if (edge?.dataset.id) {
                   event.preventDefault();
                   setSelectedEdgeId(edge.dataset.id);
                   setSelectedNodeId(null);
+                  setInspectorOpen(true);
                 }
               }
             }}
-            onPaneClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); }}
+            onPaneClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); setInspectorOpen(false); }}
             minZoom={currentView.minimumZoom}
             maxZoom={currentView.maximumZoom}
-            fitView
-            fitViewOptions={{ padding: currentView.fitViewPadding }}
-            nodesConnectable={editable}
+            nodesConnectable={editingEnabled}
+            edgesReconnectable={editingEnabled}
             elementsSelectable
             proOptions={{ hideAttribution: true }}
             aria-label={`${currentView.title} interactive clinical rule graph`}
             aria-describedby="clinical-graph-summary"
           >
             <Background variant={BackgroundVariant.Dots} gap={18} size={1.2} color="#cbd5e1" />
-            <Controls showInteractive position="bottom-left" />
             <MiniMap
               pannable
               zoomable
@@ -849,26 +1225,23 @@ function ClinicalRuleGraphStudioInner({
                 return category === "RED" ? "#dc2626" : category === "GREEN" ? "#16a34a" : category === "PURPLE" ? "#7c3aed" : category === "AMBER" ? "#d97706" : "#0f766e";
               }}
             />
-            <Panel position="top-left" className="m-3 rounded-xl border border-border bg-white/95 p-2 shadow-lg backdrop-blur">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative w-[280px] max-w-[45vw]">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    onKeyDown={(event) => event.key === "Enter" && focusSearchResult()}
-                    placeholder="Node, rule ID, source reference…"
-                    aria-label="Search the current graph"
-                    className="h-9 w-full rounded-lg border border-border bg-white pl-8 pr-3 text-xs outline-none focus:ring-2 focus:ring-brand-500"
-                  />
-                </div>
-                <Button size="sm" variant="outline" onClick={focusSearchResult}>Find</Button>
-                <Button size="sm" variant={collapsed ? "secondary" : "outline"} onClick={() => setCollapsed((value) => !value)} icon={<Expand className="h-4 w-4" />}>
-                  {collapsed ? "Expand clusters" : "Collapse clusters"}
-                </Button>
-                <Button size="sm" variant={highlightBranch ? "secondary" : "outline"} onClick={() => setHighlightBranch((value) => !value)}>Highlight routes</Button>
-                <Button size="sm" variant="outline" onClick={() => fitView({ padding: currentView.fitViewPadding, duration: 350 })} icon={<RotateCcw className="h-4 w-4" />}>Reset view</Button>
-                {editable && (
+            <Panel position="top-left" className="m-3 max-w-[calc(100%-24px)] rounded-xl border border-border bg-white/95 p-2 shadow-lg backdrop-blur">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button size="icon" variant="ghost" aria-label="Zoom out" title="Zoom out" onClick={() => void zoomOut({ duration: 160 })}><ZoomOut className="h-4 w-4" /></Button>
+                <span className="min-w-12 text-center font-mono text-[11px] font-semibold text-slate-600" aria-live="polite">{zoomPercent}%</span>
+                <Button size="icon" variant="ghost" aria-label="Zoom in" title="Zoom in" onClick={() => void zoomIn({ duration: 160 })}><ZoomIn className="h-4 w-4" /></Button>
+                <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden />
+                <Button size="sm" variant="outline" onClick={() => fitView({ padding: currentView.fitViewPadding, duration: 350 })} icon={<LocateFixed className="h-4 w-4" />}>Fit pathway</Button>
+                <label className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-600">
+                  Route
+                  <select value={routeScope} onChange={(event) => setRouteScope(event.target.value as RouteScope)} className="bg-transparent text-[11px] font-semibold text-slate-900 outline-none">
+                    <option value="OFF">Off</option>
+                    <option value="ANCESTORS">Path to here</option>
+                    <option value="DESCENDANTS">Next steps</option>
+                    <option value="BOTH">Both directions</option>
+                  </select>
+                </label>
+                {editingEnabled && (
                   <>
                     <Button size="sm" variant="outline" onClick={addNodeToView} icon={<Plus className="h-4 w-4" />}>Node</Button>
                     {selectedNode && <Button size="sm" variant="outline" onClick={() => void autoLayout("BRANCH")} icon={<LayoutDashboard className="h-4 w-4" />}>Layout branch</Button>}
@@ -878,15 +1251,22 @@ function ClinicalRuleGraphStudioInner({
               </div>
             </Panel>
             <Panel position="bottom-center" className="mb-3 rounded-full border border-border bg-white/95 px-4 py-2 text-[11px] text-slate-600 shadow">
-              Navy router · Teal decision · Amber review/non-executable · Purple specialist/MDM · Red urgent safety · Cyan repeat · Green terminal
+              {nodes.length} nodes · {edges.length} branches · Select a node for governed detail
             </Panel>
           </ReactFlow>
         </div>
+        )}
 
+        {inspectorOpen && workspaceMode !== "MAP" && (
         <aside className="min-h-0 border-l border-border bg-white xl:max-h-[820px] xl:overflow-y-auto">
           <div className="sticky top-0 z-10 border-b border-border bg-white px-4 py-3">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <span>{currentView.title}</span><ChevronRight className="h-3 w-3" /><span className="truncate font-semibold text-foreground">{selectedNode?.shortLabel ?? selectedEdge?.label ?? "Select a node or edge"}</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span className="truncate">{currentView.title}</span><ChevronRight className="h-3 w-3 shrink-0" /><span className="truncate font-semibold text-foreground">{selectedNode?.shortLabel ?? selectedEdge?.label ?? "Select a node or edge"}</span>
+              </div>
+              <button type="button" aria-label="Close inspector" title="Close inspector" onClick={() => setInspectorOpen(false)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+                <PanelRightClose className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
@@ -912,28 +1292,28 @@ function ClinicalRuleGraphStudioInner({
               <div className="space-y-4 p-4">
                 {inspectorTab === "display" && selectedNode && (
                   <>
-                    <Select label="Node type" value={selectedNode.nodeType} disabled={!editable} onChange={(event) => mutateNode(selectedNode.stableNodeId, { nodeType: event.target.value as GraphNodeType })} options={NODE_TYPES.map((type) => ({ value: type, label: NODE_META[type].label }))} />
-                    <Textarea label="Node label" rows={4} value={selectedNode.label} disabled={!editable} onChange={(event) => mutateNode(selectedNode.stableNodeId, { label: event.target.value })} />
-                    <Input label="Short label" value={selectedNode.shortLabel} disabled={!editable} onChange={(event) => mutateNode(selectedNode.stableNodeId, { shortLabel: event.target.value })} />
-                    <Textarea label="Explanatory text" rows={5} value={selectedNode.description} disabled={!editable} onChange={(event) => mutateNode(selectedNode.stableNodeId, { description: event.target.value })} />
+                    <Select label="Node type" value={selectedNode.nodeType} disabled={!editingEnabled} onChange={(event) => mutateNode(selectedNode.stableNodeId, { nodeType: event.target.value as GraphNodeType })} options={NODE_TYPES.map((type) => ({ value: type, label: NODE_META[type].label }))} />
+                    <Textarea label="Node label" rows={4} value={selectedNode.label} disabled={!editingEnabled} onChange={(event) => mutateNode(selectedNode.stableNodeId, { label: event.target.value })} />
+                    <Input label="Short label" value={selectedNode.shortLabel} disabled={!editingEnabled} onChange={(event) => mutateNode(selectedNode.stableNodeId, { shortLabel: event.target.value })} />
+                    <Textarea label="Explanatory text" rows={5} value={selectedNode.description} disabled={!editingEnabled} onChange={(event) => mutateNode(selectedNode.stableNodeId, { description: event.target.value })} />
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" disabled={!editable} onClick={duplicateSelectedNode} icon={<Copy className="h-4 w-4" />}>Duplicate</Button>
-                      <Button size="sm" variant="danger" disabled={!editable} onClick={deleteSelectedNode} icon={<Trash2 className="h-4 w-4" />}>Delete unused</Button>
+                      <Button size="sm" variant="outline" disabled={!editingEnabled} onClick={duplicateSelectedNode} icon={<Copy className="h-4 w-4" />}>Duplicate</Button>
+                      <Button size="sm" variant="danger" disabled={!editingEnabled} onClick={deleteSelectedNode} icon={<Trash2 className="h-4 w-4" />}>Delete unused</Button>
                     </div>
                   </>
                 )}
                 {inspectorTab === "display" && selectedEdge && (
                   <>
-                    <Input label="Branch label" value={selectedEdge.label} disabled={!editable} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { label: event.target.value })} />
+                    <Input label="Branch label" value={selectedEdge.label} disabled={!editingEnabled} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { label: event.target.value })} />
                     <Input label="Stable edge ID" value={selectedEdge.stableEdgeId} disabled />
-                    <Button size="sm" variant="danger" disabled={!editable} onClick={deleteSelectedEdge} icon={<Trash2 className="h-4 w-4" />}>Delete edge</Button>
+                    <Button size="sm" variant="danger" disabled={!editingEnabled} onClick={deleteSelectedEdge} icon={<Trash2 className="h-4 w-4" />}>Delete edge</Button>
                   </>
                 )}
 
                 {inspectorTab === "condition" && (
                   <ConditionEditor
                     expression={selectedEdge?.conditionExpression ?? linkedRule?.conditionExpression}
-                    editable={editable}
+                    editable={editingEnabled}
                     sourceText={linkedRule?.sourceConditionText}
                     onChange={(expression) => {
                       if (selectedEdge) mutateEdge(selectedEdge.stableEdgeId, { conditionExpression: expression });
@@ -944,39 +1324,42 @@ function ClinicalRuleGraphStudioInner({
 
                 {inspectorTab === "outcome" && selectedNode && (
                   <>
-                    <Textarea label="Provisional outcome" rows={6} disabled={!editable} value={selectedNode.provisionalOutcome ?? linkedRule?.provisionalOutcome ?? ""} onChange={(event) => mutateNode(selectedNode.stableNodeId, { provisionalOutcome: event.target.value, ...(selectedNode.stableNodeId.startsWith("node:outcome:") ? { label: event.target.value } : {}) })} />
-                    <Textarea label="Timing / destination" rows={3} disabled={!editable} value={selectedNode.timingDestination ?? linkedRule?.timingDestination ?? ""} onChange={(event) => mutateNode(selectedNode.stableNodeId, { timingDestination: event.target.value })} />
+                    <Textarea label="Provisional outcome" rows={6} disabled={!editingEnabled} value={selectedNode.provisionalOutcome ?? linkedRule?.provisionalOutcome ?? ""} onChange={(event) => mutateNode(selectedNode.stableNodeId, { provisionalOutcome: event.target.value, ...(selectedNode.stableNodeId.startsWith("node:outcome:") ? { label: event.target.value } : {}) })} />
+                    <Textarea label="Timing / destination" rows={3} disabled={!editingEnabled} value={selectedNode.timingDestination ?? linkedRule?.timingDestination ?? ""} onChange={(event) => mutateNode(selectedNode.stableNodeId, { timingDestination: event.target.value })} />
                     <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">All outcomes remain provisional and require reviewer confirmation.</p>
                   </>
                 )}
 
                 {inspectorTab === "safety" && selectedNode && (
                   <>
-                    <Select label="Safety priority" value={selectedNode.clinicalRisk} disabled={!editable} onChange={(event) => mutateNode(selectedNode.stableNodeId, { clinicalRisk: event.target.value as SafetyPriority })} options={RISK_LEVELS.map((risk) => ({ value: risk, label: risk }))} />
-                    <Select label="Reviewer requirement" value={selectedNode.reviewerRequirement} disabled={!editable} onChange={(event) => mutateNode(selectedNode.stableNodeId, { reviewerRequirement: event.target.value as ReviewerRequirement })} options={REVIEWER_REQUIREMENTS.map((value) => ({ value, label: value.replace(/_/g, " ") }))} />
+                    <Select label="Safety priority" value={selectedNode.clinicalRisk} disabled={!editingEnabled} onChange={(event) => mutateNode(selectedNode.stableNodeId, { clinicalRisk: event.target.value as SafetyPriority })} options={RISK_LEVELS.map((risk) => ({ value: risk, label: risk }))} />
+                    <Select label="Reviewer requirement" value={selectedNode.reviewerRequirement} disabled={!editingEnabled} onChange={(event) => mutateNode(selectedNode.stableNodeId, { reviewerRequirement: event.target.value as ReviewerRequirement })} options={REVIEWER_REQUIREMENTS.map((value) => ({ value, label: value.replace(/_/g, " ") }))} />
                     <Badge variant={selectedNode.clinicalRisk === "CRITICAL" ? "urgent" : selectedNode.clinicalRisk === "HIGH" ? "high" : "info"}>{selectedNode.clinicalRisk} · {selectedNode.reviewerRequirement.replace(/_/g, " ")}</Badge>
                   </>
                 )}
                 {inspectorTab === "safety" && selectedEdge && (
                   <>
-                    <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm"><input type="checkbox" checked={selectedEdge.isSafetyOverride} disabled={!editable} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { isSafetyOverride: event.target.checked })} /> Safety override</label>
-                    <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm"><input type="checkbox" checked={selectedEdge.allowsCycle} disabled={!editable} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { allowsCycle: event.target.checked })} /> Explicit repeat-pathway cycle</label>
-                    <Input type="number" label="Priority" value={selectedEdge.priority} disabled={!editable} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { priority: Number(event.target.value) })} />
-                    <Input type="number" label="Branch order" value={selectedEdge.branchOrder} disabled={!editable} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { branchOrder: Number(event.target.value) })} />
+                    <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm"><input type="checkbox" checked={selectedEdge.isSafetyOverride} disabled={!editingEnabled} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { isSafetyOverride: event.target.checked })} /> Safety override</label>
+                    <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm"><input type="checkbox" checked={selectedEdge.allowsCycle} disabled={!editingEnabled} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { allowsCycle: event.target.checked })} /> Explicit repeat-pathway cycle</label>
+                    <Input type="number" label="Priority" value={selectedEdge.priority} disabled={!editingEnabled} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { priority: Number(event.target.value) })} />
+                    <Input type="number" label="Branch order" value={selectedEdge.branchOrder} disabled={!editingEnabled} onChange={(event) => mutateEdge(selectedEdge.stableEdgeId, { branchOrder: Number(event.target.value) })} />
                   </>
                 )}
 
                 {inspectorTab === "source" && selectedNode && (
-                  <SourceEditor node={selectedNode} editable={editable} onChange={(changes) => mutateNode(selectedNode.stableNodeId, changes)} />
+                  <SourceEditor node={selectedNode} editable={editingEnabled} onChange={(changes) => mutateNode(selectedNode.stableNodeId, changes)} />
                 )}
 
                 {inspectorTab === "layout" && selectedNode && (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input type="number" label="X" value={currentView.layout[selectedNode.stableNodeId]?.x ?? 0} disabled={!editable} onChange={(event) => updateSnapshot((next) => { next.views.find((view) => view.key === currentViewKey)!.layout[selectedNode.stableNodeId].x = Number(event.target.value); return next; })} />
-                      <Input type="number" label="Y" value={currentView.layout[selectedNode.stableNodeId]?.y ?? 0} disabled={!editable} onChange={(event) => updateSnapshot((next) => { next.views.find((view) => view.key === currentViewKey)!.layout[selectedNode.stableNodeId].y = Number(event.target.value); return next; })} />
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-semibold text-slate-900">Layout intent</div>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">Drag this node in Edit mode, or use a governed automatic layout. Clinical content is unchanged.</p>
                     </div>
-                    <Button variant="outline" size="sm" disabled={!editable} onClick={() => void autoLayout()} icon={<LayoutDashboard className="h-4 w-4" />}>Auto-layout entire view</Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" disabled={!editingEnabled} onClick={() => void autoLayout("BRANCH")} icon={<LayoutDashboard className="h-4 w-4" />}>Tidy selected route</Button>
+                      <Button variant="outline" size="sm" disabled={!editingEnabled} onClick={() => void autoLayout("VIEW")} icon={<LayoutDashboard className="h-4 w-4" />}>Tidy pathway</Button>
+                    </div>
                     <p className="text-xs leading-5 text-muted-foreground">Coordinates belong only to <strong>{currentView.title}</strong>. Node identity and clinical content remain shared across every view.</p>
                   </>
                 )}
@@ -996,6 +1379,18 @@ function ClinicalRuleGraphStudioInner({
             </div>
           )}
         </aside>
+        )}
+        {!inspectorOpen && workspaceMode !== "MAP" && (selectedNode || selectedEdge) && (
+          <button
+            type="button"
+            onClick={() => setInspectorOpen(true)}
+            className="absolute right-4 top-[236px] z-30 hidden rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-md hover:text-brand-700 xl:block"
+            aria-label="Open inspector"
+            title="Open inspector"
+          >
+            <PanelRightOpen className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-slate-50 px-4 py-3 text-xs text-slate-600">
         <span>Provisional recommendation · Reviewer confirmation required · Not for direct clinical action</span>
