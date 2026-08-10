@@ -30,7 +30,6 @@ import {
 import {
   AlertTriangle,
   ArrowRight,
-  CheckCircle2,
   ChevronRight,
   Copy,
   Download,
@@ -48,7 +47,6 @@ import {
   Printer,
   Save,
   Search,
-  ShieldAlert,
   Trash2,
   X,
   ZoomIn,
@@ -89,9 +87,15 @@ type GraphSearchResult = {
 };
 
 type GraphPosition = { x: number; y: number };
+type FlowNodeShape = "start" | "decision" | "process" | "outcome";
+type LayoutNode = { id: string; width: number; height: number };
 
-const FLOW_NODE_WIDTH = 300;
-const FLOW_NODE_HEIGHT = 156;
+const FLOW_NODE_DIMENSIONS: Record<FlowNodeShape, { width: number; height: number }> = {
+  start: { width: 236, height: 72 },
+  decision: { width: 260, height: 132 },
+  process: { width: 260, height: 104 },
+  outcome: { width: 250, height: 96 },
+};
 
 const NODE_META: Record<GraphNodeType, { label: string; classes: string }> = {
   START: { label: "Start", classes: "border-navy-600 bg-navy-50" },
@@ -117,52 +121,95 @@ const REVIEWER_REQUIREMENTS: ReviewerRequirement[] = [
   "SPECIALIST_REVIEW",
 ];
 
+function flowNodeShape(nodeType: GraphNodeType): FlowNodeShape {
+  if (nodeType === "START" || nodeType === "ROUTER") return "start";
+  if (nodeType === "DECISION") return "decision";
+  if (nodeType === "TERMINAL" || nodeType === "SAFETY_STOP") return "outcome";
+  return "process";
+}
+
+function flowNodeDimensions(nodeType: GraphNodeType) {
+  return FLOW_NODE_DIMENSIONS[flowNodeShape(nodeType)];
+}
+
 function RuleNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   const meta = NODE_META[data.canonical.nodeType];
   const ruleId = data.canonical.linkedRuleIds[0];
-  const reviewLabel = data.canonical.reviewerRequirement === "MANDATORY_CLINICIAN_CONFIRMATION"
-    ? "Confirmation required"
-    : data.canonical.reviewerRequirement.replace(/_/g, " ").toLowerCase();
+  const shape = flowNodeShape(data.canonical.nodeType);
+  const dimensions = flowNodeDimensions(data.canonical.nodeType);
+  const riskClasses = data.canonical.clinicalRisk === "CRITICAL"
+    ? "border-red-500 bg-red-50"
+    : data.canonical.clinicalRisk === "HIGH"
+      ? "border-orange-500 bg-orange-50"
+      : data.canonical.clinicalRisk === "MEDIUM"
+        ? "border-amber-500 bg-amber-50"
+        : "border-emerald-500 bg-emerald-50";
+  const stateClasses = cn(
+    "group relative transition-all",
+    selected && "drop-shadow-[0_0_8px_rgba(13,148,136,0.45)]",
+    data.highlighted && "drop-shadow-[0_0_8px_rgba(124,58,237,0.35)]",
+    data.dimmed && "opacity-20"
+  );
+  const handles = (
+    <>
+      <Handle type="target" position={Position.Top} isConnectable={data.editable} className="!h-3 !w-3 !border-2 !border-white !bg-slate-500 !opacity-100 shadow-sm" />
+      <Handle type="source" position={Position.Bottom} isConnectable={data.editable} className="!h-3 !w-3 !border-2 !border-white !bg-brand-600 !opacity-100 shadow-sm" />
+    </>
+  );
+
+  if (shape === "start") {
+    return (
+      <div
+        aria-label={`${meta.label}: ${data.canonical.label}`}
+        className={cn(stateClasses, "flex items-center justify-center rounded-full border-2 border-navy-800 bg-navy-800 px-6 text-center text-white shadow-md", selected && "border-brand-400")}
+        style={dimensions}
+      >
+        {handles}
+        <div className="min-w-0">
+          <div className="line-clamp-2 text-[13px] font-bold leading-4">{data.canonical.shortLabel || data.canonical.label}</div>
+          <div className="mt-1 truncate font-mono text-[9px] tracking-wide text-white/65">{ruleId ?? meta.label}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (shape === "decision") {
+    return (
+      <div aria-label={`${meta.label}: ${data.canonical.label}`} className={stateClasses} style={dimensions}>
+        <svg aria-hidden className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}>
+          <polygon
+            points={`${dimensions.width / 2},2 ${dimensions.width - 2},${dimensions.height / 2} ${dimensions.width / 2},${dimensions.height - 2} 2,${dimensions.height / 2}`}
+            fill={selected || data.highlighted ? "#f0fdfa" : "white"}
+            stroke={selected ? "#0d9488" : "#475569"}
+            strokeWidth={selected ? 3 : 2}
+          />
+        </svg>
+        {handles}
+        <div className="absolute inset-x-12 inset-y-5 flex flex-col items-center justify-center text-center">
+          <div className="line-clamp-3 text-[12px] font-bold leading-4 text-slate-800">{data.canonical.shortLabel || data.canonical.label}</div>
+          {ruleId && <div className="mt-1 font-mono text-[9px] text-slate-400">{ruleId}</div>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       aria-label={`${meta.label}: ${data.canonical.label}`}
       className={cn(
-        "group relative w-[300px] overflow-hidden rounded-2xl border-2 bg-white shadow-md transition-all",
-        meta.classes,
-        selected && "ring-4 ring-brand-400/30 shadow-lg",
-        data.highlighted && "ring-4 ring-purple-400/25",
-        data.dimmed && "opacity-25"
+        stateClasses,
+        "flex flex-col items-center justify-center rounded-xl border-2 px-4 text-center shadow-sm",
+        shape === "outcome" ? riskClasses : meta.classes,
+        selected && "border-brand-600 ring-4 ring-brand-400/20"
       )}
+      style={dimensions}
     >
-      <Handle type="target" position={Position.Left} isConnectable={data.editable} className="!h-4 !w-4 !border-[3px] !border-white !bg-navy-700 !opacity-100 shadow-sm" />
-      <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white/70 px-3 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="rounded-md bg-white p-1 text-navy-700 shadow-sm" aria-hidden>
-          {data.canonical.nodeType === "SAFETY_STOP" ? (
-            <ShieldAlert className="h-4 w-4" />
-          ) : data.canonical.nodeType === "TERMINAL" ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <GitBranch className="h-4 w-4" />
-          )}
-          </span>
-          <span className="truncate text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">{meta.label}</span>
-        </div>
-        {ruleId && <span className="shrink-0 font-mono text-[10px] font-semibold text-slate-500">{ruleId}</span>}
+      {handles}
+      <div className="line-clamp-3 text-[12px] font-bold leading-4 text-slate-800">{data.canonical.shortLabel || data.canonical.label}</div>
+      <div className="mt-1 flex items-center justify-center gap-2 font-mono text-[9px] text-slate-500">
+        <span>{ruleId ?? meta.label}</span>
+        {shape === "outcome" && <span className="font-sans font-bold">{data.canonical.clinicalRisk}</span>}
       </div>
-      <div className="px-3 py-3">
-        <p className="line-clamp-3 text-[13px] font-semibold leading-[18px] text-slate-950">{data.canonical.label}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className={cn(
-            "rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide",
-            data.canonical.clinicalRisk === "CRITICAL" ? "border-red-300 bg-red-100 text-red-800" :
-              data.canonical.clinicalRisk === "HIGH" ? "border-amber-300 bg-amber-100 text-amber-900" :
-                "border-slate-200 bg-white/80 text-slate-600"
-          )}>{data.canonical.clinicalRisk}</span>
-          <span className="max-w-[180px] truncate text-[9px] font-medium capitalize text-slate-500">{reviewLabel}</span>
-        </div>
-      </div>
-      <Handle type="source" position={Position.Right} isConnectable={data.editable} className="!h-4 !w-4 !border-[3px] !border-white !bg-brand-600 !opacity-100 shadow-sm" />
     </div>
   );
 }
@@ -188,8 +235,8 @@ function createFlowNode(
     },
     draggable: editable,
     deletable: false,
-    sourcePosition: Position.Right,
-    targetPosition: Position.Left,
+    sourcePosition: Position.Bottom,
+    targetPosition: Position.Top,
     ariaLabel: `${canonical.nodeType}: ${canonical.label}`,
   };
 }
@@ -286,45 +333,112 @@ function createFlowEdge(
 }
 
 async function calculateReadableLayout(
-  layoutNodes: Array<{ id: string }>,
+  layoutNodes: LayoutNode[],
   layoutEdges: Array<{ id: string; source: string; target: string }>
 ): Promise<Record<string, GraphPosition>> {
   const { default: ELK } = await import("elkjs/lib/elk.bundled.js");
   const elk = new ELK();
+  const incomingNodeIds = new Set(layoutEdges.map((edge) => edge.target));
+  const rootNodeIds = layoutNodes.filter((node) => !incomingNodeIds.has(node.id)).map((node) => node.id);
+  const virtualRootId = "__route_group_root__";
+  const needsVirtualRoot = rootNodeIds.length > 1;
   const result = await elk.layout({
     id: "root",
     layoutOptions: {
       "elk.algorithm": "layered",
-      "elk.direction": "RIGHT",
+      "elk.direction": "DOWN",
       "elk.edgeRouting": "ORTHOGONAL",
       "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
       "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
       "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
       "elk.layered.mergeEdges": "false",
       "elk.layered.unnecessaryBendpoints": "true",
-      "elk.spacing.nodeNode": "72",
+      "elk.spacing.nodeNode": "96",
       "elk.spacing.edgeEdge": "24",
-      "elk.spacing.edgeNode": "48",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
-      "elk.layered.spacing.edgeNodeBetweenLayers": "52",
+      "elk.spacing.edgeNode": "42",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "118",
+      "elk.layered.spacing.edgeNodeBetweenLayers": "46",
       "elk.layered.spacing.edgeEdgeBetweenLayers": "30",
       "elk.componentCompaction.componentLayoutAlgorithm": "PACKED_RECT",
-      "elk.spacing.componentComponent": "110",
+      "elk.spacing.componentComponent": "96",
       "elk.separateConnectedComponents": "true",
       "elk.padding": "[top=90,left=90,bottom=90,right=90]",
     },
-    children: layoutNodes.map((node) => ({
-      id: node.id,
-      width: FLOW_NODE_WIDTH,
-      height: FLOW_NODE_HEIGHT,
-      layoutOptions: { "elk.portConstraints": "FIXED_SIDE" },
-    })),
-    edges: layoutEdges.map((edge) => ({ id: edge.id, sources: [edge.source], targets: [edge.target] })),
+    children: [
+      ...(needsVirtualRoot ? [{ id: virtualRootId, width: 1, height: 1 }] : []),
+      ...layoutNodes.map((node) => ({
+        id: node.id,
+        width: node.width,
+        height: node.height,
+        layoutOptions: { "elk.portConstraints": "FIXED_SIDE" },
+      })),
+    ],
+    edges: [
+      ...layoutEdges.map((edge) => ({ id: edge.id, sources: [edge.source], targets: [edge.target] })),
+      ...(needsVirtualRoot
+        ? rootNodeIds.map((nodeId, index) => ({ id: `__route_group_edge_${index}`, sources: [virtualRootId], targets: [nodeId] }))
+        : []),
+    ],
   });
 
+  const positioned = (result.children ?? []).filter((child) => child.id !== virtualRootId);
+  const minX = Math.min(...positioned.map((child) => child.x ?? 0));
+  const minY = Math.min(...positioned.map((child) => child.y ?? 0));
   return Object.fromEntries(
-    (result.children ?? []).map((child) => [child.id, { x: child.x ?? 0, y: child.y ?? 0 }])
+    positioned.map((child) => [child.id, { x: (child.x ?? 0) - minX + 90, y: (child.y ?? 0) - minY + 90 }])
   );
+}
+
+type PathGroup = { id: string; label: string; nodeIds: string[] };
+
+function buildPathGroups(snapshot: ClinicalRuleSnapshot, view: GraphView, targetSize = 10): PathGroup[] {
+  const orderedIds = view.includedNodeIds.filter((id) => snapshot.nodes.some((node) => node.stableNodeId === id));
+  if (orderedIds.length === 0) return [];
+  const viewNodeIds = new Set(orderedIds);
+  const neighbours = new Map(orderedIds.map((id) => [id, new Set<string>()]));
+  for (const edge of snapshot.edges) {
+    if (!view.includedEdgeIds.includes(edge.stableEdgeId)) continue;
+    if (!viewNodeIds.has(edge.fromNodeId) || !viewNodeIds.has(edge.toNodeId)) continue;
+    neighbours.get(edge.fromNodeId)?.add(edge.toNodeId);
+    neighbours.get(edge.toNodeId)?.add(edge.fromNodeId);
+  }
+
+  const seen = new Set<string>();
+  const components: string[][] = [];
+  for (const rootId of orderedIds) {
+    if (seen.has(rootId)) continue;
+    const component: string[] = [];
+    const queue = [rootId];
+    seen.add(rootId);
+    while (queue.length > 0) {
+      const nodeId = queue.shift();
+      if (!nodeId) continue;
+      component.push(nodeId);
+      for (const neighbourId of neighbours.get(nodeId) ?? []) {
+        if (seen.has(neighbourId)) continue;
+        seen.add(neighbourId);
+        queue.push(neighbourId);
+      }
+    }
+    components.push(component.sort((a, b) => orderedIds.indexOf(a) - orderedIds.indexOf(b)));
+  }
+
+  const packed: string[][] = [];
+  for (const component of components) {
+    const current = packed.at(-1);
+    if (current && current.length + component.length <= targetSize) current.push(...component);
+    else packed.push([...component]);
+  }
+  const nodesById = new Map(snapshot.nodes.map((node) => [node.stableNodeId, node]));
+  return packed.map((nodeIds, index) => {
+    const ruleIds = [...new Set(nodeIds.flatMap((id) => nodesById.get(id)?.linkedRuleIds ?? []))];
+    const label = ruleIds.length === 0
+      ? `Path ${index + 1}`
+      : ruleIds.length === 1
+        ? ruleIds[0]!
+        : `${ruleIds[0]}–${ruleIds.at(-1)}`;
+    return { id: `${view.key}:path:${index}`, label, nodeIds };
+  });
 }
 
 function graphAncestorsAndDescendants(
@@ -591,6 +705,7 @@ function ClinicalRuleGraphStudioInner({
     initialSnapshot.views.find((view) => view.viewType === "MASTER")?.key ?? initialSnapshot.views[0]!.key
   );
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("MAP");
+  const [activePathGroupIndex, setActivePathGroupIndex] = useState(0);
   const [authoringMode, setAuthoringMode] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -619,10 +734,16 @@ function ClinicalRuleGraphStudioInner({
     [snapshot.views]
   );
   const activePathwayView = currentView.viewType === "MASTER" ? pathwayViews[0]! : currentView;
+  const pathGroups = useMemo(
+    () => buildPathGroups(snapshot, activePathwayView),
+    [activePathwayView, snapshot]
+  );
+  const activePathGroup = pathGroups[Math.min(activePathGroupIndex, Math.max(0, pathGroups.length - 1))];
   const visibleNodeIds = useMemo(() => {
     if (workspaceMode === "MAP") return new Set<string>();
+    if (workspaceMode === "PATHWAY" && activePathGroup) return new Set(activePathGroup.nodeIds);
     return new Set(currentView.includedNodeIds);
-  }, [currentView, workspaceMode]);
+  }, [activePathGroup, currentView.includedNodeIds, workspaceMode]);
   const visibleEdges = useMemo(
     () =>
       snapshot.edges.filter(
@@ -669,7 +790,7 @@ function ClinicalRuleGraphStudioInner({
     let cancelled = false;
     setLayoutPending(true);
     void calculateReadableLayout(
-      canonicalNodes.map((node) => ({ id: node.stableNodeId })),
+      canonicalNodes.map((node) => ({ id: node.stableNodeId, ...flowNodeDimensions(node.nodeType) })),
       visibleEdges.map((edge) => ({ id: edge.stableEdgeId, source: edge.fromNodeId, target: edge.toNodeId }))
     ).then((layout) => {
       if (cancelled) return;
@@ -694,10 +815,11 @@ function ClinicalRuleGraphStudioInner({
       : entryNode;
     const position = presentationLayout[targetNode.stableNodeId] ?? currentView.layout[targetNode.stableNodeId] ?? { x: 0, y: 0 };
     const zoom = selectedNodeId ? 1.05 : Math.max(0.8, Math.min(1, currentView.defaultZoom));
+    const dimensions = flowNodeDimensions(targetNode.nodeType);
     const frame = requestAnimationFrame(() => {
       setCenter(
-        position.x + FLOW_NODE_WIDTH / 2,
-        position.y + FLOW_NODE_HEIGHT / 2 + (selectedNodeId ? 0 : 220),
+        position.x + dimensions.width / 2,
+        position.y + dimensions.height / 2 + (selectedNodeId ? 0 : 250),
         { zoom, duration: 350 }
       );
       setZoomPercent(Math.round(zoom * 100));
@@ -745,18 +867,24 @@ function ClinicalRuleGraphStudioInner({
   const openPathway = useCallback((view: GraphView, mode: WorkspaceMode = "PATHWAY") => {
     setCurrentViewKey(view.key);
     setWorkspaceMode(mode);
+    setActivePathGroupIndex(0);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
     setInspectorOpen(false);
+    window.requestAnimationFrame(() => wrapperRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }, []);
 
   const openSearchResult = useCallback((result: GraphSearchResult) => {
+    const groups = buildPathGroups(snapshot, result.view);
+    const groupIndex = groups.findIndex((group) => group.nodeIds.includes(result.node.stableNodeId));
     setCurrentViewKey(result.view.key);
     setWorkspaceMode("PATHWAY");
+    setActivePathGroupIndex(Math.max(0, groupIndex));
     setSelectedEdgeId(null);
     setSearchOpen(false);
     setPendingFocusNodeId(result.node.stableNodeId);
-  }, []);
+    window.requestAnimationFrame(() => wrapperRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }, [snapshot]);
 
   useEffect(() => {
     if (!pendingFocusNodeId || workspaceMode !== "PATHWAY") return;
@@ -765,13 +893,15 @@ function ClinicalRuleGraphStudioInner({
     const frame = requestAnimationFrame(() => {
       setSelectedNodeId(pendingFocusNodeId);
       setSelectedEdgeId(null);
-      setCenter(position.x + FLOW_NODE_WIDTH / 2, position.y + FLOW_NODE_HEIGHT / 2, { zoom: 1.05, duration: 450 });
+      const targetNode = snapshot.nodes.find((node) => node.stableNodeId === pendingFocusNodeId);
+      const dimensions = targetNode ? flowNodeDimensions(targetNode.nodeType) : FLOW_NODE_DIMENSIONS.process;
+      setCenter(position.x + dimensions.width / 2, position.y + dimensions.height / 2, { zoom: 1.05, duration: 450 });
       setZoomPercent(105);
       setInspectorOpen(true);
       setPendingFocusNodeId(null);
     });
     return () => cancelAnimationFrame(frame);
-  }, [currentView.layout, pendingFocusNodeId, presentationLayout, setCenter, workspaceMode]);
+  }, [currentView.layout, pendingFocusNodeId, presentationLayout, setCenter, snapshot.nodes, workspaceMode]);
 
   const updateSnapshot = useCallback((updater: (current: ClinicalRuleSnapshot) => ClinicalRuleSnapshot) => {
     dirtyRef.current = true;
@@ -1031,7 +1161,10 @@ function ClinicalRuleGraphStudioInner({
       return;
     }
     setLayoutPending(true);
-    const layout = await calculateReadableLayout(layoutNodes, layoutEdges);
+    const layout = await calculateReadableLayout(
+      layoutNodes.map((node) => ({ id: node.id, ...flowNodeDimensions(node.data.canonical.nodeType) })),
+      layoutEdges
+    );
     setPresentationLayout((current) => scope === "VIEW" ? layout : { ...current, ...layout });
     if (editingEnabled) {
       updateSnapshot((next) => {
@@ -1282,6 +1415,41 @@ function ClinicalRuleGraphStudioInner({
           )}
         </div>
       </div>
+
+      {workspaceMode === "PATHWAY" && pathGroups.length > 1 && (
+        <div className="relative z-10 flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
+          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Route groups</span>
+          <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5" role="tablist" aria-label="Pathway route groups">
+            {pathGroups.map((group, index) => (
+              <button
+                key={group.id}
+                type="button"
+                role="tab"
+                aria-selected={activePathGroupIndex === index}
+                title={`${group.label} · ${group.nodeIds.length} nodes`}
+                onClick={() => {
+                  setActivePathGroupIndex(index);
+                  setSelectedNodeId(null);
+                  setSelectedEdgeId(null);
+                  setInspectorOpen(false);
+                }}
+                className={cn(
+                  "shrink-0 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition",
+                  activePathGroupIndex === index
+                    ? "border-brand-600 bg-brand-700 text-white shadow-sm"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-800"
+                )}
+              >
+                <span>Path {index + 1}</span>
+                <span className="ml-1.5 font-mono text-[9px] opacity-75">{group.label}</span>
+              </button>
+            ))}
+          </div>
+          <span className="shrink-0 text-[10px] font-medium text-slate-500">
+            {activePathGroupIndex + 1} of {pathGroups.length}
+          </span>
+        </div>
+      )}
 
       <div className="relative min-h-[720px]">
         <p id="clinical-graph-summary" className="sr-only" aria-live="polite">

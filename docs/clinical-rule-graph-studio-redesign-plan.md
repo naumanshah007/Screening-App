@@ -13,13 +13,17 @@ inspector; gates authoring behind an explicit View/Edit switch; and applies a st
 profile for user-requested layout operations.
 
 Pathway-legibility checkpoint (2026-08-10): every pathway now receives a non-destructive
-left-to-right presentation layout on entry. Nodes use fixed measured dimensions, separate branch
-lanes, wider inter-layer channels, orthogonal routing, persistent endpoint ports, larger closed
-arrowheads, and branch-condition chips lifted away from connector lines. The initial viewport keeps
-cards at a readable scale instead of fitting the whole graph. The inspector overlays the full-width
-canvas rather than compressing it, and Map, Pathway, and Outline share a responsive full-height
-workspace. “Space nodes” reapplies the readable layout; in Edit mode the result is saved as view
-placement, while View mode remains non-destructive.
+top-to-bottom presentation layout on entry. The visual language reuses the proven case-pathway
+diagram: navy entry pills, white decision diamonds, compact process cards, and risk-coloured
+outcomes. Each governed pathway is partitioned into route-group tabs of approximately ten nodes,
+keeping a complete branch group readable without removing canonical content. A layout-only shared
+anchor aligns disconnected rule pairs into consistent decision and outcome rows. Nodes use measured
+shape-specific dimensions, separate branch lanes, wider channels, persistent endpoint ports, closed
+arrowheads, and branch-condition chips lifted away from connector lines. Search opens the exact
+pathway and route tab containing its result. The inspector overlays the full-width canvas rather
+than compressing it, and Map, Pathway, and Outline share a responsive full-height workspace.
+“Space nodes” reapplies the readable layout; in Edit mode the result is saved as view placement,
+while View mode remains non-destructive.
 
 The remaining phases cover true compound clusters, semantic rendering thresholds, Web Worker
 layout scoring, typed undo/redo, and impact-aware edit dialogs.
