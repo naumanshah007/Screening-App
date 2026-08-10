@@ -28,6 +28,13 @@ while View mode remains non-destructive.
 The remaining phases cover true compound clusters, semantic rendering thresholds, Web Worker
 layout scoring, typed undo/redo, and impact-aware edit dialogs.
 
+All-pathway collision audit (2026-08-10): the rendered successor snapshot was exercised through
+all 11 governed pathways and every generated route group. The audit covered 45 route tabs and 458
+rendered node instances, checking node-to-node, branch-label-to-node, and branch-label-to-label
+rectangles after ELK layout. It found zero collisions. The production screenshot that still shows
+overlapping card nodes is the pre-redesign deployment; it does not contain the compact shape system
+or route-group tabs implemented on this branch.
+
 ## 1. Outcome
 
 Redesign the current graph from a poster-like canvas into a clinical rule workspace that is:

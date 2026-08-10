@@ -55,8 +55,9 @@ async function main() {
           clinicianOnly: Boolean(r.clinicianOnly),
           missingInformation: r.missingInformation ?? [],
           matchedRuleIds: r.matchedRuleIds ?? [],
-          branchPath: (r as { branchPath?: string[] }).branchPath ?? [],
-          sourceReferences: (r as { sourceReferences?: string[] }).sourceReferences ?? [],
+          branchPath: (r as unknown as { branchPath?: string[] }).branchPath ?? [],
+          sourceReferences:
+            (r as unknown as { sourceReferences?: string[] }).sourceReferences ?? [],
         },
       };
     } catch (error) {
