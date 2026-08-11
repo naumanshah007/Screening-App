@@ -73,12 +73,20 @@ checksum. The path is `DRAFT → VALIDATED → APPROVED ×2 → PUBLISHED`.
 `F9-14-ONCOLOGY-MDT`, `INPUT-GAP-STAGE-1A1`, `TIMING-POLICY`, `REGRADE-POLICY`.
 These are clinical adjudications, not technical ones.
 
-### B4. Deployment-level switch
+### B4. Deployment-level switch — ALREADY PROVISIONED, VALUE UNVERIFIED
 
 `assertProductionActivationPermitted` throws unless
 `CLINICAL_AUTHORITY_LIVE_PRODUCTION` ∈ {1,true,yes,on} **in the Production environment**.
-This is a Vercel Production environment variable — a deployment secret change, deliberately
-separate from any in-app action, and it requires a redeploy to take effect.
+
+**`CLINICAL_AUTHORITY_LIVE_PRODUCTION` already exists in the Vercel Production environment**,
+created ~2 days before this work and not by this work. Its value is encrypted and has **not**
+been read here, so whether it is truthy is unknown.
+
+This matters: if it is already `true`, the deployment-level barrier is already down and the
+only remaining technical barrier to canonical Production authority is the activation row plus
+the eleven gates. **Whoever set it should confirm the value**, and it should arguably be set
+to `false` until the signed activation window, so that the switch is a deliberate act rather
+than standing state.
 
 ### B5. Who can act — role reality
 
@@ -131,9 +139,15 @@ Preview deployments resolve `DATABASE_URL` to `file:/tmp/cervical-screening-v2.d
 not a shared durable database. A rehearsal run there would not demonstrate what the gate
 asks and would be misleading evidence.
 
-**Blocked on infrastructure, not on effort:** provision a durable non-Production database
-(Turso/libSQL via `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`, which the adapter already
-supports) and point a Validation deployment at it. I can then drive the full rehearsal.
+**Correction — the infrastructure may already exist.** `TURSO_DATABASE_URL` and
+`TURSO_AUTH_TOKEN` are configured in Vercel, scoped to
+`Preview (feat/canonical-authority-layer)`, created ~4 days ago. That is a durable libSQL
+database, which is what the gate asks for; it is simply bound to a different preview branch.
+
+Remaining work is therefore scoping, not provisioning: either extend those variables to the
+integration branch's Preview, or stand up an equivalent Validation deployment pointed at a
+durable database. Once a Validation deployment resolves to a durable database rather than
+`file:/tmp/...`, I can drive the full A–L rehearsal and measure RTO.
 
 ## E. Items 7–9 — status
 
@@ -161,7 +175,8 @@ post-activation canary.
 5. Provision the durable non-Production database; I run the shared rehearsal; record
    `SHARED-REHEARSAL`.
 6. Record `GOV-03` and `GOV-04-OPERATING-POINT`.
-7. Set `CLINICAL_AUTHORITY_LIVE_PRODUCTION=true` in the Vercel **Production** environment and
-   redeploy.
+7. Confirm the existing `CLINICAL_AUTHORITY_LIVE_PRODUCTION` value in the Vercel
+   **Production** environment (it is already present; value unverified). Set it to `true` only
+   inside the signed activation window, and redeploy.
 8. The Activation Operator activates for `PRODUCTION`.
 9. I run the synthetic canaries and the new-vs-pinned verification immediately afterwards.
