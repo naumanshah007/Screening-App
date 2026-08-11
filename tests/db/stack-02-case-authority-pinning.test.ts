@@ -299,3 +299,64 @@ test("an explicit regrade creates new immutable history and preserves the prior 
   const pin = await getCaseAuthorityPin(referralCase.id);
   assert.equal(pin.evaluationId, original.id, "a regrade must not move the pin");
 });
+
+// ── 6. A shadow-evaluated version must still be publishable ────────────────
+
+test("a version that carries a shadow evaluation can still be published", async () => {
+  // The canonical engine writes SHADOW evaluations against the newest version
+  // continuously. If that froze the version's identity, publication — and
+  // therefore activation — would be permanently impossible.
+  const ruleSet = await prisma.clinicalRuleSet.findFirst();
+  const version = await prisma.clinicalRuleVersion.findFirst({ where: { status: "VALIDATED" } });
+  if (!ruleSet || !version) return;
+
+  const referralCase = await makeCase("SHADOWPUB");
+  await prisma.ruleEvaluation.create({
+    data: {
+      caseId: referralCase.id,
+      ruleSetId: ruleSet.id,
+      ruleVersionId: version.id,
+      ruleVersionDisplay: version.displayVersion,
+      rulesetChecksum: version.checksum ?? "checksum",
+      engineVersion: "canonical-graph-v2",
+      evaluationMode: "SHADOW",
+      canonicalInputSnapshot: "{}",
+      matchedRuleIds: JSON.stringify(["F3-01"]),
+      branchPath: "[]",
+      provisionalRecommendation: "Shadow comparison outcome",
+      riskLevel: "LOW",
+      missingInformation: "[]",
+      reviewerRequirement: "CLINICIAN_REVIEW",
+      mandatoryReviewerConfirmation: false,
+      clinicianOnly: false,
+      sourceReferences: "[]",
+      evaluationTrace: "[]",
+    },
+  });
+
+  // The identity columns must still be immutable…
+  await assert.rejects(
+    () =>
+      prisma.clinicalRuleVersion.update({
+        where: { id: version.id },
+        data: { displayVersion: `${version.displayVersion}-tampered` },
+      }),
+    "a shadow-evaluated version's identity must remain immutable"
+  );
+
+  // …but publication, which changes no identity column, must succeed.
+  const { publishClinicalRuleVersion } = await import("@/lib/clinical-rules/lifecycle");
+  const actorUser = await actor();
+  await publishClinicalRuleVersion({
+    id: version.id,
+    actorUserId: actorUser.id,
+    reason: "Publication must not be blocked by a shadow comparison evaluation.",
+    sourceSummary: "Pinning policy test.",
+  }).catch((error) => {
+    assert.fail(`publication was blocked: ${error instanceof Error ? error.message : error}`);
+  });
+
+  const after = await prisma.clinicalRuleVersion.findUniqueOrThrow({ where: { id: version.id } });
+  assert.equal(after.status, "PUBLISHED");
+  assert.equal(after.checksum, version.checksum, "the checksum must be unchanged");
+});

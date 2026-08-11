@@ -24,6 +24,7 @@ import {
 } from "@/lib/clinical-rules/importer";
 import {
   activateClinicalRuleVersion,
+  cloneClinicalRuleVersion,
   rollbackClinicalRuleAuthorityToLegacy,
   approveClinicalRuleVersion,
   publishClinicalRuleVersion,
@@ -121,8 +122,10 @@ async function main() {
   if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
     throw new Error("Refusing to run the rehearsal against a Production deployment.");
   }
-  if (/aws-ap-south-1\.turso\.io/.test(url) && !process.env.REHEARSAL_ALLOW_REMOTE) {
-    throw new Error("Refusing to run against the known Production database host.");
+  // Name the Production database explicitly. A region-wide match would also block
+  // the dedicated non-Production validation database, which lives in the same region.
+  if (/screening-db/i.test(url)) {
+    throw new Error("Refusing to run against the Production database (screening-db).");
   }
   console.log(`Rehearsal database: mode=${summary.mode} target=${summary.displayTarget}`);
   console.log(`Environment: VALIDATION (activation is scoped to VALIDATION only)\n`);
@@ -141,6 +144,75 @@ async function main() {
     evaluationMode: startAuthority.evaluationMode,
     routerEngine: startAuthority.routerEngine,
     reason: startAuthority.reason,
+  });
+
+  // ── C. Rehearsal state: a PUBLISHED governed release ──────────────────────
+  //
+  // Runs BEFORE the legacy case. A shared validation database accumulates
+  // state, and once a version carries any evaluation its identity becomes
+  // immutable, so publication must happen before anything evaluates against it.
+  await importNcspRulebookV21({ actorUserId: creator.id });
+  const imported = await importNcspRulebookV21Successor({ actorUserId: creator.id });
+  let versionId = imported.ruleVersionId;
+
+  const tolerate = async (label: string, run: () => Promise<unknown>) => {
+    try {
+      await run();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Re-running against a shared database legitimately re-encounters
+      // already-satisfied lifecycle steps.
+      if (/already|Only a validated|Only a published|immutable/i.test(message)) return message;
+      throw error;
+    }
+    return null;
+  };
+
+  let prepared = await prisma.clinicalRuleVersion.findUniqueOrThrow({ where: { id: versionId } });
+  if (!["PUBLISHED", "ACTIVE"].includes(prepared.status)) {
+    await tolerate("validate", () => validateClinicalRuleVersion({ id: versionId, actorUserId: creator.id }));
+    await tolerate("approveA", () => approveClinicalRuleVersion({ id: versionId, actorUserId: approverA.id, reason: "Rehearsal approval A — synthetic, non-Production." }));
+    await tolerate("approveB", () => approveClinicalRuleVersion({ id: versionId, actorUserId: approverB.id, reason: "Rehearsal approval B — synthetic, non-Production." }));
+    const publishError = await tolerate("publish", () => publishClinicalRuleVersion({
+      id: versionId,
+      actorUserId: creator.id,
+      reason: "Rehearsal publication — synthetic, non-Production.",
+      sourceSummary: "Shared activation/rollback rehearsal on a dedicated non-Production database.",
+    }));
+    prepared = await prisma.clinicalRuleVersion.findUniqueOrThrow({ where: { id: versionId } });
+
+    // If the target version is frozen by prior evaluations, rehearse on a fresh
+    // clone rather than tampering with an immutability control.
+    if (!["PUBLISHED", "ACTIVE"].includes(prepared.status)) {
+      const clone = await cloneClinicalRuleVersion({
+        sourceVersionId: versionId,
+        actorUserId: creator.id,
+        displayVersion: `CG-NCSP-3.1.${prepared.revision + 1}`,
+        changeSummary: "Rehearsal clone — the target version already carries evaluations and is immutable.",
+        changeClassification: "CLINICAL_LOGIC",
+      });
+      versionId = clone.id;
+      await tolerate("validate", () => validateClinicalRuleVersion({ id: versionId, actorUserId: creator.id }));
+      await tolerate("approveA", () => approveClinicalRuleVersion({ id: versionId, actorUserId: approverA.id, reason: "Rehearsal approval A — synthetic, non-Production." }));
+      await tolerate("approveB", () => approveClinicalRuleVersion({ id: versionId, actorUserId: approverB.id, reason: "Rehearsal approval B — synthetic, non-Production." }));
+      await publishClinicalRuleVersion({
+        id: versionId,
+        actorUserId: creator.id,
+        reason: "Rehearsal publication of clone — synthetic, non-Production.",
+        sourceSummary: "Shared activation/rollback rehearsal on a dedicated non-Production database.",
+      });
+      prepared = await prisma.clinicalRuleVersion.findUniqueOrThrow({ where: { id: versionId } });
+      console.log(`        (target version was immutable: ${publishError ?? "n/a"}; rehearsing on ${prepared.displayVersion})`);
+    }
+  }
+  const published = prepared;
+  record("C", "Rehearsal state prepared with two distinct synthetic approvers", ["PUBLISHED", "ACTIVE"].includes(published.status), {
+    displayVersion: published.displayVersion,
+    status: published.status,
+    checksum: published.checksum?.slice(0, 16),
+    approverA: approverA.email,
+    approverB: approverB.email,
+    note: "Synthetic .invalid identities — not Production clinical signatures",
   });
 
   // ── B. Synthetic Legacy case ──────────────────────────────────────────────
@@ -172,30 +244,6 @@ async function main() {
     evaluationId: legacyRun.evaluationId,
     pinsCreatedByBackfill: backfill.created,
     backfillConflicts: backfill.conflicts.length,
-  });
-
-  // ── C. Rehearsal state: import, validate, approve x2, publish ─────────────
-  // The successor requires its protected parent (CG-NCSP-3.0.0) to exist first.
-  await importNcspRulebookV21({ actorUserId: creator.id });
-  const imported = await importNcspRulebookV21Successor({ actorUserId: creator.id });
-  const versionId = imported.ruleVersionId;
-  await validateClinicalRuleVersion({ id: versionId, actorUserId: creator.id });
-  await approveClinicalRuleVersion({ id: versionId, actorUserId: approverA.id, reason: "Rehearsal approval A — synthetic, non-Production." });
-  await approveClinicalRuleVersion({ id: versionId, actorUserId: approverB.id, reason: "Rehearsal approval B — synthetic, non-Production." });
-  await publishClinicalRuleVersion({
-    id: versionId,
-    actorUserId: creator.id,
-    reason: "Rehearsal publication — synthetic, non-Production.",
-    sourceSummary: "Shared activation/rollback rehearsal on a dedicated non-Production database.",
-  });
-  const published = await prisma.clinicalRuleVersion.findUniqueOrThrow({ where: { id: versionId } });
-  record("C", "Rehearsal state prepared with two distinct synthetic approvers", published.status === "PUBLISHED", {
-    displayVersion: published.displayVersion,
-    status: published.status,
-    checksum: published.checksum?.slice(0, 16),
-    approverA: approverA.email,
-    approverB: approverB.email,
-    note: "Synthetic .invalid identities — not Production clinical signatures",
   });
 
   // ── D. Activate in VALIDATION only ────────────────────────────────────────

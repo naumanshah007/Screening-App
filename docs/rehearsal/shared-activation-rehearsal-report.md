@@ -10,30 +10,20 @@ Result: **12 of 12 observations pass — SHARED_REHEARSAL_PASSED.**
 
 | Property | Value |
 |---|---|
-| Target | `/Users/nauman/Documents/cervigrade-validation/validation.db` (dedicated) |
+| Target | `libsql://screening2-naumanshah007.aws-ap-south-1.turso.io` (dedicated non-Production) |
 | Adapter | libsql |
-| Mode | `local-file` |
-| Is the Production database | **No** — Production resolves to a remote Turso host; hashes compared, values never printed |
+| Mode | **`remote-libsql`** — SHARED_REMOTE_LIBSQL confirmed |
+| Auth configured | Yes |
+| Is the Production database | **No** — Production is `screening-db-naumanshah007`; distinct database |
 | Is `file:/tmp/...` | **No** |
-| Durable across processes | **Yes** — PID 20374 wrote; PIDs 20404 and 20428 (separate processes, after the writer exited) read the same state |
+| Persists across separate connections/processes | **Yes** — PID 30986 wrote; PIDs 31007 and 31040 (separate processes, after the writer exited) read the same state from the remote database |
 
-### Honest limitation
+### Scope
 
-The gate asks for a **shared** durable database, i.e. state shared across serverless
-instances. This rehearsal proves durability and sharing across **independent OS processes**,
-not across Vercel serverless instances.
-
-Reaching the remote/shared dimension is blocked on credentials, not effort:
-
-- The existing non-Production `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` are stored as
-  **Sensitive**; `vercel env pull` returns them empty, so they cannot be read and therefore
-  cannot be re-scoped to another Validation branch from the CLI.
-- The `turso` CLI is installed but not authenticated, so a fresh non-Production database
-  cannot be provisioned here.
-
-Either action requires a human: widen the existing variables' branch scope in the Vercel
-dashboard, or authenticate the Turso CLI. Once a Validation deployment resolves to that
-durable remote database, this same harness runs unchanged.
+The rehearsal ran against the shared remote Turso database that backs the Validation
+Preview deployment, so state is held in shared remote storage rather than in any single
+process. Separate OS processes with independent connections observed each other's writes,
+which is the property serverless instances rely on.
 
 ---
 
@@ -52,19 +42,19 @@ durable remote database, this same harness runs unchanged.
 | I | New case after rollback resolves to Legacy | **PASS** |
 | J | Canonical case remains canonical historically after rollback | **PASS** |
 | K | Immutability, audit, monitoring, fail-closed | **PASS** |
-| L | Measured rollback RTO | **PASS — 17 ms** |
+| L | Measured rollback RTO | **PASS — 2,767 ms** (remote round-trips) |
 
 ### F — persisted provenance (evidence)
 
 ```
-evaluationId      cmsp2sfwn000ojov4a3e7ai7m
+evaluationId      cmspbdstt000fmuv4nh8fybsa
 engine            canonical-graph-v2
 ruleset           CG-NCSP-3.1.0
 checksum          3ab8657a13e73bb0…
 pathway           FIGURE_3            (selected by the legacy router)
 controllingRuleId F1-01
 evaluationMode    LIVE_DEMO
-timestamp         2026-08-11T19:50:56.135Z
+timestamp         2026-08-11T23:51:29.585Z
 ```
 
 ### K — control evidence
@@ -79,7 +69,7 @@ timestamp         2026-08-11T19:50:56.135Z
 
 ### L — rollback RTO
 
-**17 ms**, by deactivating the activation row. No restore, no redeploy, no data migration.
+**2,767 ms** against the remote shared database, by deactivating the activation row. No restore, no redeploy, no data migration. (The same rehearsal measured 17 ms on local storage; the difference is network round-trips.)
 
 ---
 
@@ -107,8 +97,23 @@ transaction), transactional, auditable (`CASE_AUTHORITY_PIN_BACKFILL`), supports
 and **fails closed**: a case whose history disagrees with an existing pin is reported and
 left untouched.
 
-**Verified in this rehearsal (observation G) and by 9 targeted tests** in
-`tests/db/stack-02-case-authority-pinning.test.ts`.
+**Verified in this rehearsal (observation G) and by 10 targeted tests** in
+`tests/db/stack-02-case-authority-pinning.test.ts`. On the remote run G reported:
+*"Pinned to legacy at first evaluation (2026-08-11T23:51:18.583Z); the current activation
+does not apply to this case."*
+
+## FINDING — publication was blocked by shadow evaluations
+
+`publishClinicalRuleVersion` included `checksum` in its update, immediately after asserting
+it was unchanged. SQLite's `ClinicalRuleVersion_evaluated_snapshot_update` trigger fires when
+a guarded column appears in the SET list, not when its value changes, so **any version that
+had ever been shadow-evaluated could never be published — and therefore never activated.**
+The canonical engine writes SHADOW evaluations against the newest version continuously, so
+this affected CG-NCSP-3.1.0 on every environment where shadow comparison had run.
+
+Fixed by removing the redundant `checksum` write. The immutability guarantee is unchanged:
+identity columns still cannot be altered (asserted by test), and the equality check still
+enforces the invariant.
 
 ## Safety properties of this rehearsal
 

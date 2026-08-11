@@ -1,18 +1,10 @@
-Rehearsal database: mode=local-file target=Users/nauman/Documents/cervigrade-validation/validation.db
+Rehearsal database: mode=remote-libsql target=libsql://screening2-naumanshah007.aws-ap-south-1.turso.io
 Environment: VALIDATION (activation is scoped to VALIDATION only)
 PASS  A  Starting authority is Legacy
         authorityEngine: "LEGACY"
         evaluationMode: "SHADOW"
         routerEngine: "business-figures-table1-v1"
-        reason: "Legacy authority: the national clinical rule set is not present."
-PASS  B  Synthetic Legacy case created, decided and pinned
-        caseId: "REHEARSAL-LEGACY-1786483230491"
-        authorityEngine: "LEGACY"
-        figure: "FIGURE_3"
-        recommendationCode: "F3-HPV-NOT-DETECTED-5Y"
-        evaluationId: null
-        pinsCreatedByBackfill: 1
-        backfillConflicts: 0
+        reason: "Legacy authority: no ACTIVE clinical rule activation for environment VALIDATION."
 PASS  C  Rehearsal state prepared with two distinct synthetic approvers
         displayVersion: "CG-NCSP-3.1.0"
         status: "PUBLISHED"
@@ -20,6 +12,14 @@ PASS  C  Rehearsal state prepared with two distinct synthetic approvers
         approverA: "rehearsal.approver-a@validation.invalid"
         approverB: "rehearsal.approver-b@validation.invalid"
         note: "Synthetic .invalid identities — not Production clinical signatures"
+PASS  B  Synthetic Legacy case created, decided and pinned
+        caseId: "REHEARSAL-LEGACY-1786492269768"
+        authorityEngine: "LEGACY"
+        figure: "FIGURE_3"
+        recommendationCode: "F3-HPV-NOT-DETECTED-5Y"
+        evaluationId: "cmspbdjns0005muv478jyb07b"
+        pinsCreatedByBackfill: 1
+        backfillConflicts: 0
 PASS  D  CG-NCSP-3.1.0 activated in VALIDATION only
         authorityEngine: "CANONICAL"
         environment: "VALIDATION"
@@ -28,15 +28,15 @@ PASS  D  CG-NCSP-3.1.0 activated in VALIDATION only
         operator: "rehearsal.operator@validation.invalid"
         productionUntouched: "LEGACY"
 PASS  E  New case: referral → legacy router → pathway → canonical → provisional recommendation
-        caseId: "REHEARSAL-CANONICAL-1786483230990"
+        caseId: "REHEARSAL-CANONICAL-1786492284104"
         legacyRouterFigure: "FIGURE_3"
         authorityEngine: "CANONICAL"
         ruleSetVersion: "CG-NCSP-3.1.0"
         provisionalRecommendation: "Invite now, then perform primary HPV screening via Figure 3"
         requiresMDMReview: null
-        evaluationId: "cmsp5zn7i000rb8v4qu8wnj8s"
+        evaluationId: "cmspbdstt000fmuv4nh8fybsa"
 PASS  F  Provenance persisted and verifiable
-        evaluationId: "cmsp5zn7i000rb8v4qu8wnj8s"
+        evaluationId: "cmspbdstt000fmuv4nh8fybsa"
         engine: "canonical-graph-v2"
         ruleset: "CG-NCSP-3.1.0"
         checksum: "3ab8657a13e73bb0"
@@ -44,28 +44,28 @@ PASS  F  Provenance persisted and verifiable
         controllingRuleId: "F1-01"
         oracleFixture: "F1-NEVER-SCREENED-INVITE-NOW"
         evaluationMode: "LIVE_DEMO"
-        timestamp: "2026-08-11T21:20:31.038Z"
+        timestamp: "2026-08-11T23:51:29.585Z"
 PASS  G  Pre-activation Legacy case remains Legacy after canonical activation
-        caseId: "REHEARSAL-LEGACY-1786483230491"
+        caseId: "REHEARSAL-LEGACY-1786492269768"
         authorityEngine: "LEGACY"
         pinned: true
-        authorityReason: "Pinned to legacy at first evaluation (2026-08-11T21:20:30.523Z); the current activation does not apply to this case."
+        authorityReason: "Pinned to legacy at first evaluation (2026-08-11T23:51:18.583Z); the current activation does not apply to this case."
         finding: "Legacy-era case retained Legacy authority via its persisted pin."
 PASS  H  Rollback / deactivation returns authority to Legacy
         authorityEngine: "LEGACY"
         reason: "Legacy authority: no ACTIVE clinical rule activation for environment VALIDATION."
         databaseRestoreRequired: false
 PASS  I  New case after rollback resolves to Legacy
-        caseId: "REHEARSAL-POST-ROLLBACK-1786483231096"
+        caseId: "REHEARSAL-POST-ROLLBACK-1786492300099"
         authorityEngine: "LEGACY"
 PASS  J  Canonical case remains canonical historically after rollback
-        caseId: "REHEARSAL-CANONICAL-1786483230990"
+        caseId: "REHEARSAL-CANONICAL-1786492284104"
         authorityEngine: "CANONICAL"
         pinned: true
         originalEvaluationStillPresent: true
         originalRuleset: "CG-NCSP-3.1.0"
 PASS  K  Immutability, audit, monitoring and fail-closed behaviour
-        ruleEvaluationsPresent: 4
+        ruleEvaluationsPresent: 6
         evaluationDeleteRefused: true
         activationAuditEvents: ["ACTIVATION","ROLLBACK_TO_LEGACY"]
         auditLogActions: ["SUCCESSOR_CREATED","VALIDATION_PASSED","APPROVAL","PUBLICATION","ACTIVATION","ROLLBACK_TO_LEGACY"]
@@ -73,40 +73,40 @@ PASS  K  Immutability, audit, monitoring and fail-closed behaviour
         productionActivationRefused: true
         databaseRestoreRequired: false
 PASS  L  Measured rollback RTO
-        rollbackToLegacyMs: 15
+        rollbackToLegacyMs: 2767
         method: "deactivate activation row; no database restore"
 SHARED_REHEARSAL_PASSED  (12/12)
         "authorityEngine": "LEGACY",
         "evaluationMode": "SHADOW",
         "routerEngine": "business-figures-table1-v1",
-        "reason": "Legacy authority: the national clinical rule set is not present."
-        "caseId": "REHEARSAL-LEGACY-1786483230491",
-        "authorityEngine": "LEGACY",
-        "figure": "FIGURE_3",
-        "recommendationCode": "F3-HPV-NOT-DETECTED-5Y",
-        "evaluationId": null,
-        "pinsCreatedByBackfill": 1,
-        "backfillConflicts": 0
+        "reason": "Legacy authority: no ACTIVE clinical rule activation for environment VALIDATION."
         "displayVersion": "CG-NCSP-3.1.0",
         "status": "PUBLISHED",
         "checksum": "3ab8657a13e73bb0",
         "approverA": "rehearsal.approver-a@validation.invalid",
         "approverB": "rehearsal.approver-b@validation.invalid",
         "note": "Synthetic .invalid identities — not Production clinical signatures"
+        "caseId": "REHEARSAL-LEGACY-1786492269768",
+        "authorityEngine": "LEGACY",
+        "figure": "FIGURE_3",
+        "recommendationCode": "F3-HPV-NOT-DETECTED-5Y",
+        "evaluationId": "cmspbdjns0005muv478jyb07b",
+        "pinsCreatedByBackfill": 1,
+        "backfillConflicts": 0
         "authorityEngine": "CANONICAL",
         "environment": "VALIDATION",
         "ruleSetVersion": "CG-NCSP-3.1.0",
         "activationScope": "GLOBAL",
         "operator": "rehearsal.operator@validation.invalid",
         "productionUntouched": "LEGACY"
-        "caseId": "REHEARSAL-CANONICAL-1786483230990",
+        "caseId": "REHEARSAL-CANONICAL-1786492284104",
         "legacyRouterFigure": "FIGURE_3",
         "authorityEngine": "CANONICAL",
         "ruleSetVersion": "CG-NCSP-3.1.0",
         "provisionalRecommendation": "Invite now, then perform primary HPV screening via Figure 3",
         "requiresMDMReview": null,
-        "evaluationId": "cmsp5zn7i000rb8v4qu8wnj8s"
-        "evaluationId": "cmsp5zn7i000rb8v4qu8wnj8s",
+        "evaluationId": "cmspbdstt000fmuv4nh8fybsa"
+        "evaluationId": "cmspbdstt000fmuv4nh8fybsa",
         "engine": "canonical-graph-v2",
         "ruleset": "CG-NCSP-3.1.0",
         "checksum": "3ab8657a13e73bb0",
@@ -114,23 +114,23 @@ SHARED_REHEARSAL_PASSED  (12/12)
         "controllingRuleId": "F1-01",
         "oracleFixture": "F1-NEVER-SCREENED-INVITE-NOW",
         "evaluationMode": "LIVE_DEMO",
-        "timestamp": "2026-08-11T21:20:31.038Z"
-        "caseId": "REHEARSAL-LEGACY-1786483230491",
+        "timestamp": "2026-08-11T23:51:29.585Z"
+        "caseId": "REHEARSAL-LEGACY-1786492269768",
         "authorityEngine": "LEGACY",
         "pinned": true,
-        "authorityReason": "Pinned to legacy at first evaluation (2026-08-11T21:20:30.523Z); the current activation does not apply to this case.",
+        "authorityReason": "Pinned to legacy at first evaluation (2026-08-11T23:51:18.583Z); the current activation does not apply to this case.",
         "finding": "Legacy-era case retained Legacy authority via its persisted pin."
         "authorityEngine": "LEGACY",
         "reason": "Legacy authority: no ACTIVE clinical rule activation for environment VALIDATION.",
         "databaseRestoreRequired": false
-        "caseId": "REHEARSAL-POST-ROLLBACK-1786483231096",
+        "caseId": "REHEARSAL-POST-ROLLBACK-1786492300099",
         "authorityEngine": "LEGACY"
-        "caseId": "REHEARSAL-CANONICAL-1786483230990",
+        "caseId": "REHEARSAL-CANONICAL-1786492284104",
         "authorityEngine": "CANONICAL",
         "pinned": true,
         "originalEvaluationStillPresent": true,
         "originalRuleset": "CG-NCSP-3.1.0"
-        "ruleEvaluationsPresent": 4,
+        "ruleEvaluationsPresent": 6,
         "evaluationDeleteRefused": true,
         "activationAuditEvents": [
           "ACTIVATION",
@@ -147,5 +147,5 @@ SHARED_REHEARSAL_PASSED  (12/12)
         "monitoringSummaryAvailable": true,
         "productionActivationRefused": true,
         "databaseRestoreRequired": false
-        "rollbackToLegacyMs": 15,
+        "rollbackToLegacyMs": 2767,
         "method": "deactivate activation row; no database restore"
