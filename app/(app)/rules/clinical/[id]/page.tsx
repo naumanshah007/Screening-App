@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/tabs";
 import { ClinicalRuleGraphStudio } from "@/components/clinical-rules/ClinicalRuleGraphStudio";
+import { PathwayWorkspace } from "@/components/pathway/PathwayWorkspace";
 import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { ClinicalRuleSimulationPanel } from "@/components/clinical-rules/ClinicalRuleSimulationPanel";
 import { ClinicalRuleDiffPanel } from "@/components/clinical-rules/ClinicalRuleDiffPanel";
@@ -182,7 +183,7 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
 
       <Tabs defaultTab="overview" className="rounded-2xl border border-border bg-card shadow-sm">
         <TabList className="px-2">
-          <Tab id="overview">Overview</Tab><Tab id="master">Master Tree</Tab><Tab id="views">Pathway Views</Tab><Tab id="rules">Rules</Tab><Tab id="sources">Sources</Tab><Tab id="validation">Validation</Tab><Tab id="governance">Clinical Review</Tab><Tab id="simulation">Simulation</Tab><Tab id="diff">Diff</Tab><Tab id="audit">Audit History</Tab>
+          <Tab id="overview">Overview</Tab><Tab id="master">Decision Tree</Tab><Tab id="views">Pathway Views</Tab><Tab id="rules">Rules</Tab><Tab id="sources">Sources</Tab><Tab id="validation">Validation</Tab><Tab id="governance">Clinical Review</Tab><Tab id="simulation">Simulation</Tab><Tab id="diff">Diff</Tab><Tab id="audit">Audit History</Tab>{editable && <Tab id="editor">Graph Editor</Tab>}
         </TabList>
 
         <TabPanel id="overview" className="p-6">
@@ -193,8 +194,21 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
           </div>
         </TabPanel>
 
+        {/*
+          Same renderer as Guidelines and Case Review — one graph system across
+          the product. Rule Studio keeps every technical identifier; only the
+          rendering is shared.
+        */}
         <TabPanel id="master" className="p-4">
-          <ClinicalRuleGraphStudio versionId={version.id} initialSnapshot={snapshot} initialRevision={version.revision} editable={editable} />
+          <PathwayWorkspace
+            snapshot={snapshot}
+            governance={{
+              rulesetId: version.displayVersion,
+              lifecycle: version.status,
+              checksum: version.checksum,
+              sourcePackageVersion: snapshot.sourcePackage.version,
+            }}
+          />
         </TabPanel>
 
         <TabPanel id="views" className="p-6">
@@ -227,6 +241,17 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
         <TabPanel id="simulation" className="p-6"><ClinicalRuleSimulationPanel versionId={version.id} /></TabPanel>
 
         <TabPanel id="diff" className="p-6"><ClinicalRuleDiffPanel currentVersionId={version.id} currentVersionDisplay={version.displayVersion} versions={comparisonVersions} initialComparison={initialComparison} /></TabPanel>
+
+        {/*
+          The node/edge editor stays available for drafts. Evaluated versions are
+          append-only locked, so this panel is normally absent and the shared
+          read-only renderer above is the graph surface.
+        */}
+        {editable && (
+          <TabPanel id="editor" className="p-4">
+            <ClinicalRuleGraphStudio versionId={version.id} initialSnapshot={snapshot} initialRevision={version.revision} editable={editable} />
+          </TabPanel>
+        )}
 
         <TabPanel id="audit" className="p-6">
           <Timeline

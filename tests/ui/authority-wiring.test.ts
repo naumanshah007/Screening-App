@@ -153,23 +153,96 @@ test("a non-schedulable timing is never rendered as a blank", () => {
 
 // ── 5. Guidelines labelling (Phase 4) ──────────────────────────────────────
 
-test("the Guidelines page separates governed guidance from the technical router", () => {
-  const guidelines = read("app/(app)/guidelines/page.tsx");
-  assert.ok(guidelines.includes("Legacy pathway router reference"));
+/*
+ * These assertions were rewritten when Guidelines became a server-rendered,
+ * canonical-first surface. The GUARANTEES are unchanged and are now checked
+ * where they actually live:
+ *
+ *   - the legacy router is still documented, but as technical provenance on its
+ *     own route rather than as a tab a clinician must choose between;
+ *   - authority still comes from resolved runtime state, now server-side via
+ *     `getClinicalAuthorityDisplay()` instead of a client fetch of
+ *     `/api/clinical-rules/status`;
+ *   - the governed identifier and checksum are still shown, in the governance
+ *     disclosure rather than the page header.
+ */
+
+test("the Guidelines surface separates governed guidance from the technical router", () => {
+  const router = read("app/(app)/guidelines/technical-router/page.tsx");
+  assert.ok(
+    router.includes("Legacy pathway router reference"),
+    "the legacy router reference must still exist"
+  );
+  assert.ok(
+    router.includes("not present Legacy recommendation trees as current clinical guidance"),
+    "the router page must keep its scope boundary"
+  );
+
+  const home = read("app/(app)/guidelines/GuidelinesHome.tsx");
+  assert.ok(
+    home.includes("/guidelines/technical-router"),
+    "Guidelines must still reach the router reference"
+  );
+  assert.ok(
+    home.includes("Legacy pathway router reference"),
+    "the router reference must be named, not hidden"
+  );
 });
 
-test("the Guidelines page renders CG-NCSP-3.1.0 from live authority state", () => {
-  const guidelines = read("app/(app)/guidelines/page.tsx");
-  assert.ok(guidelines.includes("CG-NCSP-3.1.0"));
-  assert.ok(guidelines.includes("/api/clinical-rules/status"));
-  assert.ok(guidelines.includes("canonicalIsAuthoritative"));
-  assert.ok(guidelines.includes("ClinicalRuleGraphStudio"));
-  assert.ok(guidelines.includes("GOVERNED_CHECKSUM"));
+test("the Guidelines surface derives clinical authority from live state", () => {
+  const catalogue = read("lib/clinical-rules/guideline-catalogue.ts");
+  assert.ok(
+    catalogue.includes("getClinicalAuthorityDisplay"),
+    "authority must be resolved, never hard-coded"
+  );
+  assert.ok(
+    catalogue.includes("isCanonicalOperative"),
+    "canonical must only read as operative in a live evaluation mode"
+  );
+  assert.equal(
+    /authorityEngine\s*[:=]\s*"CANONICAL"/.test(read("app/(app)/guidelines/GuidelinesHome.tsx")),
+    false,
+    "the Guidelines UI must not assert an authority engine of its own"
+  );
+
+  const home = read("app/(app)/guidelines/GuidelinesHome.tsx");
+  assert.ok(home.includes("ClinicalAuthorityBadge"), "authority provenance must be displayed");
+  assert.ok(home.includes("canonicalIsAuthoritative"), "the UI must react to real authority");
+});
+
+test("the Guidelines surface still exposes the governed ruleset identity", () => {
+  const catalogue = read("lib/clinical-rules/guideline-catalogue.ts");
+  assert.ok(catalogue.includes("CG-NCSP-3.1.0"), "the governed artefact must be named");
+
+  const home = read("app/(app)/guidelines/GuidelinesHome.tsx");
+  assert.ok(home.includes("Ruleset ID"), "the internal identifier must remain reachable");
+  assert.ok(home.includes("checksum"), "the checksum must remain reachable");
+  assert.ok(home.includes("Version history"), "version history must not be removed");
 });
 
 test("the Guidelines page links to Rule Studio for the canonical ruleset", () => {
-  const guidelines = read("app/(app)/guidelines/page.tsx");
-  assert.ok(guidelines.includes("/rules/clinical"));
+  const home = read("app/(app)/guidelines/GuidelinesHome.tsx");
+  assert.ok(home.includes("/rules/clinical"));
+});
+
+test("Guidelines renders governed pathways through the shared renderer", () => {
+  // One graph system: Guidelines, Rule Studio and Case Review must not drift
+  // back to separate renderers.
+  const pathway = read("app/(app)/guidelines/[pathway]/page.tsx");
+  assert.ok(pathway.includes("PathwayViewer"));
+  assert.ok(pathway.includes("buildPathwayGraph"));
+
+  const studio = read("app/(app)/rules/clinical/[id]/page.tsx");
+  assert.ok(
+    studio.includes("PathwayWorkspace"),
+    "Rule Studio must use the shared renderer for its graph surface"
+  );
+
+  const evidence = read("components/batch/CanonicalShadowEvidence.tsx");
+  assert.ok(
+    evidence.includes("/guidelines/pathway-for-rule/"),
+    "Case Review must open the governed pathway for its controlling rule"
+  );
 });
 
 // ── 6. Display resolver is fail-safe ───────────────────────────────────────
@@ -190,6 +263,9 @@ test("pages that report clinical authority are force-dynamic", () => {
     "app/(app)/layout.tsx",
     "app/(app)/rules/clinical/page.tsx",
     "app/(app)/rules/clinical/[id]/page.tsx",
+    // Guidelines became server-rendered and now reports resolved authority.
+    "app/(app)/guidelines/page.tsx",
+    "app/(app)/guidelines/[pathway]/page.tsx",
   ]) {
     assert.ok(
       read(path).includes('export const dynamic = "force-dynamic"'),

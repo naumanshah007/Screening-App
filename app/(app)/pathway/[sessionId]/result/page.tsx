@@ -10,8 +10,9 @@ import { cn, formatClinicalReferenceText, getFigureLabel } from "@/lib/utils";
 import {
   AlertTriangle, ArrowLeft, Calendar, ClipboardList,
   BookOpen, ChevronRight, CheckCircle, FileText,
-  GitBranch, Bell, Printer
+  GitBranch, Bell, Printer, Route
 } from "lucide-react";
+import Link from "next/link";
 import { FlowDiagram } from "@/components/clinical/FlowDiagram";
 import { FigureLink } from "@/components/clinical/FigureLink";
 import { getFigureById } from "@/lib/decision-trees";
@@ -420,35 +421,65 @@ export default function WizardResultPage({
             )}
           </div>
 
-          {/* Decision Pathway diagram — always visible */}
+          {/*
+            Legacy routing / decision trace.
+
+            This renders the LEGACY engine's own figure, highlighted by the legacy
+            recommendation code that produced this result. It is deliberately not
+            re-rendered through the governed pathway viewer: legacy codes
+            (F1-NEG-5Y, …) have no proven mapping to governed canonical rule ids
+            (F3-01, …), and inventing one would fabricate clinical equivalence.
+
+            The shell, typography and chrome match the governed pathway viewer so
+            the experience is consistent, while the wording states plainly that the
+            underlying model is legacy routing.
+          */}
           {(() => {
             const fig = getFigureById(decision.figure);
             if (!fig) return null;
             return (
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border bg-muted/40">
-                  <div className="p-1.5 rounded-lg bg-brand-50">
-                    <GitBranch className="h-4 w-4 text-brand-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground leading-tight">Decision Pathway</p>
-                    <p className="text-xs text-muted-foreground truncate">{fig.title} · {fig.subtitle}</p>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2.5">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                    style={{ background: "var(--pw-entry-bg)" }}
+                  >
+                    <Route className="h-4 w-4" style={{ color: "var(--pw-entry-accent)" }} aria-hidden />
+                  </span>
+                  <div className="mr-auto min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-foreground">
+                      Legacy routing · decision trace
+                    </p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {fig.title} · selected by the legacy pathway router
+                    </p>
                   </div>
                   {decision.recommendationCode && (
-                    <span className="text-[10px] font-mono text-muted-foreground bg-card border border-border px-2 py-0.5 rounded-md flex-shrink-0">
+                    <span className="shrink-0 rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[10.5px] text-muted-foreground">
                       {decision.recommendationCode}
                     </span>
                   )}
                 </div>
 
-                {/* Interactive diagram */}
                 <FlowDiagram
                   figure={fig}
                   activeCode={decision.recommendationCode}
                   height={460}
                   className="rounded-none border-0"
                 />
+
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border px-4 py-2.5 text-[11px] leading-5 text-muted-foreground">
+                  <span>
+                    Legacy routing model. Legacy recommendation codes have no governed canonical
+                    equivalent, so this trace is not rendered from the governed ruleset.
+                  </span>
+                  <Link
+                    href="/guidelines"
+                    className="font-semibold text-accent-color hover:underline"
+                  >
+                    Open current cervical screening guidelines
+                  </Link>
+                </div>
               </div>
             );
           })()}
