@@ -32,6 +32,8 @@ import {
 import { resolveClinicalAuthority } from "@/lib/clinical-rules/authority";
 import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
 import { getClinicalAuthorityMonitoringSummary } from "@/lib/clinical-rules/monitoring";
+import { LEGACY_ENGINE_VERSION } from "@/lib/clinical-rules/authority";
+import { backfillCaseAuthorityPins } from "./backfill-case-authority-pins";
 import type { ClinicalInput } from "@/lib/engine/types";
 import { canonicalV2Corpus } from "@/lib/clinical-rules/__tests__/support/canonical-v2-corpus";
 
@@ -151,12 +153,25 @@ async function main() {
     environment: "VALIDATION",
     caseId: legacyCaseId,
   });
-  record("B", "Synthetic Legacy case created and evaluated", legacyRun.authority.authorityEngine === "LEGACY", {
+  await prisma.ruleDecision.create({
+    data: {
+      caseId: legacyCaseId,
+      outcome: legacyRun.decision.recommendation ?? "Legacy provisional outcome",
+      rationale: "Synthetic rehearsal legacy decision.",
+      evidenceJson: "{}",
+      traceJson: "[]",
+      generatedBy: LEGACY_ENGINE_VERSION,
+    },
+  });
+  const backfill = await backfillCaseAuthorityPins({ dryRun: false, actorUserId: creator.id });
+  record("B", "Synthetic Legacy case created, decided and pinned", legacyRun.authority.authorityEngine === "LEGACY", {
     caseId: legacyCaseId,
     authorityEngine: legacyRun.authority.authorityEngine,
     figure: legacyRun.legacyDecision.figure,
     recommendationCode: legacyRun.decision.recommendationCode,
     evaluationId: legacyRun.evaluationId,
+    pinsCreatedByBackfill: backfill.created,
+    backfillConflicts: backfill.conflicts.length,
   });
 
   // ── C. Rehearsal state: import, validate, approve x2, publish ─────────────
@@ -254,19 +269,17 @@ async function main() {
     environment: "VALIDATION",
     caseId: legacyCaseId,
   });
-  // A pin is established by the first clinically OPERATIVE evaluation, which only
-  // canonical runs write. A case decided under Legacy therefore has no pin, and a
-  // re-evaluation after activation adopts current authority. Recorded as an
-  // observation with its real value — see the finding in the rehearsal report.
+  // The case carries a persisted Legacy pin from its original decision, so the
+  // global activation must not move it.
   const legacyStaysLegacy = legacyReplay.authority.authorityEngine === "LEGACY";
-  record("G", "Pre-existing Legacy case on re-evaluation after activation", legacyStaysLegacy, {
+  record("G", "Pre-activation Legacy case remains Legacy after canonical activation", legacyStaysLegacy, {
     caseId: legacyCaseId,
     authorityEngine: legacyReplay.authority.authorityEngine,
     pinned: legacyReplay.pinned,
     authorityReason: legacyReplay.authorityReason,
     finding: legacyStaysLegacy
-      ? "Legacy-era case retained Legacy authority."
-      : "FINDING: a Legacy-era case is not pinned, because pins are established only by an operative canonical evaluation. A regrade after activation adopts canonical authority.",
+      ? "Legacy-era case retained Legacy authority via its persisted pin."
+      : "FINDING: the Legacy-era case was not pinned and adopted canonical authority.",
   });
 
   // ── H. Rollback, with measured RTO ────────────────────────────────────────

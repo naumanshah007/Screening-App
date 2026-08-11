@@ -2,7 +2,7 @@
 
 Harness: `scripts/rule-studio/shared-activation-rehearsal.ts`
 Raw observations: `docs/rehearsal/shared-activation-rehearsal-observations.txt`
-Result: **11 of 12 observations pass. SHARED-REHEARSAL is NOT recorded as approved.**
+Result: **12 of 12 observations pass — SHARED_REHEARSAL_PASSED.**
 
 ---
 
@@ -47,7 +47,7 @@ durable remote database, this same harness runs unchanged.
 | D | CG-NCSP-3.1.0 activated in VALIDATION only (Production observed still LEGACY) | **PASS** |
 | E | Referral → legacy router → pathway → canonical → provisional recommendation | **PASS** |
 | F | Provenance persisted and verifiable | **PASS** |
-| G | Pre-existing Legacy case on re-evaluation after activation | **FAIL — see finding** |
+| G | Pre-activation Legacy case remains Legacy after canonical activation | **PASS** |
 | H | Rollback returns authority to Legacy | **PASS** |
 | I | New case after rollback resolves to Legacy | **PASS** |
 | J | Canonical case remains canonical historically after rollback | **PASS** |
@@ -83,40 +83,32 @@ timestamp         2026-08-11T19:50:56.135Z
 
 ---
 
-## FINDING — G: a Legacy-era case is not pinned to Legacy
+## RESOLVED — G: Legacy-era case pinning
 
-**Observed:** a case whose only clinical decision was made under Legacy, when re-evaluated
-after canonical activation, resolves to **CANONICAL**, with
-`pinned: false` and reason *"Not yet pinned; the current activation applies and this
-evaluation establishes the pin."*
+**Original observation.** A case whose only clinical decision was made under Legacy resolved
+to CANONICAL after activation, because `getCaseAuthorityPin` recognised only an operative
+canonical `RuleEvaluation`, and a Legacy decision lives in `RuleDecision`.
 
-**Mechanism (not a defect in the harness):**
-`getCaseAuthorityPin` looks for the earliest `RuleEvaluation` in a clinically *operative*
-mode (`LIVE_DEMO`, `LIVE_PRODUCTION`). Legacy decisions are not written to `RuleEvaluation`,
-so a Legacy-era case has no operative evaluation and the function returns an
-`inferredLegacy` pin. `applyPin` treats `inferredLegacy` as **not pinned**, so current
-authority applies.
+**Fix.** An immutable `CaseAuthorityPin` record now persists the authority a case is bound to,
+and `getCaseAuthorityPin` resolves in this order:
 
-**Consequences.** Forward-only behaviour is safe: new cases get canonical, and a case first
-decided under canonical stays on that exact version after rollback (observation J passed).
-The gap is specifically **re-evaluation / regrade of a Legacy-era case after activation**,
-which will adopt canonical rather than remain on Legacy.
+1. an explicit persisted `CaseAuthorityPin` — authoritative, written once;
+2. the first clinically operative `RuleEvaluation` → CANONICAL pin;
+3. an existing `RuleDecision` → **LEGACY pin**, carrying the original decision time;
+4. no clinical history → not pinned; the current activation applies and this evaluation
+   establishes the pin.
 
-**Why this matters for the stated activation target.** The requirement "historical cases
-remain pinned" holds for canonical-era cases and does **not** hold for Legacy-era cases.
-Whether that is acceptable is a clinical governance decision, not a technical one:
+Every branch reads persisted case history. None reads the currently active authority.
 
-- If a regrade *should* use current guidance, the behaviour is correct and the requirement
-  needs rewording.
-- If Legacy-era cases must stay on Legacy, `applyPin` needs an explicit Legacy pin — for
-  example deriving a pin from the case's existing `RuleDecision` — before Production
-  activation.
+**Backfill.** `scripts/rule-studio/backfill-case-authority-pins.ts` materialises pins from
+existing history. It writes authority provenance only — never the recommendation, clinical
+content, decision timestamp, reviewer or rule result. It is idempotent (re-checks inside the
+transaction), transactional, auditable (`CASE_AUTHORITY_PIN_BACKFILL`), supports `--dry-run`,
+and **fails closed**: a case whose history disagrees with an existing pin is reported and
+left untouched.
 
-**This is why SHARED-REHEARSAL has not been recorded as approved.** Recording a pass while a
-stated activation requirement is unmet would put a false attestation into the governance
-record.
-
----
+**Verified in this rehearsal (observation G) and by 9 targeted tests** in
+`tests/db/stack-02-case-authority-pinning.test.ts`.
 
 ## Safety properties of this rehearsal
 
