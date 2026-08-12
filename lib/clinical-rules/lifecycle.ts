@@ -6,6 +6,7 @@ import type {
 
 import { prisma } from "@/lib/prisma";
 
+import { demoProvenance } from "@/lib/config/demo-mode";
 import { calculateRuleSnapshotChecksum, deterministicJson } from "./checksum";
 import { NATIONAL_RULE_SET_KEY } from "./constants";
 import { ClinicalRuleSnapshotSchema, parseSnapshot, type ClinicalRuleSnapshot } from "./schema";
@@ -82,6 +83,10 @@ async function createVersionAudit(
       afterJson: args.after === undefined ? undefined : JSON.stringify(args.after),
       ipAddress: args.metadata?.ipAddress,
       userAgent: args.metadata?.userAgent,
+      // Every lifecycle event — approval, publication, activation, rollback —
+      // carries demo provenance, so an approval given with a demonstration
+      // identity stays identifiable as one after DEMO_MODE is turned off.
+      isDemo: demoProvenance().isDemo,
     },
   });
   await tx.auditLog.create({
