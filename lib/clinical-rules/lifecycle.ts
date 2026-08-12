@@ -379,12 +379,19 @@ export async function publishClinicalRuleVersion(args: {
     const checksum = calculateRuleSnapshotChecksum(snapshot);
     if (current.checksum !== checksum) throw new Error("Snapshot checksum mismatch; validate the draft again.");
 
+    // `checksum` is deliberately NOT written here. It was just asserted equal to
+    // the stored value, so writing it is a no-op — but SQLite's
+    // `ClinicalRuleVersion_evaluated_snapshot_update` trigger fires on a column
+    // appearing in the SET list, not on its value changing. Including it made
+    // publication impossible for any version that had ever been shadow-evaluated,
+    // which is every version the canonical engine has compared against. The
+    // immutability guarantee is unchanged: identity columns still cannot be
+    // altered, and the equality check above still enforces the invariant.
     const updated = await tx.clinicalRuleVersion.update({
       where: { id: current.id },
       data: {
         status: "PUBLISHED",
         sourceGuidelineSummary: args.sourceSummary.trim(),
-        checksum,
         publishedById: args.actorUserId,
         publishedAt: new Date(),
       },

@@ -83,6 +83,23 @@ const LEGACY_PIN: AuthorityPin = {
  * of every case in production today.
  */
 export async function getCaseAuthorityPin(caseId: string): Promise<AuthorityPin> {
+  // 1. An explicit persisted pin is authoritative. It is written once and never
+  //    updated, so a global activation cannot move an existing case.
+  const persisted = await prisma.caseAuthorityPin.findUnique({ where: { caseId } });
+  if (persisted) {
+    return {
+      authorityEngine: persisted.authorityEngine === "CANONICAL" ? "CANONICAL" : "LEGACY",
+      ruleVersionId: persisted.ruleVersionId,
+      ruleVersionDisplay: persisted.ruleVersionDisplay,
+      rulesetChecksum: persisted.rulesetChecksum,
+      engineVersion: persisted.engineVersion,
+      evaluationId: persisted.evaluationId,
+      evaluationMode: (persisted.evaluationMode as RuleEvaluationMode | null) ?? null,
+      pinnedAt: persisted.pinnedAt,
+      inferredLegacy: false,
+    };
+  }
+
   const first = await prisma.ruleEvaluation.findFirst({
     where: { caseId, evaluationMode: { in: [...OPERATIVE_MODES] } },
     orderBy: { evaluatedAt: "asc" },
@@ -97,7 +114,27 @@ export async function getCaseAuthorityPin(caseId: string): Promise<AuthorityPin>
     },
   });
 
-  if (!first) return LEGACY_PIN;
+  if (!first) {
+    // 2. No operative canonical evaluation. If the case already carries a
+    //    clinical decision it was made under Legacy, so it IS pinned — to
+    //    Legacy. Derived from persisted case history, never from the currently
+    //    active authority.
+    const legacyDecision = await prisma.ruleDecision.findUnique({
+      where: { caseId },
+      select: { createdAt: true, generatedBy: true },
+    });
+    if (legacyDecision) {
+      return {
+        ...LEGACY_PIN,
+        engineVersion: legacyDecision.generatedBy || LEGACY_ENGINE_VERSION,
+        pinnedAt: legacyDecision.createdAt,
+        inferredLegacy: false,
+      };
+    }
+    // 3. Genuinely no clinical history: a new case. Current authority applies
+    //    and this evaluation establishes the pin.
+    return LEGACY_PIN;
+  }
 
   return {
     authorityEngine: "CANONICAL",

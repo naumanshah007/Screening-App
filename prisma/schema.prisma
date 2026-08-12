@@ -502,20 +502,20 @@ model Patient {
   // Flags
   isPostHysterectomy Boolean   @default(false)
   hysterectomyDate   DateTime?
-  hysterectomyType   String?   // TOTAL, SUBTOTAL
+  hysterectomyType   String? // TOTAL, SUBTOTAL
 
   // NZ ethnicity (Level 2 codes: "21" Māori, "30" Pacific, "10" NZ European, etc.)
-  ethnicityPrimary   String?
-  ethnicityOther     String?   // Secondary ethnicity code
-  interpreterRequired Boolean  @default(false)
-  preferredLanguage  String?   // ISO 639-1 code, e.g. "mi" for te reo Māori
+  ethnicityPrimary    String?
+  ethnicityOther      String? // Secondary ethnicity code
+  interpreterRequired Boolean @default(false)
+  preferredLanguage   String? // ISO 639-1 code, e.g. "mi" for te reo Māori
 
   // NHI validation tracking
-  nhiValidatedAt     DateTime?
+  nhiValidatedAt DateTime?
 
   // Soft delete
-  deletedAt          DateTime?
-  deletedByUserId    String?
+  deletedAt       DateTime?
+  deletedByUserId String?
 
   screeningSessions ScreeningSession[]
   referralCases     ReferralCase[]
@@ -558,6 +558,7 @@ model ReferralCase {
   extractedFacts      ExtractedFact[]
   summary             ClinicalSummary?
   ruleDecision        RuleDecision?
+  authorityPin        CaseAuthorityPin?
   clinicianDecision   ClinicianDecision?
   highSuspicionCancer Boolean            @default(false)
   smoOnly             Boolean            @default(false)
@@ -667,6 +668,38 @@ model CaseRuleSetRelease {
   @@unique([serviceLine, version])
   @@index([serviceLine, isActive, publishedAt])
   @@index([reviewedByUserId, reviewedAt])
+}
+
+/// Immutable record of the clinical authority a case is bound to.
+///
+/// WHY THIS EXISTS
+/// ---------------
+/// Authority used to be derived at read time from the earliest operative
+/// RuleEvaluation. A case decided under Legacy writes no RuleEvaluation, so it
+/// produced no pin, and a global activation would silently re-evaluate it under
+/// canonical. Policy requires a case to stay on the authority under which its
+/// decision was actually made, so the pin is persisted rather than inferred.
+///
+/// One row per case, written once. `origin` records how the pin was established
+/// so a backfilled pin is never mistaken for one written at decision time.
+model CaseAuthorityPin {
+  id                 String       @id @default(cuid())
+  caseId             String       @unique
+  referralCase       ReferralCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorityEngine    String
+  ruleVersionId      String?
+  ruleVersionDisplay String?
+  rulesetChecksum    String?
+  engineVersion      String
+  evaluationId       String?
+  evaluationMode     String?
+  /// When the pinned decision was made — not when this row was written.
+  pinnedAt           DateTime
+  /// FIRST_OPERATIVE_EVALUATION | LEGACY_DECISION_BACKFILL | LEGACY_DECISION
+  origin             String
+  createdAt          DateTime     @default(now())
+
+  @@index([authorityEngine, pinnedAt])
 }
 
 model RuleDecision {
@@ -1135,8 +1168,8 @@ model AuditLog {
   userAgent     String?
   exportEvent   Boolean       @default(false)
   severity      AuditSeverity @default(INFO)
-  correlationId String?       // links related audit events in a single request/operation
-  sessionId     String?       // NextAuth session token (hashed) for session-level tracing
+  correlationId String? // links related audit events in a single request/operation
+  sessionId     String? // NextAuth session token (hashed) for session-level tracing
   createdAt     DateTime      @default(now())
 
   @@index([entity, action])
@@ -1150,18 +1183,18 @@ model AuditLog {
 // NZ Privacy Act 2020 — explicit consent tracking per purpose.
 
 model PatientConsent {
-  id          String        @id @default(cuid())
-  patientId   String
-  patient     Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  purpose     ConsentPurpose
-  status      ConsentStatus @default(GIVEN)
-  givenAt     DateTime      @default(now())
-  givenByUserId String?     // clinician or coordinator who recorded consent
-  withdrawnAt DateTime?
-  expiresAt   DateTime?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String         @id @default(cuid())
+  patientId     String
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  purpose       ConsentPurpose
+  status        ConsentStatus  @default(GIVEN)
+  givenAt       DateTime       @default(now())
+  givenByUserId String? // clinician or coordinator who recorded consent
+  withdrawnAt   DateTime?
+  expiresAt     DateTime?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([patientId, purpose, status])
   @@index([status, expiresAt])
@@ -1230,9 +1263,9 @@ model BatchRun {
 }
 
 model BatchReviewItem {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   batchRunId        String
-  batchRun          BatchRun @relation(fields: [batchRunId], references: [id], onDelete: Cascade)
+  batchRun          BatchRun  @relation(fields: [batchRunId], references: [id], onDelete: Cascade)
   rowNumber         Int
   label             String?
   externalPatientId String?
@@ -1255,21 +1288,21 @@ model BatchReviewItem {
   safetyOutcome      String?
   // True when the engine refused to silently auto-decide and a clinician must
   // look (safety stop / insufficient info / external dependency / error).
-  reviewRequired     Boolean  @default(false)
-  engineStatus       String   @default("success") // success | error
+  reviewRequired     Boolean @default(false)
+  engineStatus       String  @default("success") // success | error
 
   // Full payloads so the reviewer drill-in can reconstruct the BatchCaseResult
   // without re-running the engine. caseJson = CanonicalBatchCase, inputJson =
   // ClinicalInput, decisionJson = ClinicalDecision.
-  ruleEvaluationId String?         @unique
-  ruleEvaluation   RuleEvaluation? @relation(fields: [ruleEvaluationId], references: [id], onDelete: SetNull)
-  caseJson     String
-  inputJson    String
-  decisionJson String
+  ruleEvaluationId   String?         @unique
+  ruleEvaluation     RuleEvaluation? @relation(fields: [ruleEvaluationId], references: [id], onDelete: SetNull)
+  caseJson           String
+  inputJson          String
+  decisionJson       String
   // Stored authority provenance lets Case Review render canonical-first only
   // when the evaluation that produced this decision was genuinely operative.
-  authorityEngine   String  @default("LEGACY")
-  authorityReason   String?
+  authorityEngine    String          @default("LEGACY")
+  authorityReason    String?
   legacyDecisionJson String?
 
   // Reviewer disposition
