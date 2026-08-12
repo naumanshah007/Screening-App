@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { demoProvenance } from "@/lib/config/demo-mode";
 import { prisma } from "@/lib/prisma";
 
 export const ClinicalGovernanceDispositionSchema = z.enum([
@@ -376,6 +377,7 @@ export async function recordClinicalGovernanceReview(args: {
           ruleSetId: version.ruleSetId,
           ruleVersionId: version.id,
           actorUserId: args.actorUserId,
+          isDemo: demoProvenance().isDemo,
           eventType: requestedChange
             ? "GOVERNANCE_INTERPRETATION_CHANGE_REQUESTED"
             : "GOVERNANCE_INTERPRETATION_REJECTED",
@@ -406,6 +408,7 @@ export async function recordClinicalGovernanceReview(args: {
           ruleSetId: version.ruleSetId,
           ruleVersionId: version.id,
           actorUserId: args.actorUserId,
+          isDemo: demoProvenance().isDemo,
           eventType: "GOVERNANCE_INTERPRETATION_PROPOSED",
           reason: args.comments,
           afterJson: JSON.stringify({
@@ -477,6 +480,7 @@ export async function recordClinicalGovernanceReview(args: {
         ruleSetId: version.ruleSetId,
         ruleVersionId: version.id,
         actorUserId: args.actorUserId,
+        isDemo: demoProvenance().isDemo,
         eventType: "GOVERNANCE_INTERPRETATION_APPROVED",
         reason: args.comments,
         beforeJson: JSON.stringify({

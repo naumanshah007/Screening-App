@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { PrivexaMark } from "@/components/marketing/PrivexaMark";
+import {
+  DemoLoginPanel,
+  type DemoAccountOption,
+} from "@/components/auth/DemoLoginPanel";
 
 function getSafeCallbackDestination(callbackUrl: string | null): string | null {
   if (!callbackUrl || typeof window === "undefined") return null;
@@ -39,10 +43,12 @@ export function LoginPageClient({
   passwordUpdated = false,
   reauthRequired = false,
   callbackUrl = null,
+  demoAccounts = [],
 }: {
   passwordUpdated?: boolean;
   reauthRequired?: boolean;
   callbackUrl?: string | null;
+  demoAccounts?: readonly DemoAccountOption[];
 }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -172,6 +178,10 @@ async function handleSubmit(e: React.FormEvent) {
             </Button>
           </form>
 
+          {demoAccounts.length > 0 && (
+            <DemoLoginPanel accounts={demoAccounts} />
+          )}
+
           {/*
             R6 remediation (4 August 2026).
 
@@ -189,6 +199,31 @@ async function handleSubmit(e: React.FormEvent) {
             fails if it is.
 
             Historical credential rotation remains a separate, human-owned R6 gate.
+
+            DEMO MODE (12 August 2026) — how the demo affordance above differs.
+
+            The panel rendered when DEMO_MODE is on is NOT a reinstatement of the
+            removed block. The distinction is that no credential exists on this
+            surface at any point:
+
+              - The account list carries identity and role only. No password is
+                rendered, threaded as a prop, or present in the client bundle.
+              - Sign-in posts an opaque key ("admin") to a server action, which
+                resolves the credential from the environment server-side.
+              - The password is supplied by DEMO_PASSWORD at runtime and is not a
+                literal in any source file, so nothing needs scrubbing at handover.
+              - DEMO_MODE is decided on the server; the client cannot enable it.
+
+            Consequently the R6 guard above still passes unmodified, and setting
+            DEMO_MODE=false removes the affordance entirely. What the guard was
+            written to prevent — credential material reachable on an
+            unauthenticated route — remains prevented.
+
+            The residual exposure is different in kind and is accepted
+            deliberately: while DEMO_MODE is on, anyone who can reach this page
+            can obtain a session. That is why the deployment must sit behind
+            access protection for as long as demo mode is enabled. See
+            lib/ops/handover-readiness.ts.
           */}
         </div>
       </div>

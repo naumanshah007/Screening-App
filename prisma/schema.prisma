@@ -337,6 +337,14 @@ model User {
   failedAttempts                Int                     @default(0)
   lockedUntil                   DateTime?
   lastLoginAt                   DateTime?
+  /// Administrative enable/disable. A disabled account cannot authenticate at
+  /// all — checked in the credentials provider before any password comparison,
+  /// so disabling is immediate and does not wait for session expiry.
+  isActive                      Boolean                 @default(true)
+  /// True for the seeded demonstration identities. Lets handover readiness
+  /// enumerate exactly which accounts must be removed or converted, and keeps
+  /// the demo reset control from ever targeting a real account.
+  isDemoAccount                 Boolean                 @default(false)
   gpPracticeId                  String?
   gpPractice                    GPPractice?             @relation(fields: [gpPracticeId], references: [id])
   accounts                      Account[]
@@ -1090,11 +1098,16 @@ model RuleVersionAuditEvent {
   afterJson     String?
   ipAddress     String?
   userAgent     String?
+  /// True when this governance event was recorded while DEMO_MODE was enabled.
+  /// Durable provenance: a demonstration attestation stays identifiable after
+  /// DEMO_MODE is turned off, and is refused by the real activation gates.
+  isDemo        Boolean              @default(false)
   createdAt     DateTime             @default(now())
 
   @@index([ruleSetId, createdAt])
   @@index([ruleVersionId, createdAt])
   @@index([actorUserId, createdAt])
+  @@index([isDemo, eventType])
 }
 
 // ─── Wizard Session ───────────────────────────────────────────────────────────
