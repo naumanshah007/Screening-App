@@ -61,7 +61,39 @@ export type ClinicalAuthority = {
 };
 
 /** Resolve the activation environment from the running deployment, never from a UI hint. */
+const CLINICAL_ENVIRONMENTS = new Set<RuleActivationEnvironment>([
+  "PRODUCTION",
+  "VALIDATION",
+  "DEMO",
+  "TEST",
+]);
+
+/**
+ * The clinical environment this deployment operates as.
+ *
+ * WHY THIS IS DECLARED, NOT ONLY DERIVED
+ * --------------------------------------
+ * A deployment's *hosting* target and its *clinical* status are different
+ * facts. screening.privexa.co is a Vercel production deployment, but it holds
+ * synthetic data and takes no real referrals — it is a demonstration
+ * environment. Deriving clinical status from VERCEL_ENV alone forces those two
+ * facts to agree, which would mean either mislabelling a demo as clinical
+ * production, or weakening the production controls to let a demo through.
+ *
+ * CLINICAL_ENVIRONMENT states the clinical fact explicitly. It is NOT a bypass:
+ * a deployment that declares PRODUCTION still passes through every production
+ * gate unchanged, and declaring a lower environment does not grant any
+ * capability a genuine deployment of that environment would not have.
+ *
+ * Unset — the default — reproduces the previous derivation exactly, so no
+ * existing deployment changes behaviour by upgrading to this code.
+ */
 export function getRuntimeClinicalEnvironment(): RuleActivationEnvironment {
+  const declared = process.env.CLINICAL_ENVIRONMENT?.trim().toUpperCase();
+  if (declared && CLINICAL_ENVIRONMENTS.has(declared as RuleActivationEnvironment)) {
+    return declared as RuleActivationEnvironment;
+  }
+
   if (process.env.VERCEL_ENV === "production") return "PRODUCTION";
   if (process.env.VERCEL_ENV === "preview") return "VALIDATION";
   if (process.env.NODE_ENV === "test") return "TEST";
