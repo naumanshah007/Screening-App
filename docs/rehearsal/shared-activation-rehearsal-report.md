@@ -134,3 +134,27 @@ environment while CG-NCSP-3.1.0 is unapproved and unactivated — the opposite o
 documented "Default: OFF. Never defaults on, in any environment." It has been set to a
 fail-closed value. The value itself was never printed. **A Production redeploy is required
 for running instances to pick up the new value.**
+
+## Credential rotation and re-verification (2026-08-12)
+
+The screening2 database token had previously been shared in a chat transcript and was
+therefore treated as compromised. A fresh Read & Write token was minted from the Turso
+dashboard and the two Vercel Preview-scoped `TURSO_AUTH_TOKEN` entries that referenced
+screening2 (branches `feat/canonical-authority-layer` and
+`feat/current-guidelines-premium-tree-integration`, the latter last rotated 93 days prior)
+were updated to the new value. Neither the old nor the new token value was printed, pasted
+into chat, or committed at any point.
+
+The full A–L rehearsal was re-run against the rotated token to confirm the new credential
+is live and correctly scoped:
+
+- `mode=remote-libsql`, `target=libsql://screening2-naumanshah007.aws-ap-south-1.turso.io`
+- **12 of 12 observations pass**
+- Rollback RTO: **2,845 ms** (consistent with the original 2,767 ms remote figure — confirms
+  a genuine network round trip, not a local-file fallback)
+
+The old token remains valid at the Turso level unless explicitly invalidated (Turso does not
+auto-revoke on new-token creation). Invalidating it fully would also invalidate the new
+token under Turso's current "Invalidate All Tokens" semantics, so the safe next step is a
+Vercel Preview redeploy to cut over running instances to the new token, followed by
+confirming no client still depends on the old one before a manual invalidation.
