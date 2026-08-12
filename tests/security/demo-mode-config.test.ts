@@ -72,23 +72,61 @@ test("demo mode is not coupled to NODE_ENV", async () => {
   }
 });
 
-test("the five demonstration accounts carry the required roles", async () => {
+test("every application role has a demonstration identity", async () => {
   const { DEMO_ACCOUNTS } = await import("@/lib/config/demo-mode");
 
+  // The Prisma schema is the source of truth for what roles exist. Parsing it
+  // rather than restating the list means adding a role to the enum without a
+  // demo identity fails this test, so the roster cannot fall behind the app.
+  const schema = readFileSync(
+    join(ROOT, "prisma", "schema.prisma"),
+    "utf8"
+  );
+  const enumBody = schema.match(/enum UserRole\s*\{([^}]*)\}/)?.[1];
+  assert.ok(enumBody, "could not locate the UserRole enum");
+
+  const schemaRoles = enumBody!
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("//"));
+
+  const covered = new Set(DEMO_ACCOUNTS.map((account) => account.role));
+  const missing = schemaRoles.filter((role) => !covered.has(role as never));
+
+  assert.deepEqual(
+    missing,
+    [],
+    `every UserRole needs a demo account; missing: ${missing.join(", ")}`
+  );
+
+  // No role should be represented twice except ADMIN, which needs two distinct
+  // people so activation-operator / deputy-operator separation is showable.
   const byEmail = new Map(
     DEMO_ACCOUNTS.map((account) => [account.email, account.role])
   );
-
-  assert.equal(DEMO_ACCOUNTS.length, 5);
   assert.equal(byEmail.get("admin@cs.nz"), "ADMIN");
   assert.equal(byEmail.get("smo@cs.nz"), "SMO_REVIEWER");
   assert.equal(byEmail.get("specialist@cs.nz"), "COLPOSCOPIST");
+  assert.equal(byEmail.get("colpo.cns@cs.nz"), "COLPO_CNS");
   assert.equal(byEmail.get("gynae.grader@cs.nz"), "GYNAE_GRADER");
+  assert.equal(byEmail.get("integration.admin@cs.nz"), "INTEGRATION_ADMIN");
   assert.equal(byEmail.get("deputy.admin@cs.nz"), "ADMIN");
 
-  // Operator and deputy must be able to be distinct people.
   const admins = DEMO_ACCOUNTS.filter((account) => account.role === "ADMIN");
   assert.equal(admins.length, 2, "two ADMINs are required for operator/deputy separation");
+
+  // Emails must be unique — a duplicate would silently collapse two role cards
+  // onto one identity.
+  assert.equal(
+    new Set(DEMO_ACCOUNTS.map((a) => a.email)).size,
+    DEMO_ACCOUNTS.length,
+    "demo account emails must be unique"
+  );
+  assert.equal(
+    new Set(DEMO_ACCOUNTS.map((a) => a.key)).size,
+    DEMO_ACCOUNTS.length,
+    "demo account keys must be unique"
+  );
 });
 
 test("the demo password is never a source literal", async () => {

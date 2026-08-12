@@ -1,4 +1,5 @@
 import { isDemoModeEnabled, listDemoAccounts } from "@/lib/config/demo-mode";
+import { getDefaultAppRouteForRole } from "@/lib/auth/permissions";
 import { LoginPageClient } from "./LoginPageClient";
 
 // The demo affordance depends on runtime environment state, so this route must
@@ -24,6 +25,9 @@ export default async function LoginPage({
         label: account.label,
         description: account.description,
         role: account.role,
+        // Derived from the application's own role→route map so the card cannot
+        // advertise a landing page the app does not actually send them to.
+        landingPage: getDefaultAppRouteForRole(account.role),
       }))
     : [];
 

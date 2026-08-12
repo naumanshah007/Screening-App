@@ -115,8 +115,8 @@ async function handleSubmit(e: React.FormEvent) {
       </div>
 
       {/* Form panel */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-bg">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center overflow-y-auto p-6 bg-bg">
+        <div className={demoAccounts.length > 0 ? "w-full max-w-md py-6" : "w-full max-w-sm"}>
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
             <PrivexaMark size={38} uid="login-m" />
@@ -127,7 +127,11 @@ async function handleSubmit(e: React.FormEvent) {
           </div>
 
           <h1 className="text-h3 text-foreground mb-1">Sign in</h1>
-          <p className="text-sm text-muted-foreground mb-6">Enter your credentials to access the platform.</p>
+          <p className="text-sm text-muted-foreground mb-6">
+            {demoAccounts.length > 0
+              ? "Choose a demonstration role, or sign in with your own account."
+              : "Enter your credentials to access the platform."}
+          </p>
 
           {/* Banners */}
           {passwordUpdated && !error && (
@@ -138,6 +142,25 @@ async function handleSubmit(e: React.FormEvent) {
           )}
           {error && (
             <Alert variant="error" className="mb-4">{error}</Alert>
+          )}
+
+          {/*
+            Demo roles lead when demo mode is on — the whole point of the
+            deployment in that state is that a reviewer can pick a role and be
+            inside the app in one click. Manual sign-in stays available below
+            under its own heading, and is the only option when demo mode is off.
+          */}
+          {demoAccounts.length > 0 && (
+            <>
+              <DemoLoginPanel accounts={demoAccounts} />
+              <div className="my-6 flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" aria-hidden />
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Other login
+                </span>
+                <span className="h-px flex-1 bg-border" aria-hidden />
+              </div>
+            </>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -177,10 +200,6 @@ async function handleSubmit(e: React.FormEvent) {
               Sign in
             </Button>
           </form>
-
-          {demoAccounts.length > 0 && (
-            <DemoLoginPanel accounts={demoAccounts} />
-          )}
 
           {/*
             R6 remediation (4 August 2026).

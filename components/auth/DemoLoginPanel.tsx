@@ -11,10 +11,11 @@ export type DemoAccountOption = {
   label: string;
   description: string;
   role: string;
+  landingPage: string;
 };
 
 /**
- * One-click demonstration sign-in.
+ * One-click demonstration sign-in, one card per application role.
  *
  * Renders only when the server has already decided DEMO_MODE is on — the
  * decision is never made client-side. Each button posts an opaque account key
@@ -44,10 +45,7 @@ export function DemoLoginPanel({
   }
 
   return (
-    <section
-      className="mt-8 rounded-xl border border-warning-border bg-warning-bg/40 p-4"
-      aria-labelledby="demo-users-heading"
-    >
+    <section aria-labelledby="demo-users-heading">
       <div className="flex items-start gap-2.5">
         <FlaskConical
           className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning-fg"
@@ -84,27 +82,25 @@ export function DemoLoginPanel({
                 disabled={pending}
                 className="group flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-primary/50 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-foreground">
                     Login as {account.label}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {account.description}
                   </span>
-                </span>
-                <span className="flex flex-shrink-0 items-center gap-2">
-                  <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                    {account.role}
+                  <span className="mt-0.5 block truncate font-mono text-[11px] text-muted-foreground">
+                    {account.role} → {account.landingPage}
                   </span>
-                  <ArrowRight
-                    className={`h-3.5 w-3.5 flex-shrink-0 transition-transform ${
-                      isActive
-                        ? "animate-pulse"
-                        : "text-muted-foreground group-hover:translate-x-0.5"
-                    }`}
-                    aria-hidden
-                  />
                 </span>
+                <ArrowRight
+                  className={`h-3.5 w-3.5 flex-shrink-0 transition-transform ${
+                    isActive
+                      ? "animate-pulse"
+                      : "text-muted-foreground group-hover:translate-x-0.5"
+                  }`}
+                  aria-hidden
+                />
               </button>
             </li>
           );
