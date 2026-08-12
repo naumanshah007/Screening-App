@@ -48,6 +48,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        // Administratively disabled accounts are refused before any password
+        // comparison, so disabling takes effect on the next sign-in attempt
+        // rather than waiting for an existing session to expire.
+        if (!user.isActive) {
+          await recordSecurityEvent({
+            action: SECURITY_EVENT_ACTION.LOGIN_BLOCKED_LOCKED,
+            userId: user.id,
+            request,
+            details: { reason: "account_disabled" },
+          });
+          throw new Error("Account is disabled. Contact an administrator.");
+        }
+
         // Check account lockout
         if (user.lockedUntil && user.lockedUntil > new Date()) {
           await recordSecurityEvent({

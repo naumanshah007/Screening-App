@@ -5,6 +5,8 @@ import {
   computePasswordExpiresAt,
   MIN_PASSWORD_LENGTH,
 } from "@/lib/auth/password-policy";
+import { assertDemoModeEnabled, getDemoPassword } from "@/lib/config/demo-mode";
+import { buildUserAuditEntry, USER_AUDIT_ACTION } from "@/lib/admin/user-audit";
 import { prisma } from "@/lib/prisma";
 
 const adminUserInclude = {
@@ -42,7 +44,9 @@ export async function createUserAccount(args: {
   }
 
   if (args.password.trim().length < MIN_PASSWORD_LENGTH) {
-    throw new Error("Initial password must be at least 8 characters");
+    throw new Error(
+      `Initial password must be at least ${MIN_PASSWORD_LENGTH} characters`
+    );
   }
 
   const existingUser = await prisma.user.findUnique({
@@ -83,17 +87,16 @@ export async function createUserAccount(args: {
     });
 
     await tx.auditLog.create({
-      data: {
-        userId: args.createdByUserId,
-        action: "CREATE",
-        entity: "User",
-        entityId: user.id,
-        newValue: JSON.stringify({
+      data: buildUserAuditEntry({
+        action: USER_AUDIT_ACTION.USER_CREATED,
+        actorUserId: args.createdByUserId,
+        targetUserId: user.id,
+        details: {
           email: user.email,
           role: user.role,
           gpPracticeId: user.gpPracticeId,
-        }),
-      },
+        },
+      }),
     });
 
     return user;
@@ -162,16 +165,17 @@ export async function updateUserAccess(args: {
 
     await tx.auditLog.create({
       data: {
-        userId: args.changedByUserId,
-        action: "UPDATE",
-        entity: "User",
-        entityId: user.id,
+        ...buildUserAuditEntry({
+          action: USER_AUDIT_ACTION.USER_ROLE_CHANGED,
+          actorUserId: args.changedByUserId,
+          targetUserId: user.id,
+          details: changedFields,
+        }),
         oldValue: JSON.stringify({
           role: targetUser.role,
           failedAttempts: targetUser.failedAttempts,
           lockedUntil: targetUser.lockedUntil?.toISOString() ?? null,
         }),
-        newValue: JSON.stringify(changedFields),
       },
     });
 
@@ -181,10 +185,84 @@ export async function updateUserAccess(args: {
   return updatedUser;
 }
 
+/**
+ * Enable or disable an account.
+ *
+ * Disabling is enforced in the credentials provider before any password
+ * comparison, so it takes effect on the next authentication attempt rather than
+ * waiting for an existing session to expire.
+ */
+export async function setUserEnabled(args: {
+  targetUserId: string;
+  changedByUserId: string;
+  isActive: boolean;
+  reason?: string | null;
+}) {
+  const targetUser = await prisma.user.findUnique({
+    where: { id: args.targetUserId },
+    select: { id: true, email: true, role: true, isActive: true },
+  });
+
+  if (!targetUser) {
+    throw new Error("User not found");
+  }
+
+  if (targetUser.isActive === args.isActive) {
+    throw new Error(
+      `Account is already ${args.isActive ? "enabled" : "disabled"}`
+    );
+  }
+
+  // Disabling the last enabled admin would lock everyone out of user
+  // administration, so it is refused for the same reason as removing the last
+  // admin role.
+  if (!args.isActive && targetUser.role === "ADMIN") {
+    const activeAdmins = await prisma.user.count({
+      where: { role: "ADMIN", isActive: true },
+    });
+    if (activeAdmins <= 1) {
+      throw new Error("You cannot disable the last remaining active admin.");
+    }
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: args.targetUserId },
+      data: {
+        isActive: args.isActive,
+        // Re-enabling clears a stale lockout so the account is usable again.
+        ...(args.isActive ? { failedAttempts: 0, lockedUntil: null } : {}),
+      },
+      include: adminUserInclude,
+    });
+
+    await tx.auditLog.create({
+      data: buildUserAuditEntry({
+        action: args.isActive
+          ? USER_AUDIT_ACTION.USER_ENABLED
+          : USER_AUDIT_ACTION.USER_DISABLED,
+        actorUserId: args.changedByUserId,
+        targetUserId: user.id,
+        reason: args.reason ?? null,
+        details: { email: user.email, isActive: args.isActive },
+      }),
+    });
+
+    return user;
+  });
+}
+
 export async function resetUserPassword(args: {
   targetUserId: string;
   changedByUserId: string;
   password: string;
+  /**
+   * Force a change at next sign-in. Defaults to true: an administrator knows
+   * the value they just set, so for a real account the user must replace it.
+   * Explicitly false only for demonstration accounts, whose whole purpose is a
+   * repeatable shared login.
+   */
+  requirePasswordChange?: boolean;
 }) {
   const targetUser = await prisma.user.findUnique({
     where: { id: args.targetUserId },
@@ -201,19 +279,106 @@ export async function resetUserPassword(args: {
     throw new Error("User not found");
   }
 
+  // The generic administrative path always enforces the full policy length.
+  // The demo password is shorter than policy and is therefore only reachable
+  // through resetUserToDemoPassword, which is itself gated on DEMO_MODE.
   if (args.password.trim().length < MIN_PASSWORD_LENGTH) {
-    throw new Error("Temporary password must be at least 8 characters");
+    throw new Error(
+      `Temporary password must be at least ${MIN_PASSWORD_LENGTH} characters`
+    );
   }
 
+  return applyPasswordReset({
+    targetUser,
+    changedByUserId: args.changedByUserId,
+    password: args.password,
+    requirePasswordChange: args.requirePasswordChange ?? true,
+    action: USER_AUDIT_ACTION.PASSWORD_RESET_BY_ADMIN,
+  });
+}
+
+/**
+ * Reset a demonstration account to the shared demo password.
+ *
+ * Deliberately separate from resetUserPassword so the policy-length bypass has
+ * exactly one call site and three independent guards: DEMO_MODE must be on, the
+ * password must be configured in the environment, and the target must be a
+ * seeded demo account. A real account can never be reset to the demo password
+ * even while DEMO_MODE is on.
+ */
+export async function resetUserToDemoPassword(args: {
+  targetUserId: string;
+  changedByUserId: string;
+}) {
+  assertDemoModeEnabled("Reset to demo password");
+
+  const demoPassword = getDemoPassword();
+  if (!demoPassword) {
+    throw new Error(
+      "DEMO_PASSWORD is not configured for this deployment."
+    );
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: args.targetUserId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      failedAttempts: true,
+      lockedUntil: true,
+      isDemoAccount: true,
+    },
+  });
+
+  if (!targetUser) {
+    throw new Error("User not found");
+  }
+
+  if (!targetUser.isDemoAccount) {
+    throw new Error(
+      "Only demonstration accounts can be reset to the shared demo password."
+    );
+  }
+
+  return applyPasswordReset({
+    targetUser,
+    changedByUserId: args.changedByUserId,
+    password: demoPassword,
+    // A demo account must stay immediately reusable, so it is not forced
+    // through the change-password flow on next sign-in.
+    requirePasswordChange: false,
+    action: USER_AUDIT_ACTION.DEMO_PASSWORD_RESET,
+  });
+}
+
+/**
+ * Shared write path for both reset flavours.
+ *
+ * Receives an already-validated plaintext, hashes it with bcrypt, and records
+ * an audit row that contains no credential material — only the resulting policy
+ * flags.
+ */
+async function applyPasswordReset(args: {
+  targetUser: {
+    id: string;
+    failedAttempts: number;
+    lockedUntil: Date | null;
+  };
+  changedByUserId: string;
+  password: string;
+  requirePasswordChange: boolean;
+  action: (typeof USER_AUDIT_ACTION)[keyof typeof USER_AUDIT_ACTION];
+}) {
   const passwordHash = await bcrypt.hash(args.password, 10);
 
-  const updatedUser = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const user = await tx.user.update({
-      where: { id: args.targetUserId },
+      where: { id: args.targetUser.id },
       data: {
         passwordHash,
-        passwordChangeRequired: true,
-        passwordChangedAt: null,
+        passwordChangeRequired: args.requirePasswordChange,
+        passwordChangedAt: args.requirePasswordChange ? null : new Date(),
         passwordExpiresAt: null,
         failedAttempts: 0,
         lockedUntil: null,
@@ -223,26 +388,26 @@ export async function resetUserPassword(args: {
 
     await tx.auditLog.create({
       data: {
-        userId: args.changedByUserId,
-        action: "UPDATE",
-        entity: "UserPassword",
-        entityId: user.id,
-        oldValue: JSON.stringify({
-          failedAttempts: targetUser.failedAttempts,
-          lockedUntil: targetUser.lockedUntil?.toISOString() ?? null,
+        ...buildUserAuditEntry({
+          action: args.action,
+          actorUserId: args.changedByUserId,
+          targetUserId: user.id,
+          details: {
+            passwordReset: true,
+            requirePasswordChange: args.requirePasswordChange,
+            failedAttempts: 0,
+            lockedUntil: null,
+          },
         }),
-        newValue: JSON.stringify({
-          passwordReset: true,
-          failedAttempts: 0,
-          lockedUntil: null,
+        oldValue: JSON.stringify({
+          failedAttempts: args.targetUser.failedAttempts,
+          lockedUntil: args.targetUser.lockedUntil?.toISOString() ?? null,
         }),
       },
     });
 
     return user;
   });
-
-  return updatedUser;
 }
 
 export async function resetUserTwoFactor(args: {
@@ -322,7 +487,9 @@ export async function changeOwnPassword(args: {
   }
 
   if (args.newPassword.trim().length < MIN_PASSWORD_LENGTH) {
-    throw new Error("New password must be at least 8 characters");
+    throw new Error(
+      `New password must be at least ${MIN_PASSWORD_LENGTH} characters`
+    );
   }
 
   const currentPasswordValid = await bcrypt.compare(
@@ -361,18 +528,19 @@ export async function changeOwnPassword(args: {
 
     await tx.auditLog.create({
       data: {
-        userId: args.userId,
-        action: "UPDATE",
-        entity: "UserPassword",
-        entityId: user.id,
+        ...buildUserAuditEntry({
+          action: USER_AUDIT_ACTION.PASSWORD_CHANGED_BY_USER,
+          actorUserId: args.userId,
+          targetUserId: user.id,
+          details: {
+            passwordChangeRequired: false,
+            passwordChangedAt: passwordChangedAt.toISOString(),
+            passwordExpiresAt: passwordExpiresAt.toISOString(),
+          },
+        }),
         oldValue: JSON.stringify({
           passwordChangeRequired: targetUser.passwordChangeRequired,
           passwordExpiresAt: targetUser.passwordExpiresAt?.toISOString() ?? null,
-        }),
-        newValue: JSON.stringify({
-          passwordChangeRequired: false,
-          passwordChangedAt: passwordChangedAt.toISOString(),
-          passwordExpiresAt: passwordExpiresAt.toISOString(),
         }),
       },
     });

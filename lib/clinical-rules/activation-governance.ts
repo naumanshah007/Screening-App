@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { demoProvenance } from "@/lib/config/demo-mode";
 import { prisma } from "@/lib/prisma";
 import { CLINICAL_GOVERNANCE_CASES } from "./governance-review";
 
@@ -52,6 +53,8 @@ export type ActivationGateState = {
   subjectName: string | null;
   timestamp: Date | null;
   outcome: string | null;
+  /** True when this decision was recorded as a demonstration attestation. */
+  isDemo: boolean;
 };
 
 function parseAfterJson(value: string | null) {
@@ -62,13 +65,27 @@ function parseAfterJson(value: string | null) {
   }
 }
 
-export async function getActivationGateStates(ruleVersionId: string) {
+/**
+ * Read the current decision state of every activation gate.
+ *
+ * `excludeDemo` is the isolation boundary. The governance UI reads with it off
+ * so demonstration decisions remain visible and clearly labelled; Production
+ * activation reads with it on so those same decisions cannot satisfy a gate.
+ */
+export async function getActivationGateStates(
+  ruleVersionId: string,
+  options: { excludeDemo?: boolean } = {}
+) {
   const version = await prisma.clinicalRuleVersion.findUnique({
     where: { id: ruleVersionId },
     select: { checksum: true },
   });
   const events = await prisma.ruleVersionAuditEvent.findMany({
-    where: { ruleVersionId, eventType: "ACTIVATION_GATE_DECISION" },
+    where: {
+      ruleVersionId,
+      eventType: "ACTIVATION_GATE_DECISION",
+      ...(options.excludeDemo ? { isDemo: false } : {}),
+    },
     include: { actorUser: { select: { id: true, name: true, email: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -85,7 +102,7 @@ export async function getActivationGateStates(ruleVersionId: string) {
       const details = parseAfterJson(candidate.afterJson);
       return details.gateId === definition.gateId && details.checksum === version?.checksum;
     });
-    if (!event) return { gateId: definition.gateId, action: "PENDING", comments: null, actorUserId: null, actorRole: null, actorName: null, subjectUserId: null, subjectName: null, timestamp: null, outcome: null };
+    if (!event) return { gateId: definition.gateId, action: "PENDING", comments: null, actorUserId: null, actorRole: null, actorName: null, subjectUserId: null, subjectName: null, timestamp: null, outcome: null, isDemo: false };
     const details = parseAfterJson(event.afterJson);
     const subjectUserId = typeof details.subjectUserId === "string" ? details.subjectUserId : null;
     const subject = subjectUserId ? subjectById.get(subjectUserId) : null;
@@ -99,6 +116,7 @@ export async function getActivationGateStates(ruleVersionId: string) {
       subjectUserId,
       subjectName: subject?.name ?? subject?.email ?? null,
       timestamp: event.createdAt,
+      isDemo: event.isDemo,
       outcome: typeof details.outcome === "string" ? details.outcome : null,
     };
   });
@@ -152,8 +170,8 @@ export async function recordActivationGateDecision(args: {
     thresholds: args.gateId === "ROLLBACK-THRESHOLDS" ? ROLLBACK_THRESHOLD_CANDIDATES : undefined,
   };
   return prisma.$transaction(async (tx) => {
-    const event = await tx.ruleVersionAuditEvent.create({ data: { ruleSetId: version.ruleSetId, ruleVersionId: version.id, actorUserId: args.actorUserId, eventType: "ACTIVATION_GATE_DECISION", reason: args.comments.trim(), afterJson: JSON.stringify(after), ipAddress: args.ipAddress, userAgent: args.userAgent } });
-    await tx.auditLog.create({ data: { userId: args.actorUserId, action: "ACTIVATION_GATE_DECISION", entity: "ClinicalRuleVersion", entityId: version.id, newValue: JSON.stringify(after) } });
+    const event = await tx.ruleVersionAuditEvent.create({ data: { ruleSetId: version.ruleSetId, ruleVersionId: version.id, actorUserId: args.actorUserId, eventType: "ACTIVATION_GATE_DECISION", reason: args.comments.trim(), afterJson: JSON.stringify({ ...after, isDemo: demoProvenance().isDemo }), ipAddress: args.ipAddress, userAgent: args.userAgent, isDemo: demoProvenance().isDemo } });
+    await tx.auditLog.create({ data: { userId: args.actorUserId, action: "ACTIVATION_GATE_DECISION", entity: "ClinicalRuleVersion", entityId: version.id, newValue: JSON.stringify({ ...after, isDemo: demoProvenance().isDemo }) } });
     return event;
   });
 }
@@ -165,10 +183,19 @@ export async function assertProductionGovernanceGates(ruleVersionId: string, act
   });
   if (!version?.checksum) throw new Error("Production activation requires a checksummed rule version.");
 
+  // Demonstration attestations are excluded here, not merely labelled.
+  //
+  // A decision recorded while DEMO_MODE was on was made by a shared demo
+  // identity with a published password; it is not an independent clinical
+  // sign-off and must never satisfy a Production gate. Excluding them at the
+  // query means the exclusion holds regardless of what DEMO_MODE is set to at
+  // activation time — turning demo mode off cannot retroactively promote a demo
+  // approval into a real one.
   const reviewEvents = await prisma.ruleVersionAuditEvent.findMany({
     where: {
       ruleVersionId,
       eventType: { startsWith: "GOVERNANCE_INTERPRETATION_" },
+      isDemo: false,
     },
     orderBy: { createdAt: "desc" },
     select: { eventType: true, afterJson: true },
@@ -185,9 +212,23 @@ export async function assertProductionGovernanceGates(ruleVersionId: string, act
     );
   }
 
-  const states = await getActivationGateStates(ruleVersionId);
+  // excludeDemo: a demonstration attestation is not an independent sign-off and
+  // is never counted toward Production activation.
+  const states = await getActivationGateStates(ruleVersionId, { excludeDemo: true });
   const missing = states.filter((state) => state.action !== "APPROVE").map((state) => state.gateId);
-  if (missing.length) throw new Error(`Production activation gates are incomplete: ${missing.join(", ")}.`);
+  if (missing.length) {
+    const demoStates = await getActivationGateStates(ruleVersionId);
+    const demoOnly = missing.filter((gateId) => {
+      const state = demoStates.find((candidate) => candidate.gateId === gateId);
+      return state?.isDemo && state.action === "APPROVE";
+    });
+    throw new Error(
+      `Production activation gates are incomplete: ${missing.join(", ")}.` +
+        (demoOnly.length
+          ? ` The following carry demonstration attestations only and require a real approval: ${demoOnly.join(", ")}.`
+          : "")
+    );
+  }
   const operator = states.find((state) => state.gateId === "ACTIVATION-OPERATOR");
   if (operator?.subjectUserId !== actorUserId) throw new Error("Only the assigned Activation Operator may activate Production.");
 }

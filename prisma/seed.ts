@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+
+import { DEMO_ACCOUNTS } from "../lib/config/demo-mode";
 import {
   createPrismaAdapter,
   isRemoteLibSqlUrl,
@@ -134,10 +136,18 @@ async function main() {
     { email: "smo@cs.nz", name: "Dr. Jasveen Kaur", role: "SMO_REVIEWER" as const, gpPracticeId: null },
     { email: "integration.admin@cs.nz", name: "Alicia Integration", role: "INTEGRATION_ADMIN" as const, gpPracticeId: null },
     { email: "gp.manukau@cs.nz", name: "Dr. Aroha Te Ahu", role: "GP" as const, gpPracticeId: cmPractice.id },
+    // Second ADMIN so activation-operator / deputy-operator separation of duties
+    // can be demonstrated end to end with distinct identities.
+    { email: "deputy.admin@cs.nz", name: "Deputy Admin", role: "ADMIN" as const, gpPracticeId: null },
   ];
+
+  const demoAccountEmails = new Set(
+    DEMO_ACCOUNTS.map((account) => account.email)
+  );
 
   const createdUsers: Record<string, string> = {};
   for (const u of userDefs) {
+    const isDemoAccount = demoAccountEmails.has(u.email);
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: {
@@ -152,6 +162,8 @@ async function main() {
         twoFARecoveryCodesJson: null,
         failedAttempts: 0,
         lockedUntil: null,
+        isActive: true,
+        isDemoAccount,
         ...(u.gpPracticeId ? { gpPracticeId: u.gpPracticeId } : {}),
       },
       create: {
@@ -163,6 +175,8 @@ async function main() {
         passwordExpiresAt: daysFromNow(69),
         role: u.role,
         twoFAEnabled: false,
+        isActive: true,
+        isDemoAccount,
         ...(u.gpPracticeId ? { gpPracticeId: u.gpPracticeId } : {}),
       },
     });

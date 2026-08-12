@@ -3,8 +3,9 @@ import type { UserRole } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { getApiPermissionError } from "@/lib/auth/api-permissions";
-import { resetUserPassword } from "@/lib/admin/user-management";
+import { setUserEnabled } from "@/lib/admin/user-management";
 
+/** Enable or disable an account. ADMIN only, via the admin:users permission. */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,34 +14,37 @@ export async function POST(
   const user = session?.user as { id?: string; role?: UserRole } | undefined;
   const permissionError = getApiPermissionError(user, "admin:users");
   if (permissionError) {
-    return NextResponse.json(permissionError.body, { status: permissionError.status });
+    return NextResponse.json(permissionError.body, {
+      status: permissionError.status,
+    });
   }
 
   try {
     const { id } = await params;
     const body = (await req.json()) as {
-      password?: string;
-      requirePasswordChange?: boolean;
+      isActive?: boolean;
+      reason?: string;
     };
 
-    if (!body.password) {
+    if (typeof body.isActive !== "boolean") {
       return NextResponse.json(
-        { error: "Temporary password is required" },
+        { error: "isActive must be provided" },
         { status: 400 }
       );
     }
 
-    const updatedUser = await resetUserPassword({
+    const updatedUser = await setUserEnabled({
       targetUserId: id,
       changedByUserId: user!.id!,
-      password: body.password,
-      // Defaults to true in resetUserPassword when omitted.
-      requirePasswordChange: body.requirePasswordChange,
+      isActive: body.isActive,
+      reason: body.reason ?? null,
     });
 
     return NextResponse.json({
       ok: true,
-      message: `Temporary password set for ${updatedUser.name ?? updatedUser.email}. Account lock state has been cleared and the user must update the password at next sign-in.`,
+      message: `${updatedUser.name ?? updatedUser.email} is now ${
+        body.isActive ? "enabled" : "disabled"
+      }.`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -48,7 +52,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Unable to reset password",
+            : "Unable to update account status",
       },
       { status: 400 }
     );
