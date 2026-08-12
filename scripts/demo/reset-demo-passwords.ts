@@ -41,7 +41,24 @@ async function main() {
     });
 
     if (!user) {
-      results.push({ email: account.email, status: "MISSING — not seeded" });
+      // Provision a missing demonstration identity. Created disabled-free but
+      // with no usable password until the reset below sets one, so there is no
+      // window in which the account exists with an unknown credential.
+      const created = await prisma.user.create({
+        data: {
+          email: account.email,
+          name: account.label,
+          role: account.role,
+          isDemoAccount: true,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      await resetUserToDemoPassword({
+        targetUserId: created.id,
+        changedByUserId: actor.id,
+      });
+      results.push({ email: account.email, status: "CREATED + RESET" });
       continue;
     }
 

@@ -54,7 +54,11 @@ export type DemoAccountKey =
   | "smo"
   | "specialist"
   | "gynae"
-  | "deputy";
+  | "deputy"
+  | "colpo-cns"
+  | "integration-admin"
+  | "coordinator"
+  | "gp";
 
 export type DemoAccount = {
   key: DemoAccountKey;
@@ -65,9 +69,14 @@ export type DemoAccount = {
 };
 
 /**
- * The five demonstration identities. Roles mirror the governance roles a demo
- * needs to exercise end to end: two clinical approvers, an operator and a
- * deputy, plus an administrator.
+ * One demonstration identity for every application role, plus a second ADMIN so
+ * activation-operator / deputy-operator separation of duties can be shown with
+ * genuinely distinct people.
+ *
+ * COVERAGE IS ASSERTED, NOT ASSUMED. `tests/security/demo-mode-config.test.ts`
+ * compares this list against the Prisma UserRole enum and fails if a role is
+ * added to the schema without a demo identity here, so the roster cannot
+ * silently fall behind the application.
  *
  * This list carries no credential material — only identity and role.
  */
@@ -76,7 +85,7 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     key: "admin",
     email: "admin@cs.nz",
     role: "ADMIN",
-    label: "Admin",
+    label: "Administrator",
     description: "System administrator · activation operator candidate",
   },
   {
@@ -94,6 +103,13 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     description: "Colposcopy specialist · clinical approver candidate",
   },
   {
+    key: "colpo-cns",
+    email: "colpo.cns@cs.nz",
+    role: "COLPO_CNS",
+    label: "Colposcopy CNS",
+    description: "Colposcopy clinical nurse specialist",
+  },
+  {
     key: "gynae",
     email: "gynae.grader@cs.nz",
     role: "GYNAE_GRADER",
@@ -101,10 +117,31 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     description: "Gynaecology grader · clinical reviewer",
   },
   {
+    key: "integration-admin",
+    email: "integration.admin@cs.nz",
+    role: "INTEGRATION_ADMIN",
+    label: "Integration Administrator",
+    description: "Integration readiness and validation administrator",
+  },
+  {
+    key: "coordinator",
+    email: "coordinator@cs.nz",
+    role: "COORDINATOR",
+    label: "Booking Coordinator",
+    description: "Booking and batch worklist coordinator",
+  },
+  {
+    key: "gp",
+    email: "clinician@cs.nz",
+    role: "GP",
+    label: "GP / Referrer",
+    description: "General practitioner submitting referrals",
+  },
+  {
     key: "deputy",
     email: "deputy.admin@cs.nz",
     role: "ADMIN",
-    label: "Deputy Admin",
+    label: "Deputy Administrator",
     description: "Second administrator · deputy operator candidate",
   },
 ] as const;

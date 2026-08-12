@@ -1,6 +1,7 @@
 "use server";
 
 import { signIn } from "@/lib/auth";
+import { getDefaultAppRouteForRole } from "@/lib/auth/permissions";
 import {
   findDemoAccount,
   getDemoPassword,
@@ -52,7 +53,10 @@ export async function signInAsDemoUser(
     await signIn("credentials", {
       email: account.email,
       password: secret,
-      redirectTo: "/dashboard",
+      // Send each identity to its own role landing page, resolved from the same
+      // map the app uses after a manual sign-in — a demo login must exercise the
+      // real role routing, not a shared shortcut to /dashboard.
+      redirectTo: getDefaultAppRouteForRole(account.role),
     });
   } catch (error) {
     // Next's redirect signal is an control-flow exception, not a failure.
