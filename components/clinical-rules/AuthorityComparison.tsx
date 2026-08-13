@@ -292,7 +292,14 @@ export function AuthorityComparison({
         </section>
       ) : (
         <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-          No canonical shadow evaluation was recorded for this decision.
+          {/*
+            For a routing preview this is not yet a decision, and "canonical
+            shadow evaluation" is internal architecture language a clinician
+            should not have to decode. State plainly what happens next.
+          */}
+          {legacyIsPreview
+            ? "Governed evaluation will run when this case is added to the Review Queue."
+            : "No canonical shadow evaluation was recorded for this decision."}
         </p>
       )}
     </div>

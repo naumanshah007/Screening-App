@@ -114,23 +114,41 @@ function ReasoningTrace({
   decision: BatchCaseResult["decision"];
   figureTitle?: string;
 }) {
+  // A routing preview must stop at the selected pathway. The legacy branch path
+  // ends in a clinical terminal ("Colposcopy"), and showing it here asserted the
+  // patient had already reached an outcome that CG-NCSP-3.1.0 has not yet
+  // determined.
+  const preview = isRoutingPreview(decision);
+
   const rawSteps = decision.branchPath?.length
     ? decision.branchPath
     : [decision.figure, decision.recommendationCode].filter((s): s is string => Boolean(s));
 
   const finalStep = decision.recommendationCode;
-  const steps = rawSteps[rawSteps.length - 1] === finalStep ? rawSteps : [...rawSteps, finalStep];
+  const steps = preview
+    ? [decision.figure ?? "Pathway", PREVIEW_PENDING_FIELD].filter(Boolean)
+    : rawSteps[rawSteps.length - 1] === finalStep
+      ? rawSteps
+      : [...rawSteps, finalStep];
 
   return (
     <ol className="space-y-2.5">
       {steps.map((step, i) => {
         const isFirst = i === 0;
         const isLast = i === steps.length - 1;
-        const kind = isFirst ? "Pathway figure" : isLast ? "Provisional outcome" : "Decision branch";
+        const kind = isFirst
+          ? "Pathway figure"
+          : isLast
+            ? preview
+              ? "Governed evaluation"
+              : "Provisional outcome"
+            : "Decision branch";
         const label = isFirst && figureTitle
           ? figureTitle
           : isLast
-            ? decision.recommendation
+            ? preview
+              ? PREVIEW_PENDING_FIELD
+              : decision.recommendation
             : formatTraceNode(step);
 
         return (
@@ -325,9 +343,14 @@ export function BatchResultDetail({
     { id: "intake", label: "Pulled from source", state: "complete", caption: c.source.sourceType },
     {
       id: "evaluated",
-      label: "Decision support run",
+      label: isPreview ? "Routing complete" : "Decision support run",
       state: result.status === "success" ? "complete" : "failed",
-      caption: result.status === "success" ? "Provisional output" : "Processing error",
+      caption:
+        result.status !== "success"
+          ? "Processing error"
+          : isPreview
+            ? "Governed evaluation pending"
+            : "Provisional output",
     },
     {
       id: "review",
@@ -401,7 +424,17 @@ export function BatchResultDetail({
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden />
           {/* Kept on one line: the guard test matches this raw source text. */}
           {/* prettier-ignore */}
-          <span><strong>Provisional recommendation</strong> · Decision-support output · Not for direct clinical action</span>
+          <span>
+            {isPreview ? (
+              <>
+                <strong>Routing preview</strong> · Governed recommendation pending · Not for direct clinical action
+              </>
+            ) : (
+              <>
+                <strong>Provisional recommendation</strong> · Decision-support output · Not for direct clinical action
+              </>
+            )}
+          </span>
         </p>
       </div>
 
@@ -625,7 +658,7 @@ export function BatchResultDetail({
           )}
 
           {/* ── Reasoning trace ──────────────────────────────────────────── */}
-          <DrawerSection title="Reasoning trace">
+          <DrawerSection title={isPreview ? "Routing trace" : "Reasoning trace"}>
             <PanelInset>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -633,7 +666,11 @@ export function BatchResultDetail({
                     <GitBranch className="h-3.5 w-3.5" />
                   </SectionIcon>
                   <p className="text-xs text-muted-foreground">
-                    Path recorded by <span className="font-mono">evaluateClinicalDecision()</span>
+                    {isPreview ? (
+                      <>Routing recorded by <span className="font-mono">{"business-figures-table1-v1"}</span></>
+                    ) : (
+                      <>Path recorded by <span className="font-mono">evaluateClinicalDecision()</span></>
+                    )}
                   </p>
                 </div>
                 <StatusBadge tone="info" size="sm">

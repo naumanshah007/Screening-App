@@ -101,3 +101,58 @@ test("the API redacts every clinical field it previously leaked", () => {
     assert.match(ROUTE, new RegExp(field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `missing: ${field}`);
   }
 });
+
+test("the preview banner does not announce a recommendation", () => {
+  assert.match(
+    DETAIL,
+    /isPreview \? \([\s\S]{0,120}Routing preview<\/strong> · Governed recommendation pending/,
+    "the banner must not claim a provisional recommendation exists"
+  );
+});
+
+test("the workflow step does not claim provisional output", () => {
+  assert.match(
+    DETAIL,
+    /isPreview[\s\S]{0,60}"Governed evaluation pending"/,
+    "the workflow caption must state that governed evaluation is pending"
+  );
+  assert.match(
+    DETAIL,
+    /isPreview \? "Routing complete" : "Decision support run"/,
+    "the workflow step must be labelled routing, not decision support"
+  );
+});
+
+test("the routing trace stops at the selected pathway", () => {
+  // The legacy branch path ends in a clinical terminal (e.g. "Colposcopy").
+  // Showing it asserted the patient had reached an outcome CG-NCSP-3.1.0 has
+  // not determined.
+  assert.match(
+    DETAIL,
+    /preview\s*\?\s*\[decision\.figure \?\? "Pathway", PREVIEW_PENDING_FIELD\]/,
+    "a preview trace must stop at the routed figure plus a pending marker"
+  );
+  assert.match(
+    DETAIL,
+    /preview\s*\?\s*"Governed evaluation"\s*:\s*"Provisional outcome"/,
+    "the final trace step must not be called an outcome in a preview"
+  );
+  assert.match(
+    DETAIL,
+    /isPreview \? "Routing trace" : "Reasoning trace"/,
+    "the section must be titled a routing trace in a preview"
+  );
+});
+
+test("internal shadow-evaluation wording is not shown for a preview", () => {
+  assert.match(
+    COMPARISON,
+    /legacyIsPreview[\s\S]{0,120}Governed evaluation will run when this case is added to the Review Queue/,
+    "a preview must plainly state when governed evaluation happens"
+  );
+  assert.match(
+    COMPARISON,
+    /No canonical shadow evaluation was recorded for this decision/,
+    "the original wording must remain for genuinely decided rows"
+  );
+});
