@@ -34,9 +34,10 @@ const FORBIDDEN_IN_BATCH_UI: Array<{ phrase: string; reason: string }> = [
 
 const BATCH_UI_FILES = [
   "app/(app)/batch/BatchPageClient.tsx",
+  "components/batch/BatchActionPanel.tsx",
   "components/batch/BatchActionQueue.tsx",
   "components/batch/BatchDataTable.tsx",
-  "components/batch/BatchEngineTrustPanel.tsx",
+  "components/batch/BatchIntakeContext.tsx",
   "components/batch/BatchResultDetail.tsx",
   "components/batch/BatchValidationPreview.tsx",
   "components/batch/IntegrationReadinessPanel.tsx",
@@ -58,13 +59,28 @@ for (const file of BATCH_UI_FILES) {
 
 // ─── Required safety language must be present somewhere in the batch UI ────
 
+// Updated with the Case Intake redesign.
+//
+// The intake stage no longer claims a provisional RECOMMENDATION exists, because
+// at that point cases have only been routed — the governed recommendation is
+// produced when they enter the Review Queue. Requiring "Provisional output —
+// reviewer confirmation required" there would pin wording that is now untrue.
+//
+// The safety guarantee is not weakened, it is relocated and made specific: the
+// intake action panel must carry the routing-preview notice, and the detail
+// drawer must still carry the decision-support wording for genuinely decided
+// rows. The previous "Reviewer confirmation" requirement pointed at
+// BatchEngineTrustPanel, which the redesign removed — a required phrase in an
+// unrendered component guarantees nothing, so it now points at the panel that
+// is actually on screen.
 const REQUIRED_LANGUAGE: Array<{ phrase: string; files: string[] }> = [
-  { phrase: "Provisional",                files: ["components/batch/BatchValidationPreview.tsx", "components/batch/BatchResultDetail.tsx"] },
-  { phrase: "Reviewer confirmation",      files: ["components/batch/BatchEngineTrustPanel.tsx"] },
-  { phrase: "reviewer confirmation",      files: ["components/batch/BatchValidationPreview.tsx"] },
-  { phrase: "Not for direct clinical action", files: ["components/batch/BatchValidationPreview.tsx", "components/batch/BatchResultDetail.tsx"] },
+  { phrase: "Provisional",                files: ["components/batch/BatchResultDetail.tsx"] },
+  { phrase: "Routing preview",            files: ["components/batch/BatchActionPanel.tsx"] },
+  { phrase: "Governed recommendation pending", files: ["components/batch/BatchActionPanel.tsx"] },
+  { phrase: "No clinical recommendation has been generated yet", files: ["components/batch/BatchActionPanel.tsx"] },
+  { phrase: "Not for direct clinical action", files: ["components/batch/BatchResultDetail.tsx"] },
   { phrase: "Decision-support",           files: ["components/batch/BatchResultDetail.tsx"] },
-  { phrase: "Batch Decision Support",     files: ["app/(app)/batch/BatchPageClient.tsx"] },
+  { phrase: "governed evaluation",        files: ["app/(app)/batch/BatchPageClient.tsx"] },
 ];
 
 for (const { phrase, files } of REQUIRED_LANGUAGE) {

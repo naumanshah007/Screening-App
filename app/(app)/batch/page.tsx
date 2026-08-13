@@ -1,20 +1,38 @@
 import { notFound } from "next/navigation";
 import { isFeatureEnabled } from "@/lib/features";
+import { getCurrentGovernedRuleset } from "@/lib/clinical-rules/current-ruleset";
+import { ENGINE_VERSION } from "@/lib/batch/processor";
 import { BatchPageClient } from "./BatchPageClient";
 
 /**
- * /batch — Batch Processing Demo
+ * /batch — Case Intake
  *
- * Server Component wrapper: enforces the ENABLE_BATCH_DEMO feature flag.
- * If the flag is off, Next.js renders its standard 404 page (consistent
- * with how /cases and all other feature-gated routes in this app behave).
+ * Server Component wrapper: enforces the ENABLE_BATCH_DEMO feature flag and
+ * resolves the current governed ruleset so the intake screen can name the rules
+ * that will actually decide these cases. Resolving it here rather than in the
+ * client keeps the single source of truth on the server.
  *
  * The interactive state lives in BatchPageClient (a Client Component).
  */
-export default function BatchPage() {
+export const dynamic = "force-dynamic";
+
+export default async function BatchPage() {
   if (!isFeatureEnabled("batchDemo")) {
     notFound();
   }
 
-  return <BatchPageClient />;
+  // Null is a legitimate answer meaning no governed ruleset is active. It is
+  // surfaced as "Not configured" rather than silently substituted.
+  const current = await getCurrentGovernedRuleset().catch(() => null);
+
+  return (
+    <BatchPageClient
+      currentRuleset={
+        current
+          ? { displayVersion: current.displayVersion, status: "Active" }
+          : null
+      }
+      routingService={ENGINE_VERSION}
+    />
+  );
 }

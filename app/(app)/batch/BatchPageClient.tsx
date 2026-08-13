@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell, PageHeader, Panel, StepTimeline } from "@/components/system";
-import { BatchEngineTrustPanel } from "@/components/batch/BatchEngineTrustPanel";
+import { BatchIntakeContext } from "@/components/batch/BatchIntakeContext";
 import { BatchUploader } from "@/components/batch/BatchUploader";
 import { SourceConnectors } from "@/components/batch/SourceConnectors";
 import { BatchValidationPreview } from "@/components/batch/BatchValidationPreview";
@@ -35,7 +35,13 @@ type PageState =
 
 const ENGINE_VERSION = "business-figures-table1-v1";
 
-export function BatchPageClient() {
+export function BatchPageClient({
+  currentRuleset,
+  routingService,
+}: {
+  currentRuleset: { displayVersion: string; status: string } | null;
+  routingService: string;
+}) {
   const router = useRouter();
   const [state, setState] = useState<PageState>({ step: "empty" });
   const [detailResult, setDetailResult] = useState<BatchCaseResult | null>(null);
@@ -459,9 +465,9 @@ export function BatchPageClient() {
 
   const PIPELINE_STEPS = [
     { label: "Pull Cases", desc: "Choose source" },
-    { label: "Validate & Select", desc: "Review records" },
-    { label: "Prepare", desc: "Generate recommendations" },
-    { label: "Review Queue", desc: "Add cases" },
+    { label: "Validate & Select", desc: "Review routing" },
+    { label: "Prepare for Review", desc: "Send for governed evaluation" },
+    { label: "Review Queue", desc: "Governed evaluation" },
   ] as const;
 
   return (
@@ -469,7 +475,7 @@ export function BatchPageClient() {
       <PageHeader
         eyebrow="Pull Cases"
         title="Case Intake"
-        description="Pull synthetic NZ-real cases from simulated hospital sources through Batch Decision Support, generate provisional guideline-aligned recommendations, then add them to the Review Queue for clinician confirmation."
+        description="Pull and validate incoming cases, review routing information, then send selected cases for governed evaluation and clinician review."
         actions={
           state.step !== "empty" && state.step !== "uploading" ? (
             <Button variant="outline" size="sm" onClick={reset} icon={<RotateCcw className="h-4 w-4" />}>
@@ -496,7 +502,27 @@ export function BatchPageClient() {
         />
       </Panel>
 
-      <BatchEngineTrustPanel />
+      <BatchIntakeContext
+        sourceName={baseSourceMeta?.sourceSystem}
+        sourceProtocol={baseSourceMeta?.sourceFileName ?? baseSourceMeta?.sourceType}
+        pulledCount={
+          state.step === "loaded" || state.step === "processing" || state.step === "results"
+            ? state.validation.cases.length
+            : undefined
+        }
+        validCount={
+          state.step === "loaded" || state.step === "processing" || state.step === "results"
+            ? state.validation.cases.filter((c) => c.validationStatus !== "invalid").length
+            : undefined
+        }
+        blockedCount={
+          state.step === "loaded" || state.step === "processing" || state.step === "results"
+            ? state.validation.cases.filter((c) => c.validationStatus === "invalid").length
+            : undefined
+        }
+        currentRuleset={currentRuleset}
+        routingService={routingService}
+      />
 
       {uploadError && (
         <div

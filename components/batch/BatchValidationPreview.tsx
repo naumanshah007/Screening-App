@@ -3,10 +3,10 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { BatchActionPanel } from "./BatchActionPanel";
 import {
   CheckCircle2, AlertTriangle, XCircle, Database,
-  Plus, Pencil, Copy, Trash2,
+  Pencil, Copy, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
@@ -191,6 +191,33 @@ export function BatchValidationPreview({
   const hasRowActions = !!(onEditCase || onDuplicateCase || onDeleteCase);
 
   return (
+    <div className="space-y-4">
+      {/* One cohesive action surface. Selection state lives here, so the panel
+          that reports and acts on it lives here too. */}
+      <BatchActionPanel
+        totalCount={cases.length}
+        selectedCount={selectedCount}
+        validCount={processableIds.length}
+        blockedCount={invalidCount}
+        processing={processing}
+        onProcess={() => onProcess(selectedCaseIds)}
+        onAddManual={onAddManual}
+        onSelectAll={
+          allSelected
+            ? undefined
+            : () => {
+                const all = new Set<string>();
+                for (const c of cases) {
+                  if (c.validationStatus !== "invalid") all.add(rowKey(c));
+                }
+                setSelectedKeys(all);
+              }
+        }
+        onClearSelection={
+          selectedCount > 0 ? () => setSelectedKeys(new Set()) : undefined
+        }
+      />
+
     <Card className="overflow-hidden">
       <CardHeader>
         {/* Title + source info */}
@@ -213,45 +240,6 @@ export function BatchValidationPreview({
           </div>
         </div>
 
-        {/* Provisional / reviewer notice */}
-        <div className="mt-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 leading-snug">
-          <strong>Provisional output — reviewer confirmation required.</strong>{" "}
-          Selected rows generate decision-support recommendations for review.
-          Not for direct clinical action.
-        </div>
-
-        {/* Action row */}
-        <div className="flex items-center justify-between gap-3 mt-1 flex-wrap">
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground">
-              Select records to prepare for the Review Queue. Invalid rows cannot be processed.
-            </p>
-            {onAddManual && (
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={onAddManual}
-                icon={<Plus className="h-3 w-3" />}
-              >
-                Add Test Case
-              </Button>
-            )}
-          </div>
-          <div className="flex w-full items-center justify-between gap-3 sm:w-auto">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {selectedCount} of {processableIds.length} selected
-            </span>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onProcess(selectedCaseIds)}
-              disabled={selectedCount === 0 || processing}
-              loading={processing}
-            >
-              Prepare {selectedCount} for Review Queue
-            </Button>
-          </div>
-        </div>
       </CardHeader>
 
       <CardContent className="p-0">
@@ -565,5 +553,6 @@ export function BatchValidationPreview({
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }
