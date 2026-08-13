@@ -87,6 +87,16 @@ export type BatchReviewItemRecord = BatchRunDetailRecord["items"][number];
 
 // ─── Save a run ────────────────────────────────────────────────────────────────
 
+/**
+ * Fail-closed markers used when the current governed ruleset cannot evaluate a
+ * new case. These describe the ABSENCE of a governed recommendation — they are
+ * a safety state, not clinical guidance, and deliberately carry no timing,
+ * priority or referral action.
+ */
+const NO_GOVERNED_RESULT_CODE = "NO-GOVERNED-RECOMMENDATION";
+const NO_GOVERNED_RESULT_TEXT =
+  "No governed recommendation available — clinician review required.";
+
 export async function saveBatchRun(args: {
   result: BatchProcessingResult;
   actorUserId: string;
@@ -171,7 +181,14 @@ export async function saveBatchRun(args: {
     },
   });
 
-  if (runRuleVersion) {
+  // The authoritative evaluation runs for EVERY item, unconditionally.
+  //
+  // It used to be gated on `runRuleVersion`. When that resolved to null — no
+  // canonical activation and no shadow version — the loop was skipped entirely
+  // and each row silently kept the legacy recommendation written above, while
+  // the rest of the application reported canonical authority. That mixed state
+  // is the defect this block now prevents.
+  {
     const resultByRow = new Map(
       result.results.map((item) => [item.case.source.rowNumber, item])
     );
@@ -211,6 +228,32 @@ export async function saveBatchRun(args: {
           },
         });
       } catch (error) {
+        // FAIL CLOSED.
+        //
+        // This block previously only wrote an audit row, which left the legacy
+        // recommendation persisted above as the item's recommendation — a
+        // silent legacy fallback for a NEW case. A failed authoritative
+        // evaluation must never present a legacy clinical recommendation as
+        // though it were the governed result.
+        //
+        // The clinical columns are non-null, so the row is overwritten with an
+        // explicit safety state rather than left blank. This states that no
+        // governed recommendation exists; it does not invent a clinical action.
+        await prisma.batchReviewItem.update({
+          where: { id: reviewItem.id },
+          data: {
+            recommendationCode: NO_GOVERNED_RESULT_CODE,
+            recommendation: NO_GOVERNED_RESULT_TEXT,
+            referralPriority: null,
+            referralType: null,
+            safetyOutcome: "NO_GOVERNED_RECOMMENDATION",
+            reviewRequired: true,
+            engineStatus: "error",
+            authorityReason:
+              "The current governed ruleset could not evaluate this case; no " +
+              "recommendation is offered and clinician review is required.",
+          },
+        });
         await prisma.auditLog.create({
           data: {
             userId: actorUserId,
@@ -219,7 +262,8 @@ export async function saveBatchRun(args: {
             entityId: reviewItem.id,
             severity: "ERROR",
             newValue: JSON.stringify({
-              ruleVersionId: runRuleVersion.id,
+              ruleVersionId: runRuleVersion?.id ?? null,
+              failedClosed: true,
               message: error instanceof Error ? error.message : String(error),
             }),
           },
