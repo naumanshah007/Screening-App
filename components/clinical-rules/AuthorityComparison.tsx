@@ -15,6 +15,7 @@
 
 import { cn } from "@/lib/utils";
 import { StatusBadge, riskTone } from "@/components/system";
+import { isRoutingPreview } from "@/lib/batch/preview-state";
 import {
   classifyTiming,
   intervalToMonths,
@@ -120,6 +121,8 @@ export function AuthorityComparison({
   className,
 }: AuthorityComparisonProps) {
   const shadowIsOperative = shadow ? isOperativeMode(shadow.evaluationMode) : false;
+  // Routed but not yet evaluated by the current governed ruleset.
+  const legacyIsPreview = isRoutingPreview(legacy);
   const differs =
     shadow != null &&
     shadow.provisionalRecommendation.trim() !== legacy.recommendation.trim();
@@ -153,11 +156,17 @@ export function AuthorityComparison({
       ) : (
       <section className="overflow-hidden rounded-lg border border-border border-l-4 border-l-brand-600 bg-card shadow-card">
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-brand-50/60 px-4 py-2 dark:bg-brand-950/30">
+          {/*
+            A routing preview has no authoritative decision — it has been routed
+            but not evaluated by any clinical authority. Labelling it
+            "Authoritative decision · Legacy engine" presented a legacy routing
+            result as a settled clinical outcome on a brand-new case.
+          */}
           <StatusBadge tone="brand" size="sm" dot>
-            Authoritative decision
+            {legacyIsPreview ? "Routing preview" : "Authoritative decision"}
           </StatusBadge>
           <StatusBadge tone="neutral" size="sm">
-            Legacy engine
+            {legacyIsPreview ? "Awaiting governed evaluation" : "Legacy engine"}
           </StatusBadge>
           {legacy.riskLevel && (
             <StatusBadge tone={riskTone(legacy.riskLevel)} size="sm" className="ml-auto">

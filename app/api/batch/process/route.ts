@@ -3,6 +3,11 @@ import { auth } from "@/lib/auth";
 import { processBatch } from "@/lib/batch/processor";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
 import { isFeatureEnabled } from "@/lib/features";
+import {
+  PREVIEW_PENDING_ACTION,
+  PREVIEW_PENDING_CODE,
+  PREVIEW_PENDING_TEXT,
+} from "@/lib/batch/preview-state";
 
 /**
  * POST /api/batch/process — routing and validation preview.
@@ -21,10 +26,7 @@ import { isFeatureEnabled } from "@/lib/features";
  * reported CG-NCSP-3.1.0 — the mixed-authority defect this endpoint caused.
  */
 
-/** Shown in place of a recommendation until governed evaluation happens. */
-const PREVIEW_PENDING_TEXT =
-  "Routing complete — recommendation is generated when added to the Review Queue.";
-const PREVIEW_PENDING_CODE = "PREVIEW-PENDING-GOVERNED-EVALUATION";
+
 export async function POST(req: NextRequest) {
   // Auth check
   const session = await auth();
@@ -95,6 +97,10 @@ export async function POST(req: NextRequest) {
           referralPriority: null,
           referralType: null,
           repeatInterval: null,
+          // nextAction was still leaking a clinical instruction ("Refer to
+          // colposcopy") into the preview even after the recommendation itself
+          // was redacted.
+          nextAction: PREVIEW_PENDING_ACTION,
         },
       })),
     };

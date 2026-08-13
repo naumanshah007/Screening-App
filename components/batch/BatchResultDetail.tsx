@@ -29,6 +29,11 @@ import type { BatchCaseResult } from "@/lib/batch/types";
 import { getGuidelineCitation } from "@/lib/batch/guideline-citations";
 import { FlowDiagram } from "@/components/clinical/FlowDiagram";
 import { FigureLink } from "@/components/clinical/FigureLink";
+import {
+  isRoutingPreview,
+  PREVIEW_PENDING_ACTION,
+  PREVIEW_PENDING_FIELD,
+} from "@/lib/batch/preview-state";
 import { getFigureById } from "@/lib/decision-trees";
 
 /** Reviewer context, supplied only where a review workflow actually exists. */
@@ -188,6 +193,10 @@ export function BatchResultDetail({
     result.clinicalAuthority?.authorityEngine === "CANONICAL" &&
     Boolean(shadow && ["LIVE_DEMO", "LIVE_PRODUCTION"].includes(shadow.evaluationMode));
   const legacyDecision = canonicalIsOperative ? result.legacyDecision ?? decision : decision;
+  // A routing preview has been routed but not evaluated by any clinical
+  // authority. Keyed on the marker the preview API writes, so UI and API cannot
+  // drift apart about what "not yet decided" means.
+  const isPreview = isRoutingPreview(decision);
 
   const patientId =
     c.nhi ?? c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`;
@@ -269,9 +278,15 @@ export function BatchResultDetail({
     },
     {
       id: "legacy",
-      title: canonicalIsOperative
-        ? "Pathway selected by the Legacy router"
-        : "Evaluated by the authoritative Legacy engine",
+      // At preview stage nothing has been evaluated by any clinical authority —
+      // the row has only been routed. Claiming a Legacy evaluation here was the
+      // remaining source of "Evaluated by the authoritative Legacy engine" on a
+      // brand-new case.
+      title: isPreview
+        ? "Pathway routed by"
+        : canonicalIsOperative
+          ? "Pathway selected by the Legacy router"
+          : "Evaluated by the authoritative Legacy engine",
       description: (
         <span className="font-mono">{c.source.engineVersion}</span>
       ),
@@ -501,7 +516,12 @@ export function BatchResultDetail({
                       label: "Recommendation code",
                       value: <span className="font-mono">{decision.recommendationCode}</span>,
                     },
-                    { label: "Next action", value: decision.nextAction ?? "—" },
+                    {
+                      label: "Next action",
+                      value: isPreview
+                        ? PREVIEW_PENDING_ACTION
+                        : decision.nextAction ?? "—",
+                    },
                     {
                       label: "Recall interval",
                       value:
@@ -520,7 +540,9 @@ export function BatchResultDetail({
                     },
                     {
                       label: "Referral",
-                      value: decision.referralRequired ? (
+                      value: isPreview ? (
+                        PREVIEW_PENDING_FIELD
+                      ) : decision.referralRequired ? (
                         <span className="inline-flex items-center gap-1.5">
                           <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
                           {decision.referralType?.replace(/_/g, " ") ?? "Required"}
@@ -629,7 +651,9 @@ export function BatchResultDetail({
             return (
               <DrawerSection title="Pathway diagram">
                 <p className="mb-2 text-xs text-muted-foreground">
-                  The highlighted path shows how this case reached its provisional outcome.{" "}
+                  {isPreview
+                    ? "This is the pathway the case was routed to. No governed outcome has been determined yet."
+                    : "The highlighted path shows how this case reached its provisional outcome."}{" "}
                   <FigureLink figure={decision.figure} showIcon /> · open the full pathway.
                 </p>
                 <div className="overflow-hidden rounded-lg border border-border bg-card">
