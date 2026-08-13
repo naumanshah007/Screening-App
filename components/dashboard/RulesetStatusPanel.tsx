@@ -10,7 +10,9 @@ import type { ClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-di
  *
  *  - The operative authority is stated first and unambiguously.
  *  - The canonical ruleset is shown with its REAL lifecycle status from the
- *    database. It is never described as "Live" and never as authoritative.
+ *    database, and is described as authoritative ONLY when it genuinely is —
+ *    that is, when the resolved engine is canonical and the evaluation mode is
+ *    operative. A non-operative ruleset is never described as "Live".
  *  - Canonical is only ever presented as the authority when the backend says
  *    the engine is canonical AND the evaluation mode is genuinely operative.
  *    Anything else renders as Legacy.
@@ -57,8 +59,11 @@ export function RulesetStatusPanel({ authority }: { authority: ClinicalAuthority
           </p>
           <p className="mt-1 flex items-center gap-2">
             <span className="rounded-md border border-border bg-muted px-2 py-1 text-sm font-semibold text-foreground">
+              {/* Clinician-facing wording. The internal engine name belongs on
+                  governance, Rule Studio, audit and provenance surfaces — not
+                  here. The version itself is still shown alongside. */}
               {canonicalIsOperative && authority.canonicalVersion
-                ? `Canonical ${authority.canonicalVersion}`
+                ? "Current governed rules"
                 : "Legacy Engine"}
             </span>
           </p>
@@ -69,7 +74,9 @@ export function RulesetStatusPanel({ authority }: { authority: ClinicalAuthority
 
         <div className="min-w-[230px]">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Canonical shadow
+            {/* "Shadow" is only true while canonical is NOT deciding cases.
+                Once it is operative this heading would actively mislead. */}
+            {canonicalIsOperative ? "Current ruleset" : "Canonical shadow"}
           </p>
           {authority.canonicalVersion ? (
             <>
@@ -82,7 +89,12 @@ export function RulesetStatusPanel({ authority }: { authority: ClinicalAuthority
                 </span>
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                {modeLabel} · not clinically authoritative
+                {/* Only claim "not authoritative" when that is actually true.
+                    Once the ruleset is operative it decides new cases, and
+                    saying otherwise would misrepresent the live system. */}
+                {canonicalIsOperative
+                  ? `${modeLabel} · deciding new cases`
+                  : `${modeLabel} · not clinically authoritative`}
               </p>
             </>
           ) : (
