@@ -64,6 +64,16 @@ export default async function BatchRunDetailPage({
   const [pinnedMajor, pinnedMinor, pinnedPatch] = versionTuple(run.pinnedRuleVersionDisplay);
   const activeIsNewer = activeMajor > pinnedMajor || (activeMajor === pinnedMajor && activeMinor > pinnedMinor) || (activeMajor === pinnedMajor && activeMinor === pinnedMinor && activePatch > pinnedPatch);
 
+  // Derived from what the run's items ACTUALLY record, not from the presence of
+  // a pinned version. A run is canonical only when its persisted items say a
+  // governed evaluation decided them; anything else is described as legacy so a
+  // historical run keeps its truthful provenance.
+  const runIsCanonical =
+    run.items.length > 0 &&
+    run.items.every(
+      (item) => item.authorityEngine === "CANONICAL" && Boolean(item.ruleEvaluationId)
+    );
+
 
   const items: WorklistItem[] = run.items.map((item) => ({
     id: item.id,
@@ -146,12 +156,32 @@ export default async function BatchRunDetailPage({
         meta={
           <>
             <HeaderMeta label="Saved" value={formatDateTime(run.createdAt)} />
+            {/*
+              These two labels were hardcoded as "Legacy engine (authoritative)"
+              and "Versioned shadow (not authoritative)". Once a run's items are
+              decided by the governed ruleset that is exactly backwards: it named
+              the router as the authority and the ruleset that actually produced
+              every recommendation as a non-authoritative shadow.
+
+              The labelling now follows what the run's persisted items actually
+              say. `run.engineVersion` is the router/processor engine and is
+              reported as routing provenance either way — it is never the
+              recommendation authority for a canonical run.
+            */}
             <HeaderMeta
-              label="Legacy engine (authoritative)"
+              label={
+                runIsCanonical
+                  ? "Pathway routing (not the recommendation authority)"
+                  : "Legacy engine (authoritative)"
+              }
               value={<span className="font-mono">{run.engineVersion}</span>}
             />
             <HeaderMeta
-              label="Versioned shadow (not authoritative)"
+              label={
+                runIsCanonical
+                  ? "Current governed rules (authoritative)"
+                  : "Versioned shadow (not authoritative)"
+              }
               value={
                 <span className="font-mono">
                   {run.pinnedRuleVersionDisplay ?? "not configured"}
