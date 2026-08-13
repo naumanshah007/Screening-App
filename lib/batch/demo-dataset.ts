@@ -11,6 +11,13 @@
 import type { CanonicalBatchCase } from "./types";
 import { ENGINE_VERSION } from "./processor";
 
+/**
+ * Fixed synthetic source-import timestamp for the built-in demo dataset.
+ *
+ * Deliberately a constant rather than `new Date()` — see the note in demoCase().
+ */
+const DEMO_SOURCE_IMPORTED_AT = "2026-01-06T09:00:00.000Z";
+
 const DEMO_SOURCE_BASE = {
   sourceType: "demo" as const,
   sourceSystem: "Privexa Demo Dataset",
@@ -30,7 +37,20 @@ function demoCase(
     source: {
       ...DEMO_SOURCE_BASE,
       rowNumber: index + 1,
-      importedAt: new Date().toISOString(),
+      // A FIXED synthetic timestamp, not `new Date()`.
+      //
+      // DEMO_DATASET is a module-level constant, so `new Date()` was evaluated
+      // once at module load — i.e. server start. Every demo case then claimed to
+      // have been imported at whatever moment that instance booted, which the
+      // Case Review timeline rendered as "Imported from source". A months-old
+      // synthetic record therefore appeared to have been pulled seconds ago,
+      // making a historical Legacy decision look like a brand-new one.
+      //
+      // These cases are synthetic and have no real source import, so a stable
+      // fictional value is the truthful representation. When the preview or the
+      // persisted run happened is recorded separately (previewGeneratedAt on the
+      // preview response, BatchRun.createdAt on persistence).
+      importedAt: DEMO_SOURCE_IMPORTED_AT,
       externalPatientId: `ZZZ${String(index + 1).padStart(4, "0")}`,
     },
 

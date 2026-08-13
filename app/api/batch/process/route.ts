@@ -5,13 +5,26 @@ import type { CanonicalBatchCase } from "@/lib/batch/types";
 import { isFeatureEnabled } from "@/lib/features";
 
 /**
- * POST /api/batch/process
+ * POST /api/batch/process — routing and validation preview.
  *
- * Accepts an array of CanonicalBatchCase objects,
- * processes each through the decision engine, and returns results.
+ * Accepts CanonicalBatchCase objects, routes each one, and returns validation
+ * and pathway information so a reviewer can choose which rows to add to the
+ * Review Queue.
  *
- * This is the batch equivalent of POST /api/rules/evaluate.
+ * IT DOES NOT PRODUCE A CLINICAL RECOMMENDATION.
+ *
+ * Nothing here is persisted, so no governed evaluation has taken place. The
+ * governed recommendation is generated at persistence time by
+ * saveBatchRun → evaluateGradedDecision, against the current governed ruleset.
+ * Presenting the legacy engine's recommendation here would show an authoritative
+ * Legacy decision for a brand-new case while the rest of the application
+ * reported CG-NCSP-3.1.0 — the mixed-authority defect this endpoint caused.
  */
+
+/** Shown in place of a recommendation until governed evaluation happens. */
+const PREVIEW_PENDING_TEXT =
+  "Routing complete — recommendation is generated when added to the Review Queue.";
+const PREVIEW_PENDING_CODE = "PREVIEW-PENDING-GOVERNED-EVALUATION";
 export async function POST(req: NextRequest) {
   // Auth check
   const session = await auth();
@@ -48,13 +61,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Process batch
+    // Routing and validation only.
+    //
+    // processBatch runs the legacy engine. That engine still supplies routing —
+    // figure selection, age gates, validation — but its RECOMMENDATION is not
+    // the clinical authority for a new case, and this endpoint does not persist
+    // anything, so no governed evaluation has happened yet.
+    //
+    // Returning its recommendation made the preview display an authoritative
+    // Legacy decision while the rest of the application reported CG-NCSP-3.1.0.
+    // The recommendation is therefore redacted here, on the server, so the
+    // legacy clinical text never reaches the browser at all. The governed
+    // recommendation is produced when the rows are added to the Review Queue,
+    // which routes through saveBatchRun → evaluateGradedDecision.
     const result = processBatch(cases, {
       includeWarnings: body.includeWarnings ?? true,
       includeInvalid: body.includeInvalid ?? false,
     });
 
-    return NextResponse.json(result);
+    const preview = {
+      ...result,
+      previewOnly: true as const,
+      previewGeneratedAt: new Date().toISOString(),
+      results: result.results.map((item) => ({
+        ...item,
+        decision: {
+          ...item.decision,
+          // Routing output is retained: figure, risk and safety stops are what
+          // the reviewer needs in order to choose rows.
+          recommendation: PREVIEW_PENDING_TEXT,
+          recommendationCode: PREVIEW_PENDING_CODE,
+          // No clinical action may be implied before governed evaluation.
+          referralPriority: null,
+          referralType: null,
+          repeatInterval: null,
+        },
+      })),
+    };
+
+    return NextResponse.json(preview);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json(
