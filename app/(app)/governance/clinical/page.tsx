@@ -12,6 +12,8 @@ import {
   getActivationGateStates,
   ROLLBACK_THRESHOLD_CANDIDATES,
 } from "@/lib/clinical-rules/activation-governance";
+import { NATIONAL_RULE_SET_KEY } from "@/lib/clinical-rules/constants";
+import { getCurrentGovernedRuleset } from "@/lib/clinical-rules/current-ruleset";
 import { prisma } from "@/lib/prisma";
 import { ClinicalGovernanceReviewWorkspace } from "@/components/clinical-rules/ClinicalGovernanceReviewWorkspace";
 import { ActivationGovernancePanel } from "@/components/clinical-rules/ActivationGovernancePanel";
@@ -36,14 +38,51 @@ export default async function ClinicalGovernanceActivationPage() {
   if (!user?.id || !canPerformClinicalRuleAction(user.role, "view")) redirect("/dashboard");
   const userRole = user.role!;
 
-  const latest = await prisma.clinicalRuleVersion.findFirst({
-    where: { displayVersion: "CG-NCSP-3.1.0" },
-    orderBy: { updatedAt: "desc" },
+  /*
+    WHICH VERSION THIS PAGE GOVERNS
+    -------------------------------
+    This was pinned to the literal "CG-NCSP-3.1.0", which made the formal
+    process impossible to complete. `recordClinicalGovernanceReview` refuses
+    anything that is not a DRAFT — "Governance interpretation may only revise a
+    draft successor" — but that string always resolved to the ACTIVE version, so
+    the approval centre could only ever show the one version whose controls are
+    permanently disabled. A reviewer could create the required draft successor
+    in Rule Studio and this page would still not address it.
+
+    It now prefers the newest DRAFT successor in the governed rule set and falls
+    back to the current governed version when no draft exists. The fallback is
+    read-only by the same server-side rule as before — nothing here enables a
+    decision that was previously refused.
+  */
+  const ruleSet = await prisma.clinicalRuleSet.findUnique({
+    where: { key: NATIONAL_RULE_SET_KEY },
     select: { id: true },
   });
-  if (!latest) redirect("/rules/clinical");
+  if (!ruleSet) redirect("/rules/clinical");
 
-  const { version, snapshot } = await getClinicalRuleVersionSnapshot(latest.id);
+  const draftSuccessor = await prisma.clinicalRuleVersion.findFirst({
+    where: { ruleSetId: ruleSet.id, status: "DRAFT" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+
+  // The ruleset deciding new cases right now — the thing a draft succeeds.
+  const currentGoverned = await getCurrentGovernedRuleset();
+  const fallback =
+    currentGoverned?.ruleVersionId ??
+    (
+      await prisma.clinicalRuleVersion.findFirst({
+        where: { ruleSetId: ruleSet.id, status: { in: ["ACTIVE", "PUBLISHED", "VALIDATED"] } },
+        orderBy: [{ versionMajor: "desc" }, { versionMinor: "desc" }, { versionPatch: "desc" }],
+        select: { id: true },
+      })
+    )?.id;
+
+  const targetVersionId = draftSuccessor?.id ?? fallback;
+  if (!targetVersionId) redirect("/rules/clinical");
+
+  const { version, snapshot } = await getClinicalRuleVersionSnapshot(targetVersionId);
+  const governingDraft = version.status === "DRAFT";
   const [auditEvents, gateStates, admins, authority] = await Promise.all([
     prisma.ruleVersionAuditEvent.findMany({
       where: { ruleVersionId: version.id },
@@ -113,7 +152,7 @@ export default async function ClinicalGovernanceActivationPage() {
     <PageShell width="wide">
       <PageHeader
         eyebrow="Clinical Governance & Activation"
-        title="CG-NCSP-3.1.0 approval centre"
+        title={`${version.displayVersion} approval centre`}
         description="Authenticated, append-only decisions for clinical interpretation, accountable operational gates, and controlled Production activation."
         actions={<Link href={`/rules/clinical/${version.id}`} className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted">Open Rule Studio</Link>}
         meta={
@@ -153,8 +192,15 @@ export default async function ClinicalGovernanceActivationPage() {
                   tone={authority.authorityEngine === "CANONICAL" ? "success" : "warn"}
                   dot
                 >
+                  {/*
+                    Names the CURRENT GOVERNED ruleset, not the version this
+                    page is governing. Once a draft successor exists those are
+                    two different versions, and printing the draft's identifier
+                    beside the word ACTIVE would state that an unapproved draft
+                    is deciding cases.
+                  */}
                   {authority.authorityEngine === "CANONICAL"
-                    ? `${version.displayVersion} · ACTIVE`
+                    ? `${currentGoverned?.displayVersion ?? version.displayVersion} · ACTIVE`
                     : "Legacy engine"}
                 </StatusBadge>
               </div>
@@ -221,6 +267,35 @@ export default async function ClinicalGovernanceActivationPage() {
           <Tab id="activation">Operational activation gates ({approvedOperationalGates}/{gateStates.length})</Tab>
         </TabList>
         <TabPanel id="clinical" className="p-6">
+          {/*
+            The register cannot be filled against a version that is already
+            active — the server refuses it. Saying so here, with the step that
+            unblocks it, replaces a page of silently greyed-out controls.
+          */}
+          {!governingDraft && (
+            <div
+              role="note"
+              className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200"
+            >
+              <p className="font-semibold">
+                No draft successor exists, so no interpretation can be recorded.
+              </p>
+              <p className="mt-1">
+                {version.displayVersion} is {version.status}. Clinical interpretations are recorded
+                against a draft successor and are bound to its exact checksum, so they can never be
+                written onto a version that is already deciding cases. To begin the formal register,
+                open{" "}
+                <Link
+                  href={`/rules/clinical/${version.id}`}
+                  className="font-medium underline underline-offset-2"
+                >
+                  Rule Studio
+                </Link>{" "}
+                and clone {version.displayVersion} into a new draft; this page will then govern that
+                draft. The cases below are shown read-only for reference.
+              </p>
+            </div>
+          )}
           <ClinicalGovernanceReviewWorkspace
             versionId={version.id}
             initialRevision={version.revision}
