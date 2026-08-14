@@ -17,6 +17,7 @@ import { ClinicalGovernanceReviewWorkspace } from "@/components/clinical-rules/C
 import { ActivationGovernancePanel } from "@/components/clinical-rules/ActivationGovernancePanel";
 import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { HeaderMeta, PageHeader, PageShell, Panel, StatusBadge } from "@/components/system";
+import { getRuntimeClinicalEnvironment } from "@/lib/clinical-rules/authority";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,9 @@ export default async function ClinicalGovernanceActivationPage() {
       .filter(Boolean)
   );
   const approvedOperationalGates = gateStates.filter((state) => state.action === "APPROVE").length;
+  // Names the environment these governed rules are active for, so "active" is
+  // never read as "active in hospital production".
+  const clinicalEnvironment = getRuntimeClinicalEnvironment();
 
   return (
     <PageShell width="wide">
@@ -125,14 +129,71 @@ export default async function ClinicalGovernanceActivationPage() {
       <Panel>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge tone={authority.authorityEngine === "CANONICAL" ? "success" : "warn"} dot>Production authority: {authority.authorityEngine}</StatusBadge>
-              <StatusBadge tone={approvedCards === governanceCases.length ? "success" : "warn"}>Clinical cards {approvedCards}/{governanceCases.length}</StatusBadge>
-              <StatusBadge tone={clinicalApprovers.size >= 2 ? "success" : "warn"}>Clinical approvers {clinicalApprovers.size}/2</StatusBadge>
-              <StatusBadge tone={approvedOperationalGates === gateStates.length ? "success" : "warn"}>Operational gates {approvedOperationalGates}/{gateStates.length}</StatusBadge>
+            {/*
+              Two SEPARATE statements, because conflating them is actively
+              misleading.
+
+              The badge here previously read "Production authority: CANONICAL"
+              beside "Clinical cards 0/16" — inviting the reading that hospital
+              production governance was complete. It is not. What is active is
+              the governed ruleset for THIS environment; real pilot/production
+              readiness is a different question with its own unmet gates.
+
+              Presentation only — no governance record, ledger or gate is
+              changed by this block.
+            */}
+            <div>
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                {clinicalEnvironment === "PRODUCTION"
+                  ? "Production clinical authority"
+                  : `${clinicalEnvironment} clinical authority`}
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <StatusBadge
+                  tone={authority.authorityEngine === "CANONICAL" ? "success" : "warn"}
+                  dot
+                >
+                  {authority.authorityEngine === "CANONICAL"
+                    ? `${version.displayVersion} · ACTIVE`
+                    : "Legacy engine"}
+                </StatusBadge>
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {clinicalEnvironment === "PRODUCTION"
+                  ? "New cases in this environment are evaluated using these governed rules."
+                  : "New synthetic/demo cases in this environment are evaluated using these governed rules."}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                Real pilot / production readiness
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                <StatusBadge
+                  tone={
+                    approvedCards === governanceCases.length &&
+                    clinicalApprovers.size >= 2 &&
+                    approvedOperationalGates === gateStates.length
+                      ? "success"
+                      : "warn"
+                  }
+                  dot
+                >
+                  Independent clinical governance:{" "}
+                  {approvedCards === governanceCases.length &&
+                  clinicalApprovers.size >= 2 &&
+                  approvedOperationalGates === gateStates.length
+                    ? "Complete"
+                    : "Not complete"}
+                </StatusBadge>
+                <StatusBadge tone={approvedCards === governanceCases.length ? "success" : "warn"}>Clinical interpretations {approvedCards}/{governanceCases.length}</StatusBadge>
+                <StatusBadge tone={clinicalApprovers.size >= 2 ? "success" : "warn"}>Clinical approvers {clinicalApprovers.size}/2</StatusBadge>
+                <StatusBadge tone={approvedOperationalGates === gateStates.length ? "success" : "warn"}>Operational activation gates {approvedOperationalGates}/{gateStates.length}</StatusBadge>
+              </div>
             </div>
             <p className="mt-3 max-w-4xl text-sm leading-6 text-muted-foreground">
-              Engineering evidence is visible but never counted as a human approval. Every decision is tied to an authenticated identity; stale-checksum decisions do not satisfy activation.
+              Engineering evidence is visible but never counted as a human approval. Every decision is tied to an authenticated identity; stale-checksum decisions do not satisfy activation. Demonstration attestations are excluded from production activation gates.
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">

@@ -37,6 +37,28 @@ export default async function AdminUsersPage() {
 
       <DemoModeStatusPanel demoMode={demoMode} handover={handover} />
 
+      {/*
+        Two-factor status, stated once at page level rather than as a red badge
+        on every row.
+        
+        Enforcement is genuinely disabled for demonstration accounts, so a
+        per-row "2FA gap" on each of them reported an environment policy as if it
+        were an individual account defect — it made a correctly-configured demo
+        look broken. This does not fake the state: it says plainly that
+        enforcement is off. A genuine per-account problem on a non-demo user
+        still surfaces on its own row.
+      */}
+      {demoMode && (
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+          <p className="text-sm font-medium text-foreground">Demo environment</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            Two-factor authentication enforcement is disabled for demonstration
+            accounts. Production security status is reported normally when
+            DEMO_MODE is off.
+          </p>
+        </div>
+      )}
+
       <AdminUsersClient
         demoMode={demoMode}
         currentUserId={user?.id ?? null}

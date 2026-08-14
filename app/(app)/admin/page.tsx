@@ -10,8 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NcsrCertificationManager } from "./NcsrCertificationManager";
 import { IntegrationValidationManager } from "./IntegrationValidationManager";
-import { CreateUserForm } from "./CreateUserForm";
-import { UserAccessManager } from "./UserAccessManager";
 import { cn, formatDate } from "@/lib/utils";
 import { listAdminUsers } from "@/lib/admin/user-management";
 import { getDatabaseRuntimeSummary } from "@/lib/config/database";
@@ -281,46 +279,33 @@ export default async function AdminPage({
         ))}
       </div>
 
-      {/* ── Users & Access tab ─────────────────────────────────────────────── */}
+      {/* ── Users & Access tab ─────────────────────────────────────────────
+          User management lives at /admin/users, which is the single Users &
+          Access surface. This tab previously duplicated it (CreateUserForm +
+          UserAccessManager), so the same actions existed in two places with
+          different controls. It now points at the one surface rather than
+          maintaining a second copy. */}
       {activeTab === "users" && canManageUsers && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-brand-600" />
-                User Onboarding
+                Users &amp; Access
               </CardTitle>
-              <Badge variant="info">Admin only</Badge>
             </CardHeader>
             <CardContent>
-              <CreateUserForm practices={practices} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-brand-600" />
-                User Access Management
-              </CardTitle>
-              <Badge variant="info">Admin only</Badge>
-            </CardHeader>
-            <CardContent>
-              {users.length === 0 ? (
-                <EmptyState
-                  icon={Users}
-                  eyebrow={workspace.label}
-                  title="No users found"
-                  description="User accounts will appear here once they exist in the system."
-                  nextStep="Create the required clinician, coordinator, and integration accounts before production onboarding."
-                />
-              ) : (
-                <UserAccessManager
-                  users={users}
-                  currentUserId={user?.id}
-                  focusUserId={params.focusUser}
-                />
-              )}
+              <p className="text-sm text-muted-foreground">
+                Account management — roles, access status, password resets and
+                demonstration accounts — is handled on the dedicated Users &amp;
+                Access page.
+              </p>
+              <Link
+                href="/admin/users"
+                className="mt-3 inline-flex items-center rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Open Users &amp; Access →
+              </Link>
             </CardContent>
           </Card>
         </div>

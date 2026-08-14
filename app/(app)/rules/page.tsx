@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { GitBranch, ShieldCheck, Plus } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { PageShell, PageHeader } from "@/components/system";
+import { PageShell, PageHeader, Panel, DrawerDisclosure } from "@/components/system";
+import { getCurrentGovernedRuleset } from "@/lib/clinical-rules/current-ruleset";
 import { Badge, ServiceLineBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,20 +32,62 @@ export default async function RulesPage() {
   }
 
   const releases = await listCaseRuleSetReleases();
+  const currentRuleset = await getCurrentGovernedRuleset().catch(() => null);
+  // Draft authoring follows the existing page entitlement — no new permission.
+  const canAuthorDrafts = user?.role === "ADMIN" || user?.role === "INTEGRATION_ADMIN";
 
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Governance"
-        title="Case Rule Releases"
-        description="Enterprise release control for colposcopy and gynaecology deterministic rules."
-        actions={
-          <>
+        eyebrow="Service operations"
+        title="Local Referral & Booking Rules"
+        description="Local colposcopy and gynaecology triage and booking rules that support service operations."
+      />
+
+      {/*
+        States the relationship explicitly.
+
+        These COL/GYN rules sit beside the national governed screening rules, and
+        a page of authoritative-looking rule releases with no context invited the
+        reading that they were a competing clinical authority. They are an
+        operational overlay; the governed screening rules are named here so the
+        distinction is unmissable.
+      */}
+      <Panel className="px-4 py-3.5">
+        <p className="text-sm font-semibold text-foreground">Operational service overlay</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          These local triage and booking rules support service operations. They do
+          not replace the current governed NCSP screening rules.
+        </p>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div>
+            <dt className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+              Current governed screening rules
+            </dt>
+            <dd className="mt-0.5 font-mono text-sm font-medium text-foreground">
+              {currentRuleset?.displayVersion ?? "Not configured"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+              Local operational overlay
+            </dt>
+            <dd className="mt-0.5 text-sm font-medium text-foreground">
+              Colposcopy / gynaecology service rules
+            </dd>
+          </div>
+        </dl>
+      </Panel>
+
+      {/* Draft creation is an authoring action, not part of the normal view. */}
+      {canAuthorDrafts && (
+        <DrawerDisclosure title="Advanced actions" caption="Create a new service rule draft">
+          <div className="flex flex-wrap gap-2">
             <CreateCaseRuleDraftButton serviceLine="COLPOSCOPY" label="New colposcopy draft" />
             <CreateCaseRuleDraftButton serviceLine="GYNAECOLOGY" label="New gynaecology draft" />
-          </>
-        }
-      />
+          </div>
+        </DrawerDisclosure>
+      )}
 
       {releases.length === 0 ? (
         <Card>

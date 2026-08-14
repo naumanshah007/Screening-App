@@ -126,6 +126,11 @@ function buildSidebarSections(args: {
       : []),
     ...(isAdmin || isIntegrationAdmin ? authed("/rules/clinical", "Rule Studio") : []),
     ...(isAdmin || isIntegrationAdmin ? authed("/readiness", "Deployment Readiness") : []),
+    // /admin keeps security incidents, integration validation and NCSR
+    // certification — genuinely separate from account management, which now
+    // lives only at /admin/users. Without this entry that content would be
+    // unreachable from the sidebar.
+    ...(isAdmin || isIntegrationAdmin ? authed("/admin", "System Operations") : []),
     ...(isAdmin
       ? [
           ...(showBatch ? authed("/batch/runs", "Intake Sessions") : []),
