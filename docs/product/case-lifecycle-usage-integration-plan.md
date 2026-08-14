@@ -8,9 +8,11 @@ code as it stands rather than against the idea of it.
 > this document; the affected sections have been revised rather than annotated,
 > so what follows is the current design, not the original proposal.
 >
-> Phase 1 runs as three subphases, each gated, deployed and verified before the
-> next begins: **1A source identity** (done), **1B episode classification**,
-> **1C workflow integration**.
+> Phase 1 ran as three subphases, each gated, deployed and verified on the live
+> database before the next began: **1A source identity**, **1B episode
+> classification**, **1C workflow integration**. All three are live.
+>
+> Phase 2 (usage ledger) is next and is unblocked.
 
 The research is sound and the three capabilities really are one problem. But
 five things in the current codebase change how it has to be built, and one of
