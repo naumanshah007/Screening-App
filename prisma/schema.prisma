@@ -1335,6 +1335,28 @@ model BatchReviewItem {
   gpPractice        String?
   receivedDate      DateTime?
 
+  // ── Episode identity ──────────────────────────────────────────────────────
+  //
+  // Kept in clear, not only as a fingerprint. A reviewer asked to accept that
+  // two results are the same episode must be able to see "accession A12345 from
+  // Awanui Labs", and a usage dispute is answered the same way.
+  //
+  /// Accession / specimen identifier. NOT a message control ID — that names one
+  /// transmission and changes on resend; this names the specimen and does not.
+  sourceEpisodeKey  String?
+  /// Originating laboratory or facility. Not the tenant.
+  sourceFacility    String?
+  testType          String?
+  collectedOn       DateTime?
+
+  /// Digest of everything that arrived. Changes when a name spelling or
+  /// demographic detail is corrected — useful provenance, but it must never
+  /// drive re-evaluation, because no governed rule reads those fields.
+  rawPayloadDigest      String?
+  /// Digest of the normalised clinical facts only. This is the ONLY digest that
+  /// may cause a case to be treated as an updated result.
+  clinicalPayloadDigest String?
+
   // Engine output snapshot (denormalised for fast worklist sorting/filtering)
   figure             String
   riskLevel          String
@@ -1376,4 +1398,35 @@ model BatchReviewItem {
   @@index([batchRunId, disposition])
   @@index([batchRunId, reviewRequired])
   @@index([reviewedByUserId, reviewedAt])
+  @@index([sourceEpisodeKey])
+}
+
+/// One delivery, recorded so it is never processed twice.
+///
+/// TRANSPORT IDENTITY ONLY — NOTHING CLINICAL
+/// ------------------------------------------
+/// `deliveryKey` is whatever names a single transmission on that channel: an
+/// HL7 MSH-10 message control ID, an uploaded file's content hash, a connector's
+/// delivery id. It answers "have we already received this?" and nothing else.
+///
+/// It is deliberately NOT clinical episode identity, and the two must never be
+/// merged. A lab resends the same episode under a new control number, and an
+/// amended report always does — so a control number cannot recognise an
+/// amendment. Conversely the same message redelivered by a flaky transport is
+/// one episode, not two. Using either key for the other's job produces both
+/// false duplicates and missed updates.
+model IngestionReceipt {
+  id             String   @id @default(cuid())
+  organisationId String
+  /// upload | demo-connector | manual | fhir | hl7-gateway
+  channel        String
+  deliveryKey    String
+  batchRunId     String?
+  receivedAt     DateTime @default(now())
+  caseCount      Int      @default(0)
+
+  /// Scoped by organisation and channel: two channels may legitimately use the
+  /// same identifier space, and two tenants certainly do.
+  @@unique([organisationId, channel, deliveryKey])
+  @@index([organisationId, receivedAt])
 }

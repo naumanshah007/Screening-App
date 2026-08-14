@@ -722,6 +722,24 @@ CREATE INDEX "Organisation_isActive_idx" ON "Organisation"("isActive");
 CREATE INDEX "BatchRun_organisationId_createdAt_idx" ON "BatchRun"("organisationId", "createdAt");
 
 -- CreateTable
+CREATE TABLE "IngestionReceipt" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "organisationId" TEXT NOT NULL,
+    "channel" TEXT NOT NULL,
+    "deliveryKey" TEXT NOT NULL,
+    "batchRunId" TEXT,
+    "receivedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "caseCount" INTEGER NOT NULL DEFAULT 0
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "IngestionReceipt_organisationId_channel_deliveryKey_key" ON "IngestionReceipt"("organisationId", "channel", "deliveryKey");
+
+-- CreateIndex
+CREATE INDEX "IngestionReceipt_organisationId_receivedAt_idx" ON "IngestionReceipt"("organisationId", "receivedAt");
+
+
+-- CreateTable
 CREATE TABLE "BatchReviewItem" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "batchRunId" TEXT NOT NULL,
@@ -734,6 +752,12 @@ CREATE TABLE "BatchReviewItem" (
     "nhi" TEXT,
     "gpPractice" TEXT,
     "receivedDate" DATETIME,
+    "sourceEpisodeKey" TEXT,
+    "sourceFacility" TEXT,
+    "testType" TEXT,
+    "collectedOn" DATETIME,
+    "rawPayloadDigest" TEXT,
+    "clinicalPayloadDigest" TEXT,
     "figure" TEXT NOT NULL,
     "riskLevel" TEXT NOT NULL,
     "recommendationCode" TEXT NOT NULL,
@@ -998,6 +1022,9 @@ CREATE INDEX "BatchRun_source_createdAt_idx" ON "BatchRun"("source", "createdAt"
 
 -- CreateIndex
 CREATE INDEX "BatchReviewItem_batchRunId_disposition_idx" ON "BatchReviewItem"("batchRunId", "disposition");
+
+-- CreateIndex
+CREATE INDEX "BatchReviewItem_sourceEpisodeKey_idx" ON "BatchReviewItem"("sourceEpisodeKey");
 
 -- CreateIndex
 CREATE INDEX "BatchReviewItem_batchRunId_reviewRequired_idx" ON "BatchReviewItem"("batchRunId", "reviewRequired");

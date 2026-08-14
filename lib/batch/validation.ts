@@ -95,6 +95,26 @@ const batchRowSchema = z.object({
     v ? String(v).trim() : undefined
   ),
 
+  // Episode identity. All optional: a file may not carry them, and a case with
+  // no accession number is still processed — it simply cannot be matched to a
+  // previous episode with certainty.
+  sourceEpisodeKey: z.union([z.string(), z.null(), z.undefined()]).transform((v) =>
+    v ? String(v).trim() : undefined
+  ),
+  sourceFacility: z.union([z.string(), z.null(), z.undefined()]).transform((v) =>
+    v ? String(v).trim() : undefined
+  ),
+  testType: z.union([z.string(), z.null(), z.undefined()]).transform((v) =>
+    v ? String(v).trim() : undefined
+  ),
+  collectedOn: z
+    .union([z.string(), z.date(), z.null(), z.undefined()])
+    .transform((v) => {
+      if (v === null || v === undefined || v === "") return undefined;
+      const parsed = v instanceof Date ? v : new Date(String(v));
+      return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+    }),
+
   // Patient context
   patientAge: z
     .union([z.number(), z.string(), z.null(), z.undefined()])
@@ -610,6 +630,12 @@ export function validateBatchRows(
         rowNumber: row._rowIndex + 1, // 1-based for display
         importedAt: now,
         externalPatientId: data.externalPatientId,
+        // Episode identity, carried through in clear so a later match can be
+        // explained in the source's own terms rather than as a fingerprint.
+        sourceEpisodeKey: data.sourceEpisodeKey,
+        sourceFacility: data.sourceFacility,
+        testType: data.testType,
+        collectedOn: data.collectedOn,
       },
 
       // Patient context

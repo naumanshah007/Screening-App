@@ -25,6 +25,7 @@ import { getRuntimeClinicalEnvironment, resolveClinicalAuthority } from "@/lib/c
 import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
+import { clinicalPayloadDigest, rawPayloadDigest } from "@/lib/batch/source-identity";
 
 // ─── Source mapping ───────────────────────────────────────────────────────────
 
@@ -132,6 +133,14 @@ export async function saveBatchRun(args: {
         nhi: c.nhi ?? c.source.externalPatientId ?? null,
         gpPractice: c.gpPractice ?? null,
         receivedDate: c.receivedDate ? new Date(c.receivedDate) : null,
+        // Episode identity, stored in clear alongside the digests so any later
+        // match can be explained in the source's own terms.
+        sourceEpisodeKey: c.source.sourceEpisodeKey ?? null,
+        sourceFacility: c.source.sourceFacility ?? c.source.sourceSystem ?? null,
+        testType: c.source.testType ?? null,
+        collectedOn: c.source.collectedOn ? new Date(c.source.collectedOn) : null,
+        rawPayloadDigest: rawPayloadDigest(c),
+        clinicalPayloadDigest: clinicalPayloadDigest(item.input),
         figure: d.figure,
         riskLevel: d.riskLevel,
         recommendationCode: d.recommendationCode,

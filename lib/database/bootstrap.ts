@@ -229,6 +229,7 @@ export async function ensureClinicalRuleSchema(url: string) {
     // idempotent: existing operational rows are preserved and remain unpinned.
     await ensureCanonicalProvenanceColumns(client);
     await ensureOrganisationScope(client);
+    await ensureSourceIdentitySchema(client);
   } finally {
     client.close();
   }
@@ -360,6 +361,59 @@ async function ensureOrganisationScope(client: ReturnType<typeof createClient>) 
       });
     }
   }
+}
+
+/**
+ * Source identity: episode identifiers, the two payload digests, and the
+ * ingestion receipt.
+ *
+ * Every column here is nullable and every statement is additive, so this needs
+ * no table rebuild — unlike the tenant column, which had to work around SQLite
+ * refusing a NOT NULL column with a REFERENCES clause.
+ *
+ * Rows that predate this carry NULL identifiers, which is honest: those cases
+ * genuinely arrived without an accession number recorded, and backfilling a
+ * fabricated one would make historical matches look more certain than they are.
+ */
+async function ensureSourceIdentitySchema(client: ReturnType<typeof createClient>) {
+  if (await tableExists(client, "BatchReviewItem")) {
+    const columns = await getTableColumns(client, "BatchReviewItem");
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "sourceEpisodeKey", "TEXT");
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "sourceFacility", "TEXT");
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "testType", "TEXT");
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "collectedOn", "DATETIME");
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "rawPayloadDigest", "TEXT");
+    await addColumnIfMissing(
+      client,
+      "BatchReviewItem",
+      columns,
+      "clinicalPayloadDigest",
+      "TEXT"
+    );
+    await client.execute(
+      'CREATE INDEX IF NOT EXISTS "BatchReviewItem_sourceEpisodeKey_idx" ON "BatchReviewItem"("sourceEpisodeKey")'
+    );
+  }
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "IngestionReceipt" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "organisationId" TEXT NOT NULL,
+      "channel" TEXT NOT NULL,
+      "deliveryKey" TEXT NOT NULL,
+      "batchRunId" TEXT,
+      "receivedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "caseCount" INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+  // The unique index is the idempotency guarantee itself, not an optimisation:
+  // it is what makes a replayed delivery fail rather than duplicate.
+  await client.execute(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "IngestionReceipt_organisationId_channel_deliveryKey_key" ON "IngestionReceipt"("organisationId", "channel", "deliveryKey")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "IngestionReceipt_organisationId_receivedAt_idx" ON "IngestionReceipt"("organisationId", "receivedAt")'
+  );
 }
 
 async function ensureCanonicalProvenanceColumns(

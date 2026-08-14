@@ -80,6 +80,33 @@ export interface SourceMetadata {
   mappingVersion: string;
   /** Version of the decision engine used. */
   engineVersion: string;
+
+  // ── Episode identity ────────────────────────────────────────────────────
+  //
+  // Held in clear, never only as a hash. A reviewer asked to accept that two
+  // results are the same episode is entitled to see "accession A12345 from
+  // Awanui Labs", not a fingerprint.
+
+  /**
+   * The source's identifier for this specimen or episode — accession number,
+   * specimen ID, lab number.
+   *
+   * NOT a message control ID. A control number names one transmission and
+   * changes when the same episode is resent or amended; an accession names the
+   * specimen and does not. Transport identity lives on the ingestion receipt.
+   */
+  sourceEpisodeKey?: string;
+  /**
+   * The facility the result came from, e.g. "Awanui Labs — Auckland".
+   *
+   * Distinct from the tenant: a lab sends results to a service, and the two are
+   * different parties. The tenant is on the batch run.
+   */
+  sourceFacility?: string;
+  /** Test type this episode represents, e.g. "HPV", "LBC", "HISTOLOGY". */
+  testType?: string;
+  /** ISO-8601 date the specimen was collected. */
+  collectedOn?: string;
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────

@@ -124,8 +124,63 @@ export const BATCH_COLUMNS: readonly ColumnDef[] = [
     label: "Patient ID",
     type: "string",
     required: false,
-    description: "External patient identifier (e.g. dummy NHI). Used for duplicate detection.",
+    description:
+      "External patient identifier (e.g. dummy NHI). Identifies the person, not the episode — supply Accession Number to identify a specimen.",
     aliases: ["patient_id", "nhi", "patientId", "NHI", "id"],
+    group: "patient",
+  },
+
+  // ── Episode identity ────────────────────────────────────────────────────
+  //
+  // Optional, because a file may not carry them — but supplying the accession
+  // number is what lets a re-sent or amended result be recognised as the same
+  // episode rather than treated as a new case.
+  {
+    field: "sourceEpisodeKey",
+    label: "Accession Number",
+    type: "string",
+    required: false,
+    description:
+      "Laboratory accession or specimen identifier for this episode. Stable across amendments to the same specimen. Not a message control ID.",
+    aliases: [
+      "accession",
+      "accession_number",
+      "accession_no",
+      "specimen_id",
+      "specimenId",
+      "lab_number",
+      "lab_no",
+      "episode_key",
+    ],
+    group: "patient",
+  },
+  {
+    field: "sourceFacility",
+    label: "Source Facility",
+    type: "string",
+    required: false,
+    description:
+      "Laboratory or facility that produced this result, e.g. 'Awanui Labs — Auckland'. The originating facility, not the service using CerviGrade.",
+    aliases: ["facility", "source_facility", "lab", "laboratory", "sending_facility"],
+    group: "patient",
+  },
+  {
+    field: "testType",
+    label: "Test Type",
+    type: "string",
+    required: false,
+    description:
+      "What this episode is, e.g. HPV, LBC, HISTOLOGY. Distinguishes two specimens collected for the same patient on the same day.",
+    aliases: ["test_type", "testType", "test", "specimen_type"],
+    group: "patient",
+  },
+  {
+    field: "collectedOn",
+    label: "Collection Date",
+    type: "date",
+    required: false,
+    description: "Date the specimen was collected (YYYY-MM-DD).",
+    aliases: ["collection_date", "collected_on", "collected", "specimen_date", "taken_on"],
     group: "patient",
   },
   {

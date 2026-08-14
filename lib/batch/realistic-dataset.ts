@@ -322,8 +322,18 @@ export function generateRealisticCases(opts: GenerateOptions): CanonicalBatchCas
 
   type Identity = { name: string; nhi: string; gpPractice: string; region: Region; age: number; ethnicity: string };
 
-  const buildCase = (identity: Identity): CanonicalBatchCase => {
-    const archetype = weightedPick(ARCHETYPES);
+  const buildCase = (
+    identity: Identity,
+    episode?: {
+      /** Stable accession, so a later pull re-presents the SAME episode. */
+      episodeKey: string;
+      /** Fixed archetype, so the clinical content does not change between pulls. */
+      archetype?: Archetype;
+      /** Fixed collection date, since it is part of how an episode is described. */
+      collectedOn: string;
+    }
+  ): CanonicalBatchCase => {
+    const archetype = episode?.archetype ?? weightedPick(ARCHETYPES);
     const receivedDate = randomDateBetween(opts.rangeStart, opts.rangeEnd);
     const sourceSystem =
       opts.connector === "hl7"
@@ -344,6 +354,12 @@ export function generateRealisticCases(opts: GenerateOptions): CanonicalBatchCas
         rowNumber: cases.length + 1,
         importedAt,
         externalPatientId: identity.nhi,
+        // A one-off case gets a fresh accession every pull, because it genuinely
+        // is a new specimen each time. Returning patients get a stable one.
+        sourceEpisodeKey: episode?.episodeKey ?? `ACC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        sourceFacility: sourceSystem,
+        testType: archetype.fields().histologyResult ? "HISTOLOGY" : "HPV_LBC",
+        collectedOn: episode?.collectedOn ?? receivedDate.toISOString(),
       },
       patientAge: identity.age,
       ethnicityPrimary: identity.ethnicity,
@@ -375,13 +391,44 @@ export function generateRealisticCases(opts: GenerateOptions): CanonicalBatchCas
     };
   };
 
-  // A few patients have a STABLE NHI so a second pull re-encounters them — this
-  // is what makes the "Seen before" / previous-vs-now comparison demonstrable.
-  // Their clinical archetype is re-rolled each pull, so the result can change.
+  // Three returning patients with STABLE accession numbers, so a second pull
+  // re-presents the SAME episodes rather than three new ones. Each is shaped to
+  // exercise a different classification, because a demo that only ever produces
+  // "new" cannot show that duplicate detection works:
+  //
+  //   [0] identical clinical content     → a true duplicate
+  //   [1] different clinical content     → an updated result
+  //   [2] identical clinical content but
+  //       a corrected name spelling      → NOT an update
+  //
+  // [2] is the one that matters. Its raw payload differs while its normalised
+  // clinical payload does not, so it proves the product asks a clinician to look
+  // again only when something clinically meaningful changed — not because a lab
+  // fixed a typo.
   const returningCount = opts.count >= 6 ? Math.min(3, RETURNING_PATIENTS.length) : 0;
   for (let i = 0; i < returningCount; i++) {
     const p = RETURNING_PATIENTS[i];
-    cases.push(buildCase({ name: p.name, nhi: p.nhi, gpPractice: p.gpPractice, region: p.region, age: p.age, ethnicity: p.ethnicity }));
+    const stableArchetype = ARCHETYPES[i % ARCHETYPES.length];
+    cases.push(
+      buildCase(
+        {
+          // A cosmetic correction on the third: same person, same episode, and
+          // no clinical difference whatsoever.
+          name: i === 2 && Math.random() < 0.5 ? p.name.replace(/'/g, "’") : p.name,
+          nhi: p.nhi,
+          gpPractice: p.gpPractice,
+          region: p.region,
+          age: p.age,
+          ethnicity: p.ethnicity,
+        },
+        {
+          episodeKey: `ACC-${p.nhi}-01`,
+          // [1] re-rolls, so its clinical content genuinely changes between pulls.
+          archetype: i === 1 ? undefined : stableArchetype,
+          collectedOn: `2026-07-${String(10 + i).padStart(2, "0")}T00:00:00.000Z`,
+        }
+      )
+    );
   }
 
   for (let i = returningCount; i < opts.count; i++) {
