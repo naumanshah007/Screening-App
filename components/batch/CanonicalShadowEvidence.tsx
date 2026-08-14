@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { GitBranch } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { isOperativeMode } from "@/lib/clinical-rules/pinning";
 import type { BatchCaseResult } from "@/lib/batch/types";
 import { cn } from "@/lib/utils";
 
@@ -89,19 +90,29 @@ export function CanonicalShadowEvidence({
     }
   }
 
+  // An operative evaluation (LIVE_DEMO / LIVE_PRODUCTION) IS the clinical
+  // decision. Describing it as a shadow comparison, or saying the legacy
+  // decision remains authoritative, is false for these cases. Shadow wording is
+  // retained for genuine SHADOW / SIMULATION evidence.
+  const isOperative = isOperativeMode(
+    shadow.evaluationMode as Parameters<typeof isOperativeMode>[0]
+  );
+
   return (
     <section aria-labelledby="canonical-shadow-heading" className="space-y-2">
       <h3 id="canonical-shadow-heading" className="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-        Canonical V2 Shadow Comparison
+        {isOperative ? "Governed evaluation details" : "Canonical V2 Shadow Comparison"}
       </h3>
       <div className="rounded-lg border border-brand-200 bg-brand-50/30 px-4 py-3 dark:border-brand-800 dark:bg-brand-950/20">
         <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          Comparison evidence only. The legacy decision remains authoritative. This shadow result is a provisional recommendation, requires reviewer confirmation, and is not for direct clinical action.
+          {isOperative
+            ? "Evaluated by the current governed rules. This is a provisional recommendation, requires reviewer confirmation, and is not for direct clinical action."
+            : "Comparison evidence only. The legacy decision remains authoritative. This shadow result is a provisional recommendation, requires reviewer confirmation, and is not for direct clinical action."}
         </div>
         <Row label="Ruleset" value={shadow.ruleVersionDisplay} mono />
         <Row label="Checksum" value={shadow.rulesetChecksum} mono />
         <Row label="Evaluation mode" value={shadow.evaluationMode} mono />
-        <Row label="Shadow outcome" value={shadow.provisionalRecommendation} />
+        <Row label={isOperative ? "Provisional recommendation" : "Shadow outcome"} value={shadow.provisionalRecommendation} />
         <Row label="Reviewer boundary" value={shadow.reviewerRequirement} />
         <Row label="Matched rules" value={shadow.matchedRuleIds.join(", ") || "Governance stop"} mono />
         <Row label="Missing facts" value={shadow.missingInformation.join(", ") || "None recorded"} mono />
@@ -130,7 +141,7 @@ export function CanonicalShadowEvidence({
         )}
 
         <div className="mt-3">
-          <p className="mb-2 text-xs font-semibold text-foreground">Canonical branch path</p>
+          <p className="mb-2 text-xs font-semibold text-foreground">Governed evaluation trace</p>
           <ol className="space-y-1">
             {shadow.branchPath.map((step, index) => (
               <li key={`${step}-${index}`} className="flex gap-2 break-all font-mono text-[11px] text-muted-foreground">
@@ -150,7 +161,7 @@ export function CanonicalShadowEvidence({
         </div>
         {canCorrectCanonicalFacts && (reviewItemId || shadow.reviewItemId) && (
           <div className="mt-4 border-t border-brand-200 pt-4 dark:border-brand-800">
-            <p className="text-xs font-bold text-foreground">Add or correct one canonical fact, then rerun shadow simulation</p>
+            <p className="text-xs font-bold text-foreground">{isOperative ? "Add or correct a fact and create a governed re-evaluation" : "Add or correct one canonical fact, then rerun shadow simulation"}</p>
             <p className="mt-1 text-[11px] leading-5 text-muted-foreground">The prior evaluation is preserved and linked. Completed decisions cannot use this control.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <label className="text-xs font-semibold">Fact name<input value={factName} onChange={(event) => setFactName(event.target.value)} className="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 font-mono text-xs" placeholder="e.g. marginStatus" /></label>
@@ -160,7 +171,7 @@ export function CanonicalShadowEvidence({
             </div>
             <label className="mt-2 block text-xs font-semibold">Correction reason<textarea value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} rows={2} className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-xs" placeholder="Why this fact is being added or corrected (minimum 10 characters)." /></label>
             {correctionError && <div role="alert" className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{correctionError}</div>}
-            <Button className="mt-3" size="sm" loading={correcting} disabled={!factName.trim() || correctionReason.trim().length < 10 || (factStatus === "KNOWN" && !factValue.trim())} onClick={() => void correctCanonicalFact()}>Preserve prior and rerun shadow</Button>
+            <Button className="mt-3" size="sm" loading={correcting} disabled={!factName.trim() || correctionReason.trim().length < 10 || (factStatus === "KNOWN" && !factValue.trim())} onClick={() => void correctCanonicalFact()}>{isOperative ? "Create governed re-evaluation" : "Preserve prior and rerun shadow"}</Button>
           </div>
         )}
       </div>

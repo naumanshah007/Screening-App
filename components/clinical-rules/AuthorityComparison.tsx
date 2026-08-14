@@ -123,6 +123,14 @@ export function AuthorityComparison({
   const shadowIsOperative = shadow ? isOperativeMode(shadow.evaluationMode) : false;
   // Routed but not yet evaluated by the current governed ruleset.
   const legacyIsPreview = isRoutingPreview(legacy);
+  // A governance safety stop means the governed rules reached NO terminal
+  // outcome. The persisted decision still carries an escalated priority/referral
+  // because decision-adapter.ts must never de-escalate below the legacy router —
+  // that guardrail stays. But presenting the inherited router escalation as a
+  // governed determination would be untrue, so the canonical panel states that
+  // no governed referral was determined and routes the router's own evidence to
+  // technical provenance instead.
+  const governedSafetyStop = Boolean(shadow) && shadow!.matchedRuleIds.length === 0;
   const differs =
     shadow != null &&
     shadow.provisionalRecommendation.trim() !== legacy.recommendation.trim();
@@ -138,11 +146,21 @@ export function AuthorityComparison({
           </div>
           <div className="px-4 py-3">
             <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-muted-foreground">Provisional clinical recommendation</p>
-            <p className="mt-1 text-base font-semibold leading-snug text-foreground">{shadow.provisionalRecommendation}</p>
+            <p className="mt-1 text-base font-semibold leading-snug text-foreground">
+              {governedSafetyStop ? "Clinician review required" : shadow.provisionalRecommendation}
+            </p>
+            {governedSafetyStop && (
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                The current governed rules reached no terminal outcome for this
+                case. Any referral shown under technical routing provenance came
+                from pathway routing, not from a governed determination.
+              </p>
+            )}
             <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
               <div><dt className="text-muted-foreground">Pathway</dt><dd className="font-mono font-medium text-foreground">{shadow.pathway ?? legacy.figure ?? "—"}</dd></div>
               <div><dt className="text-muted-foreground">Rule</dt><dd className="font-mono font-medium text-foreground">{shadow.matchedRuleIds.join(", ") || "governance stop"}</dd></div>
-              <div><dt className="text-muted-foreground">Priority</dt><dd className="font-medium text-foreground">{shadow.priority ?? "Clinician determination"}</dd></div>
+              <div><dt className="text-muted-foreground">Priority</dt><dd className="font-medium text-foreground">{governedSafetyStop ? "Clinician determination" : shadow.priority ?? "Clinician determination"}</dd></div>
+            <div><dt className="text-muted-foreground">Referral</dt><dd className="font-medium text-foreground">{governedSafetyStop ? "No governed referral determined" : "Per governed rule"}</dd></div>
               <div><dt className="text-muted-foreground">Ruleset / version</dt><dd className="font-mono font-medium text-foreground">{shadow.ruleVersionDisplay}</dd></div>
             </dl>
             <div className="mt-3"><TimingLine repeatInterval={shadow.repeatInterval} /></div>
