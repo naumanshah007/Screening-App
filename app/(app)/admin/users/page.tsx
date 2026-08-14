@@ -40,7 +40,7 @@ export default async function AdminUsersPage() {
       {/*
         Two-factor status, stated once at page level rather than as a red badge
         on every row.
-        
+
         Enforcement is genuinely disabled for demonstration accounts, so a
         per-row "2FA gap" on each of them reported an environment policy as if it
         were an individual account defect — it made a correctly-configured demo
