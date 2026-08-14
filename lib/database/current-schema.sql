@@ -679,6 +679,7 @@ CREATE TABLE "AIRecommendation" (
 -- CreateTable
 CREATE TABLE "BatchRun" (
     "id" TEXT NOT NULL PRIMARY KEY,
+    "organisationId" TEXT,
     "source" TEXT NOT NULL,
     "sourceSystem" TEXT,
     "sourceFileName" TEXT,
@@ -695,9 +696,30 @@ CREATE TABLE "BatchRun" (
     "createdByUserId" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "BatchRun_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "BatchRun_pinnedRuleVersionId_fkey" FOREIGN KEY ("pinnedRuleVersionId") REFERENCES "ClinicalRuleVersion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "BatchRun_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
+
+-- CreateTable
+CREATE TABLE "Organisation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "key" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "shortName" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Organisation_key_key" ON "Organisation"("key");
+
+-- CreateIndex
+CREATE INDEX "Organisation_isActive_idx" ON "Organisation"("isActive");
+
+-- CreateIndex
+CREATE INDEX "BatchRun_organisationId_createdAt_idx" ON "BatchRun"("organisationId", "createdAt");
 
 -- CreateTable
 CREATE TABLE "BatchReviewItem" (

@@ -24,6 +24,7 @@ import type {
 import { getRuntimeClinicalEnvironment, resolveClinicalAuthority } from "@/lib/clinical-rules/authority";
 import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
+import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
 
 // ─── Source mapping ───────────────────────────────────────────────────────────
 
@@ -146,8 +147,14 @@ export async function saveBatchRun(args: {
       };
     });
 
+  // Fails closed. A run written without a tenant is silently wrong — it cannot
+  // be attributed later, and the episode and usage rows that will hang off it
+  // are append-only. Refusing to persist is the recoverable outcome.
+  const organisationId = await requireCurrentOrganisationId();
+
   const run = await prisma.batchRun.create({
     data: {
+      organisationId,
       source: mapSourceType(result.sourceType),
       sourceSystem: args.sourceSystem ?? null,
       sourceFileName: result.sourceFileName ?? null,

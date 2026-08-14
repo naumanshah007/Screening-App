@@ -487,6 +487,38 @@ model GPPractice {
   updatedAt DateTime  @updatedAt
 }
 
+// ─── Tenancy ───────────────────────────────────────────────────────────────────
+
+/// The customer whose service is being operated and, later, billed.
+///
+/// NOT the same thing as where data came from. A lab sends results to a service;
+/// they are different parties. The originating facility stays on the case as
+/// source metadata. This model is the tenant only.
+///
+/// NOT the same thing as GPPractice either, which is a referrer.
+///
+/// `key` intentionally holds the same values as `RuleSetActivation.organisationKey`,
+/// which already scopes which governed ruleset is active for an organisation. That
+/// column stays a plain string so the existing precedence logic in
+/// lib/clinical-rules/current-ruleset.ts is untouched by this model.
+///
+/// Deployments are single-tenant for now: exactly one row, resolved by
+/// lib/organisation/current-organisation.ts. Nothing here implements tenant
+/// switching, and no request carries an organisation — that is deliberate.
+model Organisation {
+  id        String     @id @default(cuid())
+  /// Stable lookup key, e.g. "counties-manukau". Matches RuleSetActivation.organisationKey.
+  key       String     @unique
+  name      String
+  shortName String?
+  isActive  Boolean    @default(true)
+  batchRuns BatchRun[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([isActive])
+}
+
 // ─── Patient Model ─────────────────────────────────────────────────────────────
 
 model Patient {
@@ -1248,6 +1280,17 @@ model AIRecommendation {
 
 model BatchRun {
   id                       String               @id @default(cuid())
+  /// The tenant this run belongs to.
+  ///
+  /// Optional at the database level only because the column was added to an
+  /// existing table: SQLite cannot add a NOT NULL column that also carries a
+  /// REFERENCES clause, and rebuilding BatchRun would mean rebuilding a table
+  /// that immutable RuleEvaluation rows point at. Existing rows are backfilled
+  /// to the default organisation by the migration, every write path supplies it
+  /// through requireCurrentOrganisationId(), and a test asserts no run is ever
+  /// created without one — so it is required in practice.
+  organisationId           String?
+  organisation             Organisation?        @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   source                   BatchRunSource
   sourceSystem             String?
   sourceFileName           String?
@@ -1273,6 +1316,7 @@ model BatchRun {
 
   @@index([createdByUserId, createdAt])
   @@index([source, createdAt])
+  @@index([organisationId, createdAt])
 }
 
 model BatchReviewItem {

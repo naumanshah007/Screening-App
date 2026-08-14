@@ -8,6 +8,7 @@ import {
   resolveDatabaseUrl,
 } from "../lib/config/database";
 import { isProductionDeployment, readDemoSeedPassword } from "../lib/database/bootstrap";
+import { ensureDefaultOrganisation } from "../lib/organisation/current-organisation";
 
 // Prisma v7 uses the same adapter/runtime configuration as the app.
 const adapter = createPrismaAdapter();
@@ -88,6 +89,14 @@ async function main() {
   if (!demoPassword) {
     throw new Error("DEMO_SEED_PASSWORD (minimum 12 characters) is required for local demo seeding.");
   }
+  // ── Tenant ────────────────────────────────────────────────────────────────
+  //
+  // One organisation, because a deployment serves one customer. This is not a
+  // GP practice (a referrer) and not a source facility (where data came from) —
+  // it is the customer whose service is operated and, later, billed.
+  const organisation = await ensureDefaultOrganisation();
+  console.log(`  Organisation: ${organisation.name} (${organisation.key})`);
+
   // ── Practices ─────────────────────────────────────────────────────────────
   const practice = await prisma.gPPractice.upsert({
     where: { hpiNumber: "G00001" },

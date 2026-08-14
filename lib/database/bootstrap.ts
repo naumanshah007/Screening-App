@@ -228,6 +228,7 @@ export async function ensureClinicalRuleSchema(url: string) {
     // introduced with canonical evaluations. Keep this additive and
     // idempotent: existing operational rows are preserved and remain unpinned.
     await ensureCanonicalProvenanceColumns(client);
+    await ensureOrganisationScope(client);
   } finally {
     client.close();
   }
@@ -270,6 +271,95 @@ async function addColumnIfMissing(
 
   await client.execute(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${definition}`);
   columns.add(columnName);
+}
+
+/**
+ * Tenancy: the Organisation table, the BatchRun column and one seeded row.
+ *
+ * WHY THIS IS NOT THE PRISMA MIGRATION
+ * ------------------------------------
+ * Prisma's SQLite migration rebuilds BatchRun — create a new table, copy, drop,
+ * rename. That is fine for a fresh or local database, and it is what
+ * prisma/migrations/20260814120000_organisation_scope does. It is the wrong
+ * thing to run against a live database whose BatchRun rows are referenced by
+ * immutable RuleEvaluation records: a rebuild drops and recreates the table
+ * those foreign keys point at.
+ *
+ * SQLite permits `ADD COLUMN` with a REFERENCES clause as long as the column is
+ * nullable, which this one is. So the deployed path adds the column in place and
+ * backfills, touching no existing row's identity — the same additive approach
+ * `ensureCanonicalProvenanceColumns` already uses.
+ *
+ * Backfilling existing runs to the seeded organisation is correct rather than
+ * convenient: a single-tenant deployment has exactly one customer, so every run
+ * that already exists belongs to it. Nothing is guessed.
+ */
+async function ensureOrganisationScope(client: ReturnType<typeof createClient>) {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "Organisation" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "key" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "shortName" TEXT,
+      "isActive" BOOLEAN NOT NULL DEFAULT true,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )
+  `);
+  await client.execute(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "Organisation_key_key" ON "Organisation"("key")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "Organisation_isActive_idx" ON "Organisation"("isActive")'
+  );
+
+  // Seed the single tenant. INSERT OR IGNORE against the unique key makes this
+  // idempotent and, importantly, non-destructive: a name someone has corrected
+  // is never overwritten by a later cold start.
+  const key = process.env.ORGANISATION_KEY?.trim() || "counties-manukau";
+  await client.execute({
+    sql: `INSERT OR IGNORE INTO "Organisation" ("id", "key", "name", "shortName", "isActive", "createdAt", "updatedAt")
+          VALUES (?, ?, ?, ?, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    args: [
+      `org_${key}`,
+      key,
+      "Health NZ — Counties Manukau",
+      "Counties Manukau",
+    ],
+  });
+
+  if (await tableExists(client, "BatchRun")) {
+    const columns = await getTableColumns(client, "BatchRun");
+    await addColumnIfMissing(
+      client,
+      "BatchRun",
+      columns,
+      "organisationId",
+      'TEXT REFERENCES "Organisation"("id") ON DELETE RESTRICT ON UPDATE CASCADE'
+    );
+    // A database old enough to predate `createdAt` on BatchRun would fail on the
+    // composite index, and this helper's whole job is to be safe against shapes
+    // it did not create. The single-column index still serves the tenant filter.
+    await client.execute(
+      columns.has("createdAt")
+        ? 'CREATE INDEX IF NOT EXISTS "BatchRun_organisationId_createdAt_idx" ON "BatchRun"("organisationId", "createdAt")'
+        : 'CREATE INDEX IF NOT EXISTS "BatchRun_organisationId_idx" ON "BatchRun"("organisationId")'
+    );
+
+    // Only rows with no organisation are touched, so this cannot reassign a run
+    // if the deployment ever becomes multi-tenant.
+    const organisation = await client.execute({
+      sql: 'SELECT "id" FROM "Organisation" WHERE "key" = ? LIMIT 1',
+      args: [key],
+    });
+    const organisationId = organisation.rows[0]?.id;
+    if (organisationId) {
+      await client.execute({
+        sql: 'UPDATE "BatchRun" SET "organisationId" = ? WHERE "organisationId" IS NULL',
+        args: [organisationId],
+      });
+    }
+  }
 }
 
 async function ensureCanonicalProvenanceColumns(
