@@ -50,7 +50,7 @@ test("user management exists in exactly one place", () => {
 });
 
 test("the sidebar points Users & Access at the consolidated page", () => {
-  assert.match(SIDEBAR, /link\("\/admin\/users", "Users & Access"\)/);
+  assert.match(SIDEBAR, /authed\("\/admin\/users", "Users & Access"\)/);
 });
 
 test("/admin keeps its distinct purpose and stays reachable", () => {

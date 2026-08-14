@@ -30,6 +30,40 @@ export async function listAdminUsers() {
   });
 }
 
+/**
+ * Account-administration history for one user, newest first.
+ *
+ * Reads the same immutable AuditLog rows the Audit Trail shows. `entity` and
+ * `entityId` are the pair `buildUserAuditEntry` writes, so this cannot drift
+ * from what account actions actually record.
+ *
+ * `newValue` is returned verbatim rather than parsed and reshaped: it never
+ * contains a password, hash, token or secret (see `buildUserAuditEntry`), and
+ * rewriting it here would make the drawer disagree with the audit trail.
+ */
+export async function listUserAccountAudit(targetUserId: string, take = 20) {
+  const rows = await prisma.auditLog.findMany({
+    where: { entity: "User", entityId: targetUserId },
+    orderBy: { createdAt: "desc" },
+    take,
+    select: {
+      id: true,
+      action: true,
+      createdAt: true,
+      newValue: true,
+      user: { select: { name: true, email: true } },
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    action: row.action,
+    at: row.createdAt.toISOString(),
+    actor: row.user?.name ?? row.user?.email ?? "System",
+    details: row.newValue,
+  }));
+}
+
 export async function createUserAccount(args: {
   name?: string | null;
   email: string;

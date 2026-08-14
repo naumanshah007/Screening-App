@@ -55,6 +55,10 @@ export function GuidelinesHome({ catalogue, history }: Props) {
           description={catalogue.subtitle}
           trailing={
             <ClinicalAuthorityBadge
+              // This page is read as clinical guidance, so the badge names the
+              // ruleset the way a clinician would and leaves the checksum to
+              // the technical provenance section below.
+              presentation="clinical"
               authorityEngine={authority.authorityEngine}
               ruleSetVersion={authority.canonicalVersion}
               ruleSetChecksum={authority.canonicalChecksum}
@@ -106,9 +110,9 @@ export function GuidelinesHome({ catalogue, history }: Props) {
             aria-hidden
           />
           <p className="leading-6">
-            This is the current governed guideline content. Clinical authority is presently{" "}
-            <strong>{authority.authorityEngine === "CANONICAL" ? "canonical" : "legacy"}</strong>, so
-            case recommendations are still produced by the existing grading engine.
+            This is the current governed guideline content, but it is not yet deciding cases:
+            recommendations are still produced by the{" "}
+            <strong>previous grading rules</strong>.
             {authority.canonicalStatus
               ? ` ${governance.rulesetId} is ${authority.canonicalStatus.toLowerCase()}${
                   governance.evaluationMode && governance.evaluationMode !== "NOT_EVALUATED"
@@ -173,26 +177,44 @@ export function GuidelinesHome({ catalogue, history }: Props) {
         )}
       </section>
 
-      <section aria-labelledby="reference-heading">
-        <h2 id="reference-heading" className="text-h3 text-foreground">
-          Additional references
+      {/*
+        Two different kinds of "additional reference" were sitting in one list:
+        a local service policy a clinician may need to follow, and an engineering
+        provenance note they never do. Grouping them together implied the router
+        was guidance of the same kind as the booking policy.
+      */}
+      <section aria-labelledby="local-policy-heading">
+        <h2 id="local-policy-heading" className="text-h3 text-foreground">
+          Local operational policy
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Local scheduling policy and technical provenance. These sit alongside the national
-          guidelines above and are not competing clinical guidance.
+          How Health NZ Counties Manukau books and prioritises appointments. This sits on top of the
+          national guidelines above — it schedules care, it does not decide the clinical
+          recommendation.
         </p>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <ReferenceLink
             href="/guidelines/operational"
             icon={<ClipboardList className="h-4 w-4" />}
-            title="Colposcopy triage &amp; gynaecology grading"
-            detail="Health NZ Counties Manukau booking priorities and service SLAs"
+            title="Local colposcopy booking &amp; grading policy"
+            detail="Counties Manukau booking priorities and service SLAs — local service policy"
           />
+        </div>
+      </section>
+
+      <section aria-labelledby="technical-reference-heading">
+        <h2 id="technical-reference-heading" className="text-h3 text-foreground">
+          Technical references
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Provenance for auditors and administrators. Not clinical guidance.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
           <ReferenceLink
             href="/guidelines/technical-router"
             icon={<Route className="h-4 w-4" />}
-            title="Legacy pathway router reference"
-            detail="Technical provenance — how a pathway is selected before governed rules apply"
+            title="Pathway router reference"
+            detail="How a pathway is selected before the governed rules produce a recommendation"
           />
         </div>
       </section>
@@ -203,7 +225,7 @@ export function GuidelinesHome({ catalogue, history }: Props) {
             className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90"
             aria-hidden
           />
-          View governance details
+          Technical provenance and governance record
         </summary>
         <div className="space-y-5 border-t border-border px-4 py-4">
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

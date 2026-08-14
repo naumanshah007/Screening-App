@@ -187,8 +187,16 @@ test("the Guidelines surface separates governed guidance from the technical rout
     "Guidelines must still reach the router reference"
   );
   assert.ok(
-    home.includes("Legacy pathway router reference"),
+    home.includes('title="Pathway router reference"'),
     "the router reference must be named, not hidden"
+  );
+  // It is named on the clinical page without the word "Legacy" — that term is
+  // internal, and the guarantee here is separation, not vocabulary. The router
+  // page itself (asserted above) keeps the full legacy naming for auditors.
+  assert.ok(
+    home.includes("Technical references") &&
+      home.includes("Not clinical guidance."),
+    "the router reference must sit under technical provenance, not guidance"
   );
 });
 

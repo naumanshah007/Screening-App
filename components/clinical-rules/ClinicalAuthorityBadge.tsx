@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENT_RULES_LABEL } from "@/lib/clinical-rules/labels";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,6 +27,22 @@ export type ClinicalAuthorityBadgeProps = {
   routerEngine?: string | null;
   /** True when this decision superseded an earlier evaluation. */
   isRegrade?: boolean;
+  /**
+   * How much internal vocabulary to expose.
+   *
+   * "technical" (the default) keeps the engine name and truncated checksum,
+   * which is what a reviewer comparing two decisions or an auditor tracing
+   * provenance needs.
+   *
+   * "clinical" names the same ruleset as the current governed rules and drops
+   * the checksum. It is for surfaces a clinician reads as guidance rather than
+   * as provenance — the checksum is still available on those pages, under
+   * technical provenance, so nothing is hidden, only relocated.
+   *
+   * This changes wording only. Which engine is authoritative, and whether the
+   * evaluation is operative, are decided identically in both presentations.
+   */
+  presentation?: "technical" | "clinical";
   className?: string;
 };
 
@@ -43,8 +60,10 @@ export function ClinicalAuthorityBadge({
   evaluationMode,
   routerEngine,
   isRegrade,
+  presentation = "technical",
   className,
 }: ClinicalAuthorityBadgeProps) {
+  const clinical = presentation === "clinical";
   const isCanonicalAuthority = authorityEngine === "CANONICAL" && Boolean(ruleSetVersion);
   // Only a live mode is clinically operative. Anything else is a comparison
   // artefact and must not be presented as the deciding authority.
@@ -69,10 +88,19 @@ export function ClinicalAuthorityBadge({
       }
     >
       <span className="font-medium">
-        {isCanonicalAuthority && isOperative ? `Canonical ${ruleSetVersion}` : "Legacy"}
+        {isCanonicalAuthority && isOperative
+          ? clinical
+            ? `${CURRENT_RULES_LABEL} · ${ruleSetVersion}`
+            : `Canonical ${ruleSetVersion}`
+          : clinical
+            ? "Previous grading rules"
+            : "Legacy"}
       </span>
 
-      {ruleSetChecksum && isCanonicalAuthority && isOperative ? (
+      {/* The checksum identifies exactly which content ran — provenance, not
+          guidance. On a clinical surface it belongs in that page's technical
+          provenance section, not in the page heading. */}
+      {ruleSetChecksum && isCanonicalAuthority && isOperative && !clinical ? (
         <span className="font-mono text-[10px] opacity-70">{ruleSetChecksum.slice(0, 12)}</span>
       ) : null}
 

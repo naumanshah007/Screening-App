@@ -158,6 +158,19 @@ export const ROUTE_GUARDS: RouteGuard[] = [
     description: "Audit investigation",
   },
   {
+    // Must precede "/admin": guards are matched most-specific-first.
+    //
+    // Account administration is narrower than the rest of /admin. The page
+    // enforced this itself with a bare `role !== "ADMIN"` redirect, which the
+    // guard table did not know about — so the sidebar, reading the "/admin"
+    // guard, offered INTEGRATION_ADMIN a "Users & Access" link that silently
+    // bounced them to /dashboard. Stating the rule here keeps navigation,
+    // middleware and the page reading from one source.
+    prefix: "/admin/users",
+    requiredRoles: ["ADMIN"],
+    description: "User and credential administration",
+  },
+  {
     prefix: "/admin",
     requiredRoles: ["ADMIN", "INTEGRATION_ADMIN"],
     description: "System administration",

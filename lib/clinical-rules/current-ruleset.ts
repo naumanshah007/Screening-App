@@ -112,14 +112,11 @@ export async function getCurrentGovernedRuleset(args: {
   };
 }
 
-/**
- * Clinician-facing label for the current governed ruleset.
- *
- * Deliberately free of the words "canonical", "legacy" and "shadow" — those are
- * internal architecture terms and belong on governance, Rule Studio, audit and
- * provenance surfaces, not in front of a clinician.
- */
-export const CURRENT_GUIDELINES_LABEL = "Current Cervical Screening Guidelines";
-
-/** Short form for compact UI, e.g. a decision card header. */
-export const CURRENT_RULES_LABEL = "Current governed rules";
+// The clinician-facing labels now live in ./labels, which is import-free so
+// client components can use them without pulling Prisma into the bundle. They
+// are re-exported here because this module is where callers look for anything
+// describing the current governed ruleset.
+export {
+  CURRENT_GUIDELINES_LABEL,
+  CURRENT_RULES_LABEL,
+} from "@/lib/clinical-rules/labels";

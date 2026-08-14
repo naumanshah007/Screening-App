@@ -110,13 +110,31 @@ test("hiding an item never grants access", () => {
   );
   assert.match(
     SIDEBAR,
-    /isAuthorizedForRoute\("\/admin", userRole\)/,
-    "Users & Access must be gated by the /admin guard"
+    /authed\("\/admin\/users", "Users & Access"\)/,
+    "Users & Access must be gated by the guard for the page it opens"
   );
-  // /admin/users is covered by the /admin prefix guard server-side.
   assert.match(
     PERMISSIONS,
     /prefix: "\/admin"/,
-    "the /admin prefix guard must exist so /admin/users stays protected"
+    "the /admin prefix guard must exist so the rest of /admin stays protected"
+  );
+});
+
+test("account administration is ADMIN-only in the guard table", () => {
+  // Live QA: INTEGRATION_ADMIN was shown "Users & Access", because the sidebar
+  // read the "/admin" guard while the page enforced ADMIN-only itself. Clicking
+  // it bounced them to /dashboard. The rule now lives in one place.
+  const usersGuard = PERMISSIONS.indexOf('prefix: "/admin/users"');
+  const adminGuard = PERMISSIONS.indexOf('prefix: "/admin",');
+  assert.ok(usersGuard > -1, "/admin/users needs its own guard");
+  assert.ok(
+    usersGuard < adminGuard,
+    "/admin/users must precede /admin — guards match most-specific-first"
+  );
+  const entry = PERMISSIONS.slice(usersGuard, adminGuard);
+  assert.match(
+    entry,
+    /requiredRoles: \["ADMIN"\]/,
+    "only ADMIN may administer accounts and reset credentials"
   );
 });

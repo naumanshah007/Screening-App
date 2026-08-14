@@ -110,9 +110,11 @@ function buildSidebarSections(args: {
     // than /admin, which is a mixed operations page (NCSR, security incidents,
     // integration validation). Two user-management surfaces existed; this makes
     // the one with enable/disable and demo-password controls the entry point.
-    ...(isAuthorizedForRoute("/admin", userRole)
-      ? [link("/admin/users", "Users & Access")]
-      : []),
+    //
+    // Gated on the "/admin/users" guard, not "/admin": account administration
+    // is ADMIN-only, so reading the broader guard offered INTEGRATION_ADMIN a
+    // link that bounced them straight back to /dashboard.
+    ...authed("/admin/users", "Users & Access"),
     ...authed("/governance/clinical", "Governance"),
   ];
 
