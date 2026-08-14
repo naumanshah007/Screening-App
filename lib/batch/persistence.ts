@@ -228,104 +228,121 @@ export async function saveBatchRun(args: {
     include: batchRunDetailInclude,
   });
 
-  // Register every arrival against its clinical episode.
-  //
-  // Runs after the items exist so each observation can point at the case it
-  // produced. Deliberately not inside the run's creation transaction: an
-  // episode-register failure must not discard a batch of clinical decisions
-  // that were computed correctly. The register is provenance; the decisions are
-  // the product.
-  // Row number → episode. Captured here because `run.items` is the in-memory
-  // result of the create above and never sees the episodeId written below.
+  /*
+    Register every arrival against its clinical episode.
+
+    ONE SMALL TRANSACTION PER ARRIVAL, NOT ONE LARGE ONE
+    ---------------------------------------------------
+    This previously wrapped the whole batch — every episode upsert, every
+    observation, the re-routing of withheld cases and their classification — in
+    a single interactive transaction. Against a remote database that comfortably
+    exceeded Prisma's interactive-transaction timeout on a 30-case run, and the
+    entire registration rolled back: every review item kept a null episodeId,
+    no observation was written at all, and the in-memory episode map survived
+    the rollback and was then used to write usage events pointing at episodes
+    that no longer existed.
+
+    Atomicity is only needed between an episode and its own observation, which
+    is what each small transaction now provides. A failure affects one arrival
+    instead of the batch, and the map is populated only from writes that
+    actually committed.
+
+    Classification runs entirely OUTSIDE any transaction. It issues its own
+    reads, and doing that inside an interactive transaction is what made the
+    block slow enough to time out in the first place.
+  */
   const episodeIdByRow = new Map<number, string>();
 
+  // Everything that arrived: what is being reviewed, and what was withheld.
+  // Withheld cases are re-routed and re-classified server-side rather than
+  // trusting anything the client said — a client-supplied classification could
+  // otherwise suppress a case the server would have processed.
+  const withheldCases = args.withheldCases ?? [];
+  const withheldRouted =
+    withheldCases.length > 0
+      ? processBatch(withheldCases, { includeWarnings: true, includeInvalid: true })
+      : null;
+
+  const arrivals: { item: BatchCaseResult; withheld: boolean }[] = [];
   try {
-    const classified = await classifyIncomingCases({
-      organisationId,
-      items: result.results,
-    });
+    const classified = await classifyIncomingCases({ organisationId, items: result.results });
+    for (const entry of classified) {
+      arrivals.push({ item: result.results[entry.index], withheld: false });
+    }
 
-    await prisma.$transaction(async (tx) => {
-      for (const entry of classified) {
-        const item = result.results[entry.index];
-        const persisted = run.items.find(
-          (candidate) => candidate.rowNumber === item.case.source.rowNumber
-        );
+    const withheldClassified = withheldRouted
+      ? await classifyIncomingCases({ organisationId, items: withheldRouted.results })
+      : [];
 
-        const episodeId = await recordEpisodeObservation({
-          tx,
-          organisationId,
-          batchRunId: run.id,
-          identity: identityForCase(organisationId, item),
-          classified: entry,
-          batchReviewItemId: persisted?.id ?? null,
-        });
+    for (const [index, entry] of [...classified, ...withheldClassified].entries()) {
+      const withheld = index >= classified.length;
+      const item = withheld
+        ? withheldRouted!.results[entry.index]
+        : result.results[entry.index];
+      const persisted = withheld
+        ? null
+        : run.items.find((c) => c.rowNumber === item.case.source.rowNumber) ?? null;
 
-        if (persisted) {
-          await tx.batchReviewItem.update({
-            where: { id: persisted.id },
-            data: { episodeId },
-          });
-          episodeIdByRow.set(persisted.rowNumber, episodeId);
-        }
-      }
-
-      // Arrivals that were pulled but deliberately not sent for review.
-      //
-      // Re-routed and re-classified server-side rather than trusting anything
-      // the client said about them: a client-supplied classification could
-      // suppress a case that the server would have processed.
-      const withheld = args.withheldCases ?? [];
-      if (withheld.length > 0) {
-        const routed = processBatch(withheld, {
-          includeWarnings: true,
-          includeInvalid: true,
-        });
-        const withheldClassified = await classifyIncomingCases({
-          organisationId,
-          items: routed.results,
-        });
-
-        for (const entry of withheldClassified) {
-          const item = routed.results[entry.index];
-          const episodeId = await recordEpisodeObservation({
+      try {
+        const episodeId = await prisma.$transaction(async (tx) => {
+          const id = await recordEpisodeObservation({
             tx,
             organisationId,
             batchRunId: run.id,
             identity: identityForCase(organisationId, item),
             classified: entry,
-            // No review item: this arrival became no work. That is precisely
+            // Null for a withheld arrival: it became no work, which is exactly
             // what makes the observation worth writing.
-            batchReviewItemId: null,
+            batchReviewItemId: persisted?.id ?? null,
           });
 
-          // Metered as suppression, not as absence. A service asking why its
-          // received volume exceeds its triaged volume is answered from this.
+          if (persisted) {
+            await tx.batchReviewItem.update({
+              where: { id: persisted.id },
+              data: { episodeId: id },
+            });
+          }
+          return id;
+        });
+
+        // Only after the write committed.
+        if (persisted) episodeIdByRow.set(persisted.rowNumber, episodeId);
+
+        if (withheld) {
+          // Metered as suppression rather than as absence. A service asking why
+          // its triaged volume is below its sending volume is answered from
+          // this, not from a gap.
           const suppressedType = usageEventTypeFor({
             classification: entry.classification,
             evaluated: false,
             episodeAlreadyTriaged: true,
           });
           if (suppressedType) {
-            await recordUsageEvent({
-              tx,
-              organisationId,
-              episodeId,
-              eventType: suppressedType,
-              classification: entry.classification,
-              batchRunId: run.id,
-              source: run.source,
-            });
+            await prisma.$transaction((tx) =>
+              recordUsageEvent({
+                tx,
+                organisationId,
+                episodeId,
+                eventType: suppressedType,
+                classification: entry.classification,
+                batchRunId: run.id,
+                source: run.source,
+              })
+            );
           }
         }
+      } catch (arrivalError) {
+        // One arrival, not the batch.
+        console.error("Episode registration failed for arrival", item.case.caseId, arrivalError);
       }
-    });
+    }
   } catch (error) {
     // Recorded rather than raised. A case that reaches the queue without an
     // episode link is a provenance gap; a case that never reaches the queue
     // because episode bookkeeping failed is a clinical one.
     console.error("Episode registration failed for batch run", run.id, error);
   }
+
 
   await prisma.auditLog.create({
     data: {

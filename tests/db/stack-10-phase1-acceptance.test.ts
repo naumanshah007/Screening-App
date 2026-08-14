@@ -137,30 +137,23 @@ test("saveBatchRun accepts the arrivals it is not processing", async () => {
   );
   assert.match(source, /withheldCases\?: CanonicalBatchCase\[\]/);
 
-  // Assert the intent, not the formatting: the withheld branch must record an
-  // observation carrying no review item.
-  const branch = source.slice(
-    source.indexOf("const withheld = args.withheldCases"),
-    source.indexOf("} catch (error) {", source.indexOf("const withheld = args.withheldCases"))
+  // Assert the intent, not the formatting.
+  const block = source.slice(
+    source.indexOf("Register every arrival against its clinical episode"),
+    source.indexOf("await prisma.auditLog.create(")
   );
-  assert.ok(branch.length > 0, "the withheld branch must exist");
-  assert.match(branch, /recordEpisodeObservation\(\{/, "it must record an observation");
+  assert.ok(block.length > 0, "the registration block must exist");
+  assert.match(block, /recordEpisodeObservation\(\{/, "it must record observations");
   assert.match(
-    branch,
-    /batchReviewItemId: null/,
-    "withheld arrivals must be recorded with no review item"
+    block,
+    /batchReviewItemId: persisted\?\.id \?\? null/,
+    "a withheld arrival is recorded with no review item"
   );
-  // They must be re-classified server-side, never trusted from the client.
-  assert.match(
-    branch,
-    /processBatch\(withheld/,
-    "withheld arrivals must be re-routed server-side"
-  );
-  assert.match(
-    branch,
-    /classifyIncomingCases\(\{/,
-    "and re-classified server-side rather than trusting the client"
-  );
+  // Withheld arrivals must be re-routed and re-classified server-side, never
+  // trusted from the client — a client-supplied classification could otherwise
+  // suppress a case the server would have processed.
+  assert.match(block, /processBatch\(withheldCases/);
+  assert.match(block, /classifyIncomingCases\(\{ organisationId, items: withheldRouted\.results \}\)/);
 });
 
 // ─── (2) An update supersedes a stale review item ───────────────────────────
@@ -256,6 +249,65 @@ test("an update flags the still-open item without altering its decision", async 
   } finally {
     ctx.restore();
   }
+});
+
+test("registration is per-arrival, so one batch cannot roll back wholesale", async () => {
+  /*
+    Found in live verification, not by these tests.
+
+    Registration originally wrapped the entire batch — every episode upsert,
+    every observation, the re-routing of withheld cases and their classification
+    — in ONE interactive transaction. On a 30-case run against a remote database
+    that exceeded Prisma's interactive-transaction timeout and the whole thing
+    rolled back: every review item kept a null episodeId, not a single
+    observation was written, and the in-memory episode map survived the rollback
+    and was then used to write usage events pointing at episodes that no longer
+    existed.
+
+    The unit tests passed throughout, because each of them opens one tiny
+    transaction. Only volume against a real network exposed it.
+  */
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const source = readFileSync(
+    join(__dirname, "..", "..", "lib", "batch", "persistence.ts"),
+    "utf8"
+  );
+
+  const block = source.slice(
+    source.indexOf("Register every arrival against its clinical episode"),
+    source.indexOf("await prisma.auditLog.create(")
+  );
+  assert.ok(block.length > 0);
+
+  // Classification must not run inside a transaction — its own reads are what
+  // made the block slow enough to time out.
+  const txBodies = block.match(/prisma\.\$transaction\(async \(tx\) => \{[\s\S]*?\n {8}\}\)/g) ?? [];
+  for (const body of txBodies) {
+    assert.ok(
+      !body.includes("classifyIncomingCases"),
+      "classification must happen outside the transaction"
+    );
+    assert.ok(
+      !body.includes("processBatch("),
+      "re-routing must happen outside the transaction"
+    );
+  }
+
+  // The episode map may only be populated after a write commits, so a rollback
+  // cannot leave usage events pointing at episodes that do not exist.
+  assert.match(
+    block,
+    /\/\/ Only after the write committed\.\s*\n\s*if \(persisted\) episodeIdByRow\.set/,
+    "the map must be populated only from committed writes"
+  );
+
+  // A failure must be contained to one arrival.
+  assert.match(
+    block,
+    /\} catch \(arrivalError\) \{[\s\S]{0,200}Episode registration failed for arrival/,
+    "one arrival failing must not abandon the rest"
+  );
 });
 
 test("a completed decision is never flagged as superseded", async () => {
