@@ -55,6 +55,13 @@ function demoCase(
     },
 
     // Required defaults
+    //
+    // These demo records model a first/baseline screening event. Declaring the
+    // stage is what puts eventStage into the governed fact map; without it,
+    // rules requiring eq("eventStage","INITIAL") cannot match and the case
+    // falls to CANONICAL-SAFETY-STOP. Scenarios that model a repeat override
+    // this explicitly below.
+    repeatStage: "BASELINE",
     isFirstTimeHPVTransition: false,
     isPostHysterectomy: false,
     immunocompromised: false,

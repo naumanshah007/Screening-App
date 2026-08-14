@@ -354,6 +354,20 @@ export function generateRealisticCases(opts: GenerateOptions): CanonicalBatchCas
       consecutiveNegativeCoTestCount: 0,
       consecutiveLowGradeCount: 0,
       unsatisfactoryCytologyCount: 0,
+      // These synthetic records model a first/baseline screening event, which is
+      // why every repeat counter above is zero. State that explicitly.
+      //
+      // Without it `repeatStage` is absent, canonicalEventStage() returns
+      // undefined, and `eventStage` never reaches the governed fact map — so
+      // rules that require eq("eventStage","INITIAL") (F3-05 among them) cannot
+      // match and every such case falls to CANONICAL-SAFETY-STOP. The
+      // conformance corpus supplies eventStage explicitly, which is why it
+      // passed while live intake did not.
+      //
+      // The fix belongs here, not in the fact adapter: the adapter's contract is
+      // to never fabricate absent clinical facts, and a real feed that genuinely
+      // omits repeat context must still reach the safety stop.
+      repeatStage: "BASELINE",
       validationStatus: "valid",
       validationErrors: [],
       validationWarnings: [],
