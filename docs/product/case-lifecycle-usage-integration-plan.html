@@ -1,0 +1,467 @@
+<title>Episode Identity &amp; Usage Roadmap</title>
+<style>
+  :root {
+    --ground: #f5f6f8;
+    --surface: #ffffff;
+    --sunk: #ebedf1;
+    --line: #d6dae1;
+    --line-soft: #e6e9ee;
+    --ink: #171b24;
+    --muted: #5a6373;
+    --accent: #3b3fa8;
+    --accent-soft: #e8e8f7;
+    --flag: #a33b1f;
+    --flag-soft: #fbeae4;
+    --ok: #1f6b4d;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0f1116;
+      --surface: #171a21;
+      --sunk: #12151b;
+      --line: #2b303a;
+      --line-soft: #21252d;
+      --ink: #e6e9ef;
+      --muted: #98a1b2;
+      --accent: #8f93f0;
+      --accent-soft: #1b1c33;
+      --flag: #e8896a;
+      --flag-soft: #2c1a14;
+      --ok: #62c39b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0f1116;
+    --surface: #171a21;
+    --sunk: #12151b;
+    --line: #2b303a;
+    --line-soft: #21252d;
+    --ink: #e6e9ef;
+    --muted: #98a1b2;
+    --accent: #8f93f0;
+    --accent-soft: #1b1c33;
+    --flag: #e8896a;
+    --flag-soft: #2c1a14;
+    --ok: #62c39b;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  code { font-family: var(--mono); font-size: 0.86em; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px 100px; }
+
+  header.top { padding: 60px 0 28px; }
+  .kicker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 16px;
+  }
+  h1 {
+    font-size: clamp(31px, 4.6vw, 45px); font-weight: 680; letter-spacing: -0.028em;
+    line-height: 1.08; margin: 0 0 18px; text-wrap: balance;
+  }
+  .lede { font-size: 18px; color: var(--muted); max-width: 60ch; margin: 0; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  h2 {
+    font-size: 13px; font-family: var(--mono); font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 18px; padding-bottom: 9px; border-bottom: 1px solid var(--line);
+  }
+  section { margin-top: 56px; }
+  h3 { font-size: 21px; font-weight: 640; letter-spacing: -0.012em; margin: 0 0 10px; text-wrap: balance; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  p:last-child { margin-bottom: 0; }
+
+  /* findings */
+  .finding {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 5px;
+    padding: 20px 22px; margin-bottom: 12px;
+  }
+  .finding.flag { border-left: 3px solid var(--flag); }
+  .finding h3 { font-size: 17px; margin-bottom: 7px; display: flex; gap: 10px; align-items: baseline; }
+  .tag {
+    flex: none; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 7px; border-radius: 3px;
+    background: var(--flag-soft); color: var(--flag);
+  }
+  .tag.good { background: var(--accent-soft); color: var(--accent); }
+  .finding p { font-size: 15px; color: var(--muted); }
+  .finding p strong { color: var(--ink); font-weight: 600; }
+
+  /* order */
+  ol.phases { list-style: none; counter-reset: p -1; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  ol.phases > li {
+    counter-increment: p; display: grid; grid-template-columns: 62px 1fr; gap: 16px; align-items: start;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 18px 20px;
+  }
+  ol.phases > li::before {
+    content: "Phase " counter(p); font-family: var(--mono); font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.04em; color: var(--accent); background: var(--accent-soft);
+    padding: 4px 6px; border-radius: 3px; text-align: center; margin-top: 2px;
+  }
+  ol.phases > li.split::before { content: "Phase 3"; }
+  ol.phases h3 { font-size: 17px; margin-bottom: 4px; }
+  ol.phases p { font-size: 14.5px; color: var(--muted); margin: 0; }
+  .moved { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--flag); background: var(--flag-soft); padding: 2px 6px; border-radius: 3px; margin-left: 8px; vertical-align: 2px; }
+
+  /* callout */
+  .callout {
+    border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    background: var(--surface); border-radius: 5px; padding: 18px 22px; margin: 18px 0;
+  }
+  .callout p { font-size: 15px; }
+  .callout .lbl { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 6px; }
+
+  /* tables */
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  thead th { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); background: var(--sunk); }
+  tr:last-child td, tr:last-child th { border-bottom: 0; }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.size { font-family: var(--mono); font-size: 12.5px; }
+
+  pre {
+    background: var(--sunk); border: 1px solid var(--line-soft); border-radius: 5px;
+    padding: 15px 18px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.6; margin: 14px 0; color: var(--ink);
+  }
+  ul.plain { margin: 0 0 14px; padding-left: 20px; max-width: 68ch; }
+  ul.plain li { margin-bottom: 7px; }
+
+  ol.decisions { margin: 0; padding-left: 22px; max-width: 68ch; }
+  ol.decisions li { margin-bottom: 13px; }
+  ol.decisions strong { font-weight: 640; }
+
+  footer { margin-top: 60px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="kicker">CerviGrade · Product phase plan</p>
+    <h1>Case lifecycle, usage metering and the Integration Centre</h1>
+    <p class="lede">
+      The research is sound, and the three capabilities really are one problem. But
+      <strong>five things in the current codebase change how it has to be built</strong>, and one of
+      them changes the order.
+    </p>
+  </header>
+
+  <section>
+    <h2>What the code actually looks like today</h2>
+
+    <div class="finding flag">
+      <h3><span class="tag">Gap</span>No episode identifiers exist anywhere</h3>
+      <p>
+        <code>BatchReviewItem</code> carries <code>nhi</code>, <code>externalPatientId</code>,
+        <code>receivedDate</code> and <code>rowNumber</code>. There is no accession number, specimen
+        ID or message control ID, and no per-item source system — <code>sourceSystem</code> sits on
+        <code>BatchRun</code>, one level up. <code>SourceMetadata</code> has no slot for them, the
+        template columns do not define them, and no adapter parses them. <strong>The fingerprint
+        inputs have to be built before anything can be fingerprinted.</strong>
+      </p>
+    </div>
+
+    <div class="finding flag">
+      <h3><span class="tag">Gap</span>There is no Organisation model</h3>
+      <p>
+        <code>organisationKey</code> is a nullable free-text string on <code>RuleSetActivation</code>
+        alone, used only to scope which ruleset is active. Nothing else in the schema is
+        tenant-scoped, and <code>GPPractice</code> is a referrer rather than a customer.
+      </p>
+    </div>
+
+    <div class="finding flag">
+      <h3><span class="tag">Blocker</span>Duplicate detection is not demonstrable yet</h3>
+      <p>
+        <code>realistic-dataset.ts</code> defines six deliberate <code>RETURNING_PATIENTS</code> with
+        fixed NHIs — a good seed. But every generated case gets
+        <code>caseId: crypto.randomUUID()</code>, so each pull mints brand-new identity. Until the
+        generator emits stable episode keys, <strong>“48 new · 12 already in review” can never
+        appear on screen.</strong>
+      </p>
+    </div>
+
+    <div class="finding flag">
+      <h3><span class="tag">Constraint</span>HL7 v2 MLLP cannot run on this host</h3>
+      <p>
+        MLLP is a persistent TCP listener. This deploys to Vercel serverless functions, which cannot
+        hold a socket open. FHIR and PMS polling are feasible — <code>vercel.json</code> already
+        declares a cron — but <strong>an HL7 v2 feed needs a separate long-running ingestion
+        service.</strong> That is an infrastructure decision, and it should be settled before the
+        HL7 connector is designed.
+      </p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="tag good">Fits</span>“Updated result” lands on machinery that already exists</h3>
+      <p>
+        <code>RuleEvaluation</code> already has <code>previousEvaluationId</code>,
+        <code>subsequentEvaluations</code> and <code>regradeReason</code>, plus
+        <code>CaseAuthorityPin</code> so an existing case keeps its original authority. An updated
+        episode is a regrade, and the chain is already there.
+      </p>
+    </div>
+
+    <div class="callout">
+      <span class="lbl">Migration hazard</span>
+      <p>
+        <code>RuleEvaluation</code> cannot be backfilled. Its immutability trigger is
+        <code>BEFORE UPDATE</code> with no column list, so <em>every</em> update aborts. Adding a
+        column is fine; populating existing rows is impossible. Derive organisation through
+        <code>batchRunId</code> / <code>caseId</code> and leave the immutable table alone.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>One change to the running order</h2>
+    <p>
+      The research lists the organisation model fourth. It has to be first. Episode fingerprints
+      include the source organisation; usage events are billed per organisation; integration
+      connections are configured per organisation. Each capability writes rows that are meaningless
+      without a tenant — and two of those tables are append-only by design, so a tenant added later
+      cannot be backfilled onto the history the pilot generates.
+    </p>
+
+    <ol class="phases">
+      <li>
+        <div>
+          <h3>Organisation scope <span class="moved">moved from 4th</span></h3>
+          <p>One small model, reusing the <code>organisationKey</code> values that already exist so organisation-scoped rulesets keep working untouched.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Episode identity and lifecycle</h3>
+          <p>Two-tier fingerprint, an observation record for every arrival, and the identifiers threaded through every layer that produces a case.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Usage ledger</h3>
+          <p>Immutable, append-only, with a closed reason vocabulary. Built now; priced later.</p>
+        </div>
+      </li>
+      <li class="split">
+        <div>
+          <h3>Integration Centre — a, then b</h3>
+          <p><strong>3a</strong> configuration, health and audit: ordinary product work. <strong>3b</strong> credentials and live connection tests: blocked on a security decision that has not been made.</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout">
+      <span class="lbl">Vocabulary fix, before it is baked into every table</span>
+      <p>
+        The research uses “organisation” for two different parties: the <strong>customer</strong>
+        whose usage is billed, and the <strong>source facility</strong> the data came from. A lab
+        sends results to a service; they are not the same. <code>Organisation</code> is the tenant;
+        the origin stays as <code>sourceSystem</code> / <code>sourceFacility</code> on the episode.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phase 1 · The two-tier key, and why only one may act</h2>
+    <p>
+      The research proposes one fingerprint. It needs to be two, because they carry very different
+      confidence and must have very different consequences.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th scope="col">Key</th><th scope="col">Composition</th><th scope="col">May classify as</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Strong</th>
+            <td><code>hash(organisationId, sourceSystem, sourceEpisodeKey)</code> — accession, specimen or message control ID. Deterministic.</td>
+            <td>In review · Completed · Updated</td>
+          </tr>
+          <tr>
+            <th scope="row">Weak</th>
+            <td><code>hash(organisationId, nhi, testType, collectionDate)</code> — a heuristic.</td>
+            <td>Possible duplicate <em>only</em> — advisory, never withholding</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="lbl">Clinical safety, not a nicety</span>
+      <p>
+        Suppressing a screening result on a fuzzy match is how a real result gets lost, and the same
+        patient legitimately has repeat tests, surveillance results and amended reports.
+        <strong>A weak match must never withhold a case.</strong> It stays selectable and the
+        reviewer decides.
+      </p>
+    </div>
+
+    <h3>Nothing arrives and disappears</h3>
+    <p>
+      Every arrival gets an <code>EpisodeObservation</code>, including the ones that are correctly
+      <em>not</em> reprocessed. Otherwise a suppressed result is indistinguishable from a lost one —
+      which is exactly the failure a hospital will ask about.
+    </p>
+<pre>model EpisodeObservation {
+  episodeId         String
+  batchRunId        String
+  classification    EpisodeClassification
+  batchReviewItemId String?   // null when not processed
+  outcome           String    // "not reprocessed — completed 12 Aug"
+  payloadDigest     String    // detects genuinely changed content
+  observedAt        DateTime
+}</pre>
+    <p>
+      <code>payloadDigest</code> is what separates a true duplicate from an updated result: same
+      strong key, different digest means new clinical information — and that becomes a regrade on
+      the existing evaluation chain, with the prior decision preserved.
+    </p>
+
+    <h3>Lifecycle, without re-implementing what exists</h3>
+<pre>RECEIVED → VALIDATED → ROUTED → EVALUATED → IN_REVIEW → REVIEWED → COMPLETED
+side states: DUPLICATE · UPDATED · FAILED_IMPORT</pre>
+    <p>
+      <code>NEEDS_INFORMATION</code> is deliberately <em>not</em> a lifecycle state. It is already a
+      <code>BatchReviewDisposition</code> set by a reviewer. Duplicating it would create two sources
+      of truth for one fact, and they would drift. Lifecycle is where a case sits in the pipeline;
+      disposition is what a clinician decided.
+    </p>
+
+    <h3>What has to change to carry the identifiers</h3>
+    <ul class="plain">
+      <li><code>SourceMetadata</code> — add <code>sourceEpisodeKey</code>, <code>sourceFacility</code>, <code>testType</code>, <code>collectedOn</code>.</li>
+      <li><code>template-columns.ts</code> — add accession/specimen columns with aliases. This file drives both validation and the generated template, so both follow automatically.</li>
+      <li>The three file adapters — parse the new columns.</li>
+      <li><code>BatchReviewItem</code> — add <code>episodeId</code>.</li>
+      <li><strong>Both demo generators — emit stable episode keys.</strong> Give the six returning patients fixed accession numbers so a second pull genuinely re-presents the same episodes, and change one result so <code>UPDATED</code> appears too.</li>
+    </ul>
+    <p>
+      Classification runs in the preview path, which already returns an un-persisted preview — so
+      the counts can appear on Pull Cases before anything is committed. The episode rows are written
+      at persistence time.
+    </p>
+  </section>
+
+  <section>
+    <h2>Phase 2 · Usage ledger</h2>
+    <p>Two decisions the schema encodes, both hard to change afterwards:</p>
+    <ul class="plain">
+      <li>
+        <strong><code>billableReason</code> is a closed enum, not free text.</strong> An invoice
+        dispute is answered by reading that column, and free text cannot be aggregated or audited.
+      </li>
+      <li>
+        <strong>Corrections append.</strong> Give the ledger the same immutability triggers as
+        <code>RuleEvaluation</code> — the pattern and its tests already exist. A wrongly-billed
+        event is corrected by appending a reversal that points at it, never by editing.
+        <em>A billing ledger you can quietly edit is not evidence.</em>
+      </li>
+    </ul>
+    <p>
+      <code>isDemo</code> reuses the existing <code>demoProvenance()</code> helper, so demo traffic
+      is excluded by the same mechanism that already keeps demo attestations out of production
+      governance gates. The Usage &amp; Activity screen reports from this ledger only — never by
+      counting <code>BatchReviewItem</code> or <code>RuleEvaluation</code> rows. Build the write
+      path now and leave prices off the screen; the write path is the expensive thing to retrofit.
+    </p>
+  </section>
+
+  <section>
+    <h2>Phase 3 · Integration Centre</h2>
+    <p>
+      <code>CONNECTOR_CATALOG</code> stays as the catalogue of connector <em>types</em>; new
+      <code>IntegrationConnection</code> rows are the configured <em>instances</em>. The wizard runs
+      Connection → Authentication → Mapping → Test → Schedule → Activate, and the state machine only
+      permits <code>ACTIVE</code> from <code>MAPPING_VERIFIED</code>.
+    </p>
+    <p>
+      <strong>Test Connection is worth building in 3a even with no network access</strong>, because
+      most of its value is offline: required-field coverage, mapping completeness
+      (<code>14/16 mapped</code>), schedule validity, and a clear <code>Ready for activation: NO</code>.
+      The live network checks land in 3b.
+    </p>
+
+    <div class="callout">
+      <span class="lbl">Recommended: store a reference, never a value</span>
+      <p>
+        <code>credentialRef</code> holds the <em>name</em> of an environment or secret-manager entry;
+        the value is set in the platform environment and read server-side at call time. The
+        application database then never contains a credential — so a dump, a backup, an audit export
+        or a stray Prisma query cannot leak one. Encrypting secrets at rest instead needs a key
+        management story (where the key lives, how it rotates, who can read it) that this stack does
+        not have yet; that is the wrong first move for a pilot.
+      </p>
+    </div>
+    <p>
+      Either way the UI rule holds and should be enforced by tests: <strong>Replace credential</strong>
+      and <strong>Test connection</strong>, never <strong>Show credential</strong>. The audit payload
+      must be built from an allow-list of fields, the way the user-audit helper already is — never by
+      serialising the whole config object, which is how a credential ends up in an audit record.
+    </p>
+  </section>
+
+  <section>
+    <h2>Sizing and risk</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Phase</th><th scope="col">Size</th><th scope="col">Main risk</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">0 · Organisation</th><td class="size">Small</td><td>Touching many queries at once — mitigated by doing it before there is history to migrate</td></tr>
+          <tr><th scope="row">1 · Episode identity</th><td class="size">Large</td><td>The identifiers exist nowhere yet: schema, template, three adapters, both demo generators, preview and persistence all change together</td></tr>
+          <tr><th scope="row">2 · Usage ledger</th><td class="size">Medium</td><td>Getting the reason vocabulary right first time — the ledger is immutable</td></tr>
+          <tr><th scope="row">3a · Integration config</th><td class="size">Medium</td><td>Redaction discipline in the audit payload</td></tr>
+          <tr><th scope="row">3b · Credentials</th><td class="size">Medium</td><td>Blocked on the secret-storage decision; HL7 additionally blocked on hosting</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Phase 1 is the one most likely to be underestimated. The classification logic is
+      straightforward; threading a new identifier through every layer that produces a case is not,
+      and the demo generators must change or the feature is invisible.
+    </p>
+  </section>
+
+  <section>
+    <h2>Decisions needed before Phase 2 and 3b</h2>
+    <ol class="decisions">
+      <li>
+        <strong>Is an updated-result re-evaluation billable?</strong> Same episode, new clinical
+        information, a second governed evaluation and a second clinician review. Defensible either
+        way — but it is a pricing decision, not an engineering one, and it must be settled before
+        the reason vocabulary is fixed, because the ledger is immutable.
+      </li>
+      <li><strong>Secret storage:</strong> environment/secret-manager reference (recommended), or encrypted at rest with a managed key.</li>
+      <li><strong>HL7 v2 ingestion host:</strong> is a long-running service in scope for the pilot, or does the pilot run on file upload and FHIR only?</li>
+      <li><strong>Does one deployment ever serve more than one customer?</strong> If single-tenant forever, Phase 0 shrinks to a seeded constant. If not, it is load-bearing.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>What this deliberately does not touch</h2>
+    <p>
+      No clinical rule, no ruleset content, no evaluation logic, no authority resolution, no case
+      pinning, no review-queue decision logic, no safety stop, no governance enforcement, no audit
+      immutability. Episode classification runs strictly <em>before</em> evaluation and decides only
+      whether a case is presented for processing; an updated episode enters the existing regrade
+      chain rather than creating a new one. The clinical layer stays as it is.
+    </p>
+  </section>
+
+  <footer>
+    Checked against the working tree at commit <code>e98090b</code>. Schema detail and per-phase test
+    strategy are in <code>docs/product/case-lifecycle-usage-integration-plan.md</code>.
+  </footer>
+</div>
