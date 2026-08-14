@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { ensureDatabaseReady } from "@/lib/database/bootstrap";
 import { prisma } from "@/lib/prisma";
 
 export type UsageIntegrityReport = {
@@ -18,6 +19,11 @@ function count(rows: Array<{ count: bigint | number }>) {
 /** Reusable operational health query. It states raw and effective integrity
  * separately so a preserved historical defect is never reported as erased. */
 export async function getUsageIntegrityReport(): Promise<UsageIntegrityReport> {
+  // Raw Prisma queries bypass the all-model bootstrap extension. Make this
+  // service safe as the first operation run by a deployment or remediation
+  // process against a database that predates UsageEventCorrection.
+  await ensureDatabaseReady();
+
   const [missingUsage, missingObservations, duplicateFirstTriage, uncorrected] =
     await Promise.all([
       prisma.$queryRaw<Array<{ count: bigint | number }>>(Prisma.sql`
