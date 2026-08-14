@@ -33,8 +33,8 @@ const COMPARISON = readFileSync(
 test("shadow wording is conditional on the evaluation mode", () => {
   assert.match(
     EVIDENCE,
-    /const isOperative = isOperativeMode\(/,
-    "the panel must derive operative state from the evaluation mode"
+    /const isOperative = isOperativeEvaluationMode\(shadow\.evaluationMode\)/,
+    "the panel must derive operative state from the shared evaluation-mode helper"
   );
   for (const [operative, shadow] of [
     ['"Governed evaluation details"', '"Canonical V2 Shadow Comparison"'],

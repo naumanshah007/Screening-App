@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { GitBranch } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { isOperativeMode } from "@/lib/clinical-rules/pinning";
+import { isOperativeEvaluationMode } from "@/lib/clinical-rules/evaluation-mode";
 import type { BatchCaseResult } from "@/lib/batch/types";
 import { cn } from "@/lib/utils";
 
@@ -94,9 +94,7 @@ export function CanonicalShadowEvidence({
   // decision. Describing it as a shadow comparison, or saying the legacy
   // decision remains authoritative, is false for these cases. Shadow wording is
   // retained for genuine SHADOW / SIMULATION evidence.
-  const isOperative = isOperativeMode(
-    shadow.evaluationMode as Parameters<typeof isOperativeMode>[0]
-  );
+  const isOperative = isOperativeEvaluationMode(shadow.evaluationMode);
 
   return (
     <section aria-labelledby="canonical-shadow-heading" className="space-y-2">

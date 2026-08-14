@@ -16,6 +16,7 @@
 import { cn } from "@/lib/utils";
 import { StatusBadge, riskTone } from "@/components/system";
 import { isRoutingPreview } from "@/lib/batch/preview-state";
+import { isOperativeEvaluationMode } from "@/lib/clinical-rules/evaluation-mode";
 import {
   classifyTiming,
   intervalToMonths,
@@ -55,9 +56,6 @@ export type AuthorityComparisonProps = {
 };
 
 /** Only a live mode is clinically operative; anything else is a comparison artefact. */
-function isOperativeMode(mode: string) {
-  return mode === "LIVE_PRODUCTION" || mode === "LIVE_DEMO";
-}
 
 function TimingLine({ repeatInterval }: { repeatInterval?: string | null }) {
   if (repeatInterval === undefined || repeatInterval === null) return null;
@@ -120,7 +118,7 @@ export function AuthorityComparison({
   canonicalStatus,
   className,
 }: AuthorityComparisonProps) {
-  const shadowIsOperative = shadow ? isOperativeMode(shadow.evaluationMode) : false;
+  const shadowIsOperative = shadow ? isOperativeEvaluationMode(shadow.evaluationMode) : false;
   // Routed but not yet evaluated by the current governed ruleset.
   const legacyIsPreview = isRoutingPreview(legacy);
   // A governance safety stop means the governed rules reached NO terminal
