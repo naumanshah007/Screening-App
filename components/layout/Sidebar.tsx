@@ -66,10 +66,14 @@ function buildSidebarSections(args: {
     return isAuthorizedForRoute(href, userRole) ? [link(href, label)] : [];
   }
 
-  // GP keeps a simple referrer-focused layout.
+  // GP keeps a simple referrer-focused layout, plus the clinical reference.
   if (userRole === "GP") {
     return [
-      { id: "triage", label: "Workspace", links: [link("/dashboard", "Command Centre")] },
+      {
+        id: "triage",
+        label: "Workspace",
+        links: [link("/dashboard", "Command Centre"), link("/guidelines", "Guidelines")],
+      },
     ];
   }
 
@@ -78,35 +82,51 @@ function buildSidebarSections(args: {
   const canPullCases = showBatch && isVisibleInDemoFlow("/batch", userRole);
   const canUseReviewQueue = showBatch && isVisibleInDemoFlow("/review", userRole);
 
-  // ── Workspace: the daily spine ─────────────────────────────────────────────
+  // ── Workspace: the daily clinical spine ───────────────────────────────────
+  //
+  // Guidelines belongs here, not under Configuration: it is clinical reference
+  // material a reviewer consults while working, not a setting they administer.
   const workspace = [
     ...authed("/dashboard", "Command Centre"),
     ...(canPullCases ? authed("/batch", "Pull Cases") : []),
     ...(canUseReviewQueue ? authed("/review", "Review Queue") : []),
     ...authed("/decisions", "Completed Decisions"),
+    link("/guidelines", "Guidelines"),
   ];
 
-  // ── Oversight: monitoring & audit ──────────────────────────────────────────
-  const oversight =
-    isAdmin || isIntegrationAdmin
-      ? [
-          ...authed("/audit", "Audit Trail"),
-          ...authed("/analytics", "Operational Analytics"),
-          ...authed("/readiness", "Pilot Readiness"),
-        ]
-      : [];
-
-  // ── Configuration: governance & settings ───────────────────────────────────
-  const configuration = [
-    ...authed("/governance/clinical", "Clinical Governance & Activation"),
-    ...((isAdmin || isIntegrationAdmin) && showCases ? authed("/rules", "Rule Governance") : []),
-    ...(isAdmin || isIntegrationAdmin ? [link("/guidelines", "Guidelines")] : []),
-    ...(isAdmin || isIntegrationAdmin ? authed("/admin", "Admin") : []),
+  // ── Insights: monitoring and audit ────────────────────────────────────────
+  //
+  // Visibility follows the existing route guards rather than a role list of its
+  // own, so hiding an item never grants access and never hides one a role is
+  // genuinely entitled to.
+  const insights = [
+    ...authed("/analytics", "Analytics"),
+    ...authed("/audit", "Audit Trail"),
   ];
 
-  // ── Advanced: legacy tools & session-grouped views (collapsed by default) ───
-  const advanced =
-    isAdmin
+  // ── Administration: who can use the product, and clinical governance ──────
+  const administration = [
+    // Points at /admin/users, the focused account-management surface, rather
+    // than /admin, which is a mixed operations page (NCSR, security incidents,
+    // integration validation). Two user-management surfaces existed; this makes
+    // the one with enable/disable and demo-password controls the entry point.
+    ...(isAuthorizedForRoute("/admin", userRole)
+      ? [link("/admin/users", "Users & Access")]
+      : []),
+    ...authed("/governance/clinical", "Governance"),
+  ];
+
+  // ── Advanced: technical and service-configuration tools ───────────────────
+  //
+  // Collapsed by default and never part of the normal clinical workflow. These
+  // remain fully functional — relocated and renamed rather than removed.
+  const advanced = [
+    ...((isAdmin || isIntegrationAdmin) && showCases
+      ? authed("/rules", "Local Referral & Booking Rules")
+      : []),
+    ...(isAdmin || isIntegrationAdmin ? authed("/rules/clinical", "Rule Studio") : []),
+    ...(isAdmin || isIntegrationAdmin ? authed("/readiness", "Deployment Readiness") : []),
+    ...(isAdmin
       ? [
           ...(showBatch ? authed("/batch/runs", "Intake Sessions") : []),
           ...(showCases ? authed("/cases", "Manual Cases") : []),
@@ -115,13 +135,18 @@ function buildSidebarSections(args: {
           link("/gp", "GP Referral"),
           link("/coordinator", "Legacy Referral Queue"),
         ]
-      : [];
+      : []),
+  ];
 
   return [
     ...(workspace.length ? [{ id: "triage", label: "Workspace", links: workspace }] : []),
-    ...(oversight.length ? [{ id: "oversight", label: "Oversight", links: oversight }] : []),
-    ...(configuration.length ? [{ id: "configuration", label: "Configuration", links: configuration }] : []),
-    ...(advanced.length ? [{ id: "advanced", label: "Advanced", links: advanced, collapsible: true }] : []),
+    ...(insights.length ? [{ id: "insights", label: "Insights", links: insights }] : []),
+    ...(administration.length
+      ? [{ id: "administration", label: "Administration", links: administration }]
+      : []),
+    ...(advanced.length
+      ? [{ id: "advanced", label: "Advanced", links: advanced, collapsible: true }]
+      : []),
   ];
 }
 
