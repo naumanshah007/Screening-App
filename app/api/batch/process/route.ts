@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { processBatch } from "@/lib/batch/processor";
+import { summariseClassifications } from "@/lib/batch/episode-classification";
+import { classifyIncomingCases } from "@/lib/batch/episode-registry";
+import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
 import { isFeatureEnabled } from "@/lib/features";
 import {
@@ -81,11 +84,40 @@ export async function POST(req: NextRequest) {
       includeInvalid: body.includeInvalid ?? false,
     });
 
+    // Episode classification, read-only.
+    //
+    // Runs here so the intake screen can report "already in review" and
+    // "updated" BEFORE anything is committed — which is the whole point of a
+    // preview. It writes nothing, so this endpoint's contract is unchanged.
+    //
+    // A failure must not block intake: without classification the operator sees
+    // every case as new, which is the behaviour that existed before this
+    // feature and is safe. Silently dropping cases would not be.
+    let episodes: Awaited<ReturnType<typeof classifyIncomingCases>> = [];
+    try {
+      episodes = await classifyIncomingCases({
+        organisationId: await requireCurrentOrganisationId(),
+        items: result.results,
+      });
+    } catch (error) {
+      console.error("Episode classification unavailable for preview", error);
+    }
+
     const preview = {
       ...result,
       previewOnly: true as const,
       previewGeneratedAt: new Date().toISOString(),
-      results: result.results.map((item) => ({
+      episodeSummary: summariseClassifications(episodes),
+      results: result.results.map((item, index) => ({
+        ...item,
+        episode: episodes[index]
+          ? {
+              classification: episodes[index].classification,
+              processable: episodes[index].processable,
+              explanation: episodes[index].explanation,
+              matchedEpisodeId: episodes[index].matchedEpisodeId,
+            }
+          : null,
         ...item,
         decision: {
           ...item.decision,

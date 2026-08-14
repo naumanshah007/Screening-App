@@ -32,6 +32,35 @@ import {
   recordEpisodeObservation,
 } from "@/lib/batch/episode-registry";
 
+/**
+ * The most recent governed evaluation for an episode, if any.
+ *
+ * Used to link an amended result to what it supersedes. Returns null when the
+ * episode is new, has no prior evaluation, or is not yet known — all of which
+ * simply mean there is nothing to succeed.
+ */
+async function findPriorEvaluationForEpisode(
+  episodeId: string | null,
+  currentItemId: string
+) {
+  if (!episodeId) return null;
+
+  const previous = await prisma.batchReviewItem.findFirst({
+    // The current item is excluded explicitly rather than relying on its
+    // evaluation being unwritten: an item must never be recorded as superseding
+    // itself, and that must not depend on the order of two writes.
+    where: {
+      episodeId,
+      id: { not: currentItemId },
+      ruleEvaluationId: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { ruleEvaluationId: true },
+  });
+
+  return previous?.ruleEvaluationId ? { id: previous.ruleEvaluationId } : null;
+}
+
 // ─── Source mapping ───────────────────────────────────────────────────────────
 
 const SOURCE_TYPE_TO_ENUM: Record<SourceType, Prisma.BatchRunCreateInput["source"]> = {
@@ -192,6 +221,10 @@ export async function saveBatchRun(args: {
   // episode-register failure must not discard a batch of clinical decisions
   // that were computed correctly. The register is provenance; the decisions are
   // the product.
+  // Row number → episode. Captured here because `run.items` is the in-memory
+  // result of the create above and never sees the episodeId written below.
+  const episodeIdByRow = new Map<number, string>();
+
   try {
     const classified = await classifyIncomingCases({
       organisationId,
@@ -219,6 +252,7 @@ export async function saveBatchRun(args: {
             where: { id: persisted.id },
             data: { episodeId },
           });
+          episodeIdByRow.set(persisted.rowNumber, episodeId);
         }
       }
     });
@@ -261,6 +295,18 @@ export async function saveBatchRun(args: {
       const sourceResult = resultByRow.get(reviewItem.rowNumber);
       if (!sourceResult) continue;
       try {
+        // An amended result becomes a LINKED SUCCESSOR of the evaluation it
+        // supersedes — never a replacement. The prior evaluation stays readable
+        // and stays the decision that was acted on at the time; RuleEvaluation
+        // is append-only at the database level, so overwriting is not even
+        // available. A completed decision is therefore never silently changed:
+        // the new evaluation arrives as its own record for a clinician to
+        // consider.
+        const supersedes = await findPriorEvaluationForEpisode(
+          episodeIdByRow.get(reviewItem.rowNumber) ?? null,
+          reviewItem.id
+        );
+
         const graded = await evaluateGradedDecision({
           input: sourceResult.input,
           subjectReference:
@@ -272,6 +318,13 @@ export async function saveBatchRun(args: {
           batchRunId: run.id,
           environment: runtimeEnvironment,
           factSource: "REVIEWER_ENTRY",
+          ...(supersedes
+            ? {
+                previousEvaluationId: supersedes.id,
+                regradeReason:
+                  "Updated result received for the same episode — new clinical information.",
+              }
+            : {}),
         });
         const operativeResult = { ...sourceResult, decision: graded.decision };
         await prisma.batchReviewItem.update({

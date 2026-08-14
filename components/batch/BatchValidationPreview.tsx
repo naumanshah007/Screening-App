@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BatchActionPanel } from "./BatchActionPanel";
@@ -12,11 +12,62 @@ import { cn } from "@/lib/utils";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
 import { ValidationIssuePopover } from "./ValidationIssuePopover";
 
+/** One row's episode history, as returned by the classify endpoint. */
+type EpisodeHint = {
+  caseId: string | null;
+  classification:
+    | "NEW"
+    | "ALREADY_IN_REVIEW"
+    | "COMPLETED"
+    | "UPDATED"
+    | "POSSIBLE_DUPLICATE";
+  processable: boolean;
+  explanation: string;
+  matchedEpisodeId: string | null;
+};
+
+/**
+ * How each classification is presented.
+ *
+ * NEW is deliberately absent: on a first pull every row is new, and a chip on
+ * every row would carry no information while adding visual noise.
+ */
+const EPISODE_CHIP: Record<
+  Exclude<EpisodeHint["classification"], "NEW">,
+  { label: string; className: string }
+> = {
+  ALREADY_IN_REVIEW: {
+    label: "In review",
+    className:
+      "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
+  },
+  COMPLETED: {
+    label: "Completed",
+    className:
+      "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+  },
+  UPDATED: {
+    label: "Updated",
+    className:
+      "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+  },
+  POSSIBLE_DUPLICATE: {
+    label: "Possible duplicate",
+    className:
+      "border-border bg-muted text-muted-foreground",
+  },
+};
+
 interface BatchValidationPreviewProps {
   cases: CanonicalBatchCase[];
   validCount: number;
   warningCount: number;
   invalidCount: number;
+  /** Null while the answer is pending, or when classification was unavailable. */
+  episodes?: {
+    summary: Record<EpisodeHint["classification"], number> & { received: number };
+    episodes: EpisodeHint[];
+  } | null;
   onProcess: (selectedCaseIds: string[]) => void;
   processing?: boolean;
   /** Called when user clicks "Add Test Case Manually" */
@@ -68,6 +119,7 @@ export function BatchValidationPreview({
   validCount,
   warningCount,
   invalidCount,
+  episodes,
   onProcess,
   processing = false,
   onAddManual,
@@ -75,6 +127,15 @@ export function BatchValidationPreview({
   onDuplicateCase,
   onDeleteCase,
 }: BatchValidationPreviewProps) {
+  // Keyed by caseId, which the endpoint echoes back, so rows cannot mis-align
+  // if the table is sorted or filtered.
+  const episodeByCaseId = useMemo(() => {
+    const map = new Map<string, EpisodeHint>();
+    for (const hint of episodes?.episodes ?? []) {
+      if (hint.caseId) map.set(hint.caseId, hint);
+    }
+    return map;
+  }, [episodes]);
   const processableIds = useMemo(
     () => cases.filter((c) => c.validationStatus !== "invalid").map((c) => c.caseId),
     [cases]
@@ -148,17 +209,55 @@ export function BatchValidationPreview({
     prevStatusByKeyRef.current = statusByKey;
   }, [cases, idsByRowKey, caseById]);
 
+  /*
+    Cases already decided or already queued are DESELECTED BY DEFAULT.
+
+    Derived rather than stored, so it needs no effect and cannot cascade. More
+    importantly it is a default, not a prohibition: the row stays visible with
+    its chip and explanation, and the moment a reviewer toggles it themselves
+    their choice wins. Clinical judgement is theirs; a product that silently
+    drops a result is one that can lose one.
+
+    Only a strong identifier match reaches here — `processable` is false solely
+    for COMPLETED and ALREADY_IN_REVIEW, never for a resemblance. A possible
+    duplicate behaves exactly as it did before.
+  */
+  const blockedCaseIds = useMemo(() => {
+    const blocked = new Set<string>();
+    for (const hint of episodes?.episodes ?? []) {
+      if (!hint.processable && hint.caseId) blocked.add(hint.caseId);
+    }
+    return blocked;
+  }, [episodes]);
+
+  /**
+   * Rows the reviewer has decided about personally; their choice overrides the
+   * default. State rather than a ref, because it is read during render — the
+   * checkbox reflects it.
+   */
+  const [reviewerTouched, setReviewerTouched] = useState<Set<string>>(new Set());
+
+  const isDeselectedByDefault = useCallback(
+    (key: string) => {
+      if (reviewerTouched.has(key)) return false;
+      const caseId = idsByRowKey.get(key);
+      return Boolean(caseId && blockedCaseIds.has(caseId));
+    },
+    [blockedCaseIds, idsByRowKey, reviewerTouched]
+  );
+
   // Derive the live caseId selection from rowKey selection
   const selectedCaseIds = useMemo(() => {
     const out: string[] = [];
     for (const key of selectedKeys) {
       const id = idsByRowKey.get(key);
       if (!id) continue;
+      if (isDeselectedByDefault(key)) continue;
       const c = caseById.get(id);
       if (c && c.validationStatus !== "invalid") out.push(id);
     }
     return out;
-  }, [selectedKeys, idsByRowKey, caseById]);
+  }, [selectedKeys, idsByRowKey, caseById, isDeselectedByDefault]);
 
   const selectedCount = selectedCaseIds.length;
   const allSelected = selectedCount === processableIds.length && processableIds.length > 0;
@@ -175,14 +274,19 @@ export function BatchValidationPreview({
   }
   function toggleOne(c: (typeof cases)[number]) {
     const key = rowKey(c);
+    const wasSelected = isCaseSelected(c);
+    // From here on this row follows the reviewer, not the default.
+    setReviewerTouched((prev) => new Set(prev).add(key));
     setSelectedKeys((prev) => {
       const n = new Set(prev);
-      if (n.has(key)) n.delete(key); else n.add(key);
+      if (wasSelected) n.delete(key); else n.add(key);
       return n;
     });
   }
   function isCaseSelected(c: (typeof cases)[number]) {
-    return selectedKeys.has(rowKey(c));
+    const key = rowKey(c);
+    if (isDeselectedByDefault(key)) return false;
+    return selectedKeys.has(key);
   }
 
   const sourceSystem = cases[0]?.source?.sourceSystem ?? "Unknown source";
@@ -199,6 +303,7 @@ export function BatchValidationPreview({
         selectedCount={selectedCount}
         validCount={processableIds.length}
         blockedCount={invalidCount}
+        episodeSummary={episodes?.summary ?? null}
         processing={processing}
         onProcess={() => onProcess(selectedCaseIds)}
         onAddManual={onAddManual}
@@ -313,6 +418,29 @@ export function BatchValidationPreview({
                             manual
                           </span>
                         )}
+                        {/*
+                          Seen before. The chip carries the full explanation as
+                          its title — "accession ACC-1 from Awanui Labs,
+                          collected 3 Aug" — because a reviewer deciding whether
+                          to process a row needs to know WHY it matched, and a
+                          fingerprint would tell them nothing.
+                        */}
+                        {(() => {
+                          const hint = episodeByCaseId.get(c.caseId);
+                          if (!hint || hint.classification === "NEW") return null;
+                          const chip = EPISODE_CHIP[hint.classification];
+                          return (
+                            <span
+                              title={hint.explanation}
+                              className={cn(
+                                "inline-flex items-center rounded border px-1 py-0.5 text-[10px] font-medium",
+                                chip.className
+                              )}
+                            >
+                              {chip.label}
+                            </span>
+                          );
+                        })()}
                       </div>
                       {c.label && (
                         <div className="text-xs text-muted-foreground truncate max-w-[150px] mt-0.5" title={c.label}>

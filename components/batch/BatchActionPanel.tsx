@@ -24,6 +24,7 @@ export function BatchActionPanel({
   selectedCount,
   validCount,
   blockedCount,
+  episodeSummary,
   processing,
   onProcess,
   onAddManual,
@@ -35,6 +36,15 @@ export function BatchActionPanel({
   selectedCount: number;
   validCount: number;
   blockedCount: number;
+  /** How many of these arrivals have been seen before. */
+  episodeSummary?: {
+    received: number;
+    NEW: number;
+    ALREADY_IN_REVIEW: number;
+    COMPLETED: number;
+    UPDATED: number;
+    POSSIBLE_DUPLICATE: number;
+  } | null;
   processing?: boolean;
   onProcess: () => void;
   onAddManual?: () => void;
@@ -68,6 +78,37 @@ export function BatchActionPanel({
             {" · "}
             {blockedCount} blocked
           </p>
+
+          {/*
+            How much of this intake has been seen before.
+
+            Only non-zero categories are shown: on a first pull everything is
+            new, and printing four zeros would be noise. Counted across
+            EVERYTHING pulled rather than only the current selection, because
+            the question this answers — "am I about to process work that is
+            already done?" — is asked before selecting.
+          */}
+          {episodeSummary && episodeSummary.received > 0 && (
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <span>{episodeSummary.received} received</span>
+              {(
+                [
+                  ["new", episodeSummary.NEW],
+                  ["already in review", episodeSummary.ALREADY_IN_REVIEW],
+                  ["completed", episodeSummary.COMPLETED],
+                  ["updated", episodeSummary.UPDATED],
+                  ["possible duplicate", episodeSummary.POSSIBLE_DUPLICATE],
+                ] as const
+              )
+                .filter(([, count]) => count > 0)
+                .map(([label, count]) => (
+                  <span key={label}>
+                    {" · "}
+                    <span className="font-medium text-foreground">{count}</span> {label}
+                  </span>
+                ))}
+            </p>
+          )}
 
           {/* Selection controls sit with the count they act on. */}
           {(onSelectAll || onClearSelection) && (

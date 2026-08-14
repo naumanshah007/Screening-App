@@ -24,6 +24,19 @@ import type {
   CanonicalBatchCase,
 } from "@/lib/batch/types";
 import type { BatchValidationResult } from "@/lib/batch/validation";
+import type { EpisodeClassification } from "@/lib/batch/episode-classification";
+
+/** Shape returned by /api/batch/episodes/classify. */
+export type EpisodeClassificationResponse = {
+  summary: Record<EpisodeClassification, number> & { received: number };
+  episodes: {
+    caseId: string | null;
+    classification: EpisodeClassification;
+    processable: boolean;
+    explanation: string;
+    matchedEpisodeId: string | null;
+  }[];
+};
 
 // ─── Page States ─────────────────────────────────────────────────────────────
 type PageState =
@@ -50,6 +63,9 @@ export function BatchPageClient({
   const [savingWorklist, setSavingWorklist] = useState(false);
   const [worklistError, setWorklistError] = useState("");
   const [showManual, setShowManual] = useState(false);
+  // Which arrivals have been seen before. Null until the answer arrives, and on
+  // failure — the UI must render identically to how it did before this feature.
+  const [episodes, setEpisodes] = useState<EpisodeClassificationResponse | null>(null);
 
   // ── Manual case form state ──────────────────────────────────────────────
   const [manualFormOpen, setManualFormOpen] = useState(false);
@@ -126,6 +142,29 @@ export function BatchPageClient({
     await revalidateAll(rows, [], meta);
   }, [revalidateAll]);
 
+  /**
+   * Ask which of these arrivals have been seen before.
+   *
+   * Read-only and best-effort. If it fails the operator simply sees no
+   * "already in review" hints, which is exactly how intake behaved before this
+   * existed — safe, and far better than blocking a pull.
+   */
+  const classifyEpisodes = useCallback(async (cases: CanonicalBatchCase[]) => {
+    setEpisodes(null);
+    try {
+      const response = await fetch("/api/batch/episodes/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cases }),
+      });
+      if (!response.ok) return;
+      const payload = (await response.json()) as EpisodeClassificationResponse;
+      setEpisodes(payload);
+    } catch {
+      // Deliberately silent: absence of hints is a safe degradation.
+    }
+  }, []);
+
   // ── Load cases pulled from a connected data source ────────────────────────
   const loadFromConnector = useCallback(
     (cases: CanonicalBatchCase[], sourceSystem: string) => {
@@ -145,8 +184,9 @@ export function BatchPageClient({
         invalidCount: 0,
       };
       setState({ step: "loaded", validation });
+      void classifyEpisodes(cases);
     },
-    []
+    [classifyEpisodes]
   );
 
   // ── Load demo dataset ─────────────────────────────────────────────────────
@@ -569,6 +609,7 @@ export function BatchPageClient({
           validCount={state.validation.validCount}
           warningCount={state.validation.warningCount}
           invalidCount={state.validation.invalidCount}
+          episodes={episodes}
           onProcess={processRows}
           processing={state.step === "processing"}
           onAddManual={handleOpenAddManual}

@@ -85,6 +85,16 @@ export async function evaluateGradedDecision(args: {
   caseCreatedAt?: Date;
   canonicalFactsV2?: CanonicalClinicalFactsV2;
   overlay?: GuidelineOverlay;
+  /**
+   * The evaluation this one supersedes, when an amended result has arrived for
+   * an episode that was already evaluated.
+   *
+   * Supplying it creates a linked successor; it never mutates or replaces the
+   * earlier record, which stays readable and stays the decision that was acted
+   * on at the time. `regradeReason` is required alongside it.
+   */
+  previousEvaluationId?: string;
+  regradeReason?: string;
 }): Promise<GradedDecision> {
   // ── 1. Legacy router. Always. ─────────────────────────────────────────────
   const legacyDecision = evaluateClinicalDecision(args.input, args.overlay);
@@ -168,6 +178,13 @@ export async function evaluateGradedDecision(args: {
     legacyInput: args.input,
     caseId: args.caseId,
     batchRunId: args.batchRunId,
+    // An updated result links to the evaluation it succeeds. The prior
+    // evaluation is preserved and remains readable — RuleEvaluation is
+    // append-only at the database level, so this can only ever add a record,
+    // never replace one. A regrade reason is mandatory whenever a link is
+    // supplied, which is why both travel together.
+    previousEvaluationId: args.previousEvaluationId,
+    regradeReason: args.regradeReason,
   }).catch(async (error) => {
     await prisma.auditLog
       .create({
