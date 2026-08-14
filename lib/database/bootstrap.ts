@@ -230,6 +230,7 @@ export async function ensureClinicalRuleSchema(url: string) {
     await ensureCanonicalProvenanceColumns(client);
     await ensureOrganisationScope(client);
     await ensureSourceIdentitySchema(client);
+    await ensureEpisodeRegisterSchema(client);
   } finally {
     client.close();
   }
@@ -413,6 +414,72 @@ async function ensureSourceIdentitySchema(client: ReturnType<typeof createClient
   );
   await client.execute(
     'CREATE INDEX IF NOT EXISTS "IngestionReceipt_organisationId_receivedAt_idx" ON "IngestionReceipt"("organisationId", "receivedAt")'
+  );
+}
+
+/**
+ * The episode register and its observation log.
+ *
+ * Additive: two new tables and one nullable column. Existing review items get a
+ * null `episodeId`, which is accurate — they arrived before episodes were
+ * tracked, and inventing retrospective episode links from NHI alone would be
+ * exactly the weak-match guessing this design forbids.
+ */
+async function ensureEpisodeRegisterSchema(client: ReturnType<typeof createClient>) {
+  if (await tableExists(client, "BatchReviewItem")) {
+    const columns = await getTableColumns(client, "BatchReviewItem");
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "episodeId", "TEXT");
+  }
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "ScreeningEpisode" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "organisationId" TEXT NOT NULL,
+      "strongFingerprint" TEXT,
+      "weakFingerprint" TEXT NOT NULL,
+      "sourceEpisodeKey" TEXT,
+      "sourceFacility" TEXT,
+      "nhi" TEXT,
+      "testType" TEXT,
+      "collectedOn" DATETIME,
+      "clinicalPayloadDigest" TEXT,
+      "firstSeenAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lastSeenAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  // Uniqueness on the strong fingerprint is the guarantee, not a hint: two rows
+  // sharing one would BE the same episode. The weak fingerprint is deliberately
+  // not unique — a resemblance is not proof, and enforcing it would reject a
+  // legitimate same-day repeat test.
+  await client.execute(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "ScreeningEpisode_strongFingerprint_key" ON "ScreeningEpisode"("strongFingerprint")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "ScreeningEpisode_organisationId_weakFingerprint_idx" ON "ScreeningEpisode"("organisationId", "weakFingerprint")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "ScreeningEpisode_organisationId_lastSeenAt_idx" ON "ScreeningEpisode"("organisationId", "lastSeenAt")'
+  );
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "EpisodeObservation" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "episodeId" TEXT NOT NULL,
+      "batchRunId" TEXT,
+      "classification" TEXT NOT NULL,
+      "explanation" TEXT NOT NULL,
+      "batchReviewItemId" TEXT,
+      "rawPayloadDigest" TEXT,
+      "clinicalPayloadDigest" TEXT,
+      "observedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "EpisodeObservation_episodeId_fkey" FOREIGN KEY ("episodeId") REFERENCES "ScreeningEpisode" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )
+  `);
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "EpisodeObservation_episodeId_observedAt_idx" ON "EpisodeObservation"("episodeId", "observedAt")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "EpisodeObservation_batchRunId_idx" ON "EpisodeObservation"("batchRunId")'
   );
 }
 

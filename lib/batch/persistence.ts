@@ -26,6 +26,11 @@ import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
 import { clinicalPayloadDigest, rawPayloadDigest } from "@/lib/batch/source-identity";
+import {
+  classifyIncomingCases,
+  identityForCase,
+  recordEpisodeObservation,
+} from "@/lib/batch/episode-registry";
 
 // ─── Source mapping ───────────────────────────────────────────────────────────
 
@@ -179,6 +184,50 @@ export async function saveBatchRun(args: {
     },
     include: batchRunDetailInclude,
   });
+
+  // Register every arrival against its clinical episode.
+  //
+  // Runs after the items exist so each observation can point at the case it
+  // produced. Deliberately not inside the run's creation transaction: an
+  // episode-register failure must not discard a batch of clinical decisions
+  // that were computed correctly. The register is provenance; the decisions are
+  // the product.
+  try {
+    const classified = await classifyIncomingCases({
+      organisationId,
+      items: result.results,
+    });
+
+    await prisma.$transaction(async (tx) => {
+      for (const entry of classified) {
+        const item = result.results[entry.index];
+        const persisted = run.items.find(
+          (candidate) => candidate.rowNumber === item.case.source.rowNumber
+        );
+
+        const episodeId = await recordEpisodeObservation({
+          tx,
+          organisationId,
+          batchRunId: run.id,
+          identity: identityForCase(organisationId, item),
+          classified: entry,
+          batchReviewItemId: persisted?.id ?? null,
+        });
+
+        if (persisted) {
+          await tx.batchReviewItem.update({
+            where: { id: persisted.id },
+            data: { episodeId },
+          });
+        }
+      }
+    });
+  } catch (error) {
+    // Recorded rather than raised. A case that reaches the queue without an
+    // episode link is a provenance gap; a case that never reaches the queue
+    // because episode bookkeeping failed is a clinical one.
+    console.error("Episode registration failed for batch run", run.id, error);
+  }
 
   await prisma.auditLog.create({
     data: {

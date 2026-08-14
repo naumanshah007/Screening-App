@@ -3,10 +3,14 @@
 An implementation plan for the three proposed capabilities, checked against the
 code as it stands rather than against the idea of it.
 
-> **Status: Phase 0 is built.** Seven decisions were taken before it started and
-> are recorded in §11. Three of them changed designs in this document; the
-> affected sections have been revised rather than annotated, so what follows is
-> the current design, not the original proposal.
+> **Status: Phase 0 and Phase 1A are built and deployed.** Seven decisions were
+> taken before Phase 0 and are recorded in §10. Three of them changed designs in
+> this document; the affected sections have been revised rather than annotated,
+> so what follows is the current design, not the original proposal.
+>
+> Phase 1 runs as three subphases, each gated, deployed and verified before the
+> next begins: **1A source identity** (done), **1B episode classification**,
+> **1C workflow integration**.
 
 The research is sound and the three capabilities really are one problem. But
 five things in the current codebase change how it has to be built, and one of

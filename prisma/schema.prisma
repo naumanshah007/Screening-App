@@ -1356,6 +1356,8 @@ model BatchReviewItem {
   /// Digest of the normalised clinical facts only. This is the ONLY digest that
   /// may cause a case to be treated as an updated result.
   clinicalPayloadDigest String?
+  /// The clinical episode this arrival belongs to.
+  episodeId             String?
 
   // Engine output snapshot (denormalised for fast worklist sorting/filtering)
   figure             String
@@ -1399,6 +1401,69 @@ model BatchReviewItem {
   @@index([batchRunId, reviewRequired])
   @@index([reviewedByUserId, reviewedAt])
   @@index([sourceEpisodeKey])
+}
+
+/// A clinical screening episode: one specimen, followed across every arrival.
+///
+/// Identifiers are held in clear beside the fingerprints, never instead of
+/// them. The fingerprints are lookup keys; the accession number and facility
+/// are what a match is explained with.
+model ScreeningEpisode {
+  id             String  @id @default(cuid())
+  organisationId String
+
+  /// Deterministic identity, present only when the source named the specimen.
+  /// Unique, because two rows sharing it would BE the same episode.
+  strongFingerprint String? @unique
+  /// Heuristic identity. Never unique: a resemblance is not proof, and enforcing
+  /// uniqueness on it would reject a legitimate same-day repeat test.
+  weakFingerprint   String
+
+  sourceEpisodeKey String?
+  sourceFacility   String?
+  nhi              String?
+  testType         String?
+  collectedOn      DateTime?
+
+  /// The clinical digest of the most recent evaluated arrival — what a new
+  /// arrival is compared against to decide whether anything changed.
+  clinicalPayloadDigest String?
+
+  firstSeenAt  DateTime             @default(now())
+  lastSeenAt   DateTime             @default(now())
+  observations EpisodeObservation[]
+
+  @@index([organisationId, weakFingerprint])
+  @@index([organisationId, lastSeenAt])
+}
+
+/// Every arrival of an episode, including the ones deliberately not reprocessed.
+///
+/// THIS IS THE SAFETY RECORD
+/// -------------------------
+/// A result that arrived and was correctly skipped must still leave a trace.
+/// Without one, a suppressed result is indistinguishable from a lost result —
+/// and "what happened to the result we sent you?" is the first question a
+/// hospital asks. Nothing arrives and disappears.
+model EpisodeObservation {
+  id         String           @id @default(cuid())
+  episodeId  String
+  episode    ScreeningEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  batchRunId String?
+
+  /// NEW | ALREADY_IN_REVIEW | COMPLETED | UPDATED | POSSIBLE_DUPLICATE
+  classification String
+  /// Explained in the source's own terms, not as a fingerprint.
+  explanation    String
+  /// Null when the arrival was not turned into a reviewable case.
+  batchReviewItemId String?
+
+  rawPayloadDigest      String?
+  clinicalPayloadDigest String?
+  observedAt            DateTime @default(now())
+
+  @@index([episodeId, observedAt])
+  @@index([batchRunId])
 }
 
 /// One delivery, recorded so it is never processed twice.
