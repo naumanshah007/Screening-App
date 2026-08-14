@@ -759,6 +759,8 @@ CREATE TABLE "BatchReviewItem" (
     "rawPayloadDigest" TEXT,
     "clinicalPayloadDigest" TEXT,
     "episodeId" TEXT,
+    "supersededByItemId" TEXT,
+    "supersededAt" DATETIME,
     "figure" TEXT NOT NULL,
     "riskLevel" TEXT NOT NULL,
     "recommendationCode" TEXT NOT NULL,

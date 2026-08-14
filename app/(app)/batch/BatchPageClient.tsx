@@ -452,11 +452,25 @@ export function BatchPageClient({
       // Send the originating canonical cases; the server re-runs the engine so
       // persisted decisions are authoritative (never trusts the client).
       const cases = state.result.results.map((r) => r.case);
+
+      // Everything pulled in this intake that is NOT being sent for review.
+      //
+      // Matched on the stable row key rather than caseId, which is regenerated
+      // whenever validation re-runs. These become observations with no review
+      // item, so an arrival that was correctly withheld still leaves a trace.
+      const sentKeys = new Set(
+        cases.map((c) => `${c.source.sourceType}::${c.source.rowNumber}`)
+      );
+      const withheldCases = state.validation.cases.filter(
+        (c) => !sentKeys.has(`${c.source.sourceType}::${c.source.rowNumber}`)
+      );
+
       const res = await fetch("/api/batch/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cases,
+          withheldCases,
           sourceSystem:
             state.result.results[0]?.case.source.sourceSystem ??
             state.result.sourceFileName ??

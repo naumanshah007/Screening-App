@@ -33,7 +33,7 @@ function known(overrides: Partial<KnownEpisode> = {}): KnownEpisode {
     episodeId: "episode-1",
     isCompleted: false,
     isAwaitingReview: false,
-    clinicalPayloadDigest: "clinical-a",
+    clinicalPayloadDigest: "v1:clinical-a",
     sourceEpisodeKey: "ACC-1",
     sourceFacility: "Awanui Labs — Auckland",
     collectedOn: new Date("2026-08-03T00:00:00.000Z"),
@@ -96,7 +96,7 @@ test("the weak fingerprint compares collection day, not timestamp", () => {
 // ─── Classification ─────────────────────────────────────────────────────────
 
 test("an unseen episode is new", () => {
-  const result = classifyEpisode({ identity, clinicalPayloadDigest: "clinical-a" });
+  const result = classifyEpisode({ identity, clinicalPayloadDigest: "v1:clinical-a" });
   assert.equal(result.classification, "NEW");
   assert.equal(result.processable, true);
   assert.equal(result.matchedEpisodeId, null);
@@ -105,7 +105,7 @@ test("an unseen episode is new", () => {
 test("changed clinical content is an update, and is always processable", () => {
   const result = classifyEpisode({
     identity,
-    clinicalPayloadDigest: "clinical-b",
+    clinicalPayloadDigest: "v1:clinical-b",
     strongMatch: known({ isCompleted: true }),
   });
   assert.equal(result.classification, "UPDATED");
@@ -121,7 +121,7 @@ test("an update outranks a completed decision", () => {
   // finished case would be dismissed as a duplicate and never reviewed.
   const result = classifyEpisode({
     identity,
-    clinicalPayloadDigest: "clinical-b",
+    clinicalPayloadDigest: "v1:clinical-b",
     strongMatch: known({ isCompleted: true, isAwaitingReview: true }),
   });
   assert.equal(result.classification, "UPDATED");
@@ -130,7 +130,7 @@ test("an update outranks a completed decision", () => {
 test("unchanged clinical content on a completed episode is not reprocessed", () => {
   const result = classifyEpisode({
     identity,
-    clinicalPayloadDigest: "clinical-a",
+    clinicalPayloadDigest: "v1:clinical-a",
     strongMatch: known({ isCompleted: true }),
   });
   assert.equal(result.classification, "COMPLETED");
@@ -142,7 +142,7 @@ test("unchanged clinical content on a completed episode is not reprocessed", () 
 test("unchanged clinical content already queued is not queued twice", () => {
   const result = classifyEpisode({
     identity,
-    clinicalPayloadDigest: "clinical-a",
+    clinicalPayloadDigest: "v1:clinical-a",
     strongMatch: known({ isAwaitingReview: true }),
   });
   assert.equal(result.classification, "ALREADY_IN_REVIEW");
@@ -153,7 +153,7 @@ test("a known episode that was never sent for review is processable", () => {
   // Pulled once, never submitted. Refusing it would strand the case.
   const result = classifyEpisode({
     identity,
-    clinicalPayloadDigest: "clinical-a",
+    clinicalPayloadDigest: "v1:clinical-a",
     strongMatch: known({ isCompleted: false, isAwaitingReview: false }),
   });
   assert.equal(result.classification, "NEW");
@@ -164,8 +164,8 @@ test("a cosmetic correction is not an update", () => {
   // The reason two digests exist. Same clinical digest, different raw payload.
   const result = classifyEpisode({
     identity,
-    clinicalPayloadDigest: "clinical-a",
-    strongMatch: known({ clinicalPayloadDigest: "clinical-a", isCompleted: true }),
+    clinicalPayloadDigest: "v1:clinical-a",
+    strongMatch: known({ clinicalPayloadDigest: "v1:clinical-a", isCompleted: true }),
   });
   assert.equal(result.classification, "COMPLETED");
   assert.notEqual(result.classification, "UPDATED");
@@ -176,7 +176,7 @@ test("a cosmetic correction is not an update", () => {
 test("a weak match is advisory and NEVER suppresses processing", () => {
   const result = classifyEpisode({
     identity: { ...identity, sourceEpisodeKey: null },
-    clinicalPayloadDigest: "clinical-a",
+    clinicalPayloadDigest: "v1:clinical-a",
     weakMatches: [known({ isCompleted: true })],
   });
   assert.equal(result.classification, "POSSIBLE_DUPLICATE");
@@ -207,7 +207,7 @@ test("no classification other than a strong match can withhold a case", () => {
 test("every explanation names identifiers, never a fingerprint", () => {
   const results = [
     classifyEpisode({ identity, clinicalPayloadDigest: "b", strongMatch: known() }),
-    classifyEpisode({ identity, clinicalPayloadDigest: "clinical-a", strongMatch: known({ isCompleted: true }) }),
+    classifyEpisode({ identity, clinicalPayloadDigest: "v1:clinical-a", strongMatch: known({ isCompleted: true }) }),
     classifyEpisode({
       identity: { ...identity, sourceEpisodeKey: null },
       clinicalPayloadDigest: "x",
@@ -222,6 +222,36 @@ test("every explanation names identifiers, never a fingerprint", () => {
     );
     assert.ok(result.explanation.length > 0);
   }
+});
+
+test("a contract change is never presented as a clinical amendment", () => {
+  // The stored digest was produced under an older normalisation contract, so
+  // whether anything changed is genuinely unknown. Asserting UPDATED here would
+  // turn a deploy into a wave of false amendments across every open episode.
+  const result = classifyEpisode({
+    identity,
+    clinicalPayloadDigest: "v1:aaaa",
+    strongMatch: known({ clinicalPayloadDigest: "v0:bbbb", isCompleted: true }),
+  });
+  assert.notEqual(result.classification, "UPDATED");
+  assert.equal(
+    result.processable,
+    true,
+    "an indeterminate comparison must not suppress the case either"
+  );
+  assert.match(result.explanation, /cannot be determined/);
+});
+
+test("an unversioned stored digest is also indeterminate, not unchanged", () => {
+  // Rows written before the contract was versioned. Reporting COMPLETED here
+  // would silently hide a genuine amendment.
+  const result = classifyEpisode({
+    identity,
+    clinicalPayloadDigest: "v1:aaaa",
+    strongMatch: known({ clinicalPayloadDigest: "legacy-digest", isCompleted: true }),
+  });
+  assert.notEqual(result.classification, "COMPLETED");
+  assert.equal(result.processable, true);
 });
 
 test("the summary counts what the intake screen reports", () => {

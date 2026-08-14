@@ -112,6 +112,63 @@ function sha256(value: string): string {
 }
 
 /**
+ * Version of the clinical-digest CONTRACT.
+ *
+ * WHY A VERSION EXISTS AT ALL
+ * ---------------------------
+ * The digest is a function of our normalisation rules, not only of the data. If
+ * those rules change — a new field folded, a date handled differently, an enum
+ * canonicalised — then every stored digest silently stops corresponding to how
+ * the current code would compute it. Compared naively, the result is that a
+ * software change appears as a clinical amendment on every open episode at once,
+ * and clinicians are asked to re-review cases where nothing about the patient
+ * changed. That is a false-alarm flood produced entirely by a deploy.
+ *
+ * The version makes that impossible to do accidentally: digests are only ever
+ * compared within a version, and a mismatch is reported as INCOMPARABLE rather
+ * than as a difference.
+ *
+ * BUMP THIS whenever `normaliseClinicalFacts` or `normaliseValue` changes in any
+ * way that could alter output for unchanged input. If in doubt, bump it — a
+ * spurious bump costs one indeterminate comparison per episode, whereas a missed
+ * one costs a wave of false amendments.
+ */
+export const CLINICAL_DIGEST_VERSION = 1;
+
+const VERSION_PREFIX = `v${CLINICAL_DIGEST_VERSION}:`;
+
+/** Version encoded in a stored digest, or null when it predates versioning. */
+export function clinicalDigestVersionOf(digest: string | null | undefined): number | null {
+  const match = digest?.match(/^v(\d+):/);
+  return match ? Number(match[1]) : null;
+}
+
+export type ClinicalContentComparison = "UNCHANGED" | "CHANGED" | "INCOMPARABLE";
+
+/**
+ * Compare two clinical digests.
+ *
+ * Returns INCOMPARABLE when either side is missing or the versions differ. The
+ * caller must treat that as "we do not know", never as "changed" (which would
+ * fabricate an amendment) and never as "unchanged" (which would hide a real
+ * one). Both failure directions are clinical, so neither is a safe default and
+ * the third state is required.
+ */
+export function compareClinicalDigests(
+  previous: string | null | undefined,
+  current: string | null | undefined
+): ClinicalContentComparison {
+  if (!previous || !current) return "INCOMPARABLE";
+
+  const previousVersion = clinicalDigestVersionOf(previous);
+  const currentVersion = clinicalDigestVersionOf(current);
+  if (previousVersion === null || currentVersion === null) return "INCOMPARABLE";
+  if (previousVersion !== currentVersion) return "INCOMPARABLE";
+
+  return previous === current ? "UNCHANGED" : "CHANGED";
+}
+
+/**
  * Digest of the clinically meaningful content, normalised.
  *
  * This is the ONLY digest that may cause a case to be classified as UPDATED. A
@@ -120,7 +177,9 @@ function sha256(value: string): string {
  * clinician to look again.
  */
 export function clinicalPayloadDigest(input: ClinicalInput): string {
-  return sha256(deterministicJson(normaliseClinicalFacts(input)));
+  // Version-prefixed, so a stored digest always carries the contract it was
+  // produced under and can never be compared across a normalisation change.
+  return `${VERSION_PREFIX}${sha256(deterministicJson(normaliseClinicalFacts(input)))}`;
 }
 
 /**

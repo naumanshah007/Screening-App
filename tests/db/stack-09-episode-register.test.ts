@@ -88,7 +88,7 @@ test("a second arrival of the same specimen is recognised", async () => {
         organisationId: ctx.organisationId,
         batchRunId: null,
         identity,
-        classified: classifiedFrom(ctx.organisationId, accession, "clinical-1"),
+        classified: classifiedFrom(ctx.organisationId, accession, "v1:clinical-1"),
         batchReviewItemId: "item-1",
       });
     });
@@ -97,7 +97,7 @@ test("a second arrival of the same specimen is recognised", async () => {
       where: { strongFingerprint: strongFingerprint(identity)! },
     });
     assert.ok(stored, "the episode must be findable by its deterministic identity");
-    assert.equal(stored.clinicalPayloadDigest, "clinical-1");
+    assert.equal(stored.clinicalPayloadDigest, "v1:clinical-1");
     // Identifiers kept in clear, so a match can be explained rather than asserted.
     assert.equal(stored.sourceEpisodeKey, accession);
     assert.equal(stored.sourceFacility, "Awanui Labs — Auckland");
@@ -105,7 +105,7 @@ test("a second arrival of the same specimen is recognised", async () => {
     // Second arrival, unchanged content, already decided.
     const again = classifyEpisode({
       identity,
-      clinicalPayloadDigest: "clinical-1",
+      clinicalPayloadDigest: "v1:clinical-1",
       strongMatch: {
         episodeId: stored.id,
         isCompleted: true,
@@ -142,7 +142,7 @@ test("an arrival that is not reprocessed still leaves a trace", async () => {
         organisationId: ctx.organisationId,
         batchRunId: null,
         identity,
-        classified: classifiedFrom(ctx.organisationId, accession, "clinical-1"),
+        classified: classifiedFrom(ctx.organisationId, accession, "v1:clinical-1"),
         batchReviewItemId: "item-1",
       });
     });
@@ -153,7 +153,7 @@ test("an arrival that is not reprocessed still leaves a trace", async () => {
         organisationId: ctx.organisationId,
         batchRunId: null,
         identity,
-        classified: classifiedFrom(ctx.organisationId, accession, "clinical-1", {
+        classified: classifiedFrom(ctx.organisationId, accession, "v1:clinical-1", {
           classification: "COMPLETED",
           processable: false,
           matchedEpisodeId: episodeId,
@@ -199,7 +199,7 @@ test("a skipped arrival does not move the comparison baseline", async () => {
         organisationId: ctx.organisationId,
         batchRunId: null,
         identity,
-        classified: classifiedFrom(ctx.organisationId, accession, "clinical-1"),
+        classified: classifiedFrom(ctx.organisationId, accession, "v1:clinical-1"),
         batchReviewItemId: "item-1",
       });
     });
@@ -210,7 +210,7 @@ test("a skipped arrival does not move the comparison baseline", async () => {
         organisationId: ctx.organisationId,
         batchRunId: null,
         identity,
-        classified: classifiedFrom(ctx.organisationId, accession, "clinical-2", {
+        classified: classifiedFrom(ctx.organisationId, accession, "v1:clinical-2", {
           classification: "COMPLETED",
           processable: false,
           matchedEpisodeId: episodeId,
@@ -222,7 +222,7 @@ test("a skipped arrival does not move the comparison baseline", async () => {
     const episode = await prisma.screeningEpisode.findUnique({ where: { id: episodeId } });
     assert.equal(
       episode?.clinicalPayloadDigest,
-      "clinical-1",
+      "v1:clinical-1",
       "the baseline must remain the content a clinician actually saw"
     );
 
@@ -255,7 +255,7 @@ test("deleting an episode takes its observations with it", async () => {
         organisationId: ctx.organisationId,
         batchRunId: null,
         identity: identityFor(ctx.organisationId, accession),
-        classified: classifiedFrom(ctx.organisationId, accession, "clinical-1"),
+        classified: classifiedFrom(ctx.organisationId, accession, "v1:clinical-1"),
         batchReviewItemId: "item-1",
       });
     });

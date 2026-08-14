@@ -19,6 +19,7 @@ import { prisma } from "@/lib/prisma";
 import type {
   BatchProcessingResult,
   BatchCaseResult,
+  CanonicalBatchCase,
   SourceType,
 } from "@/lib/batch/types";
 import { getRuntimeClinicalEnvironment, resolveClinicalAuthority } from "@/lib/clinical-rules/authority";
@@ -26,6 +27,7 @@ import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
 import { clinicalPayloadDigest, rawPayloadDigest } from "@/lib/batch/source-identity";
+import { processBatch } from "@/lib/batch/processor";
 import {
   classifyIncomingCases,
   identityForCase,
@@ -137,6 +139,17 @@ export async function saveBatchRun(args: {
   result: BatchProcessingResult;
   actorUserId: string;
   sourceSystem?: string;
+  /**
+   * Arrivals that were pulled in this intake but deliberately NOT sent for
+   * review — automatically deselected duplicates, or rows the operator
+   * unticked.
+   *
+   * They are recorded as observations with no review item. Without them a
+   * correctly-suppressed result leaves no trace at all and is indistinguishable
+   * from one that was lost, which is the exact question a service asks first:
+   * "what happened to the result we sent you?"
+   */
+  withheldCases?: CanonicalBatchCase[];
 }): Promise<BatchRunDetailRecord> {
   const { result, actorUserId } = args;
 
@@ -255,6 +268,37 @@ export async function saveBatchRun(args: {
           episodeIdByRow.set(persisted.rowNumber, episodeId);
         }
       }
+
+      // Arrivals that were pulled but deliberately not sent for review.
+      //
+      // Re-routed and re-classified server-side rather than trusting anything
+      // the client said about them: a client-supplied classification could
+      // suppress a case that the server would have processed.
+      const withheld = args.withheldCases ?? [];
+      if (withheld.length > 0) {
+        const routed = processBatch(withheld, {
+          includeWarnings: true,
+          includeInvalid: true,
+        });
+        const withheldClassified = await classifyIncomingCases({
+          organisationId,
+          items: routed.results,
+        });
+
+        for (const entry of withheldClassified) {
+          const item = routed.results[entry.index];
+          await recordEpisodeObservation({
+            tx,
+            organisationId,
+            batchRunId: run.id,
+            identity: identityForCase(organisationId, item),
+            classified: entry,
+            // No review item: this arrival became no work. That is precisely
+            // what makes the observation worth writing.
+            batchReviewItemId: null,
+          });
+        }
+      }
     });
   } catch (error) {
     // Recorded rather than raised. A case that reaches the queue without an
@@ -326,6 +370,28 @@ export async function saveBatchRun(args: {
               }
             : {}),
         });
+
+        // Flag any still-open review item for the same episode.
+        //
+        // A reviewer looking at the earlier item is looking at superseded
+        // information, and nothing else would tell them. Only the flag is
+        // written: the decision, disposition and evaluation on that row are
+        // untouched, so the record of what was known at the time survives and
+        // the reviewer's own work is never silently altered.
+        if (supersedes) {
+          const episodeId = episodeIdByRow.get(reviewItem.rowNumber);
+          if (episodeId) {
+            await prisma.batchReviewItem.updateMany({
+              where: {
+                episodeId,
+                id: { not: reviewItem.id },
+                disposition: { in: ["PENDING", "NEEDS_INFO"] },
+                supersededByItemId: null,
+              },
+              data: { supersededByItemId: reviewItem.id, supersededAt: new Date() },
+            });
+          }
+        }
         const operativeResult = { ...sourceResult, decision: graded.decision };
         await prisma.batchReviewItem.update({
           where: { id: reviewItem.id },

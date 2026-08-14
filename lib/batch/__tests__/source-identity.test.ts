@@ -23,7 +23,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  CLINICAL_DIGEST_VERSION,
+  clinicalDigestVersionOf,
   clinicalPayloadDigest,
+  compareClinicalDigests,
   fileDeliveryKey,
   normaliseClinicalFacts,
   rawPayloadDigest,
@@ -135,6 +138,58 @@ test("the normalised facts cover the whole engine input, not a curated list", ()
   assert.equal(facts.colposcopyRecommendedInLastCytology, true);
   assert.equal(facts.repeatStage, "BASELINE");
   assert.equal(facts.patientId, undefined, "identity is not a clinical fact");
+});
+
+// ─── The versioned contract ─────────────────────────────────────────────────
+
+test("a clinical digest carries the contract it was produced under", () => {
+  const digest = clinicalPayloadDigest(input());
+  assert.match(digest, /^v\d+:[0-9a-f]{64}$/);
+  assert.equal(clinicalDigestVersionOf(digest), CLINICAL_DIGEST_VERSION);
+});
+
+test("digests from different contracts are INCOMPARABLE, never 'changed'", () => {
+  // The failure this prevents: normalisation is changed, every stored digest
+  // stops matching how the code would now compute it, and a deploy presents
+  // itself as a clinical amendment on every open episode at once.
+  const current = clinicalPayloadDigest(input());
+  const older = `v0:${current.split(":")[1]}`;
+
+  assert.equal(
+    compareClinicalDigests(older, current),
+    "INCOMPARABLE",
+    "a contract change must never be reported as a clinical change"
+  );
+  // ...and equally must not be reported as unchanged, which would hide a real
+  // amendment. Both directions are clinical, so the third state is required.
+  assert.notEqual(compareClinicalDigests(older, current), "UNCHANGED");
+});
+
+test("an unversioned legacy digest is INCOMPARABLE", () => {
+  // Rows written before versioning existed.
+  const current = clinicalPayloadDigest(input());
+  assert.equal(compareClinicalDigests("abc123", current), "INCOMPARABLE");
+  assert.equal(clinicalDigestVersionOf("abc123"), null);
+});
+
+test("a missing digest on either side is INCOMPARABLE", () => {
+  const current = clinicalPayloadDigest(input());
+  assert.equal(compareClinicalDigests(null, current), "INCOMPARABLE");
+  assert.equal(compareClinicalDigests(current, null), "INCOMPARABLE");
+});
+
+test("within one contract the comparison is exact", () => {
+  assert.equal(
+    compareClinicalDigests(clinicalPayloadDigest(input()), clinicalPayloadDigest(input())),
+    "UNCHANGED"
+  );
+  assert.equal(
+    compareClinicalDigests(
+      clinicalPayloadDigest(input()),
+      clinicalPayloadDigest(input({ cytologyResult: "LSIL" }))
+    ),
+    "CHANGED"
+  );
 });
 
 // ─── The raw digest ─────────────────────────────────────────────────────────

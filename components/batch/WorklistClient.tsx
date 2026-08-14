@@ -43,6 +43,14 @@ export interface WorklistItem {
   reviewNote: string | null;
   overrideReason: string | null;
   result: BatchCaseResult;
+  /**
+   * Set when a later arrival for the same episode carried new clinical
+   * information while this item was still awaiting review.
+   *
+   * The decision on this row is unchanged and still shown; this only warns the
+   * reviewer that they would be acting on superseded information.
+   */
+  supersededAt?: string | null;
   /** Aggregate-queue context (optional). */
   sourceSystem?: string | null;
   runId?: string | null;
@@ -408,6 +416,20 @@ export function WorklistClient({
 	                          )}
 	                          {item.reviewRequired && (
 	                            <Badge variant="high" size="sm">Mandatory clinician review</Badge>
+	                          )}
+	                          {/*
+	                            Newer clinical information arrived for this
+	                            episode while this item was still queued. The
+	                            decision below is unchanged and still readable —
+	                            this warns the reviewer that acting on it would
+	                            be acting on superseded information.
+	                          */}
+	                          {item.supersededAt && (
+	                            <span title="A newer result for this episode has been evaluated. Review the newer case before deciding this one.">
+	                              <Badge variant="high" size="sm">
+	                                Superseded — newer result received
+	                              </Badge>
+	                            </span>
 	                          )}
 	                        </div>
                         <p className="text-xs text-muted-foreground">

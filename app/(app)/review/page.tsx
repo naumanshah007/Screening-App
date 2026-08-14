@@ -68,6 +68,7 @@ export default async function ReviewQueuePage() {
     reviewedByName: item.reviewedBy?.name ?? item.reviewedBy?.email ?? null,
     reviewedAt: null,
     reviewNote: item.reviewNote,
+    supersededAt: item.supersededAt?.toISOString() ?? null,
     overrideReason: item.overrideReason,
     result: reconstructBatchCaseResult(item),
     sourceSystem: item.batchRun.sourceSystem ?? SOURCE_LABELS[item.batchRun.source] ?? item.batchRun.source,

@@ -100,6 +100,7 @@ export default async function BatchRunDetailPage({
     reviewedByName: item.reviewedBy?.name ?? item.reviewedBy?.email ?? null,
     reviewedAt: item.reviewedAt ? formatDateTime(item.reviewedAt) : null,
     reviewNote: item.reviewNote,
+    supersededAt: item.supersededAt?.toISOString() ?? null,
     overrideReason: item.overrideReason,
     result: reconstructBatchCaseResult(item),
   }));

@@ -429,6 +429,10 @@ async function ensureEpisodeRegisterSchema(client: ReturnType<typeof createClien
   if (await tableExists(client, "BatchReviewItem")) {
     const columns = await getTableColumns(client, "BatchReviewItem");
     await addColumnIfMissing(client, "BatchReviewItem", columns, "episodeId", "TEXT");
+    // Flag-only: set when a later arrival for the same episode superseded this
+    // one while it was still awaiting review. Never edits the decision itself.
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "supersededByItemId", "TEXT");
+    await addColumnIfMissing(client, "BatchReviewItem", columns, "supersededAt", "DATETIME");
   }
 
   await client.execute(`

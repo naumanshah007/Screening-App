@@ -275,6 +275,26 @@ export function BatchValidationPreview({
   function toggleOne(c: (typeof cases)[number]) {
     const key = rowKey(c);
     const wasSelected = isCaseSelected(c);
+
+    /*
+      Re-selecting a case that is already decided or already queued is an
+      explicit act, so it asks first.
+
+      This is not paternalism about a checkbox: the reviewer is choosing to send
+      a second copy of an episode into the queue, creating a second decision on
+      the same specimen. That is legitimate — a reviewer may have good reason —
+      but it must be deliberate rather than a mis-click, and the prompt names
+      which episode and why it was withheld.
+    */
+    if (!wasSelected && isDeselectedByDefault(key)) {
+      const hint = episodeByCaseId.get(c.caseId);
+      const confirmed = window.confirm(
+        `${hint?.explanation ?? "This episode has already been processed."}\n\n` +
+          "Send it for review again anyway? This creates a second decision on the same episode."
+      );
+      if (!confirmed) return;
+    }
+
     // From here on this row follows the reviewer, not the default.
     setReviewerTouched((prev) => new Set(prev).add(key));
     setSelectedKeys((prev) => {

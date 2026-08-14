@@ -1359,6 +1359,17 @@ model BatchReviewItem {
   /// The clinical episode this arrival belongs to.
   episodeId             String?
 
+  /// Set when a later arrival for the same episode carried new clinical
+  /// information while this item was still awaiting review.
+  ///
+  /// A FLAG, NOT AN EDIT. The decision, disposition and evaluation on this row
+  /// are untouched and remain exactly what they were — the reviewer is warned
+  /// that newer information exists, and the record of what was known at the
+  /// time survives intact. Overwriting it would destroy the audit trail of what
+  /// a clinician was actually looking at.
+  supersededByItemId    String?
+  supersededAt          DateTime?
+
   // Engine output snapshot (denormalised for fast worklist sorting/filtering)
   figure             String
   riskLevel          String

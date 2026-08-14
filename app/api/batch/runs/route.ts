@@ -77,10 +77,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Arrivals pulled in this intake but not sent for review. Recorded as
+    // observations so a suppressed result is never indistinguishable from a
+    // lost one.
+    const withheldCases: CanonicalBatchCase[] = Array.isArray(body.withheldCases)
+      ? body.withheldCases.slice(0, 500)
+      : [];
+
     const run = await saveBatchRun({
       result,
       actorUserId: user!.id!,
       sourceSystem: typeof body.sourceSystem === "string" ? body.sourceSystem : undefined,
+      withheldCases,
     });
 
     return NextResponse.json({ runId: run.id, totalCases: run.totalCases });
