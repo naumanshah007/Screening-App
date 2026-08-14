@@ -546,6 +546,108 @@ async function ensureUsageLedgerSchema(client: ReturnType<typeof createClient>) 
       SELECT RAISE(ABORT, 'Usage events are immutable');
     END
   `);
+
+  // ADDITIVE REFERENCE INTEGRITY
+  // ----------------------------
+  // SQLite cannot add a foreign key to an existing table without rebuilding
+  // it. UsageEvent is immutable evidence and already contains preserved demo
+  // defect rows, so a rebuild is not a live-safe option. These triggers enforce
+  // the same future-write and delete-side invariants without touching one
+  // existing row.
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "UsageEvent_episode_exists_insert"
+    BEFORE INSERT ON "UsageEvent"
+    WHEN NOT EXISTS (
+      SELECT 1 FROM "ScreeningEpisode" WHERE "id" = NEW."episodeId"
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'USAGE_EVENT_EPISODE_NOT_FOUND');
+    END
+  `);
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "UsageEvent_episode_organisation_insert"
+    BEFORE INSERT ON "UsageEvent"
+    WHEN EXISTS (
+      SELECT 1
+      FROM "ScreeningEpisode"
+      WHERE "id" = NEW."episodeId"
+        AND "organisationId" <> NEW."organisationId"
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'USAGE_EVENT_EPISODE_ORGANISATION_MISMATCH');
+    END
+  `);
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "ScreeningEpisode_history_restrict_delete"
+    BEFORE DELETE ON "ScreeningEpisode"
+    WHEN EXISTS (
+      SELECT 1 FROM "UsageEvent" WHERE "episodeId" = OLD."id"
+    ) OR EXISTS (
+      SELECT 1 FROM "EpisodeObservation" WHERE "episodeId" = OLD."id"
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'SCREENING_EPISODE_HAS_HISTORY');
+    END
+  `);
+
+  // Append-only corrections preserve the original fact and permit one terminal
+  // invalidation per event. CHECK constraints keep both controlled vocabularies
+  // closed at the database boundary, not just in TypeScript.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "UsageEventCorrection" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "usageEventId" TEXT NOT NULL,
+      "correctionType" TEXT NOT NULL
+        CHECK ("correctionType" IN ('INVALIDATE')),
+      "reasonCode" TEXT NOT NULL
+        CHECK ("reasonCode" IN ('EPISODE_REGISTRATION_ROLLBACK')),
+      "reasonDetail" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "actorUserId" TEXT,
+      "systemActor" TEXT,
+      "organisationId" TEXT NOT NULL,
+      "metadataJson" TEXT,
+      CONSTRAINT "UsageEventCorrection_usageEventId_fkey"
+        FOREIGN KEY ("usageEventId") REFERENCES "UsageEvent" ("id")
+        ON DELETE RESTRICT ON UPDATE CASCADE
+    )
+  `);
+  await client.execute(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "UsageEventCorrection_usageEventId_correctionType_key" ON "UsageEventCorrection"("usageEventId", "correctionType")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "UsageEventCorrection_organisationId_createdAt_idx" ON "UsageEventCorrection"("organisationId", "createdAt")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "UsageEventCorrection_reasonCode_createdAt_idx" ON "UsageEventCorrection"("reasonCode", "createdAt")'
+  );
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "UsageEventCorrection_organisation_insert"
+    BEFORE INSERT ON "UsageEventCorrection"
+    WHEN EXISTS (
+      SELECT 1
+      FROM "UsageEvent"
+      WHERE "id" = NEW."usageEventId"
+        AND "organisationId" <> NEW."organisationId"
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'USAGE_EVENT_CORRECTION_ORGANISATION_MISMATCH');
+    END
+  `);
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "UsageEventCorrection_immutable_update"
+    BEFORE UPDATE ON "UsageEventCorrection"
+    BEGIN
+      SELECT RAISE(ABORT, 'Usage event corrections are immutable');
+    END
+  `);
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "UsageEventCorrection_immutable_delete"
+    BEFORE DELETE ON "UsageEventCorrection"
+    BEGIN
+      SELECT RAISE(ABORT, 'Usage event corrections are immutable');
+    END
+  `);
 }
 
 async function ensureCanonicalProvenanceColumns(

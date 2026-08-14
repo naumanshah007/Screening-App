@@ -7,6 +7,11 @@ import { requestAuditMetadata } from "@/lib/clinical-rules/governance";
 import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
 import { getClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { prisma } from "@/lib/prisma";
+import {
+  isPersistedManualRegradeRetry,
+  recordManualRegradeUsage,
+} from "@/lib/usage/manual-regrade";
+import { requireUsageEventEpisode } from "@/lib/usage/usage-events";
 
 const BodySchema = z.object({
   ruleVersionId: z.string().trim().min(1),
@@ -22,6 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!parsed.success) return NextResponse.json({ error: "A published ruleset version and regrade reason are required" }, { status: 400 });
 
   const runId = (await params).id;
+  const reason = parsed.data.reason;
   try {
     const [target, run] = await Promise.all([
       getClinicalRuleVersion(parsed.data.ruleVersionId),
@@ -30,7 +36,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         include: {
           items: {
             where: { disposition: "PENDING" },
-            select: { id: true, inputJson: true, ruleEvaluationId: true, ruleEvaluation: true },
+            select: {
+              id: true,
+              inputJson: true,
+              episodeId: true,
+              ruleEvaluationId: true,
+              ruleEvaluation: true,
+            },
           },
         },
       }),
@@ -40,18 +52,98 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!["PUBLISHED", "ACTIVE"].includes(target.status)) {
       return NextResponse.json({ error: "Open cases can only be regraded with a published or active version" }, { status: 409 });
     }
+    if (!run.organisationId) {
+      return NextResponse.json(
+        { error: "MANUAL_REGRADE_ORGANISATION_REQUIRED" },
+        { status: 409 }
+      );
+    }
 
-    const changes: Array<{ itemId: string; previousEvaluationId: string | null; evaluationId: string; changedFields: string[] }> = [];
+    // Fail before creating any immutable evaluation if usage cannot be attached
+    // to a durable episode. Historical pre-episode cases remain readable but
+    // cannot produce unattributable new metered work.
+    const unlinked = run.items.find((item) => !item.episodeId);
+    if (unlinked) {
+      return NextResponse.json(
+        { error: "MANUAL_REGRADE_EPISODE_REQUIRED", itemId: unlinked.id },
+        { status: 409 }
+      );
+    }
+    await prisma.$transaction(async (tx) => {
+      for (const item of run.items) {
+        await requireUsageEventEpisode({
+          tx,
+          organisationId: run.organisationId!,
+          episodeId: item.episodeId!,
+        });
+      }
+    });
+
+    const changes: Array<{
+      itemId: string;
+      previousEvaluationId: string | null;
+      evaluationId: string;
+      changedFields: string[];
+      reused: boolean;
+    }> = [];
     for (const item of run.items) {
+      if (
+        isPersistedManualRegradeRetry({
+          evaluation: item.ruleEvaluation,
+          targetRuleVersionId: target.id,
+          reason,
+        })
+      ) {
+        // The evaluation already exists: retry only the idempotent metering
+        // write. No new evaluation and no second REGRADE event are created.
+        await prisma.$transaction((tx) =>
+          recordManualRegradeUsage({
+            tx,
+            organisationId: run.organisationId!,
+            episodeId: item.episodeId!,
+            batchReviewItemId: item.id,
+            ruleEvaluationId: item.ruleEvaluation!.id,
+            batchRunId: run.id,
+            rulesetVersion: target.displayVersion,
+            rulesetChecksum: target.checksum,
+            source: run.source,
+          })
+        );
+        changes.push({
+          itemId: item.id,
+          previousEvaluationId: item.ruleEvaluation!.previousEvaluationId,
+          evaluationId: item.ruleEvaluation!.id,
+          changedFields: [],
+          reused: true,
+        });
+        continue;
+      }
+
       const next = await evaluateClinicalCase({
         facts: JSON.parse(item.inputJson) as Record<string, unknown>,
         ruleVersionId: target.id,
         evaluationMode: "LIVE_DEMO",
         batchRunId: run.id,
         previousEvaluationId: item.ruleEvaluationId ?? undefined,
-        regradeReason: parsed.data.reason,
+        regradeReason: reason,
       });
-      await prisma.batchReviewItem.update({ where: { id: item.id }, data: { ruleEvaluationId: next.evaluationId } });
+      await prisma.$transaction(async (tx) => {
+        await tx.batchReviewItem.update({
+          where: { id: item.id },
+          data: { ruleEvaluationId: next.evaluationId },
+        });
+        await recordManualRegradeUsage({
+          tx,
+          organisationId: run.organisationId!,
+          episodeId: item.episodeId!,
+          batchReviewItemId: item.id,
+          ruleEvaluationId: next.evaluationId,
+          batchRunId: run.id,
+          rulesetVersion: target.displayVersion,
+          rulesetChecksum: target.checksum,
+          source: run.source,
+        });
+      });
 
       const before = item.ruleEvaluation;
       const comparisons: Array<[string, string | null, string | null]> = before
@@ -69,7 +161,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const changedFields = before
         ? comparisons.filter(([, previous, current]) => previous !== current).map(([field]) => field)
         : ["new governed evaluation"];
-      changes.push({ itemId: item.id, previousEvaluationId: item.ruleEvaluationId, evaluationId: next.evaluationId, changedFields });
+      changes.push({
+        itemId: item.id,
+        previousEvaluationId: item.ruleEvaluationId,
+        evaluationId: next.evaluationId,
+        changedFields,
+        reused: false,
+      });
     }
 
     const metadata = requestAuditMetadata(request);
@@ -80,9 +178,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           ruleVersionId: target.id,
           actorUserId: user!.id!,
           eventType: "REGRADE",
-          reason: parsed.data.reason,
+          reason,
           beforeJson: JSON.stringify({ batchRunId: run.id, pinnedRuleVersionId: run.pinnedRuleVersionId }),
-          afterJson: JSON.stringify({ batchRunId: run.id, regradedItems: changes.length, targetRuleVersionId: target.id }),
+          afterJson: JSON.stringify({
+            batchRunId: run.id,
+            regradedItems: changes.filter((change) => !change.reused).length,
+            reusedPersistedRegrades: changes.filter((change) => change.reused).length,
+            targetRuleVersionId: target.id,
+          }),
           ipAddress: metadata.ipAddress,
           userAgent: metadata.userAgent,
         },
@@ -94,7 +197,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           entity: "BatchRun",
           entityId: run.id,
           oldValue: JSON.stringify({ pinnedRuleVersionId: run.pinnedRuleVersionId }),
-          newValue: JSON.stringify({ targetRuleVersionId: target.id, regradedItems: changes.length, reason: parsed.data.reason }),
+          newValue: JSON.stringify({
+            targetRuleVersionId: target.id,
+            regradedItems: changes.filter((change) => !change.reused).length,
+            reusedPersistedRegrades: changes.filter((change) => change.reused).length,
+            reason,
+          }),
           ipAddress: metadata.ipAddress,
           userAgent: metadata.userAgent,
         },
@@ -105,8 +213,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       batchRunId: run.id,
       pinnedVersionPreserved: run.pinnedRuleVersionDisplay,
       targetVersion: target.displayVersion,
-      regraded: changes.length,
-      changed: changes.filter((change) => change.changedFields.length > 0).length,
+      regraded: changes.filter((change) => !change.reused).length,
+      reused: changes.filter((change) => change.reused).length,
+      changed: changes.filter(
+        (change) => !change.reused && change.changedFields.length > 0
+      ).length,
       changes,
     });
   } catch (error) {

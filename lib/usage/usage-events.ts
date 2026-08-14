@@ -40,6 +40,25 @@ export const USAGE_EVENT_TYPES = [
 
 export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];
 
+/** Manual regrades are not intake arrivals, so they carry an explicit factual
+ * classification rather than pretending to have been NEW or UPDATED input. */
+export type UsageEventClassification = EpisodeClassification | "MANUAL_REGRADE";
+
+export const USAGE_EVENT_EPISODE_NOT_FOUND = "USAGE_EVENT_EPISODE_NOT_FOUND";
+export const USAGE_EVENT_EPISODE_ORGANISATION_MISMATCH =
+  "USAGE_EVENT_EPISODE_ORGANISATION_MISMATCH";
+
+export class UsageEventIntegrityError extends Error {
+  constructor(
+    public readonly code:
+      | typeof USAGE_EVENT_EPISODE_NOT_FOUND
+      | typeof USAGE_EVENT_EPISODE_ORGANISATION_MISMATCH
+  ) {
+    super(code);
+    this.name = "UsageEventIntegrityError";
+  }
+}
+
 /**
  * Which event a classification produces, or null when it produces none.
  *
@@ -105,7 +124,7 @@ export type RecordUsageEventArgs = {
   organisationId: string;
   episodeId: string;
   eventType: UsageEventType;
-  classification: EpisodeClassification;
+  classification: UsageEventClassification;
   batchReviewItemId?: string | null;
   ruleEvaluationId?: string | null;
   batchRunId?: string | null;
@@ -113,6 +132,32 @@ export type RecordUsageEventArgs = {
   rulesetChecksum?: string | null;
   source?: string | null;
 };
+
+/**
+ * Application-side fail-closed check for the same invariant enforced by the
+ * database INSERT triggers. Keeping both layers is deliberate: callers get a
+ * stable semantic error before an INSERT, while raw SQL and future code paths
+ * remain protected by the database as the final authority.
+ */
+export async function requireUsageEventEpisode(args: {
+  tx: Prisma.TransactionClient;
+  organisationId: string;
+  episodeId: string;
+}): Promise<void> {
+  const episode = await args.tx.screeningEpisode.findUnique({
+    where: { id: args.episodeId },
+    select: { organisationId: true },
+  });
+
+  if (!episode) {
+    throw new UsageEventIntegrityError(USAGE_EVENT_EPISODE_NOT_FOUND);
+  }
+  if (episode.organisationId !== args.organisationId) {
+    throw new UsageEventIntegrityError(
+      USAGE_EVENT_EPISODE_ORGANISATION_MISMATCH
+    );
+  }
+}
 
 /**
  * Append one usage event, at most once.
@@ -131,6 +176,8 @@ export type RecordUsageEventArgs = {
  * Returns whether a new row was written — false meaning "already counted".
  */
 export async function recordUsageEvent(args: RecordUsageEventArgs): Promise<boolean> {
+  await requireUsageEventEpisode(args);
+
   const idempotencyKey = usageIdempotencyKey({
     organisationId: args.organisationId,
     episodeId: args.episodeId,

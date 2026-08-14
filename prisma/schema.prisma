@@ -272,6 +272,19 @@ enum BatchReviewDisposition {
   NEEDS_INFO
 }
 
+/// A correction never rewrites a usage fact. Phase 2 supports one terminal
+/// invalidation; richer commercial adjustments require a deliberately expanded
+/// model later.
+enum UsageEventCorrectionType {
+  INVALIDATE
+}
+
+/// Controlled technical reason for the original Phase 2 transaction rollback
+/// defect. New reasons must be introduced explicitly rather than as free text.
+enum UsageEventCorrectionReasonCode {
+  EPISODE_REGISTRATION_ROLLBACK
+}
+
 enum ClinicalRuleScope {
   GLOBAL
   ORGANISATION
@@ -1530,9 +1543,36 @@ model UsageEvent {
 
   occurredAt DateTime @default(now())
 
+  corrections UsageEventCorrection[]
+
   @@index([organisationId, occurredAt])
   @@index([organisationId, eventType, occurredAt])
   @@index([episodeId])
+}
+
+/// Append-only qualification of an immutable usage fact.
+///
+/// The original UsageEvent always remains present for audit. Phase 2 permits at
+/// most one terminal INVALIDATE per event; retries converge on the unique
+/// (usageEventId, correctionType) key rather than accumulating duplicates.
+model UsageEventCorrection {
+  id               String                         @id @default(cuid())
+  usageEventId     String
+  usageEvent       UsageEvent                     @relation(fields: [usageEventId], references: [id], onDelete: Restrict)
+  correctionType   UsageEventCorrectionType
+  reasonCode       UsageEventCorrectionReasonCode
+  reasonDetail     String?
+  createdAt        DateTime                       @default(now())
+  actorUserId      String?
+  systemActor      String?
+  organisationId   String
+  /// JSON produced only by the allow-listed correction service. Never accepts
+  /// arbitrary request payloads or secret-bearing connection objects.
+  metadataJson     String?
+
+  @@unique([usageEventId, correctionType])
+  @@index([organisationId, createdAt])
+  @@index([reasonCode, createdAt])
 }
 
 /// One delivery, recorded so it is never processed twice.

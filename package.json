@@ -27,6 +27,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "test:db": "tsx --test --test-concurrency=1 \"tests/db/*.test.ts\"",
+    "usage:remediate-orphans": "tsx scripts/remediate-usage-orphans.ts",
     "rules:report:timing": "tsx scripts/rule-studio/timing-classification-report.ts",
     "test:ui": "tsx --test \"tests/ui/*.test.ts\""
   },

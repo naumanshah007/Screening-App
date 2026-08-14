@@ -48,6 +48,18 @@ async function context() {
   };
 }
 
+async function episode(organisationId: string, suffix: string) {
+  const id = `${RUN}-${suffix}`;
+  await prisma.screeningEpisode.create({
+    data: {
+      id,
+      organisationId,
+      weakFingerprint: `${id}-weak`,
+    },
+  });
+  return id;
+}
+
 // ─── Exactly once ───────────────────────────────────────────────────────────
 
 test("a first triage can be recorded only once per episode, ever", async () => {
@@ -55,7 +67,7 @@ test("a first triage can be recorded only once per episode, ever", async () => {
   // converge on one billable fact.
   const ctx = await context();
   try {
-    const episodeId = `${RUN}-episode-1`;
+    const episodeId = await episode(ctx.organisationId, "episode-1");
 
     const first = await prisma.$transaction((tx) =>
       recordUsageEvent({
@@ -110,13 +122,16 @@ test("the first-triage key is scoped to the episode alone", () => {
 test("keys never collide across organisations or episodes", async () => {
   const ctx = await context();
   try {
+    const episodeIds = await Promise.all(
+      ["ep-a", "ep-b"].map((suffix) => episode(ctx.organisationId, suffix))
+    );
     const written = await Promise.all(
-      ["ep-a", "ep-b"].map((episodeId) =>
+      episodeIds.map((episodeId) =>
         prisma.$transaction((tx) =>
           recordUsageEvent({
             tx,
             organisationId: ctx.organisationId,
-            episodeId: `${RUN}-${episodeId}`,
+            episodeId,
             eventType: "FIRST_TRIAGE",
             classification: "NEW",
           })
@@ -137,7 +152,7 @@ test("keys never collide across organisations or episodes", async () => {
 test("an update is metered separately from the first triage", async () => {
   const ctx = await context();
   try {
-    const episodeId = `${RUN}-episode-update`;
+    const episodeId = await episode(ctx.organisationId, "episode-update");
     await prisma.$transaction((tx) =>
       recordUsageEvent({
         tx,
@@ -179,7 +194,7 @@ test("an update is metered separately from the first triage", async () => {
 test("a usage event cannot be edited or deleted", async () => {
   const ctx = await context();
   try {
-    const episodeId = `${RUN}-episode-immutable`;
+    const episodeId = await episode(ctx.organisationId, "episode-immutable");
     await prisma.$transaction((tx) =>
       recordUsageEvent({
         tx,

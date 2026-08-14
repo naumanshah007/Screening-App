@@ -120,7 +120,8 @@ test("a second arrival of the same specimen is recognised", async () => {
     assert.equal(again.classification, "COMPLETED");
     assert.equal(again.processable, false);
 
-    await prisma.screeningEpisode.delete({ where: { id: stored.id } });
+    // Arrival history is immutable operational evidence. Phase 2 integrity
+    // closure deliberately prevents cleanup by deleting the parent episode.
   } finally {
     ctx.restore();
   }
@@ -177,7 +178,7 @@ test("an arrival that is not reprocessed still leaves a trace", async () => {
       "the trace must say why, in the source's own terms"
     );
 
-    await prisma.screeningEpisode.delete({ where: { id: episodeId } });
+    // Preserved for the same reason as the observation itself.
   } finally {
     ctx.restore();
   }
@@ -226,7 +227,7 @@ test("a skipped arrival does not move the comparison baseline", async () => {
       "the baseline must remain the content a clinician actually saw"
     );
 
-    await prisma.screeningEpisode.delete({ where: { id: episodeId } });
+    // Preserved for the same reason as the observation itself.
   } finally {
     ctx.restore();
   }
@@ -244,7 +245,7 @@ test("two organisations never share an episode", async () => {
   }
 });
 
-test("deleting an episode takes its observations with it", async () => {
+test("an episode with observations cannot be deleted", async () => {
   const ctx = await context();
   try {
     const accession = `${RUN}-ACC-E`;
@@ -260,11 +261,18 @@ test("deleting an episode takes its observations with it", async () => {
       });
     });
 
-    await prisma.screeningEpisode.delete({ where: { id: episodeId } });
+    await assert.rejects(
+      prisma.$executeRawUnsafe(
+        'DELETE FROM "ScreeningEpisode" WHERE "id" = ?',
+        episodeId
+      ),
+      /SCREENING_EPISODE_HAS_HISTORY/,
+      "deleting an episode must never erase its arrival evidence"
+    );
     assert.equal(
       await prisma.episodeObservation.count({ where: { episodeId } }),
-      0,
-      "observations must not outlive the episode they describe"
+      1,
+      "the observation and its episode must both remain durable"
     );
   } finally {
     ctx.restore();

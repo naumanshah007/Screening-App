@@ -101,26 +101,22 @@ test("37 arrivals produce 37 observations while only 34 become new work", async 
       }
     });
 
-    try {
-      const observations = await prisma.episodeObservation.findMany({
-        where: { episodeId: { in: created } },
-        select: { batchReviewItemId: true },
-      });
+    const observations = await prisma.episodeObservation.findMany({
+      where: { episodeId: { in: created } },
+      select: { batchReviewItemId: true },
+    });
 
-      assert.equal(observations.length, 37, "every arrival must be on record");
-      assert.equal(
-        observations.filter((o) => o.batchReviewItemId !== null).length,
-        34,
-        "only the selected arrivals become new work"
-      );
-      assert.equal(
-        observations.filter((o) => o.batchReviewItemId === null).length,
-        3,
-        "the withheld arrivals must still be traceable"
-      );
-    } finally {
-      await prisma.screeningEpisode.deleteMany({ where: { id: { in: created } } });
-    }
+    assert.equal(observations.length, 37, "every arrival must be on record");
+    assert.equal(
+      observations.filter((o) => o.batchReviewItemId !== null).length,
+      34,
+      "only the selected arrivals become new work"
+    );
+    assert.equal(
+      observations.filter((o) => o.batchReviewItemId === null).length,
+      3,
+      "the withheld arrivals must still be traceable"
+    );
   } finally {
     ctx.restore();
   }

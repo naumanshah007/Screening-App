@@ -36,7 +36,7 @@ export function ClinicalRuleRegradeButton({
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Unable to regrade open cases");
-      setResult(`${payload.regraded} open cases regraded; ${payload.changed} before/after records changed. Original batch pin ${payload.pinnedVersionPreserved ?? "none"} preserved.`);
+      setResult(`${payload.regraded} open cases regraded; ${payload.reused ?? 0} persisted regrades reused; ${payload.changed} before/after records changed. Original batch pin ${payload.pinnedVersionPreserved ?? "none"} preserved.`);
       setOpen(false);
       setReason("");
     } catch (error) {

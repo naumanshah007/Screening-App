@@ -1210,3 +1210,89 @@ BEFORE DELETE ON "UsageEvent"
 BEGIN
   SELECT RAISE(ABORT, 'Usage events are immutable');
 END;
+
+-- A usage fact may only name an episode that already exists in the same
+-- organisation. Additive triggers avoid rebuilding the immutable table.
+CREATE TRIGGER "UsageEvent_episode_exists_insert"
+BEFORE INSERT ON "UsageEvent"
+WHEN NOT EXISTS (
+  SELECT 1 FROM "ScreeningEpisode" WHERE "id" = NEW."episodeId"
+)
+BEGIN
+  SELECT RAISE(ABORT, 'USAGE_EVENT_EPISODE_NOT_FOUND');
+END;
+
+CREATE TRIGGER "UsageEvent_episode_organisation_insert"
+BEFORE INSERT ON "UsageEvent"
+WHEN EXISTS (
+  SELECT 1
+  FROM "ScreeningEpisode"
+  WHERE "id" = NEW."episodeId"
+    AND "organisationId" <> NEW."organisationId"
+)
+BEGIN
+  SELECT RAISE(ABORT, 'USAGE_EVENT_EPISODE_ORGANISATION_MISMATCH');
+END;
+
+CREATE TRIGGER "ScreeningEpisode_history_restrict_delete"
+BEFORE DELETE ON "ScreeningEpisode"
+WHEN EXISTS (
+  SELECT 1 FROM "UsageEvent" WHERE "episodeId" = OLD."id"
+) OR EXISTS (
+  SELECT 1 FROM "EpisodeObservation" WHERE "episodeId" = OLD."id"
+)
+BEGIN
+  SELECT RAISE(ABORT, 'SCREENING_EPISODE_HAS_HISTORY');
+END;
+
+-- Append-only corrections qualify an immutable fact without changing it.
+CREATE TABLE "UsageEventCorrection" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "usageEventId" TEXT NOT NULL,
+  "correctionType" TEXT NOT NULL
+    CHECK ("correctionType" IN ('INVALIDATE')),
+  "reasonCode" TEXT NOT NULL
+    CHECK ("reasonCode" IN ('EPISODE_REGISTRATION_ROLLBACK')),
+  "reasonDetail" TEXT,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "actorUserId" TEXT,
+  "systemActor" TEXT,
+  "organisationId" TEXT NOT NULL,
+  "metadataJson" TEXT,
+  CONSTRAINT "UsageEventCorrection_usageEventId_fkey"
+    FOREIGN KEY ("usageEventId") REFERENCES "UsageEvent" ("id")
+    ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX "UsageEventCorrection_usageEventId_correctionType_key"
+  ON "UsageEventCorrection"("usageEventId", "correctionType");
+
+CREATE INDEX "UsageEventCorrection_organisationId_createdAt_idx"
+  ON "UsageEventCorrection"("organisationId", "createdAt");
+
+CREATE INDEX "UsageEventCorrection_reasonCode_createdAt_idx"
+  ON "UsageEventCorrection"("reasonCode", "createdAt");
+
+CREATE TRIGGER "UsageEventCorrection_organisation_insert"
+BEFORE INSERT ON "UsageEventCorrection"
+WHEN EXISTS (
+  SELECT 1
+  FROM "UsageEvent"
+  WHERE "id" = NEW."usageEventId"
+    AND "organisationId" <> NEW."organisationId"
+)
+BEGIN
+  SELECT RAISE(ABORT, 'USAGE_EVENT_CORRECTION_ORGANISATION_MISMATCH');
+END;
+
+CREATE TRIGGER "UsageEventCorrection_immutable_update"
+BEFORE UPDATE ON "UsageEventCorrection"
+BEGIN
+  SELECT RAISE(ABORT, 'Usage event corrections are immutable');
+END;
+
+CREATE TRIGGER "UsageEventCorrection_immutable_delete"
+BEFORE DELETE ON "UsageEventCorrection"
+BEGIN
+  SELECT RAISE(ABORT, 'Usage event corrections are immutable');
+END;
