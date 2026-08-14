@@ -99,3 +99,106 @@ test("the safety stop explains that any referral came from routing", () => {
     "the panel must attribute an inherited referral to routing, not to the governed rules"
   );
 });
+
+// ─── Case Review structure ──────────────────────────────────────────────────
+
+const DETAIL = readFileSync(
+  join(ROOT, "components", "batch", "BatchResultDetail.tsx"),
+  "utf8"
+);
+
+test("routing and governed evaluation are separate sections", () => {
+  assert.match(DETAIL, /DrawerSection title="Routing"/, "routing must be its own section");
+  assert.match(
+    DETAIL,
+    /Pathway selection only/,
+    "the routing section must state it is selection only"
+  );
+  assert.match(
+    DETAIL,
+    /DrawerSection title="Why this recommendation\?"/,
+    "the governed evaluation must be its own section"
+  );
+  assert.match(
+    DETAIL,
+    /The router selects which pathway applies\. It does not produce the/,
+    "the router must be explicitly excluded from producing the recommendation"
+  );
+});
+
+test("diagnostics are three distinct states, not one 'not available' list", () => {
+  assert.doesNotMatch(
+    DETAIL,
+    /DrawerSection title="Information not available"/,
+    "the merged 'information not available' section must be gone"
+  );
+  for (const title of [
+    "Missing information",
+    "Conflicting information",
+    "Other available facts",
+  ]) {
+    assert.ok(DETAIL.includes(`title="${title}"`), `missing section: ${title}`);
+  }
+  // An available-but-unused fact must never be described as missing.
+  assert.match(
+    DETAIL,
+    /They are available, not missing\./,
+    "unused facts must be distinguished from missing ones"
+  );
+  assert.match(
+    DETAIL,
+    /None identified\./,
+    "an empty missing/conflicting list must say so rather than disappear"
+  );
+});
+
+test("a safety stop does not highlight a terminal in the diagram", () => {
+  assert.match(
+    DETAIL,
+    /activeCode=\{\s*governedSafetyStop \|\| isPreview\s*\?\s*undefined/,
+    "no governed rule matched means no highlighted terminal"
+  );
+  assert.match(
+    DETAIL,
+    /No governed terminal outcome was reached/,
+    "the safety-stop diagram must state no terminal was reached"
+  );
+  assert.match(
+    DETAIL,
+    /"Pathway context"\s*:\s*"Pathway to recommendation"/,
+    "the diagram title must reflect whether an outcome was reached"
+  );
+});
+
+test("guideline basis is filtered but the full set stays reachable", () => {
+  assert.match(DETAIL, /DrawerSection title="Guideline basis"/);
+  assert.match(DETAIL, /rows=\{primaryReferences\}/, "the basis shows the relevant subset");
+  assert.match(
+    DETAIL,
+    /title="Full ruleset references"/,
+    "the complete bibliography must remain available"
+  );
+  assert.match(
+    DETAIL,
+    /rows=\{allReferences\}/,
+    "the full disclosure must render every recorded reference"
+  );
+});
+
+test("technical evidence is collapsed, reviewer controls are not", () => {
+  assert.match(
+    DETAIL,
+    /title="Technical governed evaluation"/,
+    "raw governed evidence must be collapsed"
+  );
+  assert.match(
+    DETAIL,
+    /title="Audit and provenance"/,
+    "provenance must be collapsed"
+  );
+  assert.ok(
+    DETAIL.indexOf('title="Reviewer record"') <
+      DETAIL.indexOf('title="Technical governed evaluation"'),
+    "reviewer controls must appear before the technical evidence"
+  );
+});

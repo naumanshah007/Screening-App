@@ -18,4 +18,4 @@ export { DataTable, RowActions, CellStack } from "./DataTable";
 export type { Column } from "./DataTable";
 export { Timeline, StepTimeline } from "./Timeline";
 export type { TimelineEvent, TimelineTone, StepState } from "./Timeline";
-export { DetailDrawer, DrawerSection, DrawerFields } from "./DetailDrawer";
+export { DetailDrawer, DrawerSection, DrawerDisclosure, DrawerFields } from "./DetailDrawer";

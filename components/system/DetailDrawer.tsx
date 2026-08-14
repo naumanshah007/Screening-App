@@ -58,6 +58,58 @@ export function DrawerSection({
 }
 
 /**
+ * A section that is collapsed by default.
+ *
+ * Technical evidence — raw identifiers, checksums, canonical snapshots, the full
+ * ruleset bibliography — must stay reachable for audit, but a clinician should
+ * not scroll past hundreds of lines of it to reach the reviewer controls. Uses
+ * native <details> so it is keyboard accessible and expandable without state.
+ */
+export function DrawerDisclosure({
+  title,
+  caption,
+  children,
+  defaultOpen = false,
+  className,
+}: {
+  title: string;
+  caption?: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className={cn(
+        "group rounded-lg border border-border bg-card/40 px-3 py-2",
+        className
+      )}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="min-w-0">
+          <span className="block text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+            {title}
+          </span>
+          {caption && (
+            <span className="block text-[0.6875rem] text-muted-foreground/80">
+              {caption}
+            </span>
+          )}
+        </span>
+        <span
+          aria-hidden
+          className="text-xs text-muted-foreground transition-transform group-open:rotate-90"
+        >
+          ›
+        </span>
+      </summary>
+      <div className="mt-2.5 space-y-2">{children}</div>
+    </details>
+  );
+}
+
+/**
  * A key/value list. Uses <dl> so the label–value relationship is exposed to
  * assistive technology rather than being purely visual.
  */

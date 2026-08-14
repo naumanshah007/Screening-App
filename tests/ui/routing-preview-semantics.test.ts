@@ -123,10 +123,10 @@ test("the workflow step does not claim provisional output", () => {
   );
 });
 
-test("the routing trace stops at the selected pathway", () => {
-  // The legacy branch path ends in a clinical terminal (e.g. "Colposcopy").
-  // Showing it asserted the patient had reached an outcome CG-NCSP-3.1.0 has
-  // not determined.
+test("a preview shows no governed outcome and no clinical terminal", () => {
+  // Superseded the single mixed trace: routing and governed evaluation are now
+  // separate sections. The guarantee is unchanged — a preview must not present
+  // a clinical terminal, because none has been determined.
   assert.match(
     DETAIL,
     /preview\s*\?\s*\[decision\.figure \?\? "Pathway", PREVIEW_PENDING_FIELD\]/,
@@ -139,8 +139,13 @@ test("the routing trace stops at the selected pathway", () => {
   );
   assert.match(
     DETAIL,
-    /isPreview \? "Routing trace" : "Reasoning trace"/,
-    "the section must be titled a routing trace in a preview"
+    /isPreview && \(\s*<DrawerSection title="Governed evaluation">/,
+    "a preview must show governed evaluation as pending, not as a result"
+  );
+  assert.match(
+    DETAIL,
+    /Pending — generated when this case is added to the Review Queue\./,
+    "the preview must say when the governed evaluation happens"
   );
 });
 

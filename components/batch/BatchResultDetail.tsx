@@ -9,6 +9,7 @@ import {
 import {
   DetailDrawer,
   DrawerSection,
+  DrawerDisclosure,
   DrawerFields,
   Panel,
   PanelInset,
@@ -193,6 +194,28 @@ function ReasoningTrace({
   );
 }
 
+/**
+ * Fact identifiers as chips.
+ *
+ * Canonical keys are shown verbatim because they are what the evaluation
+ * recorded; a friendly label that did not match the audit trail would be worse
+ * than a technical one a reviewer can search for.
+ */
+function FactChips({ items }: { items: readonly string[] }) {
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {items.map((item) => (
+        <li
+          key={item}
+          className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[0.6875rem] text-foreground"
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function BatchResultDetail({
   result,
   open,
@@ -215,6 +238,29 @@ export function BatchResultDetail({
   // authority. Keyed on the marker the preview API writes, so UI and API cannot
   // drift apart about what "not yet decided" means.
   const isPreview = isRoutingPreview(decision);
+  // No governed rule matched — the governed evaluation reached no terminal
+  // outcome. Same rule as the canonical panel uses, so the two cannot disagree
+  // about whether this case was decided.
+  const governedSafetyStop =
+    Boolean(shadow) && (shadow?.matchedRuleIds.length ?? 0) === 0;
+
+  // §Guideline basis — the primary view shows only references that support the
+  // selected pathway or the controlling rule. The complete ruleset bibliography
+  // is retained and reachable under technical provenance; nothing is dropped
+  // from persisted evidence, this is presentation filtering only.
+  const allReferences = shadow?.sourceReferences ?? [];
+  const figureToken = (decision.figure ?? "").replace("FIGURE_", "Figure ");
+  const ruleTokens = shadow?.matchedRuleIds ?? [];
+  const relevantReferences = allReferences.filter((source) => {
+    const haystack = `${source.document} ${source.reference}`;
+    if (ruleTokens.some((rule) => haystack.includes(rule))) return true;
+    return figureToken ? haystack.includes(figureToken) : false;
+  });
+  // Never show an empty basis: if nothing matched the heuristics, the full set
+  // is more useful than a blank panel.
+  const primaryReferences =
+    relevantReferences.length > 0 ? relevantReferences : allReferences;
+  const hasExtraReferences = primaryReferences.length < allReferences.length;
 
   const patientId =
     c.nhi ?? c.source.externalPatientId ?? `ROW-${String(c.source.rowNumber).padStart(3, "0")}`;
@@ -231,7 +277,7 @@ export function BatchResultDetail({
 
   // ── Clinical facts actually supplied to the engine ───────────────────────
   // Only fields present on the input are listed; a field that was not supplied
-  // is reported in "Information not available" below rather than shown blank,
+  // is reported under the diagnostics sections below rather than shown blank,
   // so a reviewer can tell "absent" apart from "recorded as negative".
   const clinicalFacts: { label: string; value: React.ReactNode }[] = [];
   const fact = (label: string, value: unknown) => {
@@ -271,18 +317,21 @@ export function BatchResultDetail({
 
   // ── Missing / unusable information, straight from the evaluation ─────────
   const diagnostics = shadow?.factDiagnostics;
-  const missingGroups = (
-    [
-      { label: "Missing information", tone: "warn", items: shadow?.missingInformation ?? [] },
-      { label: "Facts not supplied", tone: "warn", items: diagnostics?.factsMissing ?? [] },
-      { label: "Conflicting facts", tone: "danger", items: diagnostics?.factsConflicting ?? [] },
-      {
-        label: "Facts ignored by the ruleset",
-        tone: "neutral",
-        items: diagnostics?.factsIgnored ?? [],
-      },
-    ] as const
-  ).filter((group) => group.items.length > 0);
+
+  // Three DISTINCT states, never merged under one "not available" heading.
+  //
+  // The previous single section listed absent, conflicting AND unused facts
+  // together, so a fact that was present but simply not read by the controlling
+  // rule (patientAge on an F3-05 case) appeared as unavailable — while the age
+  // was displayed a few lines above. Missing and conflicting are always shown,
+  // including when empty, because "none identified" is itself clinically
+  // meaningful; unused is shown only when there is something to say.
+  const missingFacts = [
+    ...(shadow?.missingInformation ?? []),
+    ...(diagnostics?.factsMissing ?? []),
+  ].filter((value, index, all) => all.indexOf(value) === index);
+  const conflictingFacts = diagnostics?.factsConflicting ?? [];
+  const unusedFacts = diagnostics?.factsIgnored ?? [];
 
   // ── Provenance, from recorded timestamps only ────────────────────────────
   const provenance = [
@@ -620,83 +669,156 @@ export function BatchResultDetail({
             )}
           </DrawerSection>
 
-          {/* ── Missing information ──────────────────────────────────────── */}
-          {missingGroups.length > 0 && (
-            <DrawerSection title="Information not available">
-              <div className="space-y-2">
-                {missingGroups.map((group) => (
-                  <PanelInset key={group.label}>
-                    <div className="flex items-center gap-2">
-                      <SectionIcon>
-                        <HelpCircle className="h-3.5 w-3.5" />
-                      </SectionIcon>
-                      <StatusBadge tone={group.tone} size="sm">
-                        {group.label}
-                      </StatusBadge>
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        {group.items.length}
-                      </span>
-                    </div>
-                    <ul className="mt-2 flex flex-wrap gap-1.5">
-                      {group.items.map((item) => (
-                        <li
-                          key={item}
-                          className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[0.6875rem] text-foreground"
-                        >
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </PanelInset>
-                ))}
-                <p className="text-xs text-muted-foreground">
-                  These are facts the evaluation recorded as absent, conflicting or unused. An
-                  absent fact is not the same as a negative result.
-                </p>
-              </div>
+          {/* ── Diagnostics: three distinct states ───────────────────────── */}
+          {shadow && (
+            <>
+              <DrawerSection title="Missing information">
+                {missingFacts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">None identified.</p>
+                ) : (
+                  <>
+                    <FactChips items={missingFacts} />
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Recorded as absent by the evaluation. An absent fact is not
+                      the same as a negative result.
+                    </p>
+                  </>
+                )}
+              </DrawerSection>
+
+              <DrawerSection title="Conflicting information">
+                {conflictingFacts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">None identified.</p>
+                ) : (
+                  <FactChips items={conflictingFacts} />
+                )}
+              </DrawerSection>
+
+              {unusedFacts.length > 0 && (
+                <DrawerSection title="Other available facts">
+                  <FactChips items={unusedFacts} />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    These facts are recorded for this case but were not required
+                    by the controlling rule. They are available, not missing.
+                  </p>
+                </DrawerSection>
+              )}
+            </>
+          )}
+
+          {/* ── Routing: pathway selection only ──────────────────────────── */}
+          <DrawerSection title="Routing">
+            <PanelInset>
+              <p className="text-[0.6875rem] uppercase tracking-wider text-muted-foreground">
+                Pathway selection only
+              </p>
+              <dl className="mt-2 grid gap-1.5 text-xs sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground">Routing service</dt>
+                  <dd className="font-mono font-medium text-foreground">
+                    business-figures-table1-v1
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Selected pathway</dt>
+                  <dd className="font-mono font-medium text-foreground">
+                    {decision.figure ?? "—"}
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-2 text-xs text-muted-foreground">
+                The router selects which pathway applies. It does not produce the
+                clinical recommendation.
+              </p>
+            </PanelInset>
+          </DrawerSection>
+
+          {/* ── Governed evaluation ──────────────────────────────────────── */}
+          {!isPreview && (
+            <DrawerSection title="Why this recommendation?">
+              <PanelInset>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <SectionIcon>
+                      <GitBranch className="h-3.5 w-3.5" />
+                    </SectionIcon>
+                    <p className="text-xs text-muted-foreground">
+                      Evaluated by the current governed rules
+                    </p>
+                  </div>
+                  <StatusBadge tone="info" size="sm">
+                    Reviewer confirmation required
+                  </StatusBadge>
+                </div>
+                <dl className="mb-3 grid gap-1.5 text-xs sm:grid-cols-2">
+                  <div>
+                    <dt className="text-muted-foreground">Ruleset</dt>
+                    <dd className="font-mono font-medium text-foreground">
+                      {shadow?.ruleVersionDisplay ?? "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Controlling rule</dt>
+                    <dd className="font-mono font-medium text-foreground">
+                      {shadow && shadow.matchedRuleIds.length > 0
+                        ? shadow.matchedRuleIds.join(", ")
+                        : "Governance safety stop"}
+                    </dd>
+                  </div>
+                </dl>
+                {governedSafetyStop ? (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    No executable governed rule matched this case, so no terminal
+                    outcome was reached. Clinician review is required.
+                  </p>
+                ) : (
+                  <ReasoningTrace decision={decision} figureTitle={citation?.title} />
+                )}
+              </PanelInset>
             </DrawerSection>
           )}
 
-          {/* ── Reasoning trace ──────────────────────────────────────────── */}
-          <DrawerSection title={isPreview ? "Routing trace" : "Reasoning trace"}>
-            <PanelInset>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <SectionIcon>
-                    <GitBranch className="h-3.5 w-3.5" />
-                  </SectionIcon>
-                  <p className="text-xs text-muted-foreground">
-                    {isPreview ? (
-                      <>Routing recorded by <span className="font-mono">{"business-figures-table1-v1"}</span></>
-                    ) : (
-                      <>Path recorded by <span className="font-mono">evaluateClinicalDecision()</span></>
-                    )}
-                  </p>
-                </div>
-                <StatusBadge tone="info" size="sm">
-                  Reviewer confirmation required
-                </StatusBadge>
-              </div>
-              <ReasoningTrace decision={decision} figureTitle={citation?.title} />
-            </PanelInset>
-          </DrawerSection>
+          {/* Preview rows have been routed but not evaluated, so the routing
+              section above is the whole story. */}
+          {isPreview && (
+            <DrawerSection title="Governed evaluation">
+              <p className="text-xs text-muted-foreground">
+                Pending — generated when this case is added to the Review Queue.
+              </p>
+            </DrawerSection>
+          )}
 
           {/* ── Pathway diagram ──────────────────────────────────────────── */}
           {(() => {
             const fig = decision.figure ? getFigureById(decision.figure) : undefined;
             if (!fig) return null;
             return (
-              <DrawerSection title="Pathway diagram">
+              <DrawerSection
+                title={
+                  governedSafetyStop || isPreview
+                    ? "Pathway context"
+                    : "Pathway to recommendation"
+                }
+              >
                 <p className="mb-2 text-xs text-muted-foreground">
                   {isPreview
                     ? "This is the pathway the case was routed to. No governed outcome has been determined yet."
-                    : "The highlighted path shows how this case reached its provisional outcome."}{" "}
+                    : governedSafetyStop
+                      ? "No governed terminal outcome was reached. Clinician review is required. The pathway below is shown as context only."
+                      : `This case matched ${shadow?.matchedRuleIds.join(", ")} within the ${decision.figure ?? "selected"} pathway.`}{" "}
                   <FigureLink figure={decision.figure} showIcon /> · open the full pathway.
                 </p>
                 <div className="overflow-hidden rounded-lg border border-border bg-card">
                   <FlowDiagram
                     figure={fig}
-                    activeCode={decision.recommendationCode}
+                    // No highlight when no governed rule matched: the persisted
+                    // recommendationCode is the safety-stop marker, and lighting
+                    // up a terminal would imply the case reached it.
+                    activeCode={
+                      governedSafetyStop || isPreview
+                        ? undefined
+                        : decision.recommendationCode
+                    }
                     height={360}
                     className="rounded-none border-0"
                   />
@@ -707,17 +829,33 @@ export function BatchResultDetail({
 
           {/* ── Guideline & source references ────────────────────────────── */}
           {shadow?.sourceReferences && shadow.sourceReferences.length > 0 && (
-            <DrawerSection title="Guideline references">
+            <DrawerSection title="Guideline basis">
               <Panel padded={false} className="shadow-none">
                 <DataTable
                   dense
                   columns={referenceColumns}
-                  rows={shadow.sourceReferences}
+                  rows={primaryReferences}
                   rowKey={(row, i) => `${row.document}-${row.reference}-${i}`}
                   caption="Guideline documents and references cited by the canonical evaluation"
                 />
               </Panel>
             </DrawerSection>
+          )}
+
+          {hasExtraReferences && (
+            <DrawerDisclosure
+              title="Full ruleset references"
+              caption={`All ${allReferences.length} references recorded for this evaluation`}
+            >
+              <Panel padded={false} className="shadow-none">
+                <DataTable
+                  dense
+                  columns={referenceColumns}
+                  rows={allReferences}
+                  rowKey={(row, i) => `${row.document}-${row.reference}-${i}`}
+                />
+              </Panel>
+            </DrawerDisclosure>
           )}
         </>
       ) : (
@@ -762,12 +900,21 @@ export function BatchResultDetail({
         </DrawerSection>
       )}
 
-      {/* ── Canonical fact evidence / correction ─────────────────────────── */}
-      <CanonicalShadowEvidence
-        result={result}
-        reviewItemId={reviewItemId}
-        canCorrectCanonicalFacts={canCorrectCanonicalFacts}
-      />
+      {/* ── Technical governed evaluation ────────────────────────────────
+          Collapsed by default. Raw identifiers, checksums, the canonical trace
+          and the fact-correction control are all audit-grade evidence and stay
+          fully reachable — but a clinician should reach the reviewer controls
+          above without scrolling past them. */}
+      <DrawerDisclosure
+        title="Technical governed evaluation"
+        caption="Ruleset identity, canonical trace, evaluation ID and fact correction"
+      >
+        <CanonicalShadowEvidence
+          result={result}
+          reviewItemId={reviewItemId}
+          canCorrectCanonicalFacts={canCorrectCanonicalFacts}
+        />
+      </DrawerDisclosure>
 
       {/* ── Validation issues ────────────────────────────────────────────── */}
       {hasValidationIssues && (
@@ -799,11 +946,11 @@ export function BatchResultDetail({
       )}
 
       {/* ── Provenance ───────────────────────────────────────────────────── */}
-      <DrawerSection title="Provenance">
+      <DrawerDisclosure title="Audit and provenance" caption="Recorded timestamps for this case">
         <PanelInset>
           <Timeline events={provenance} />
         </PanelInset>
-      </DrawerSection>
+      </DrawerDisclosure>
 
       {/* Prior decision history is intentionally absent: this case payload
           carries no regrade chain, and inventing one would misrepresent the
