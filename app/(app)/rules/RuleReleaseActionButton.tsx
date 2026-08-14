@@ -25,11 +25,6 @@ export function RuleReleaseActionButton({
   const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
-    if (disabled) {
-      setError(disabledReason ?? "Action is currently unavailable");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
@@ -56,17 +51,28 @@ export function RuleReleaseActionButton({
   }
 
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex flex-col items-start gap-1.5">
       <Button
         type="button"
         variant={variant}
         size="sm"
         loading={loading}
         disabled={disabled}
+        title={disabled ? disabledReason : undefined}
         onClick={handleClick}
       >
         {label}
       </Button>
+      {/*
+        The caller has always computed a precise reason — "Review is required
+        before publish", "Regression suite must pass before publish" — but it
+        was only set from the click handler, and a disabled button never fires
+        one. The reason was therefore unreachable in the UI it was written for.
+        It is now shown whenever the control is unavailable.
+      */}
+      {disabled && disabledReason && (
+        <p className="text-xs text-muted-foreground">{disabledReason}</p>
+      )}
       {error && <div className="text-xs text-destructive">{error}</div>}
     </div>
   );

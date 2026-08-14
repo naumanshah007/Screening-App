@@ -72,6 +72,29 @@ function GovernanceCaseCard({
   const [busy, setBusy] = useState<"PROPOSE" | "APPROVE" | "REJECT" | "REQUEST_CHANGE" | null>(null);
   const [error, setError] = useState("");
 
+  /**
+   * Why a governance control is unavailable, or null when it is available.
+   *
+   * Reproduces the button's own `disabled` predicates in the same order. It is
+   * a description of the existing gate, not a new one: nothing here can enable
+   * a control, and the server re-checks entitlement on every submission.
+   */
+  function blockedReason(entitled: boolean, verb: "propose" | "approve"): string | null {
+    if (!entitled) {
+      return verb === "propose"
+        ? "Your role cannot submit clinical interpretation proposals."
+        : "Your role cannot record an approval decision, and a proposer cannot approve their own interpretation.";
+    }
+    if (status !== "DRAFT") {
+      return `This version is ${status}. Governance decisions are recorded against a draft revision only.`;
+    }
+    if (comments.trim().length < 10) {
+      return "Record reviewer comments of at least 10 characters first.";
+    }
+    if (busy !== null) return "A decision is being recorded.";
+    return null;
+  }
+
   async function submit(action: "PROPOSE" | "APPROVE" | "REJECT" | "REQUEST_CHANGE") {
     setBusy(action);
     setError("");
@@ -193,10 +216,24 @@ function GovernanceCaseCard({
           />
         </div>
         {error && <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{error}</div>}
+        {/*
+          Why each control is unavailable.
+
+          Live QA found all four greyed out with no title and no adjacent text,
+          so a reviewer could not tell whether they lacked the entitlement, were
+          looking at a published version, or had simply not written a comment
+          yet — three very different situations.
+
+          `blockedReason` reproduces the SAME predicates in the SAME order as
+          the `disabled` expressions below; it does not widen, narrow or reorder
+          any of them. Nothing here changes who may propose or approve, or what
+          the server accepts.
+        */}
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             disabled={!canPropose || status !== "DRAFT" || comments.trim().length < 10 || busy !== null}
+            title={blockedReason(canPropose, "propose") ?? undefined}
             onClick={() => void submit("PROPOSE")}
             icon={busy === "PROPOSE" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
           >
@@ -205,6 +242,7 @@ function GovernanceCaseCard({
           <Button
             variant="primary"
             disabled={!canApprove || status !== "DRAFT" || comments.trim().length < 10 || busy !== null}
+            title={blockedReason(canApprove, "approve") ?? undefined}
             onClick={() => void submit("APPROVE")}
             icon={busy === "APPROVE" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           >
@@ -213,6 +251,7 @@ function GovernanceCaseCard({
           <Button
             variant="danger"
             disabled={!canApprove || status !== "DRAFT" || comments.trim().length < 10 || busy !== null}
+            title={blockedReason(canApprove, "approve") ?? undefined}
             onClick={() => void submit("REJECT")}
             loading={busy === "REJECT"}
           >
@@ -221,12 +260,18 @@ function GovernanceCaseCard({
           <Button
             variant="outline"
             disabled={!canApprove || status !== "DRAFT" || comments.trim().length < 10 || busy !== null}
+            title={blockedReason(canApprove, "approve") ?? undefined}
             onClick={() => void submit("REQUEST_CHANGE")}
             loading={busy === "REQUEST_CHANGE"}
           >
             REQUEST CHANGE
           </Button>
         </div>
+        {(blockedReason(canPropose, "propose") || blockedReason(canApprove, "approve")) && (
+          <p className="text-xs text-muted-foreground">
+            {blockedReason(canApprove, "approve") ?? blockedReason(canPropose, "propose")}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

@@ -96,6 +96,18 @@ export function CanonicalShadowEvidence({
   // retained for genuine SHADOW / SIMULATION evidence.
   const isOperative = isOperativeEvaluationMode(shadow.evaluationMode);
 
+  // Why the re-evaluation control is unavailable, in the order a reviewer fills
+  // the form. Null means it is available. These are the same conditions that
+  // previously disabled the button silently — naming them changes nothing about
+  // what is accepted, only whether the reviewer can tell what is missing.
+  const correctionBlockedReason = !factName.trim()
+    ? "Enter the fact name you are adding or correcting."
+    : factStatus === "KNOWN" && !factValue.trim()
+      ? "A KNOWN fact needs a value."
+      : correctionReason.trim().length < 10
+        ? "Give a correction reason of at least 10 characters."
+        : null;
+
   return (
     <section aria-labelledby="canonical-shadow-heading" className="space-y-2">
       <h3 id="canonical-shadow-heading" className="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
@@ -169,7 +181,18 @@ export function CanonicalShadowEvidence({
             </div>
             <label className="mt-2 block text-xs font-semibold">Correction reason<textarea value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} rows={2} className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-xs" placeholder="Why this fact is being added or corrected (minimum 10 characters)." /></label>
             {correctionError && <div role="alert" className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{correctionError}</div>}
-            <Button className="mt-3" size="sm" loading={correcting} disabled={!factName.trim() || correctionReason.trim().length < 10 || (factStatus === "KNOWN" && !factValue.trim())} onClick={() => void correctCanonicalFact()}>{isOperative ? "Create governed re-evaluation" : "Preserve prior and rerun shadow"}</Button>
+            {/*
+              A disabled control has to say what is missing.
+
+              Live QA found this button greyed out with no title, no aria-label
+              and no adjacent text — the reviewer had to guess which of four
+              validation rules was unmet. The requirements themselves are
+              unchanged; they are simply now stated.
+            */}
+            <Button className="mt-3" size="sm" loading={correcting} disabled={Boolean(correctionBlockedReason)} title={correctionBlockedReason ?? undefined} onClick={() => void correctCanonicalFact()}>{isOperative ? "Create governed re-evaluation" : "Preserve prior and rerun shadow"}</Button>
+            {correctionBlockedReason && (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">{correctionBlockedReason}</p>
+            )}
           </div>
         )}
       </div>

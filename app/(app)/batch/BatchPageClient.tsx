@@ -588,8 +588,11 @@ export function BatchPageClient({
               <div className="text-sm">
                 <p className="font-semibold text-foreground">Add to Review Queue</p>
                 <p className="text-muted-foreground">
-                  Save these {state.result.results.length} prepared cases to the Review Queue so a reviewer can
-                  confirm, reject, or request more information with the full case context.
+                  Save {state.result.results.length === 1
+                    ? "this prepared case"
+                    : `these ${state.result.results.length} prepared cases`}{" "}
+                  to the Review Queue so a reviewer can confirm, reject, or request more information
+                  with the full case context.
                 </p>
                 {worklistError && (
                   <p className="text-red-600 dark:text-red-400 mt-1">{worklistError}</p>

@@ -140,10 +140,19 @@ export function ActiveClinicalAuthorityIndicator({
   const canonicalActive = authorityEngine === "CANONICAL" && Boolean(ruleSetVersion);
   return (
     <div className={cn("flex flex-col gap-0.5 text-xs", className)}>
+      {/*
+        This sits in the sidebar on every page, for every role including GP, so
+        it is read far more often by clinicians than by auditors. It names the
+        ruleset the way the Guidelines surface does; the engine-level vocabulary
+        stays on the governance, Rule Studio and provenance surfaces that are
+        actually about which engine decides.
+      */}
       <span>
-        <span className="text-muted-foreground">Clinical authority: </span>
+        <span className="text-muted-foreground">
+          {canonicalActive ? "Current governed rules: " : "Clinical authority: "}
+        </span>
         <span className="font-medium">
-          {canonicalActive ? `Canonical ${ruleSetVersion}` : "Legacy"}
+          {canonicalActive ? ruleSetVersion : "Previous grading rules"}
         </span>
       </span>
       {!canonicalActive && ruleSetVersion ? (
