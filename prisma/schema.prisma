@@ -1477,6 +1477,64 @@ model EpisodeObservation {
   @@index([batchRunId])
 }
 
+/// What the platform did, as an objective fact. Never what it costs.
+///
+/// FACTS AND POLICY ARE SEPARATE, DELIBERATELY
+/// -------------------------------------------
+/// There is no price here and no `billable` boolean. Prices change over the life
+/// of a contract while facts do not, and this table is append-only — so a
+/// billing opinion frozen into it could never be corrected without either
+/// rewriting history or contradicting it. An invoice is produced by evaluating a
+/// billing policy against these events; a contract change is a new policy, not a
+/// migration.
+///
+/// The commercial unit is FIRST_TRIAGE: one first governed evaluation per unique
+/// clinical episode. Updates, regrades and suppressed duplicates are recorded as
+/// their own event types so they can be counted, reported and — if terms ever
+/// say so — priced, without any of that being decided here.
+///
+/// EXACTLY ONCE
+/// ------------
+/// `idempotencyKey` is unique and deterministic, so a retried save, a duplicated
+/// request or a partial failure that is re-run cannot bill twice. For a first
+/// triage the key contains only the organisation and episode, which makes
+/// "one first triage per episode, ever" a database guarantee rather than an
+/// application convention.
+model UsageEvent {
+  id             String @id @default(cuid())
+  organisationId String
+  episodeId      String
+
+  /// FIRST_TRIAGE | UPDATE_REEVALUATION | REGRADE | DUPLICATE_SUPPRESSED
+  eventType String
+  /// The episode classification that produced this event, for reconciliation.
+  classification String
+
+  /// What was evaluated, so a usage line can be traced to the clinical record.
+  batchReviewItemId String?
+  ruleEvaluationId  String?
+  batchRunId        String?
+
+  /// Which governed ruleset ran. An invoice period may span a version change.
+  rulesetVersion  String?
+  rulesetChecksum String?
+  /// Where the work came from — demo connector, upload, FHIR, HL7 gateway.
+  source          String?
+
+  /// Demonstration traffic, excluded from any real commercial count by the same
+  /// mechanism that keeps demo attestations out of production governance gates.
+  isDemo Boolean @default(false)
+
+  /// Deterministic. Uniqueness is what makes writes exactly-once.
+  idempotencyKey String @unique
+
+  occurredAt DateTime @default(now())
+
+  @@index([organisationId, occurredAt])
+  @@index([organisationId, eventType, occurredAt])
+  @@index([episodeId])
+}
+
 /// One delivery, recorded so it is never processed twice.
 ///
 /// TRANSPORT IDENTITY ONLY — NOTHING CLINICAL

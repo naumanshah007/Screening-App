@@ -28,6 +28,7 @@ import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle
 import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
 import { clinicalPayloadDigest, rawPayloadDigest } from "@/lib/batch/source-identity";
 import { processBatch } from "@/lib/batch/processor";
+import { recordUsageEvent, usageEventTypeFor } from "@/lib/usage/usage-events";
 import {
   classifyIncomingCases,
   identityForCase,
@@ -287,7 +288,7 @@ export async function saveBatchRun(args: {
 
         for (const entry of withheldClassified) {
           const item = routed.results[entry.index];
-          await recordEpisodeObservation({
+          const episodeId = await recordEpisodeObservation({
             tx,
             organisationId,
             batchRunId: run.id,
@@ -297,6 +298,25 @@ export async function saveBatchRun(args: {
             // what makes the observation worth writing.
             batchReviewItemId: null,
           });
+
+          // Metered as suppression, not as absence. A service asking why its
+          // received volume exceeds its triaged volume is answered from this.
+          const suppressedType = usageEventTypeFor({
+            classification: entry.classification,
+            evaluated: false,
+            episodeAlreadyTriaged: true,
+          });
+          if (suppressedType) {
+            await recordUsageEvent({
+              tx,
+              organisationId,
+              episodeId,
+              eventType: suppressedType,
+              classification: entry.classification,
+              batchRunId: run.id,
+              source: run.source,
+            });
+          }
         }
       }
     });
@@ -411,6 +431,51 @@ export async function saveBatchRun(args: {
             reviewRequired: isReviewRequired(operativeResult),
           },
         });
+
+        // Meter the governed evaluation that just happened.
+        //
+        // Recorded here, after the evaluation succeeded, so the ledger counts
+        // work that actually took place rather than work that was attempted. A
+        // failed evaluation produces no usage event at all — the fail-closed
+        // branch below writes a safety state, and charging for a case that
+        // reached no governed recommendation would be indefensible.
+        //
+        // Written outside the run's transaction and best-effort: usage
+        // accounting must never be able to fail a clinical decision that has
+        // already been computed and persisted.
+        const episodeId = episodeIdByRow.get(reviewItem.rowNumber);
+        if (episodeId) {
+          try {
+            const alreadyTriaged = await prisma.usageEvent.findFirst({
+              where: { episodeId, eventType: "FIRST_TRIAGE" },
+              select: { id: true },
+            });
+            const eventType = usageEventTypeFor({
+              classification: supersedes ? "UPDATED" : "NEW",
+              evaluated: true,
+              episodeAlreadyTriaged: Boolean(alreadyTriaged),
+            });
+            if (eventType) {
+              await prisma.$transaction(async (tx) =>
+                recordUsageEvent({
+                  tx,
+                  organisationId,
+                  episodeId,
+                  eventType,
+                  classification: supersedes ? "UPDATED" : "NEW",
+                  batchReviewItemId: reviewItem.id,
+                  ruleEvaluationId: graded.evaluationId,
+                  batchRunId: run.id,
+                  rulesetVersion: runRuleVersion?.displayVersion ?? null,
+                  rulesetChecksum: runRuleVersion?.checksum ?? null,
+                  source: run.source,
+                })
+              );
+            }
+          } catch (usageError) {
+            console.error("Usage metering failed for item", reviewItem.id, usageError);
+          }
+        }
       } catch (error) {
         // FAIL CLOSED.
         //

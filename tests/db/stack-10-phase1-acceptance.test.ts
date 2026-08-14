@@ -136,16 +136,30 @@ test("saveBatchRun accepts the arrivals it is not processing", async () => {
     "utf8"
   );
   assert.match(source, /withheldCases\?: CanonicalBatchCase\[\]/);
+
+  // Assert the intent, not the formatting: the withheld branch must record an
+  // observation carrying no review item.
+  const branch = source.slice(
+    source.indexOf("const withheld = args.withheldCases"),
+    source.indexOf("} catch (error) {", source.indexOf("const withheld = args.withheldCases"))
+  );
+  assert.ok(branch.length > 0, "the withheld branch must exist");
+  assert.match(branch, /recordEpisodeObservation\(\{/, "it must record an observation");
   assert.match(
-    source,
-    /batchReviewItemId: null,\s*\n\s*\}\);\s*\n\s*\}\s*\n\s*\}/,
+    branch,
+    /batchReviewItemId: null/,
     "withheld arrivals must be recorded with no review item"
   );
   // They must be re-classified server-side, never trusted from the client.
   assert.match(
-    source,
-    /const routed = processBatch\(withheld/,
+    branch,
+    /processBatch\(withheld/,
     "withheld arrivals must be re-routed server-side"
+  );
+  assert.match(
+    branch,
+    /classifyIncomingCases\(\{/,
+    "and re-classified server-side rather than trusting the client"
   );
 });
 

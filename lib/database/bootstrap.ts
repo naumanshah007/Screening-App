@@ -231,6 +231,7 @@ export async function ensureClinicalRuleSchema(url: string) {
     await ensureOrganisationScope(client);
     await ensureSourceIdentitySchema(client);
     await ensureEpisodeRegisterSchema(client);
+    await ensureUsageLedgerSchema(client);
   } finally {
     client.close();
   }
@@ -485,6 +486,66 @@ async function ensureEpisodeRegisterSchema(client: ReturnType<typeof createClien
   await client.execute(
     'CREATE INDEX IF NOT EXISTS "EpisodeObservation_batchRunId_idx" ON "EpisodeObservation"("batchRunId")'
   );
+}
+
+/**
+ * The usage ledger.
+ *
+ * Two properties are database-enforced rather than left to application code,
+ * because both are things a retry or a bug would otherwise get wrong:
+ *
+ *   The unique index on `idempotencyKey` makes writes exactly-once. For a first
+ *   triage the key contains only the organisation and episode, so "one first
+ *   governed triage per episode, ever" is a constraint, not a convention.
+ *
+ *   The immutability triggers make the ledger append-only, matching
+ *   RuleEvaluation. A usage ledger that can be quietly edited is not evidence.
+ */
+async function ensureUsageLedgerSchema(client: ReturnType<typeof createClient>) {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "UsageEvent" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "organisationId" TEXT NOT NULL,
+      "episodeId" TEXT NOT NULL,
+      "eventType" TEXT NOT NULL,
+      "classification" TEXT NOT NULL,
+      "batchReviewItemId" TEXT,
+      "ruleEvaluationId" TEXT,
+      "batchRunId" TEXT,
+      "rulesetVersion" TEXT,
+      "rulesetChecksum" TEXT,
+      "source" TEXT,
+      "isDemo" BOOLEAN NOT NULL DEFAULT false,
+      "idempotencyKey" TEXT NOT NULL,
+      "occurredAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await client.execute(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "UsageEvent_idempotencyKey_key" ON "UsageEvent"("idempotencyKey")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "UsageEvent_organisationId_occurredAt_idx" ON "UsageEvent"("organisationId", "occurredAt")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "UsageEvent_organisationId_eventType_occurredAt_idx" ON "UsageEvent"("organisationId", "eventType", "occurredAt")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "UsageEvent_episodeId_idx" ON "UsageEvent"("episodeId")'
+  );
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "UsageEvent_immutable_update"
+    BEFORE UPDATE ON "UsageEvent"
+    BEGIN
+      SELECT RAISE(ABORT, 'Usage events are immutable');
+    END
+  `);
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "UsageEvent_immutable_delete"
+    BEFORE DELETE ON "UsageEvent"
+    BEGIN
+      SELECT RAISE(ABORT, 'Usage events are immutable');
+    END
+  `);
 }
 
 async function ensureCanonicalProvenanceColumns(
