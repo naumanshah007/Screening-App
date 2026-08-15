@@ -202,7 +202,9 @@ export default async function AdminPage({
           title="Admin Dashboard"
           description="System administration, runtime readiness, rule governance, and audit visibility."
           actions={[
-            { href: "/rules", label: "Open rules" },
+            canManageUsers
+              ? { href: "/rules", label: "Open rules" }
+              : { href: "/admin/integrations", label: "Open integrations" },
             canManageUsers
               ? { href: "/analytics", label: "View analytics" }
               : { href: "/audit", label: "View audit" },
@@ -228,14 +230,16 @@ export default async function AdminPage({
             />
           </>
         ) : null}
-        <StatCard
-          label="Active Rule Sets"
-          value={activeRules.toLocaleString()}
-          subtext="Clinical decision rules"
-          variant={activeRules === 0 ? "urgent" : "default"}
-          icon={<Settings className="h-5 w-5" />}
-          href="/rules"
-        />
+        {canManageUsers ? (
+          <StatCard
+            label="Active Rule Sets"
+            value={activeRules.toLocaleString()}
+            subtext="Clinical decision rules"
+            variant={activeRules === 0 ? "urgent" : "default"}
+            icon={<Settings className="h-5 w-5" />}
+            href="/rules"
+          />
+        ) : null}
         <StatCard
           label="Audit Events (30d)"
           value={recentAuditCount.toLocaleString()}
