@@ -18,6 +18,15 @@ export type Permission =
   | "cases:grade"
   | "cases:book"
   | "cases:smo_grade"        // SMO-only grading decisions
+  | "patients:view"
+  | "patients:create"
+  | "patients:edit"
+  | "batch:view"
+  | "batch:manage"
+  | "decisions:view"
+  | "decisions:export"
+  | "audit:view"
+  | "audit:export"
   // Documents & evidence
   | "documents:upload"
   | "documents:ingest"
@@ -38,6 +47,7 @@ export type Permission =
   // Admin
   | "admin:users"
   | "admin:settings"
+  | "integration:manage"
   // AI
   | "ai:recommend"
   // Integration
@@ -48,16 +58,19 @@ export type Permission =
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ADMIN: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book", "cases:smo_grade",
+    "patients:view", "patients:create", "patients:edit", "batch:view", "batch:manage",
+    "decisions:view", "decisions:export", "audit:view", "audit:export",
     "documents:upload", "documents:ingest", "summary:generate", "summary:approve",
     "rules:view", "rules:edit", "rules:validate", "rules:approve", "rules:publish",
     "rules:activate", "rules:rollback", "rules:simulate", "rules:export",
     "analytics:view",
-    "admin:users", "admin:settings",
+    "admin:users", "admin:settings", "integration:manage",
     "ai:recommend",
     "integration:ncsr_pull",
   ],
   SMO_REVIEWER: [
     "cases:view", "cases:grade", "cases:smo_grade", "cases:book",
+    "patients:view", "batch:view", "batch:manage", "decisions:view", "decisions:export",
     "documents:upload", "summary:generate", "summary:approve",
     "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
@@ -66,6 +79,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   COLPOSCOPIST: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book",
+    "patients:view", "patients:create", "patients:edit", "batch:view", "batch:manage", "decisions:view", "decisions:export",
     "documents:upload", "documents:ingest", "summary:generate", "summary:approve",
     "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
@@ -73,6 +87,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   COLPO_CNS: [
     "cases:view", "cases:create", "cases:edit", "cases:book",
+    "patients:view", "patients:create", "patients:edit", "batch:view", "batch:manage", "decisions:view", "decisions:export",
     "documents:upload", "documents:ingest", "summary:generate",
     "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
@@ -81,6 +96,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   GYNAE_GRADER: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book",
+    "patients:view", "patients:create", "patients:edit", "batch:view", "batch:manage", "decisions:view", "decisions:export",
     "documents:upload", "documents:ingest", "summary:generate", "summary:approve",
     "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
@@ -88,19 +104,18 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   COORDINATOR: [
     "cases:view", "cases:create", "cases:edit", "cases:book",
+    "patients:view", "patients:create", "patients:edit", "batch:view", "batch:manage", "decisions:view", "decisions:export",
     "documents:upload",
     "analytics:view",
   ],
   GP: [
-    "cases:view",
+    "patients:view", "patients:create",
     "documents:upload",
   ],
   INTEGRATION_ADMIN: [
-    "cases:view",
     "rules:view", "rules:export",
-    "analytics:view",
-    "admin:settings",
-    "integration:ncsr_pull",
+    "admin:settings", "integration:manage",
+    "audit:view", "audit:export",
   ],
 };
 
@@ -139,13 +154,18 @@ export const ROUTE_GUARDS: RouteGuard[] = [
   },
   {
     prefix: "/decisions",
-    requiredRoles: ["ADMIN", "INTEGRATION_ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
     description: "Completed decisions",
   },
   {
     prefix: "/batch",
-    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "INTEGRATION_ADMIN"],
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
     description: "Batch processing & worklists",
+  },
+  {
+    prefix: "/patients",
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "GP"],
+    description: "Patient records",
   },
   {
     prefix: "/readiness",
@@ -192,7 +212,7 @@ export const ROUTE_GUARDS: RouteGuard[] = [
   },
   {
     prefix: "/analytics",
-    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "INTEGRATION_ADMIN"],
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
     description: "Analytics dashboard",
   },
   {
@@ -207,7 +227,7 @@ export const ROUTE_GUARDS: RouteGuard[] = [
   },
   {
     prefix: "/dashboard",
-    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "GP", "INTEGRATION_ADMIN"],
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR", "GP"],
     description: "Dashboard",
   },
 ];
@@ -239,7 +259,7 @@ export function isVisibleInDemoFlow(pathname: string, role: UserRole | string | 
   if (!isAuthorizedForRoute(pathname, role) || !role) return false;
 
   if (pathname === "/batch") {
-    return hasAnyRole(role, ["ADMIN", "COORDINATOR", "INTEGRATION_ADMIN"]);
+    return hasAnyRole(role, ["ADMIN", "COORDINATOR"]);
   }
 
   if (pathname === "/review") {

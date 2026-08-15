@@ -1,6 +1,7 @@
 import { isDemoModeEnabled, listDemoAccounts } from "@/lib/config/demo-mode";
 import { getDefaultAppRouteForRole } from "@/lib/auth/permissions";
 import { LoginPageClient } from "./LoginPageClient";
+import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
 
 // The demo affordance depends on runtime environment state, so this route must
 // never be statically cached with the decision baked in.
@@ -16,10 +17,12 @@ export default async function LoginPage({
   }>;
 }) {
   const params = await searchParams;
+  const boundary = evaluateRuntimeBoundary();
 
   // Resolved on the server. The client never decides whether demo mode is on,
   // and receives only identity/role labels — no credential material.
-  const demoAccounts = isDemoModeEnabled()
+  const demoAccounts =
+    boundary.mode === "DEMO" && boundary.ready && isDemoModeEnabled()
     ? listDemoAccounts().map((account) => ({
         key: account.key,
         label: account.label,
@@ -37,6 +40,9 @@ export default async function LoginPage({
       reauthRequired={params.reauth === "1"}
       callbackUrl={params.callbackUrl ?? null}
       demoAccounts={demoAccounts}
+      runtimeMode={boundary.mode}
+      configurationIssues={boundary.issues.map((issue) => issue.message)}
+      showAuthenticatorCode={boundary.mode === "PILOT"}
     />
   );
 }

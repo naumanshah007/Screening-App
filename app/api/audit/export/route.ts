@@ -7,12 +7,10 @@ import {
   getAuditExportFilename,
   resolveAuditFilters,
 } from "@/lib/security/audit-investigations";
+import { getApiPermissionError } from "@/lib/auth/api-permissions";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
 
 const MAX_EXPORT_ROWS = 1000;
-
-function ensureAuditAccess(role?: string) {
-  return role === "ADMIN" || role === "INTEGRATION_ADMIN";
-}
 
 function escapeCsvField(value: string) {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -24,13 +22,10 @@ function escapeCsvField(value: string) {
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-  }
-
-  const user = session.user as { role?: string };
-  if (!ensureAuditAccess(user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  const permissionError = getApiPermissionError(user, "audit:export");
+  if (permissionError) {
+    return NextResponse.json(permissionError.body, { status: permissionError.status });
   }
 
   const { searchParams } = new URL(req.url);
@@ -65,6 +60,23 @@ export async function GET(req: NextRequest) {
   ]);
 
   const fileName = getAuditExportFilename(filters, format);
+
+  await prisma.auditLog.create({
+    data: buildProtectedAuditEntry({
+      userId: user!.id,
+      action: "AUDIT_TRAIL_EXPORTED",
+      entity: "AuditLog",
+      request: req,
+      exportEvent: true,
+      severity: "WARN",
+      newValue: {
+        format,
+        preset: filters.preset?.key ?? null,
+        exported: logs.length,
+        truncated: total > MAX_EXPORT_ROWS,
+      },
+    }),
+  });
 
   if (format === "csv") {
     const rows = [

@@ -26,7 +26,6 @@ export type CompletedDecisionFilters = {
 
 export const COMPLETED_DECISION_ALL_ROLES: UserRole[] = [
   "ADMIN",
-  "INTEGRATION_ADMIN",
   "COORDINATOR",
 ];
 

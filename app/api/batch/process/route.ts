@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getApiPermissionError } from "@/lib/auth/api-permissions";
+import { safeLogError } from "@/lib/security/safe-logging";
 import { processBatch } from "@/lib/batch/processor";
 import { summariseClassifications } from "@/lib/batch/episode-classification";
 import { classifyIncomingCases } from "@/lib/batch/episode-registry";
@@ -33,8 +35,10 @@ import {
 export async function POST(req: NextRequest) {
   // Auth check
   const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  const permissionError = getApiPermissionError(user, "batch:manage");
+  if (permissionError) {
+    return NextResponse.json(permissionError.body, { status: permissionError.status });
   }
 
   // Feature flag check
@@ -100,7 +104,7 @@ export async function POST(req: NextRequest) {
         items: result.results,
       });
     } catch (error) {
-      console.error("Episode classification unavailable for preview", error);
+      safeLogError("batch.preview.episode_classification_unavailable", error);
     }
 
     const preview = {
@@ -139,9 +143,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(preview);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
+    safeLogError("batch.preview.failed", e);
     return NextResponse.json(
-      { error: `Batch processing failed: ${message}` },
+      { error: "Batch processing failed. The request was not persisted." },
       { status: 500 }
     );
   }

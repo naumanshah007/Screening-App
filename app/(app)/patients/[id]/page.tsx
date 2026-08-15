@@ -14,6 +14,9 @@ import {
   Microscope, ClipboardList
 } from "lucide-react";
 import { PageShell } from "@/components/system";
+import { auth } from "@/lib/auth";
+import { buildPatientScope, type ResourceActor } from "@/lib/auth/resource-access";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -21,9 +24,12 @@ interface Props {
 
 export default async function PatientDetailPage({ params }: Props) {
   const { id } = await params;
+  const session = await auth();
+  const actor = session?.user as ResourceActor | undefined;
+  if (!actor?.id) notFound();
 
-  const patient = await prisma.patient.findUnique({
-    where: { id },
+  const patient = await prisma.patient.findFirst({
+    where: { AND: [{ id }, buildPatientScope(actor)] },
     include: {
       gpPractice: true,
       medicalHistory: true,
@@ -41,6 +47,16 @@ export default async function PatientDetailPage({ params }: Props) {
   });
 
   if (!patient) notFound();
+
+  await prisma.auditLog.create({
+    data: buildProtectedAuditEntry({
+      userId: actor.id,
+      action: "PHI_RECORD_READ",
+      entity: "Patient",
+      entityId: patient.id,
+      newValue: { surface: "patient_detail_page" },
+    }),
+  });
 
   const latestSession = patient.screeningSessions[0];
   const nextRecall = patient.recalls.find((r) => r.status === "PENDING");

@@ -3,8 +3,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createRecoveryCodes } from "@/lib/auth/recovery-codes";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
+import { safeLogError } from "@/lib/security/safe-logging";
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await auth();
   const sessionUser = session?.user as { id?: string } | undefined;
 
@@ -43,16 +45,17 @@ export async function POST() {
       });
 
       await tx.auditLog.create({
-        data: {
+        data: buildProtectedAuditEntry({
           userId: user.id,
-          action: "UPDATE",
+          action: "MFA_RECOVERY_CODES_GENERATED",
           entity: "User2FARecoveryCodes",
           entityId: user.id,
-          newValue: JSON.stringify({
+          request,
+          newValue: {
             generated: true,
             count: recoveryCodes.rawCodes.length,
-          }),
-        },
+          },
+        }),
       });
     });
 
@@ -63,13 +66,9 @@ export async function POST() {
       recoveryCodes: recoveryCodes.rawCodes,
     });
   } catch (error) {
+    safeLogError("auth.mfa.recovery_codes_failed", error);
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to generate recovery codes",
-      },
+      { error: "Unable to generate recovery codes" },
       { status: 400 }
     );
   }

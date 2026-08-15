@@ -93,10 +93,14 @@ export default async function AuditPage({
           eyebrow={workspace.label}
           title="Audit Investigation"
           description="Saved investigations, filtered audit review, and exportable evidence for security and governance follow-up."
-          actions={[
-            { href: "/analytics", label: "Back to analytics" },
-            { href: "/admin", label: "Open admin" },
-          ]}
+          actions={
+            user?.role === "ADMIN"
+              ? [
+                  { href: "/analytics", label: "Back to analytics" },
+                  { href: "/admin", label: "Open admin" },
+                ]
+              : [{ href: "/admin", label: "Open admin" }]
+          }
         />
 
       <Card>

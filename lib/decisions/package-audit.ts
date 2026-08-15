@@ -40,7 +40,7 @@ export function buildDecisionPackageAuditPayload(input: DecisionPackageAuditInpu
     eventLabel,
     packageLabel: "Integration-ready preview",
     simulated: true,
-    safetyNotice: "Demo environment. Not for direct clinical action.",
+    safetyNotice: "Simulated handoff. Not for direct clinical action.",
     actorUserId: input.actorUserId,
     batchReviewItemId: input.batchReviewItemId,
     batchRunId: input.batchRunId,
@@ -54,19 +54,18 @@ export async function recordDecisionPackageAudit(args: DecisionPackageAuditInput
   request?: Request | null;
 }) {
   const { prisma } = await import("@/lib/prisma");
-  const { ipAddress, userAgent } = extractDecisionPackageRequestMetadata(args.request);
+  const { buildProtectedAuditEntry } = await import("@/lib/security/audit");
   const payload = buildDecisionPackageAuditPayload(args);
 
   return prisma.auditLog.create({
-    data: {
+    data: buildProtectedAuditEntry({
       userId: args.actorUserId,
       action: args.action,
       entity: "DecisionPackage",
       entityId: args.batchReviewItemId,
       exportEvent: true,
-      ipAddress,
-      userAgent,
-      newValue: JSON.stringify(payload),
-    },
+      request: args.request,
+      newValue: payload,
+    }),
   });
 }

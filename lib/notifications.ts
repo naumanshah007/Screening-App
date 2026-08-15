@@ -10,6 +10,9 @@
 import nodemailer from "nodemailer";
 
 import { prisma } from "@/lib/prisma";
+import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
+import { safeLogError, writeSafeLog } from "@/lib/security/safe-logging";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -77,36 +80,33 @@ export type NotificationRuntimeSummary = {
 
 // ─── Delivery helpers ──────────────────────────────────────────────────────────
 
-function devLog(channel: string, to: string, subject: string, body: string) {
-  console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log(`📧 [DEV EMAIL] Channel: ${channel}`);
-  console.log(`   To:      ${to}`);
-  console.log(`   Subject: ${subject}`);
-  console.log("   Body:");
-  body.split("\n").forEach((line) => console.log(`   ${line}`));
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+function devLog(channel: string, referenceId: string) {
+  writeSafeLog("info", "notification.development_delivery_suppressed", {
+    channel,
+    referenceId,
+  });
 }
 
 async function logNotificationAudit(
   channel: string,
-  to: string,
-  subject: string,
+  _to: string,
+  _subject: string,
   referenceId: string,
   entity = "WizardSession",
   actorUserId?: string | null
 ) {
   try {
     await prisma.auditLog.create({
-      data: {
+      data: buildProtectedAuditEntry({
         userId: actorUserId ?? null,
         action: "NOTIFICATION_SENT",
         entity,
         entityId: referenceId,
-        newValue: JSON.stringify({ channel, to, subject }),
-      },
+        newValue: { channel, deliveryAttempted: true },
+      }),
     });
-  } catch {
-    // Non-fatal
+  } catch (error) {
+    safeLogError("notification.audit.write_failed", error, { channel, entity });
   }
 }
 
@@ -122,12 +122,17 @@ function hasSmtpConfig() {
 
 export function getNotificationRuntimeSummary(): NotificationRuntimeSummary {
   if (!hasSmtpConfig()) {
+    const pilot = evaluateRuntimeBoundary().mode === "PILOT";
     return {
       configured: false,
       mode: "development",
-      summary: "Notifications are running in development log mode.",
+      summary: pilot
+        ? "Notifications are blocked: SMTP is not configured for pilot mode."
+        : "Notifications are running in development suppression mode.",
       detail:
-        "SMTP settings are not configured, so emails are logged to the console and audit trail instead of being delivered.",
+        pilot
+          ? "Pilot mode never writes message recipients or content to logs as a delivery fallback."
+          : "SMTP settings are not configured. Message content and recipient identity are suppressed; only metadata-only evidence is recorded.",
     };
   }
 
@@ -158,7 +163,10 @@ async function deliverEmail({
   actorUserId?: string | null;
 }): Promise<NotificationResult> {
   if (!hasSmtpConfig()) {
-    devLog(channel, to, subject, body);
+    if (evaluateRuntimeBoundary().mode === "PILOT") {
+      throw new Error("Notification delivery is unavailable in pilot mode until SMTP is configured.");
+    }
+    devLog(channel, referenceId);
     await logNotificationAudit(channel, to, subject, referenceId, entity, actorUserId);
     return { channel, email: to, status: "logged" };
   }

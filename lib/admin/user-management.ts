@@ -8,6 +8,7 @@ import {
 import { assertDemoModeEnabled, getDemoPassword } from "@/lib/config/demo-mode";
 import { buildUserAuditEntry, USER_AUDIT_ACTION } from "@/lib/admin/user-audit";
 import { prisma } from "@/lib/prisma";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
 
 const adminUserInclude = {
   gpPractice: {
@@ -190,6 +191,9 @@ export async function updateUserAccess(args: {
     throw new Error("No access changes were requested");
   }
 
+  // Any access-control mutation revokes existing JWT sessions immediately.
+  updateData.sessionVersion = { increment: 1 };
+
   const updatedUser = await prisma.$transaction(async (tx) => {
     const user = await tx.user.update({
       where: { id: args.targetUserId },
@@ -198,19 +202,17 @@ export async function updateUserAccess(args: {
     });
 
     await tx.auditLog.create({
-      data: {
-        ...buildUserAuditEntry({
+      data: buildUserAuditEntry({
           action: USER_AUDIT_ACTION.USER_ROLE_CHANGED,
           actorUserId: args.changedByUserId,
           targetUserId: user.id,
           details: changedFields,
-        }),
-        oldValue: JSON.stringify({
+          oldValue: {
           role: targetUser.role,
           failedAttempts: targetUser.failedAttempts,
           lockedUntil: targetUser.lockedUntil?.toISOString() ?? null,
+          },
         }),
-      },
     });
 
     return user;
@@ -222,9 +224,8 @@ export async function updateUserAccess(args: {
 /**
  * Enable or disable an account.
  *
- * Disabling is enforced in the credentials provider before any password
- * comparison, so it takes effect on the next authentication attempt rather than
- * waiting for an existing session to expire.
+ * Disabling is enforced before password comparison and increments the session
+ * version, so existing JWTs are rejected on their next request.
  */
 export async function setUserEnabled(args: {
   targetUserId: string;
@@ -264,6 +265,7 @@ export async function setUserEnabled(args: {
       where: { id: args.targetUserId },
       data: {
         isActive: args.isActive,
+        sessionVersion: { increment: 1 },
         // Re-enabling clears a stale lockout so the account is usable again.
         ...(args.isActive ? { failedAttempts: 0, lockedUntil: null } : {}),
       },
@@ -416,13 +418,13 @@ async function applyPasswordReset(args: {
         passwordExpiresAt: null,
         failedAttempts: 0,
         lockedUntil: null,
+        sessionVersion: { increment: 1 },
       },
       include: adminUserInclude,
     });
 
     await tx.auditLog.create({
-      data: {
-        ...buildUserAuditEntry({
+      data: buildUserAuditEntry({
           action: args.action,
           actorUserId: args.changedByUserId,
           targetUserId: user.id,
@@ -432,12 +434,11 @@ async function applyPasswordReset(args: {
             failedAttempts: 0,
             lockedUntil: null,
           },
-        }),
-        oldValue: JSON.stringify({
+          oldValue: {
           failedAttempts: args.targetUser.failedAttempts,
           lockedUntil: args.targetUser.lockedUntil?.toISOString() ?? null,
+          },
         }),
-      },
     });
 
     return user;
@@ -471,27 +472,29 @@ export async function resetUserTwoFactor(args: {
         twoFAEnabled: false,
         twoFASecret: null,
         twoFARecoveryCodesJson: null,
+        sessionVersion: { increment: 1 },
       },
       include: adminUserInclude,
     });
 
     await tx.auditLog.create({
-      data: {
+      data: buildProtectedAuditEntry({
         userId: args.changedByUserId,
-        action: "UPDATE",
+        action: "MFA_RESET_BY_ADMIN",
         entity: "User2FA",
         entityId: user.id,
-        oldValue: JSON.stringify({
+        oldValue: {
           twoFAEnabled: targetUser.twoFAEnabled,
           hadSecret: Boolean(targetUser.twoFASecret),
-        }),
-        newValue: JSON.stringify({
+        },
+        newValue: {
           twoFAEnabled: false,
           hadSecret: false,
           recoveryCodesCleared: true,
           reset: true,
-        }),
-      },
+          sessionRevoked: true,
+        },
+      }),
     });
 
     return user;
@@ -556,13 +559,13 @@ export async function changeOwnPassword(args: {
         passwordExpiresAt,
         failedAttempts: 0,
         lockedUntil: null,
+        sessionVersion: { increment: 1 },
       },
       include: adminUserInclude,
     });
 
     await tx.auditLog.create({
-      data: {
-        ...buildUserAuditEntry({
+      data: buildUserAuditEntry({
           action: USER_AUDIT_ACTION.PASSWORD_CHANGED_BY_USER,
           actorUserId: args.userId,
           targetUserId: user.id,
@@ -571,12 +574,11 @@ export async function changeOwnPassword(args: {
             passwordChangedAt: passwordChangedAt.toISOString(),
             passwordExpiresAt: passwordExpiresAt.toISOString(),
           },
-        }),
-        oldValue: JSON.stringify({
+          oldValue: {
           passwordChangeRequired: targetUser.passwordChangeRequired,
           passwordExpiresAt: targetUser.passwordExpiresAt?.toISOString() ?? null,
+          },
         }),
-      },
     });
 
     return user;

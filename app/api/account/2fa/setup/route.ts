@@ -8,8 +8,10 @@ import {
   generateTwoFactorQrDataUrl,
   generateTwoFactorSecret,
 } from "@/lib/auth/two-factor";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
+import { safeLogError } from "@/lib/security/safe-logging";
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await auth();
   const sessionUser = session?.user as { id?: string; email?: string | null } | undefined;
 
@@ -56,15 +58,16 @@ export async function POST() {
       });
 
       await prisma.auditLog.create({
-        data: {
+        data: buildProtectedAuditEntry({
           userId: user.id,
-          action: "UPDATE",
+          action: "MFA_SETUP_PREPARED",
           entity: "User2FA",
           entityId: user.id,
-          newValue: JSON.stringify({
+          request,
+          newValue: {
             setupPrepared: true,
-          }),
-        },
+          },
+        }),
       });
     }
 
@@ -76,13 +79,9 @@ export async function POST() {
       qrDataUrl,
     });
   } catch (error) {
+    safeLogError("auth.mfa.setup_failed", error);
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to prepare authenticator setup",
-      },
+      { error: "Unable to prepare authenticator setup" },
       { status: 400 }
     );
   }

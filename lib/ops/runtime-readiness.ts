@@ -16,6 +16,8 @@ import {
   type EnterpriseIntegrationId,
   type IntegrationValidationState,
 } from "@/lib/ops/integration-validations";
+import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
+import { PILOT_GOVERNANCE_BASELINE } from "@/lib/ops/pilot-readiness";
 
 const execFileAsync = promisify(execFile);
 
@@ -108,6 +110,7 @@ function computeOverallStatus(
 }
 
 export async function getRuntimeReadinessReport(): Promise<RuntimeReadinessReport> {
+  const runtimeBoundary = evaluateRuntimeBoundary();
   const databaseRuntime = getDatabaseRuntimeSummary();
   const aiStatus = getAiProviderStatus();
   const storageRuntime = getDocumentStorageRuntimeSummary();
@@ -124,6 +127,36 @@ export async function getRuntimeReadinessReport(): Promise<RuntimeReadinessRepor
   );
 
   const checks: RuntimeReadinessCheck[] = [
+    runtimeBoundary.ready
+      ? {
+          id: "runtime-security-boundary",
+          title: "Runtime security boundary",
+          status: runtimeBoundary.mode === "PILOT" ? "ready" : "info",
+          summary: `${runtimeBoundary.mode} mode is internally consistent.`,
+          detail:
+            runtimeBoundary.mode === "PILOT"
+              ? "Demo credentials are excluded, local MFA is required, session windows are explicit, and managed database configuration is present. This does not constitute customer approval."
+              : "Pilot data authority is not inferred from this runtime mode.",
+        }
+      : {
+          id: "runtime-security-boundary",
+          title: "Runtime security boundary",
+          status: "blocked",
+          summary: `${runtimeBoundary.mode} mode is blocked by security configuration.`,
+          detail: runtimeBoundary.issues.map((issue) => issue.message).join(" "),
+          recommendedAction:
+            "Resolve every named configuration or external gate; do not bypass the runtime check.",
+        },
+    {
+      id: "pilot-governance-baseline",
+      title: "Canonical governance baseline",
+      status: runtimeBoundary.mode === "PILOT" ? "blocked" : "info",
+      summary: `${PILOT_GOVERNANCE_BASELINE.interpretationCards} interpretation cards / ${PILOT_GOVERNANCE_BASELINE.distinctClinicalApprovals} distinct clinical approvals / ${PILOT_GOVERNANCE_BASELINE.canonicalActivationGates} canonical activation gates.`,
+      detail:
+        "These are separate canonical-authority gates recovered from the repository. Pilot configuration does not satisfy or bypass them, and no draft ruleset is activated.",
+      recommendedAction:
+        "Complete and evidence governance in its separate approval stream before any canonical activation.",
+    },
     await withValidationCheck(
       databaseRuntime.mode === "remote-libsql"
       ? {

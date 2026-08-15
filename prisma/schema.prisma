@@ -351,13 +351,17 @@ model User {
   lockedUntil                   DateTime?
   lastLoginAt                   DateTime?
   /// Administrative enable/disable. A disabled account cannot authenticate at
-  /// all — checked in the credentials provider before any password comparison,
-  /// so disabling is immediate and does not wait for session expiry.
+  /// all — checked before password comparison and on every JWT refresh. A
+  /// disable also increments sessionVersion so issued sessions are rejected.
   isActive                      Boolean                        @default(true)
   /// True for the seeded demonstration identities. Lets handover readiness
   /// enumerate exactly which accounts must be removed or converted, and keeps
   /// the demo reset control from ever targeting a real account.
   isDemoAccount                 Boolean                        @default(false)
+  /// Incremented for credential, MFA, role and enable/disable changes. JWTs
+  /// carry the value issued at sign-in, providing immediate server-side
+  /// invalidation without storing bearer tokens in the database.
+  sessionVersion                Int                            @default(0)
   gpPracticeId                  String?
   gpPractice                    GPPractice?                    @relation(fields: [gpPracticeId], references: [id])
   accounts                      Account[]
@@ -1309,6 +1313,11 @@ model AuditLog {
   severity      AuditSeverity @default(INFO)
   correlationId String? // links related audit events in a single request/operation
   sessionId     String? // NextAuth session token (hashed) for session-level tracing
+  /// Present only on Sprint B protected evidence. The digest makes accidental
+  /// corruption detectable; database triggers prevent ordinary update/delete.
+  /// This is not a claim of external/WORM immutability.
+  integrityDigest String?
+  protectedAt    DateTime?
   createdAt     DateTime      @default(now())
 
   @@index([entity, action])
@@ -1487,9 +1496,9 @@ model BatchReviewItem {
   reviewRequired     Boolean @default(false)
   engineStatus       String  @default("success") // success | error
 
-  // Full payloads so the reviewer drill-in can reconstruct the BatchCaseResult
-  // without re-running the engine. caseJson = CanonicalBatchCase, inputJson =
-  // ClinicalInput, decisionJson = ClinicalDecision.
+  // Deterministic payloads used to reconstruct the reviewer drill-in without
+  // re-running the engine. Identity/episode fields already stored above are
+  // omitted from caseJson and merged back on read to avoid duplicate PHI.
   ruleEvaluationId   String?         @unique
   ruleEvaluation     RuleEvaluation? @relation(fields: [ruleEvaluationId], references: [id], onDelete: SetNull)
   caseJson           String

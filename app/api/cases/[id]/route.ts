@@ -17,7 +17,7 @@ function featureDisabledResponse() {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!isFeatureEnabled("casesV2")) {
@@ -38,7 +38,7 @@ export async function GET(
     return NextResponse.json({ error: "Referral case not found" }, { status: 404 });
   }
 
-  await recordReferralCaseRead(id, user?.id);
+  await recordReferralCaseRead(id, user?.id, req);
 
   return NextResponse.json(referralCase);
 }

@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTwoFactorCode } from "@/lib/auth/two-factor";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
+import { safeLogError } from "@/lib/security/safe-logging";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -56,35 +58,36 @@ export async function POST(req: NextRequest) {
         where: { id: user.id },
         data: {
           twoFAEnabled: true,
+          // The current password-only enrolment session must not inherit MFA
+          // assurance. The user signs in again with a TOTP code.
+          sessionVersion: { increment: 1 },
         },
       });
 
       await tx.auditLog.create({
-        data: {
+        data: buildProtectedAuditEntry({
           userId: user.id,
-          action: "UPDATE",
+          action: "MFA_ENABLED",
           entity: "User2FA",
           entityId: user.id,
-          newValue: JSON.stringify({
+          request: req,
+          newValue: {
             twoFAEnabled: true,
-          }),
-        },
+            sessionRevoked: true,
+          },
+        }),
       });
     });
 
     return NextResponse.json({
       ok: true,
       message:
-        "Authenticator setup complete. Your account now satisfies two-factor requirements.",
+        "Authenticator setup complete. Sign in again with an authenticator code to continue.",
     });
   } catch (error) {
+    safeLogError("auth.mfa.enable_failed", error);
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to enable two-factor authentication",
-      },
+      { error: "Unable to enable two-factor authentication" },
       { status: 400 }
     );
   }

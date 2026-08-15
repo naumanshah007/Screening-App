@@ -1,19 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import {
+  buildPatientScope,
+  requirePermission,
+  resolvePatientCreatePractice,
+  type ResourceActor,
+} from "@/lib/auth/resource-access";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
 
 // GET /api/patients - List patients with search
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const actor = session?.user as ResourceActor | undefined;
+  const permissionError = requirePermission(actor, "patients:view");
+  if (permissionError) {
+    return NextResponse.json({ error: permissionError.error }, { status: permissionError.status });
+  }
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search") ?? "";
   const status = searchParams.get("status") ?? "ACTIVE";
-  const page = parseInt(searchParams.get("page") ?? "1");
-  const limit = parseInt(searchParams.get("limit") ?? "20");
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1") || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20") || 20));
 
   const where = {
+    AND: [
+      buildPatientScope(actor!),
+      {
     status: status as "ACTIVE" | "ARCHIVED" | "DECEASED",
     OR: search
       ? [
@@ -22,6 +36,8 @@ export async function GET(req: NextRequest) {
           { lastName: { contains: search } },
         ]
       : undefined,
+      },
+    ],
   };
 
   const [patients, total] = await Promise.all([
@@ -38,13 +54,32 @@ export async function GET(req: NextRequest) {
     prisma.patient.count({ where }),
   ]);
 
+  await prisma.auditLog.create({
+    data: buildProtectedAuditEntry({
+      userId: actor!.id,
+      action: "PHI_LIST_READ",
+      entity: "PatientCollection",
+      request: req,
+      newValue: {
+        status,
+        searchApplied: Boolean(search),
+        returnedCount: patients.length,
+        page,
+      },
+    }),
+  });
+
   return NextResponse.json({ patients, total, page, limit });
 }
 
 // POST /api/patients - Create patient
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const actor = session?.user as ResourceActor | undefined;
+  const permissionError = requirePermission(actor, "patients:create");
+  if (permissionError) {
+    return NextResponse.json({ error: permissionError.error }, { status: permissionError.status });
+  }
 
   const body = await req.json();
   const {
@@ -65,6 +100,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  const scopedPracticeId = resolvePatientCreatePractice({
+    actor: actor!,
+    requestedGpPracticeId: gpPracticeId,
+  });
+  if (actor!.role === "GP" && !scopedPracticeId) {
+    return NextResponse.json(
+      { error: "A GP may create patients only within their configured practice." },
+      { status: 403 }
+    );
+  }
+
   const existing = await prisma.patient.findUnique({ where: { nhi } });
   if (existing) {
     return NextResponse.json({ error: "Patient with this NHI already exists" }, { status: 409 });
@@ -79,7 +125,7 @@ export async function POST(req: NextRequest) {
       email,
       phone,
       address,
-      gpPracticeId,
+      gpPracticeId: scopedPracticeId,
       isPostHysterectomy: isPostHysterectomy ?? false,
       previousScreeningType,
       isFirstTimeHPVTransition: isFirstTimeHPVTransition ?? false,
@@ -92,13 +138,14 @@ export async function POST(req: NextRequest) {
 
   // Audit log
   await prisma.auditLog.create({
-    data: {
-      userId: (session.user as { id?: string }).id,
-      action: "CREATE",
+    data: buildProtectedAuditEntry({
+      userId: actor!.id,
+      action: "PATIENT_CREATED",
       entity: "Patient",
       entityId: patient.id,
-      newValue: JSON.stringify({ nhi: patient.nhi }),
-    },
+      request: req,
+      newValue: { gpPracticeId: patient.gpPracticeId },
+    }),
   });
 
   return NextResponse.json(patient, { status: 201 });

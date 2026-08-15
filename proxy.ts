@@ -15,6 +15,33 @@ const PUBLIC_PATHS = new Set([
 const PUBLIC_PREFIXES = ["/api/auth"];
 const PASSWORD_MANAGEMENT_PATH = "/account/password";
 const PASSWORD_MANAGEMENT_API_PREFIX = "/api/account/password";
+const SECURITY_ENROLMENT_PATH = "/account/security";
+const SECURITY_ENROLMENT_API_PREFIX = "/api/account/2fa";
+
+type SecuritySessionUser = {
+  requiresPasswordChange?: boolean;
+  requiresTwoFactorSetup?: boolean;
+  authAssurance?: string | null;
+  sessionInvalid?: boolean;
+  sessionInvalidReason?: string | null;
+  role?: string;
+};
+
+function isEnrolmentPath(pathname: string) {
+  return (
+    pathname.startsWith(PASSWORD_MANAGEMENT_PATH) ||
+    pathname.startsWith(SECURITY_ENROLMENT_PATH)
+  );
+}
+
+function isEnrolmentApi(pathname: string) {
+  return (
+    pathname.startsWith(PASSWORD_MANAGEMENT_API_PREFIX) ||
+    pathname.startsWith(SECURITY_ENROLMENT_API_PREFIX) ||
+    pathname.startsWith("/api/account/logout") ||
+    pathname.startsWith("/api/account/sessions/revoke")
+  );
+}
 
 function isPublic(pathname: string): boolean {
   // Public marketing landing — exact match only (every path startsWith "/").
@@ -50,10 +77,15 @@ export default auth((req) => {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const passwordChangeRequired = Boolean(
-      (req.auth.user as { requiresPasswordChange?: boolean } | undefined)
-        ?.requiresPasswordChange
-    );
+    const securityUser = req.auth.user as SecuritySessionUser | undefined;
+    if (securityUser?.sessionInvalid) {
+      return NextResponse.json(
+        { error: "Session expired or revoked. Sign in again." },
+        { status: 401 }
+      );
+    }
+
+    const passwordChangeRequired = Boolean(securityUser?.requiresPasswordChange);
     if (
       passwordChangeRequired &&
       !pathname.startsWith(PASSWORD_MANAGEMENT_API_PREFIX)
@@ -63,6 +95,17 @@ export default auth((req) => {
           error:
             "Password update required before this action can be used.",
         },
+        { status: 423 }
+      );
+    }
+
+    if (
+      (securityUser?.requiresTwoFactorSetup ||
+        securityUser?.authAssurance === "PASSWORD_ENROLLMENT") &&
+      !isEnrolmentApi(pathname)
+    ) {
+      return NextResponse.json(
+        { error: "Authenticator enrolment is required before accessing pilot data." },
         { status: 423 }
       );
     }
@@ -77,10 +120,14 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  const passwordChangeRequired = Boolean(
-    (req.auth.user as { requiresPasswordChange?: boolean } | undefined)
-      ?.requiresPasswordChange
-  );
+  const securityUser = req.auth.user as SecuritySessionUser | undefined;
+  if (securityUser?.sessionInvalid) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("reauth", "1");
+    return NextResponse.redirect(loginUrl);
+  }
+
+  const passwordChangeRequired = Boolean(securityUser?.requiresPasswordChange);
   if (
     passwordChangeRequired &&
     !pathname.startsWith(PASSWORD_MANAGEMENT_PATH)
@@ -90,7 +137,17 @@ export default auth((req) => {
     return NextResponse.redirect(passwordUrl);
   }
 
-  const role = (req.auth.user as { role?: string } | undefined)?.role;
+  if (
+    (securityUser?.requiresTwoFactorSetup ||
+      securityUser?.authAssurance === "PASSWORD_ENROLLMENT") &&
+    !isEnrolmentPath(pathname)
+  ) {
+    const securityUrl = new URL(SECURITY_ENROLMENT_PATH, req.url);
+    securityUrl.searchParams.set("reason", "authenticator-enrolment-required");
+    return NextResponse.redirect(securityUrl);
+  }
+
+  const role = securityUser?.role;
 
   // RBAC: check route-level role requirements
   if (!isAuthorizedForRoute(pathname, role)) {

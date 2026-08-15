@@ -64,7 +64,7 @@ test("an admin password reset stores a bcrypt hash, never plaintext", async () =
 
   const stored = await prisma.user.findUniqueOrThrow({
     where: { id: target.id },
-    select: { passwordHash: true },
+    select: { passwordHash: true, sessionVersion: true },
   });
 
   assert.ok(stored.passwordHash, "a hash must be stored");
@@ -78,6 +78,7 @@ test("an admin password reset stores a bcrypt hash, never plaintext", async () =
     await bcrypt.compare(STRONG_PASSWORD, stored.passwordHash!),
     "the stored hash must verify against the password that was set"
   );
+  assert.equal(stored.sessionVersion, 1, "credential reset must revoke issued JWTs");
 });
 
 test("the existing password can never be read back", async () => {
@@ -279,6 +280,7 @@ test("enabling and disabling an account is audited under distinct actions", asyn
   });
   let record = await prisma.user.findUniqueOrThrow({ where: { id: target.id } });
   assert.equal(record.isActive, false);
+  assert.equal(record.sessionVersion, 1, "disable must invalidate existing sessions");
 
   const disabled = await prisma.auditLog.findFirst({
     where: { entityId: target.id, action: USER_AUDIT_ACTION.USER_DISABLED },
@@ -293,6 +295,7 @@ test("enabling and disabling an account is audited under distinct actions", asyn
   });
   record = await prisma.user.findUniqueOrThrow({ where: { id: target.id } });
   assert.equal(record.isActive, true);
+  assert.equal(record.sessionVersion, 2, "re-enable must not revive an old session");
 
   const enabled = await prisma.auditLog.findFirst({
     where: { entityId: target.id, action: USER_AUDIT_ACTION.USER_ENABLED },

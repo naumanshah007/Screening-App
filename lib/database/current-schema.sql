@@ -18,6 +18,7 @@ CREATE TABLE "User" (
     "lastLoginAt" DATETIME,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "isDemoAccount" BOOLEAN NOT NULL DEFAULT false,
+    "sessionVersion" INTEGER NOT NULL DEFAULT 0,
     "gpPracticeId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
@@ -634,6 +635,8 @@ CREATE TABLE "AuditLog" (
     "severity" TEXT NOT NULL DEFAULT 'INFO',
     "correlationId" TEXT,
     "sessionId" TEXT,
+    "integrityDigest" TEXT,
+    "protectedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -1415,4 +1418,22 @@ CREATE TRIGGER "IntegrationConnectivityCheck_immutable_delete"
 BEFORE DELETE ON "IntegrationConnectivityCheck"
 BEGIN
   SELECT RAISE(ABORT, 'Integration connectivity checks are immutable');
+END;
+
+-- Sprint B protects security, PHI-access, export and administrative evidence
+-- written with an integrity digest. Legacy/demo rows remain mutable so local
+-- deterministic reset continues to work. External immutable anchoring remains
+-- a separate pilot infrastructure gate.
+CREATE TRIGGER "AuditLog_protected_update"
+BEFORE UPDATE ON "AuditLog"
+WHEN OLD."integrityDigest" IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'Protected audit evidence is immutable');
+END;
+
+CREATE TRIGGER "AuditLog_protected_delete"
+BEFORE DELETE ON "AuditLog"
+WHEN OLD."integrityDigest" IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'Protected audit evidence is immutable');
 END;

@@ -12,7 +12,7 @@ export default function AppError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    console.error("application.app_error_boundary");
   }, [error]);
 
   return (

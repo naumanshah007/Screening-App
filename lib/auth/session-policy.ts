@@ -6,6 +6,51 @@ export const PRIVILEGED_REAUTH_HOURS = Number(
 
 const REAUTH_WARNING_MINUTES = 30;
 
+export type PilotSessionState = {
+  valid: boolean;
+  reason: "idle_timeout" | "reauth_required" | "missing_timestamp" | null;
+};
+
+export function evaluatePilotSession(args: {
+  authenticatedAt?: string | Date | null;
+  lastActivityAt?: string | Date | null;
+  idleTimeoutMinutes: number;
+  reauthMinutes: number;
+  now?: Date;
+}): PilotSessionState {
+  const now = args.now ?? new Date();
+  const authenticatedAt = args.authenticatedAt
+    ? new Date(args.authenticatedAt)
+    : null;
+  const lastActivityAt = args.lastActivityAt
+    ? new Date(args.lastActivityAt)
+    : null;
+  if (
+    !authenticatedAt ||
+    !lastActivityAt ||
+    Number.isNaN(authenticatedAt.getTime()) ||
+    Number.isNaN(lastActivityAt.getTime())
+  ) {
+    return { valid: false, reason: "missing_timestamp" };
+  }
+
+  if (
+    now.getTime() - lastActivityAt.getTime() >
+    args.idleTimeoutMinutes * 60 * 1000
+  ) {
+    return { valid: false, reason: "idle_timeout" };
+  }
+
+  if (
+    now.getTime() - authenticatedAt.getTime() >
+    args.reauthMinutes * 60 * 1000
+  ) {
+    return { valid: false, reason: "reauth_required" };
+  }
+
+  return { valid: true, reason: null };
+}
+
 export function requiresPrivilegedSessionRefresh(args: {
   role?: string | null;
   authenticatedAt?: string | Date | null;

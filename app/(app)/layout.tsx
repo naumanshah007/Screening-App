@@ -5,6 +5,7 @@ import { isAuthorizedForRoute } from "@/lib/auth/permissions";
 import { getReviewQueueCounts } from "@/lib/batch/persistence";
 import { getClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
 import { redirect } from "next/navigation";
+import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
 
 // The clinical authority indicator must never be served from a build-time
 // render: it reports which engine is authoritative right now, and a stale
@@ -26,6 +27,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Which engine is clinically authoritative right now. Read-only, never throws.
   const clinicalAuthority = await getClinicalAuthorityDisplay();
+  const runtimeBoundary = evaluateRuntimeBoundary();
+  const runtimeMessage =
+    runtimeBoundary.mode === "PILOT"
+      ? "Controlled pilot boundary · human review required · no automatic clinical-system mutation"
+      : runtimeBoundary.mode === "VALIDATION"
+        ? "Validation mode · outputs are non-actionable · no downstream clinical mutation"
+        : runtimeBoundary.mode === "DEMO"
+          ? "Demonstration mode · synthetic data only · not for clinical action"
+          : "Development mode · synthetic data only";
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
@@ -44,6 +54,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         className="min-w-0 flex-1 overflow-y-auto focus:outline-none"
         tabIndex={-1}
       >
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-950">
+          {runtimeMessage}
+        </div>
         {children}
       </main>
     </div>

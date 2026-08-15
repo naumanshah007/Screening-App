@@ -9,6 +9,7 @@ import type {
   ListReferralCasesFilters,
   UpdateReferralCaseInput,
 } from "@/lib/cases/types";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
 
 const referralCaseInclude = {
   patient: {
@@ -523,13 +524,18 @@ export async function updateReferralCase(
   return updatedCase;
 }
 
-export async function recordReferralCaseRead(caseId: string, actorUserId?: string) {
+export async function recordReferralCaseRead(
+  caseId: string,
+  actorUserId?: string,
+  request?: Request | null
+) {
   await prisma.auditLog.create({
-    data: {
+    data: buildProtectedAuditEntry({
       userId: actorUserId,
-      action: "READ",
+      action: "PHI_RECORD_READ",
       entity: "ReferralCase",
       entityId: caseId,
-    },
+      request,
+    }),
   });
 }

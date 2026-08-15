@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getApiPermissionError } from "@/lib/auth/api-permissions";
 import { isFeatureEnabled } from "@/lib/features";
 import { reviewBatchItems, BatchReviewError } from "@/lib/batch/persistence";
+import { safeLogError } from "@/lib/security/safe-logging";
 
 const ALLOWED_DISPOSITIONS = ["ACCEPTED", "REJECTED", "NEEDS_INFO"] as const;
 type AllowedDisposition = (typeof ALLOWED_DISPOSITIONS)[number];
@@ -67,7 +68,7 @@ export async function POST(
     if (e instanceof BatchReviewError) {
       return NextResponse.json({ error: e.message }, { status: 400 });
     }
-    const message = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ error: `Review failed: ${message}` }, { status: 500 });
+    safeLogError("batch.run_review.failed", e);
+    return NextResponse.json({ error: "Review failed." }, { status: 500 });
   }
 }

@@ -7,8 +7,12 @@ import {
   resolveDatabaseUrl,
 } from "../lib/config/database";
 import { isProductionDeployment, readDemoSeedPassword } from "../lib/database/bootstrap";
+import { assertSyntheticDataOperationAllowed } from "../lib/config/runtime-boundary";
 import { ENGINE_VERSION, processBatch } from "../lib/batch/processor";
-import { isReviewRequired } from "../lib/batch/persistence";
+import {
+  isReviewRequired,
+  minimizePersistedBatchCase,
+} from "../lib/batch/persistence";
 import type { CanonicalBatchCase } from "../lib/batch/types";
 import { buildDecisionPackageAuditPayload } from "../lib/decisions/package-audit";
 
@@ -153,6 +157,7 @@ async function upsertDemoUsers() {
         role: user.role,
         passwordHash,
         passwordChangeRequired: false,
+        isDemoAccount: true,
       },
       create: {
         name: user.name,
@@ -160,6 +165,7 @@ async function upsertDemoUsers() {
         role: user.role,
         passwordHash,
         passwordChangeRequired: false,
+        isDemoAccount: true,
       },
       select: { id: true, email: true, name: true, role: true },
     });
@@ -252,7 +258,7 @@ async function createDemoRun(users: Awaited<ReturnType<typeof upsertDemoUsers>>)
       safetyOutcome: d.safetyOutcome ?? null,
       reviewRequired: isReviewRequired(item),
       engineStatus: item.status,
-      caseJson: JSON.stringify(c),
+      caseJson: JSON.stringify(minimizePersistedBatchCase(c)),
       inputJson: JSON.stringify(item.input),
       decisionJson: JSON.stringify(d),
       disposition: disposition.disposition,
@@ -336,6 +342,7 @@ async function createDemoRun(users: Awaited<ReturnType<typeof upsertDemoUsers>>)
 }
 
 async function main() {
+  assertSyntheticDataOperationAllowed("Demo reset");
   const databaseUrl = resolveDatabaseUrl();
   if (isProductionDeployment()) {
     throw new Error("Demo reset is prohibited in Production.");

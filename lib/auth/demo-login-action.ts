@@ -7,6 +7,7 @@ import {
   getDemoPassword,
   isDemoModeEnabled,
 } from "@/lib/config/demo-mode";
+import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
 
 /**
  * One-click demonstration sign-in.
@@ -24,13 +25,14 @@ import {
  * guarded directory pristine means that blunt, reliable check keeps working
  * unmodified — adding this feature required no weakening of it.
  *
- * When DEMO_MODE is off this action refuses unconditionally, so the endpoint is
- * inert in a real deployment even if a stale client were to call it.
+ * The action requires both DEMO_MODE and a consistent DEMO runtime. It is inert
+ * in validation/pilot even if a stale client calls it.
  */
 export async function signInAsDemoUser(
   accountKey: string
 ): Promise<{ ok: false; error: string }> {
-  if (!isDemoModeEnabled()) {
+  const boundary = evaluateRuntimeBoundary();
+  if (!isDemoModeEnabled() || boundary.mode !== "DEMO" || !boundary.ready) {
     return { ok: false, error: "Demo sign-in is not available." };
   }
 

@@ -276,8 +276,8 @@ export function BatchPageClient({
       });
 
       await validateAndLoad(rows, "demo");
-    } catch (err) {
-      console.error("Failed to load demo dataset:", err);
+    } catch {
+      console.error("batch.demo_dataset.load_failed");
       setUploadError("Failed to load demo dataset.");
       setState({ step: "empty" });
     }
@@ -322,8 +322,8 @@ export function BatchPageClient({
       });
       setDeliveryKey(null);
       await classifyEpisodes(validation.cases);
-    } catch (err) {
-      console.error("Failed to load messy demo dataset:", err);
+    } catch {
+      console.error("batch.messy_demo_dataset.load_failed");
       setUploadError("Failed to load real-world sample.");
       setState({ step: "empty" });
     }
@@ -514,8 +514,8 @@ export function BatchPageClient({
         }
         const result: BatchProcessingResult = await res.json();
         setState({ step: "results", validation, result });
-      } catch (err) {
-        console.error("Batch processing failed:", err);
+      } catch {
+        console.error("batch.processing.failed");
         setState({ step: "loaded", validation });
       }
     },

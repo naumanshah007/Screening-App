@@ -44,19 +44,26 @@ export function LoginPageClient({
   reauthRequired = false,
   callbackUrl = null,
   demoAccounts = [],
+  runtimeMode = "VALIDATION",
+  configurationIssues = [],
+  showAuthenticatorCode = false,
 }: {
   passwordUpdated?: boolean;
   reauthRequired?: boolean;
   callbackUrl?: string | null;
   demoAccounts?: readonly DemoAccountOption[];
+  runtimeMode?: "DEVELOPMENT" | "DEMO" | "VALIDATION" | "PILOT";
+  configurationIssues?: readonly string[];
+  showAuthenticatorCode?: boolean;
 }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [authenticatorCode, setAuthenticatorCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -64,6 +71,7 @@ async function handleSubmit(e: React.FormEvent) {
       const result = await signIn("credentials", {
         email: username,
         password,
+        code: authenticatorCode,
         redirect: false,
       });
       if (result?.error) {
@@ -133,6 +141,10 @@ async function handleSubmit(e: React.FormEvent) {
               : "Enter your credentials to access the platform."}
           </p>
 
+          <div className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Runtime: {runtimeMode}
+          </div>
+
           {/* Banners */}
           {passwordUpdated && !error && (
             <Alert variant="success" className="mb-4">Password updated. Sign in with your new password to continue.</Alert>
@@ -142,6 +154,16 @@ async function handleSubmit(e: React.FormEvent) {
           )}
           {error && (
             <Alert variant="error" className="mb-4">{error}</Alert>
+          )}
+          {configurationIssues.length > 0 && (
+            <Alert variant="error" className="mb-4">
+              <span className="font-medium">Access is blocked by security configuration.</span>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {configurationIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </Alert>
           )}
 
           {/*
@@ -196,7 +218,26 @@ async function handleSubmit(e: React.FormEvent) {
               }
             />
 
-            <Button type="submit" className="w-full" loading={loading} size="lg">
+            {showAuthenticatorCode && (
+              <Input
+                label="Authenticator code"
+                type="text"
+                value={authenticatorCode}
+                onChange={(e) => setAuthenticatorCode(e.target.value)}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                placeholder="6-digit code"
+                hint="Required for enrolled accounts. New accounts are confined to authenticator setup until enrolment is complete."
+              />
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              loading={loading}
+              size="lg"
+              disabled={configurationIssues.length > 0}
+            >
               Sign in
             </Button>
           </form>

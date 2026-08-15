@@ -108,7 +108,7 @@ export default async function AdminPage({
     incidentOverview,
     incidentAutomationOverview,
   ] = await Promise.all([
-    prisma.user.count(),
+    canManageUsers ? prisma.user.count() : Promise.resolve(0),
     // Integration note: `main` counted `clinicalRuleSet.isActive`. The Rule
     // Studio schema replaces that model with a governed rule-set container that
     // has no `isActive` column; activation now lives on the version. Counting
@@ -117,7 +117,9 @@ export default async function AdminPage({
     prisma.auditLog.count({
       where: { createdAt: { gte: thirtyDaysAgo } },
     }),
-    prisma.patient.groupBy({ by: ["status"], _count: true }),
+    canManageUsers
+      ? prisma.patient.groupBy({ by: ["status"], _count: true })
+      : Promise.resolve([]),
     canManageUsers
       ? prisma.gPPractice.findMany({
           select: {
@@ -137,13 +139,17 @@ export default async function AdminPage({
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
-    prisma.screeningSession.count({
-      where: { createdAt: { gte: thirtyDaysAgo } },
-    }),
-    prisma.referral.groupBy({
-      by: ["priority", "status"],
-      _count: true,
-    }),
+    canManageUsers
+      ? prisma.screeningSession.count({
+          where: { createdAt: { gte: thirtyDaysAgo } },
+        })
+      : Promise.resolve(0),
+    canManageUsers
+      ? prisma.referral.groupBy({
+          by: ["priority", "status"],
+          _count: true,
+        })
+      : Promise.resolve([]),
     canManageUsers ? listAdminUsers() : Promise.resolve([]),
     getSecurityIncidentOverview(),
     getSecurityIncidentAutomationOverview(),
@@ -197,25 +203,31 @@ export default async function AdminPage({
           description="System administration, runtime readiness, rule governance, and audit visibility."
           actions={[
             { href: "/rules", label: "Open rules" },
-            { href: "/analytics", label: "View analytics" },
+            canManageUsers
+              ? { href: "/analytics", label: "View analytics" }
+              : { href: "/audit", label: "View audit" },
           ]}
         />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Patients"
-          value={totalPatients.toLocaleString()}
-          subtext={`${activePatients} active`}
-          icon={<Users className="h-5 w-5" />}
-          href="/patients"
-        />
-        <StatCard
-          label="System Users"
-          value={totalUsers.toLocaleString()}
-          subtext="Clinicians and coordinators"
-          icon={<Users className="h-5 w-5" />}
-        />
+        {canManageUsers ? (
+          <>
+            <StatCard
+              label="Total Patients"
+              value={totalPatients.toLocaleString()}
+              subtext={`${activePatients} active`}
+              icon={<Users className="h-5 w-5" />}
+              href="/patients"
+            />
+            <StatCard
+              label="System Users"
+              value={totalUsers.toLocaleString()}
+              subtext="Clinicians and coordinators"
+              icon={<Users className="h-5 w-5" />}
+            />
+          </>
+        ) : null}
         <StatCard
           label="Active Rule Sets"
           value={activeRules.toLocaleString()}
@@ -237,29 +249,31 @@ export default async function AdminPage({
           subtext={`${incidentOverview.counts.overdue} overdue · ${incidentOverview.counts.unassigned} unassigned`}
           variant={incidentOverview.counts.overdue > 0 ? "urgent" : incidentOverview.counts.open > 0 ? "warning" : "success"}
           icon={<AlertTriangle className="h-5 w-5" />}
-          href="/analytics"
+          href="/admin?tab=security"
         />
       </div>
 
       {/* Second KPI row */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard
-          label="Sessions (30d)"
-          value={sessionsThirtyDays.toLocaleString()}
-          subtext="Pathway sessions"
-          icon={<Activity className="h-5 w-5" />}
-        />
-        {pendingEntries.sort().map(([priority, count]) => (
+      {canManageUsers ? (
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
-            key={priority}
-            label={`${priority} Pending`}
-            value={count}
-            subtext="Referrals awaiting action"
-            variant={priority === "P1" ? "urgent" : priority === "P2" ? "warning" : "default"}
-            href="/cases?workflow=PENDING_REVIEW"
+            label="Sessions (30d)"
+            value={sessionsThirtyDays.toLocaleString()}
+            subtext="Pathway sessions"
+            icon={<Activity className="h-5 w-5" />}
           />
-        ))}
-      </div>
+          {pendingEntries.sort().map(([priority, count]) => (
+            <StatCard
+              key={priority}
+              label={`${priority} Pending`}
+              value={count}
+              subtext="Referrals awaiting action"
+              variant={priority === "P1" ? "urgent" : priority === "P2" ? "warning" : "default"}
+              href="/cases?workflow=PENDING_REVIEW"
+            />
+          ))}
+        </div>
+      ) : null}
 
       {/* Tab bar */}
       <div className="flex flex-wrap gap-1 border-b border-border">
@@ -358,8 +372,16 @@ export default async function AdminPage({
               eyebrow={workspace.label}
               title="No security incidents"
               description="Security alerts can now be escalated into managed incidents with owner, status, and notes."
-              nextStep="Open an incident from Analytics when an alert needs active follow-through."
-              action={{ href: "/analytics", label: "Open analytics" }}
+              nextStep={
+                canManageUsers
+                  ? "Open an incident from Analytics when an alert needs active follow-through."
+                  : "Review integration and audit evidence when an alert needs active follow-through."
+              }
+              action={
+                canManageUsers
+                  ? { href: "/analytics", label: "Open analytics" }
+                  : { href: "/audit", label: "Open audit" }
+              }
             />
           ) : (
             <SecurityIncidentManager

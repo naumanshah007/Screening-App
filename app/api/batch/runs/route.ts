@@ -11,6 +11,7 @@ import {
 } from "@/lib/batch/persistence";
 import { normalizeIntakeParseManifest } from "@/lib/batch/intake-manifest";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
+import { safeLogError } from "@/lib/security/safe-logging";
 
 /**
  * GET /api/batch/runs — list saved batch runs (most recent first).
@@ -19,7 +20,7 @@ export async function GET() {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
 
-  const permissionError = getApiPermissionError(user, "cases:view");
+  const permissionError = getApiPermissionError(user, "batch:view");
   if (permissionError) {
     return NextResponse.json(permissionError.body, { status: permissionError.status });
   }
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
 
-  const permissionError = getApiPermissionError(user, "cases:create");
+  const permissionError = getApiPermissionError(user, "batch:manage");
   if (permissionError) {
     return NextResponse.json(permissionError.body, { status: permissionError.status });
   }
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
-    const message = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ error: `Failed to save batch run: ${message}` }, { status: 500 });
+    safeLogError("batch.run_save.failed", e);
+    return NextResponse.json({ error: "Failed to save batch run." }, { status: 500 });
   }
 }

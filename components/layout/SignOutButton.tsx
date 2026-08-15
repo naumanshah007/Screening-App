@@ -16,6 +16,7 @@ export function SignOutButton() {
 
   async function handleSignOut() {
     setLoading(true);
+    await fetch("/api/account/logout", { method: "POST" }).catch(() => null);
     await signOut({
       callbackUrl: "/login",
       redirect: false,

@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { buildAuditWhere, resolveAuditFilters } from "@/lib/security/audit-investigations";
+import { getApiPermissionError } from "@/lib/auth/api-permissions";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
 
 // GET /api/audit - Auditable query
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN" && user.role !== "INTEGRATION_ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  const permissionError = getApiPermissionError(user, "audit:view");
+  if (permissionError) {
+    return NextResponse.json(permissionError.body, { status: permissionError.status });
   }
 
   const { searchParams } = new URL(req.url);
@@ -37,6 +38,22 @@ export async function GET(req: NextRequest) {
     }),
     prisma.auditLog.count({ where }),
   ]);
+
+  await prisma.auditLog.create({
+    data: buildProtectedAuditEntry({
+      userId: user!.id,
+      action: "AUDIT_TRAIL_READ",
+      entity: "AuditLog",
+      request: req,
+      newValue: {
+        preset: filters.preset?.key ?? null,
+        entityFilterCount: filters.entities.length,
+        actionFilterCount: filters.actions.length,
+        page: filters.page,
+        returnedCount: logs.length,
+      },
+    }),
+  });
 
   return NextResponse.json({
     logs,

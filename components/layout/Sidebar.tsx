@@ -273,6 +273,7 @@ export function Sidebar({
 
   async function handleSignOut() {
     setSigningOut(true);
+    await fetch("/api/account/logout", { method: "POST" }).catch(() => null);
     await signOut({ callbackUrl: "/login", redirect: false });
     router.replace("/login");
     router.refresh();

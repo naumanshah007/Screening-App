@@ -11,7 +11,7 @@ import {
 test("completed decisions access grants all-scope roles", () => {
   assert.equal(getCompletedDecisionAccess({ id: "admin-1", role: "ADMIN" }), "all");
   assert.equal(getCompletedDecisionAccess({ id: "coord-1", role: "COORDINATOR" }), "all");
-  assert.equal(getCompletedDecisionAccess({ id: "int-1", role: "INTEGRATION_ADMIN" }), "all");
+  assert.equal(getCompletedDecisionAccess({ id: "int-1", role: "INTEGRATION_ADMIN" }), "none");
 });
 
 test("completed decisions access scopes clinical reviewers to their own decisions", () => {

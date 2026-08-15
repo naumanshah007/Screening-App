@@ -18,7 +18,7 @@ test("decision package audit payload includes evidence fields and safety labels"
     eventLabel: "Simulated export package download",
     packageLabel: "Integration-ready preview",
     simulated: true,
-    safetyNotice: "Demo environment. Not for direct clinical action.",
+    safetyNotice: "Simulated handoff. Not for direct clinical action.",
     actorUserId: "user-1",
     batchReviewItemId: "item-1",
     batchRunId: "run-1",

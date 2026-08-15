@@ -35,6 +35,7 @@ import {
   identityForCase,
   recordEpisodeObservation,
 } from "@/lib/batch/episode-registry";
+import { safeLogError } from "@/lib/security/safe-logging";
 
 /**
  * The most recent governed evaluation for an episode, if any.
@@ -148,6 +149,29 @@ const NO_GOVERNED_RESULT_CODE = "NO-GOVERNED-RECOMMENDATION";
 const NO_GOVERNED_RESULT_TEXT =
   "No governed recommendation available — clinician review required.";
 
+/**
+ * caseJson retains the deterministic clinical snapshot but omits identity and
+ * episode-display fields already held in dedicated columns. Those columns are
+ * required for reviewer/search/audit use; duplicating them inside JSON adds no
+ * operational value and increases the sensitive-data footprint.
+ */
+export function minimizePersistedBatchCase(c: CanonicalBatchCase) {
+  const minimized: CanonicalBatchCase = {
+    ...c,
+    source: { ...c.source },
+  };
+  delete minimized.patientName;
+  delete minimized.nhi;
+  delete minimized.gpPractice;
+  delete minimized.receivedDate;
+  delete minimized.source.externalPatientId;
+  delete minimized.source.sourceEpisodeKey;
+  delete minimized.source.sourceFacility;
+  delete minimized.source.testType;
+  delete minimized.source.collectedOn;
+  return minimized;
+}
+
 export async function saveBatchRun(args: {
   result: BatchProcessingResult;
   actorUserId: string;
@@ -213,7 +237,7 @@ export async function saveBatchRun(args: {
         safetyOutcome: d.safetyOutcome ?? null,
         reviewRequired: isReviewRequired(item),
         engineStatus: item.status,
-        caseJson: JSON.stringify(c),
+        caseJson: JSON.stringify(minimizePersistedBatchCase(c)),
         inputJson: JSON.stringify(item.input),
         decisionJson: JSON.stringify(d),
       };
@@ -429,7 +453,10 @@ export async function saveBatchRun(args: {
         // One arrival, not the batch.
         episodeRegistrationFailed += 1;
         failedCaseIds.add(item.case.caseId);
-        console.error("Episode registration failed for arrival", item.case.caseId, arrivalError);
+        safeLogError("Episode registration failed for arrival", arrivalError, {
+          batchRunId: run.id,
+          rowNumber: item.case.source.rowNumber,
+        });
       }
     }
   } catch (error) {
@@ -441,7 +468,9 @@ export async function saveBatchRun(args: {
     for (const item of [...result.results, ...(withheldRouted?.results ?? [])]) {
       failedCaseIds.add(item.case.caseId);
     }
-    console.error("Episode registration failed for batch run", run.id, error);
+    safeLogError("batch.episode_registration.run_failed", error, {
+      batchRunId: run.id,
+    });
   }
 
 
@@ -592,7 +621,10 @@ export async function saveBatchRun(args: {
               );
             }
           } catch (usageError) {
-            console.error("Usage metering failed for item", reviewItem.id, usageError);
+            safeLogError("batch.usage_metering.item_failed", usageError, {
+              batchRunId: run.id,
+              reviewItemId: reviewItem.id,
+            });
           }
         }
       } catch (error) {
@@ -741,8 +773,24 @@ export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCa
         legacyComparison?: unknown;
       }
     : undefined;
+  const minimizedCase = JSON.parse(item.caseJson) as CanonicalBatchCase;
+  const reconstructedCase: CanonicalBatchCase = {
+    ...minimizedCase,
+    patientName: item.patientName ?? undefined,
+    nhi: item.nhi ?? undefined,
+    gpPractice: item.gpPractice ?? undefined,
+    receivedDate: item.receivedDate?.toISOString(),
+    source: {
+      ...minimizedCase.source,
+      externalPatientId: item.externalPatientId ?? undefined,
+      sourceEpisodeKey: item.sourceEpisodeKey ?? undefined,
+      sourceFacility: item.sourceFacility ?? undefined,
+      testType: item.testType ?? undefined,
+      collectedOn: item.collectedOn?.toISOString(),
+    },
+  };
   return {
-    case: JSON.parse(item.caseJson),
+    case: reconstructedCase,
     input: JSON.parse(item.inputJson),
     decision: JSON.parse(item.decisionJson),
     legacyDecision: item.legacyDecisionJson ? JSON.parse(item.legacyDecisionJson) : undefined,

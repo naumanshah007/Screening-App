@@ -41,6 +41,8 @@ Key flags:
 - `DEMO_SEED_PASSWORD` is required for local synthetic seeding and has no default.
 - Real HL7, FHIR, PAS, NCSR, and eReferral integrations are not connected in this demo.
 
+The controlled real-data boundary, required pilot variables, unsatisfied external gates, and data-handling position are documented in [`docs/pilot/real-data-security-boundary.md`](docs/pilot/real-data-security-boundary.md). Recovery and incident procedures are in [`docs/pilot/recovery-and-incident-runbook.md`](docs/pilot/recovery-and-incident-runbook.md). These controls do not constitute pilot approval.
+
 ## Scripts
 
 ```bash
@@ -52,6 +54,7 @@ npm run test:batch
 npm run test:all
 npm run build
 npm run demo:reset
+npm run pilot:recovery:rehearse
 ```
 
 `npm test` remains the engine-only test command. Use `npm run test:all` before demo/pilot handoff.

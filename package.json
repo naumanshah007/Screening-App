@@ -29,6 +29,8 @@
     "test:db": "tsx scripts/run-db-tests.ts",
     "test:integrations": "tsx --test \"tests/integrations/*.test.ts\"",
     "usage:remediate-orphans": "tsx scripts/remediate-usage-orphans.ts",
+    "pilot:recovery:rehearse": "tsx scripts/pilot/rehearse-local-restore.ts",
+    "pilot:migrations:verify": "tsx scripts/pilot/verify-migration-chain.ts",
     "rules:report:timing": "tsx scripts/rule-studio/timing-classification-report.ts",
     "test:ui": "tsx --test \"tests/ui/*.test.ts\""
   },

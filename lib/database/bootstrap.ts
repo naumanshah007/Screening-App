@@ -100,7 +100,7 @@ function shouldApplySchemaPatches(url: string) {
   );
 }
 
-function splitSqlStatements(sql: string) {
+export function splitSqlStatements(sql: string) {
   const statements: string[] = [];
   let buffer: string[] = [];
   let inTrigger = false;
@@ -119,7 +119,9 @@ function splitSqlStatements(sql: string) {
       continue;
     }
 
-    if (trimmed.endsWith(";")) {
+    // A semicolon in a SQL comment is prose, not a statement terminator.
+    // Keep the comment attached to the DDL that follows it.
+    if (!trimmed.startsWith("--") && trimmed.endsWith(";")) {
       const statement = buffer.join("\n").trim();
       if (statement) statements.push(statement);
       buffer = [];
@@ -1096,6 +1098,13 @@ async function applyCompatibilityPatches(url: string) {
       "twoFARecoveryCodesJson",
       "TEXT"
     );
+    await addColumnIfMissing(
+      client,
+      "User",
+      userColumns,
+      "sessionVersion",
+      "INTEGER NOT NULL DEFAULT 0"
+    );
 
     const auditColumns = await getTableColumns(client, "AuditLog");
     await addColumnIfMissing(
@@ -1119,6 +1128,36 @@ async function applyCompatibilityPatches(url: string) {
       "sessionId",
       "TEXT"
     );
+    await addColumnIfMissing(
+      client,
+      "AuditLog",
+      auditColumns,
+      "integrityDigest",
+      "TEXT"
+    );
+    await addColumnIfMissing(
+      client,
+      "AuditLog",
+      auditColumns,
+      "protectedAt",
+      "DATETIME"
+    );
+    await client.execute(`
+      CREATE TRIGGER IF NOT EXISTS "AuditLog_protected_update"
+      BEFORE UPDATE ON "AuditLog"
+      WHEN OLD."integrityDigest" IS NOT NULL
+      BEGIN
+        SELECT RAISE(ABORT, 'Protected audit evidence is immutable');
+      END
+    `);
+    await client.execute(`
+      CREATE TRIGGER IF NOT EXISTS "AuditLog_protected_delete"
+      BEFORE DELETE ON "AuditLog"
+      WHEN OLD."integrityDigest" IS NOT NULL
+      BEGIN
+        SELECT RAISE(ABORT, 'Protected audit evidence is immutable');
+      END
+    `);
 
     if (await tableExists(client, "User")) {
       await applyBatchSchemaPatches(client);
@@ -1194,13 +1233,15 @@ async function seedDemoUsers(url: string) {
       await client.execute({
         sql: `INSERT INTO User
           (id, email, name, passwordHash, passwordChangeRequired, passwordChangedAt,
-           passwordExpiresAt, role, twoFAEnabled, failedAttempts, gpPracticeId, createdAt, updatedAt)
-          VALUES (?, ?, ?, ?, 0, ?, ?, ?, 0, 0, ?, ?, ?)
+           passwordExpiresAt, role, isDemoAccount, twoFAEnabled, failedAttempts,
+           gpPracticeId, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, 0, ?, ?, ?, 1, 0, 0, ?, ?, ?)
           ON CONFLICT(email) DO UPDATE SET
             passwordHash = excluded.passwordHash,
             passwordChangeRequired = 0,
             role = excluded.role,
             name = excluded.name,
+            isDemoAccount = 1,
             failedAttempts = 0,
             lockedUntil = NULL,
             updatedAt = excluded.updatedAt`,

@@ -13,6 +13,7 @@ import { getPasswordLifecycleSummary } from "@/lib/auth/password-policy";
 import { getSessionFreshnessSummary } from "@/lib/auth/session-policy";
 import { RecoveryCodesPanel } from "./RecoveryCodesPanel";
 import { TwoFactorSetupPanel } from "./TwoFactorSetupPanel";
+import { SessionRevocationButton } from "./SessionRevocationButton";
 
 export default async function AccountSecurityPage() {
   const session = await auth();
@@ -158,6 +159,7 @@ export default async function AccountSecurityPage() {
               <div className="rounded-xl border border-slate-200 bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
                 {sessionFreshness.detail}
               </div>
+              <SessionRevocationButton />
             </CardContent>
           </Card>
 

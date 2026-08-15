@@ -1,6 +1,5 @@
-import type { Prisma } from "@prisma/client";
-
 import { demoProvenance } from "@/lib/config/demo-mode";
+import { buildProtectedAuditEntry } from "@/lib/security/audit";
 
 /**
  * Account-administration audit vocabulary.
@@ -38,21 +37,23 @@ export function buildUserAuditEntry(args: {
   targetUserId: string;
   reason?: string | null;
   details?: Record<string, unknown>;
-}): Prisma.AuditLogUncheckedCreateInput {
+  oldValue?: unknown;
+}) {
   const provenance = demoProvenance();
 
-  return {
+  return buildProtectedAuditEntry({
     userId: args.actorUserId ?? undefined,
     action: args.action,
     entity: "User",
     entityId: args.targetUserId,
-    newValue: JSON.stringify({
+    oldValue: args.oldValue,
+    newValue: {
       targetUserId: args.targetUserId,
       actorUserId: args.actorUserId,
       environment: provenance.environment,
       demoMode: provenance.isDemo,
       reason: args.reason ?? null,
       ...(args.details ?? {}),
-    }),
-  };
+    },
+  });
 }

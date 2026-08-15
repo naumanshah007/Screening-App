@@ -20,6 +20,7 @@ import {
   isProductionDeployment,
   readDemoSeedPassword,
   shouldSeedDemoAccounts,
+  splitSqlStatements,
 } from "../../lib/database/bootstrap";
 
 const LOCAL_FILE_URL = "file:/tmp/cervical-screening-v2.db";
@@ -178,4 +179,18 @@ test("the seed password is never logged or echoed", () => {
   const loggingThePassword =
     /console\.[a-z]+\([^)]*(seedPassword|DEMO_SEED_PASSWORD)/.test(source);
   assert.equal(loggingThePassword, false, "a generated or supplied credential must never be logged");
+});
+
+test("every local demo seeding path marks identities as demo accounts", () => {
+  const bootstrap = readFileSync("lib/database/bootstrap.ts", "utf8");
+  const reset = readFileSync("scripts/demo-reset.ts", "utf8");
+  assert.match(bootstrap, /isDemoAccount\s*=\s*1/);
+  assert.match(reset, /isDemoAccount:\s*true/);
+});
+
+test("schema comments ending in semicolons are not executed as standalone SQL", () => {
+  assert.deepEqual(
+    splitSqlStatements(`-- prose ending in a semicolon;\nCREATE TABLE "Safe" ("id" TEXT);`),
+    [`-- prose ending in a semicolon;\nCREATE TABLE "Safe" ("id" TEXT);`]
+  );
 });

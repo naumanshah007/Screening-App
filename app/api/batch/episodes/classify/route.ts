@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
+import { getApiPermissionError } from "@/lib/auth/api-permissions";
 import { summariseClassifications } from "@/lib/batch/episode-classification";
 import { classifyIncomingCases } from "@/lib/batch/episode-registry";
 import { processBatch } from "@/lib/batch/processor";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
 import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
+import { safeLogError } from "@/lib/security/safe-logging";
 
 /**
  * Has any of this been seen before?
@@ -26,6 +28,11 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  }
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  const permissionError = getApiPermissionError(user, "batch:view");
+  if (permissionError) {
+    return NextResponse.json(permissionError.body, { status: permissionError.status });
   }
 
   try {
@@ -63,8 +70,9 @@ export async function POST(req: NextRequest) {
       })),
     });
   } catch (error) {
+    safeLogError("batch.episode_classification.failed", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to classify" },
+      { error: "Unable to classify the supplied cases." },
       { status: 400 }
     );
   }
