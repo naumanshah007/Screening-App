@@ -26,6 +26,7 @@ export default async function IntegrationCentrePage() {
         summary: {
           configured: 0,
           readyForLiveTest: 0,
+          liveVerified: 0,
           needsConfiguration: 0,
           pausedOrErrors: 0,
         },
@@ -35,6 +36,8 @@ export default async function IntegrationCentrePage() {
           missingCredentialReferences: 0,
           invalidSchedules: 0,
           liveConnectivityNotTested: 0,
+          liveConnectivityFailures: 0,
+          staleConnectivityEvidence: 0,
         },
       };
 
@@ -43,7 +46,7 @@ export default async function IntegrationCentrePage() {
       <PageHeader
         eyebrow="Administration · Advanced"
         title="Integration Centre"
-        description="Configure organisation connector instances and assess readiness for a future live connectivity test. Configuration validation does not contact a remote system."
+        description="Validate connector configuration and run explicit, bounded server-side live connectivity tests. A successful test never activates a connector or imports clinical data."
         meta={
           <>
             <HeaderMeta
@@ -58,7 +61,7 @@ export default async function IntegrationCentrePage() {
             />
             <HeaderMeta
               label="Phase"
-              value="Configuration & readiness"
+              value="Secure live connectivity"
               icon={<Workflow className="h-4 w-4" />}
             />
           </>

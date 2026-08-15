@@ -18,6 +18,9 @@ export const secretReferenceSchema = z
 export const endpointMetadataSchema = z
   .object({
     baseUrl: optionalText(500),
+    capabilityPath: optionalText(300),
+    healthPath: optionalText(300),
+    connectivityPath: optionalText(300),
     host: optionalText(255),
     port: z.number().int().min(1).max(65535).optional(),
     tlsMode: optionalText(40),
@@ -37,6 +40,12 @@ export const endpointMetadataSchema = z
     screeningHistoryDepth: optionalText(80),
     programmeIdentifier: optionalText(160),
     agreementReference: optionalText(200),
+    apiKeyHeader: optionalText(80),
+    basicUsername: optionalText(160),
+    oauthTokenUrl: optionalText(500),
+    oauthClientId: optionalText(200),
+    oauthScopes: optionalText(500),
+    oauthAudience: optionalText(300),
     nhiLookupEnabled: z.boolean().optional(),
     lookupStrategy: optionalText(160),
   })

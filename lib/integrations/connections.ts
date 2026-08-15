@@ -17,6 +17,11 @@ import {
   validateIntegrationConfiguration,
   type IntegrationConfigurationReport,
 } from "@/lib/integrations/connection-validation";
+import {
+  getLiveTestAvailability,
+  listConnectivityChecksForConnections,
+  type IntegrationConnectivityCheckDto,
+} from "@/lib/integrations/connectivity-checks";
 import { prisma } from "@/lib/prisma";
 
 export const INTEGRATION_CONNECTION_STATES = [
@@ -86,6 +91,10 @@ export type IntegrationConnectionDto = {
   updatedAt: string;
   updatedBy: string;
   audits: IntegrationAuditDto[];
+  connectivityChecks: IntegrationConnectivityCheckDto[];
+  latestConnectivityCheck: IntegrationConnectivityCheckDto | null;
+  liveTestAvailable: boolean;
+  liveTestUnavailableReason: string;
 };
 
 export type IntegrationDashboard = {
@@ -93,6 +102,7 @@ export type IntegrationDashboard = {
   summary: {
     configured: number;
     readyForLiveTest: number;
+    liveVerified: number;
     needsConfiguration: number;
     pausedOrErrors: number;
   };
@@ -102,6 +112,8 @@ export type IntegrationDashboard = {
     missingCredentialReferences: number;
     invalidSchedules: number;
     liveConnectivityNotTested: number;
+    liveConnectivityFailures: number;
+    staleConnectivityEvidence: number;
   };
 };
 
@@ -202,10 +214,12 @@ function mappingCoverage(row: IntegrationConnection) {
 
 function toDto(
   row: ConnectionWithActors,
-  audits: IntegrationAuditDto[] = []
+  audits: IntegrationAuditDto[] = [],
+  connectivityChecks: IntegrationConnectivityCheckDto[] = []
 ): IntegrationConnectionDto {
   const definition = getConnectorDefinition(row.connectorType as ConnectorType);
   const coverage = mappingCoverage(row);
+  const availability = getLiveTestAvailability(row);
   return {
     id: row.id,
     connectorType: row.connectorType as ConnectorType,
@@ -235,6 +249,10 @@ function toDto(
     updatedAt: row.updatedAt.toISOString(),
     updatedBy: row.updatedBy.name ?? row.updatedBy.email,
     audits,
+    connectivityChecks,
+    latestConnectivityCheck: connectivityChecks[0] ?? null,
+    liveTestAvailable: availability.available,
+    liveTestUnavailableReason: availability.reason,
   };
 }
 
@@ -284,7 +302,12 @@ export async function getIntegrationDashboard(
       auditByConnection.set(row.entityId, current);
     }
   }
-  const connections = rows.map((row) => toDto(row, auditByConnection.get(row.id) ?? []));
+  const checkByConnection = await listConnectivityChecksForConnections(organisationId, ids);
+  const connections = rows.map((row) => toDto(
+    row,
+    auditByConnection.get(row.id) ?? [],
+    checkByConnection.get(row.id) ?? []
+  ));
   const missingCredentialReferences = connections.filter(
     (connection) => connection.authMethod !== "NONE" && !connection.credentialConfigured && !connection.certificateConfigured
   ).length;
@@ -300,6 +323,12 @@ export async function getIntegrationDashboard(
     summary: {
       configured: connections.length,
       readyForLiveTest: connections.filter((item) => item.state === "READY_FOR_LIVE_TEST").length,
+      liveVerified: connections.filter(
+        (item) =>
+          item.lastValidationStatus === "PASSED" &&
+          item.latestConnectivityCheck?.status === "PASSED" &&
+          !item.latestConnectivityCheck.stale
+      ).length,
       needsConfiguration: connections.filter((item) =>
         ["NOT_CONFIGURED", "CONFIGURED", "CONFIGURATION_VALID", "MAPPING_VERIFIED"].includes(item.state)
       ).length,
@@ -310,7 +339,9 @@ export async function getIntegrationDashboard(
       mappingIncomplete: connections.filter((item) => item.mappingComplete < item.mappingRequired).length,
       missingCredentialReferences,
       invalidSchedules,
-      liveConnectivityNotTested: connections.length,
+      liveConnectivityNotTested: connections.filter((item) => !item.latestConnectivityCheck || item.latestConnectivityCheck.status === "NOT_TESTED").length,
+      liveConnectivityFailures: connections.filter((item) => item.latestConnectivityCheck?.status === "FAILED").length,
+      staleConnectivityEvidence: connections.filter((item) => item.latestConnectivityCheck?.status === "PASSED" && item.latestConnectivityCheck.stale).length,
     },
   };
 }

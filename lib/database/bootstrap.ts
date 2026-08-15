@@ -233,6 +233,7 @@ export async function ensureClinicalRuleSchema(url: string) {
     await ensureEpisodeRegisterSchema(client);
     await ensureUsageLedgerSchema(client);
     await ensureIntegrationConnectionSchema(client);
+    await ensureIntegrationConnectivityCheckSchema(client);
   } finally {
     client.close();
   }
@@ -712,6 +713,69 @@ async function ensureIntegrationConnectionSchema(
   await client.execute(
     'CREATE INDEX IF NOT EXISTS "IntegrationConnection_updatedByUserId_updatedAt_idx" ON "IntegrationConnection"("updatedByUserId", "updatedAt")'
   );
+}
+
+/** Additive Phase 3B evidence table. Existing configuration and clinical
+ * tables are never rebuilt, and update/delete triggers keep checks append-only.
+ */
+async function ensureIntegrationConnectivityCheckSchema(
+  client: ReturnType<typeof createClient>
+) {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS "IntegrationConnectivityCheck" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "organisationId" TEXT NOT NULL,
+      "integrationConnectionId" TEXT NOT NULL,
+      "startedAt" DATETIME NOT NULL,
+      "completedAt" DATETIME NOT NULL,
+      "status" TEXT NOT NULL,
+      "networkStatus" TEXT NOT NULL,
+      "tlsStatus" TEXT NOT NULL,
+      "authenticationStatus" TEXT NOT NULL,
+      "protocolStatus" TEXT NOT NULL,
+      "httpStatus" INTEGER,
+      "latencyMs" INTEGER,
+      "safeSummary" TEXT NOT NULL,
+      "safeDetailsJson" TEXT NOT NULL DEFAULT '{}',
+      "endpointHostname" TEXT,
+      "connectorType" TEXT NOT NULL,
+      "environment" TEXT NOT NULL,
+      "performedByUserId" TEXT NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "IntegrationConnectivityCheck_organisationId_fkey"
+        FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id")
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+      CONSTRAINT "IntegrationConnectivityCheck_integrationConnectionId_fkey"
+        FOREIGN KEY ("integrationConnectionId") REFERENCES "IntegrationConnection"("id")
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+      CONSTRAINT "IntegrationConnectivityCheck_performedByUserId_fkey"
+        FOREIGN KEY ("performedByUserId") REFERENCES "User"("id")
+        ON DELETE RESTRICT ON UPDATE CASCADE
+    )
+  `);
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "IntegrationConnectivityCheck_organisationId_completedAt_idx" ON "IntegrationConnectivityCheck"("organisationId", "completedAt")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "IntegrationConnectivityCheck_integrationConnectionId_completedAt_idx" ON "IntegrationConnectivityCheck"("integrationConnectionId", "completedAt")'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS "IntegrationConnectivityCheck_performedByUserId_completedAt_idx" ON "IntegrationConnectivityCheck"("performedByUserId", "completedAt")'
+  );
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "IntegrationConnectivityCheck_immutable_update"
+    BEFORE UPDATE ON "IntegrationConnectivityCheck"
+    BEGIN
+      SELECT RAISE(ABORT, 'Integration connectivity checks are immutable');
+    END
+  `);
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS "IntegrationConnectivityCheck_immutable_delete"
+    BEFORE DELETE ON "IntegrationConnectivityCheck"
+    BEGIN
+      SELECT RAISE(ABORT, 'Integration connectivity checks are immutable');
+    END
+  `);
 }
 
 async function ensureCanonicalProvenanceColumns(

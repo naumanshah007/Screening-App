@@ -77,6 +77,24 @@ function validTimezone(value: string) {
   }
 }
 
+function authenticationMetadataProblems(source: ValidationSource, endpoint: EndpointMetadata) {
+  const problems: string[] = [];
+  if (source.authMethod === "API_KEY" && endpoint.apiKeyHeader) {
+    const header = endpoint.apiKeyHeader.trim();
+    if (!/^[A-Za-z][A-Za-z0-9-]{0,79}$/.test(header) || ["host", "cookie", "set-cookie", "content-length", "proxy-authorization"].includes(header.toLowerCase())) {
+      problems.push("valid API key header name");
+    }
+  }
+  if (source.authMethod === "BASIC" && !configured(endpoint.basicUsername)) {
+    problems.push("Basic username");
+  }
+  if (source.authMethod === "OAUTH2_CLIENT_CREDENTIALS") {
+    if (!validHttpUrl(endpoint.oauthTokenUrl)) problems.push("valid OAuth token endpoint");
+    if (!configured(endpoint.oauthClientId)) problems.push("OAuth client ID");
+  }
+  return problems;
+}
+
 function missingConnectionFields(
   type: ConnectorType,
   source: ValidationSource,
@@ -182,8 +200,10 @@ export async function validateIntegrationConfiguration(
   const certificate = await metadataOnlySecretProvider.describe(source.certificateRef);
   const authAllowed = definition.authMethods.includes(source.authMethod as never);
   const credentialRequired = source.authMethod !== "NONE";
+  const authProblems = authenticationMetadataProblems(source, endpoint);
   const authConfigured =
     authAllowed &&
+    authProblems.length === 0 &&
     (!credentialRequired ||
       credential.configured ||
       (source.authMethod === "MUTUAL_TLS" && certificate.configured));
@@ -212,7 +232,9 @@ export async function validateIntegrationConfiguration(
       ? `${source.authMethod} is not allowed for this connector type.`
       : authConfigured
         ? "Authentication metadata is complete; no secret was resolved."
-        : "Add a credential or certificate provider reference. Do not paste a secret value.",
+        : authProblems.length
+          ? `Complete: ${authProblems.join(", ")}.`
+          : "Add a credential or certificate provider reference. Do not paste a secret value.",
   };
   const mappingCheck: ConfigurationCheck = {
     key: "mapping",
@@ -222,7 +244,7 @@ export async function validateIntegrationConfiguration(
     detail:
       mapped === required
         ? "Every required connector-specific mapping has a source path."
-        : "Mapping is incomplete; configuration cannot be ready for a future live test.",
+        : "Mapping is incomplete; configuration cannot be ready for a live test.",
   };
   const scheduleCheck: ConfigurationCheck = {
     key: "schedule",
@@ -251,7 +273,7 @@ export async function validateIntegrationConfiguration(
     status: readyForLiveTest ? "PASS" : "WARNING",
     value: readyForLiveTest ? "YES" : "NO",
     detail: readyForLiveTest
-      ? "Configuration is ready for a separately authorised future live connectivity test."
+      ? "Configuration is ready for a separate explicit live connectivity test."
       : "Resolve configuration, credential, mapping, and schedule gaps first.",
   };
   const status = failed ? "FAILED" : readyForLiveTest ? "PASSED" : "WARNING";
@@ -271,7 +293,7 @@ export async function validateIntegrationConfiguration(
       readinessCheck,
     ],
     summary: readyForLiveTest
-      ? "Configuration valid and ready for a future live test. Live connectivity was not tested."
+      ? "Configuration valid and ready for a separate live test. Live connectivity was not tested."
       : `${status === "FAILED" ? "Configuration has required gaps" : "Configuration needs mapping"}. Live connectivity was not tested.`,
   };
 }

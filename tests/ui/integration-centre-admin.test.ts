@@ -11,16 +11,23 @@ const CONNECTIONS = read("lib/integrations/connections.ts");
 const VALIDATION = read("lib/integrations/connection-validation.ts");
 const SCHEMA = read("lib/integrations/connection-schema.ts");
 const SECRET_PROVIDER = read("lib/integrations/secret-provider.ts");
+const CONNECTIVITY = read("lib/integrations/connectivity-test.ts");
+const CONNECTIVITY_CHECKS = read("lib/integrations/connectivity-checks.ts");
+const OUTBOUND_POLICY = read("lib/integrations/outbound-policy.ts");
+const OUTBOUND_HTTP = read("lib/integrations/outbound-http.ts");
+const LIVE_TEST_ROUTE = read("app/api/admin/integrations/[id]/live-test/route.ts");
 const PERMISSIONS = read("lib/auth/permissions.ts");
 const API_ROUTES = [
   "app/api/admin/integrations/route.ts",
   "app/api/admin/integrations/[id]/route.ts",
   "app/api/admin/integrations/[id]/validate/route.ts",
+  "app/api/admin/integrations/[id]/live-test/route.ts",
   "app/api/admin/integrations/[id]/state/route.ts",
 ].map(read).join("\n");
 const SIDEBAR = read("components/layout/Sidebar.tsx");
 const BATCH_PANEL = read("components/batch/IntegrationReadinessPanel.tsx");
 const MIGRATION = read("prisma/migrations/20260815131500_integration_connections/migration.sql");
+const CONNECTIVITY_MIGRATION = read("prisma/migrations/20260815144000_integration_connectivity_checks/migration.sql");
 
 test("Integration Centre uses the existing ADMIN and INTEGRATION_ADMIN permission boundary", () => {
   const integrationGuard = PERMISSIONS.indexOf('prefix: "/admin/integrations"');
@@ -85,7 +92,8 @@ test("credential values cannot enter typed metadata or client responses", () => 
   assert.match(SCHEMA, /secretReferenceSchema/);
   assert.match(SCHEMA, /Use a provider reference, not a credential value/);
   assert.match(SECRET_PROVIDER, /describe\(ref/);
-  assert.match(SECRET_PROVIDER, /Secret resolution is unavailable/);
+  assert.match(SECRET_PROVIDER, /resolve\(ref/);
+  assert.match(SECRET_PROVIDER, /Environment variable/);
   assert.doesNotMatch(CLIENT, /Show credential|showCredential/);
   const dto = CONNECTIONS.slice(
     CONNECTIONS.indexOf("export type IntegrationConnectionDto"),
@@ -113,7 +121,7 @@ test("the state machine has no ACTIVE transition and readiness is explicit", () 
   assert.doesNotMatch(states, /"ACTIVE"/);
   assert.match(states, /"READY_FOR_LIVE_TEST"/);
   assert.match(VALIDATION, /readyForLiveTest/);
-  assert.match(CLIENT, /Activation[\s\S]*Unavailable in Phase 3A/);
+  assert.match(CLIENT, /Activation[\s\S]*Not active/);
 });
 
 test("Pull Cases is an operational summary with one admin configuration surface", () => {
@@ -137,4 +145,57 @@ test("the migration is additive and leaves clinical and usage evidence untouched
     `${CONNECTIONS}\n${VALIDATION}`,
     /evaluateClinicalCase|recordUsageEvent|UsageEventCorrection|CaseAuthorityPin/
   );
+});
+
+test("Phase 3B keeps configuration validation and live testing separate", () => {
+  assert.match(CLIENT, />Validate Configuration<\/Button>/);
+  assert.match(CLIENT, />Test Live Connection<\/Button>/);
+  assert.match(CLIENT, /liveTestAvailable/);
+  assert.match(CLIENT, /Live connectivity history/);
+  assert.match(CLIENT, /Last live test/);
+  assert.match(CLIENT, /Not active/);
+  assert.match(CLIENT, /A live pass proves connectivity only/);
+  assert.doesNotMatch(CLIENT, /Ready for activation[^\n]*YES/);
+  assert.doesNotMatch(CONNECTIVITY_CHECKS, /state:\s*"ACTIVE"|lastSuccessfulImportAt:\s*/);
+});
+
+test("live test routing uses the existing admin boundary and ordinary clinicians remain excluded", () => {
+  assert.match(LIVE_TEST_ROUTE, /runStoredConnectivityCheck/);
+  assert.match(LIVE_TEST_ROUTE, /getApiPermissionError\(user, "admin:settings"\)/);
+  assert.match(LIVE_TEST_ROUTE, /requireCurrentOrganisation/);
+  assert.match(CONNECTIVITY_CHECKS, /integrationConnection\.findFirst/);
+  assert.match(CONNECTIVITY_CHECKS, /organisationId: args\.organisationId/);
+});
+
+test("outbound connectivity is bounded, DNS-pinned and redirect-revalidated", () => {
+  assert.match(OUTBOUND_POLICY, /dns\.lookup/);
+  assert.match(OUTBOUND_POLICY, /isNonPublicAddress/);
+  assert.match(OUTBOUND_POLICY, /EMBEDDED_CREDENTIALS/);
+  assert.match(OUTBOUND_POLICY, /UNSUPPORTED_SCHEME/);
+  assert.match(OUTBOUND_HTTP, /pinnedLookup/);
+  assert.match(OUTBOUND_HTTP, /maxResponseBytes/);
+  assert.match(OUTBOUND_HTTP, /connectTimeoutMs/);
+  assert.match(OUTBOUND_HTTP, /totalTimeoutMs/);
+  assert.match(OUTBOUND_HTTP, /withoutCrossOriginCredentials/);
+  assert.match(OUTBOUND_HTTP, /approveOutboundUrl\(currentUrl/);
+});
+
+test("connector boundaries are truthful and no secret material enters the client DTO", () => {
+  assert.match(CONNECTIVITY, /CapabilityStatement/);
+  assert.match(CONNECTIVITY, /DiagnosticReport/);
+  assert.match(CONNECTIVITY, /Observation/);
+  assert.match(CONNECTIVITY, /API-specific capability[\s\S]*NOT_VERIFIED/);
+  assert.match(CONNECTIVITY, /Awaiting authorised endpoint \/ integration contract/);
+  assert.match(CONNECTIVITY, /Live MLLP receiver testing is unavailable/);
+  assert.match(CONNECTIVITY, /live mTLS testing is not supported/);
+  assert.doesNotMatch(CLIENT, /accessToken|secretValue|resolved\.value/);
+  assert.doesNotMatch(CONNECTIVITY_CHECKS, /Authorization|access_token|client_secret|resolved\.value/);
+});
+
+test("connectivity evidence migration is additive and append-only", () => {
+  assert.match(CONNECTIVITY_MIGRATION, /CREATE TABLE "IntegrationConnectivityCheck"/);
+  assert.match(CONNECTIVITY_MIGRATION, /BEFORE UPDATE/);
+  assert.match(CONNECTIVITY_MIGRATION, /BEFORE DELETE/);
+  assert.doesNotMatch(CONNECTIVITY_MIGRATION, /(^|\n)\s*(DROP TABLE|ALTER TABLE|DELETE FROM|UPDATE )/m);
+  assert.doesNotMatch(CONNECTIVITY_MIGRATION, /BatchRun|BatchReviewItem|ScreeningEpisode|EpisodeObservation|RuleEvaluation|UsageEvent/);
 });

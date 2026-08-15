@@ -334,61 +334,62 @@ enum RuleEvaluationMode {
 // ─── Auth / User Models ───────────────────────────────────────────────────────
 
 model User {
-  id                            String                  @id @default(cuid())
+  id                            String                         @id @default(cuid())
   name                          String?
-  email                         String                  @unique
+  email                         String                         @unique
   emailVerified                 DateTime?
   image                         String?
   passwordHash                  String?
-  passwordChangeRequired        Boolean                 @default(false)
+  passwordChangeRequired        Boolean                        @default(false)
   passwordChangedAt             DateTime?
   passwordExpiresAt             DateTime?
-  role                          UserRole                @default(GP)
+  role                          UserRole                       @default(GP)
   twoFASecret                   String?
-  twoFAEnabled                  Boolean                 @default(false)
+  twoFAEnabled                  Boolean                        @default(false)
   twoFARecoveryCodesJson        String?
-  failedAttempts                Int                     @default(0)
+  failedAttempts                Int                            @default(0)
   lockedUntil                   DateTime?
   lastLoginAt                   DateTime?
   /// Administrative enable/disable. A disabled account cannot authenticate at
   /// all — checked in the credentials provider before any password comparison,
   /// so disabling is immediate and does not wait for session expiry.
-  isActive                      Boolean                 @default(true)
+  isActive                      Boolean                        @default(true)
   /// True for the seeded demonstration identities. Lets handover readiness
   /// enumerate exactly which accounts must be removed or converted, and keeps
   /// the demo reset control from ever targeting a real account.
-  isDemoAccount                 Boolean                 @default(false)
+  isDemoAccount                 Boolean                        @default(false)
   gpPracticeId                  String?
-  gpPractice                    GPPractice?             @relation(fields: [gpPracticeId], references: [id])
+  gpPractice                    GPPractice?                    @relation(fields: [gpPracticeId], references: [id])
   accounts                      Account[]
   sessions                      Session[]
   auditLogs                     AuditLog[]
-  createdCases                  ReferralCase[]          @relation("CaseCreator")
-  assignedCases                 ReferralCase[]          @relation("CaseAssignee")
-  clinicianDecisions            ClinicianDecision[]     @relation("CaseDecisionMaker")
-  uploadedDocuments             ReferralDocument[]      @relation("DocumentUploader")
-  approvedSummaries             ClinicalSummary[]       @relation("CaseSummaryApprover")
-  reviewedCaseRules             CaseRuleSetRelease[]    @relation("CaseRuleReviewer")
-  publishedCaseRules            CaseRuleSetRelease[]    @relation("CaseRulePublisher")
+  createdCases                  ReferralCase[]                 @relation("CaseCreator")
+  assignedCases                 ReferralCase[]                 @relation("CaseAssignee")
+  clinicianDecisions            ClinicianDecision[]            @relation("CaseDecisionMaker")
+  uploadedDocuments             ReferralDocument[]             @relation("DocumentUploader")
+  approvedSummaries             ClinicalSummary[]              @relation("CaseSummaryApprover")
+  reviewedCaseRules             CaseRuleSetRelease[]           @relation("CaseRuleReviewer")
+  publishedCaseRules            CaseRuleSetRelease[]           @relation("CaseRulePublisher")
   createdSessions               ScreeningSession[]
-  createdClinicalRuleVersions   ClinicalRuleVersion[]   @relation("ClinicalRuleVersionCreator")
-  approvedClinicalRuleVersions  ClinicalRuleVersion[]   @relation("ClinicalRuleVersionApprover")
-  publishedClinicalRuleVersions ClinicalRuleVersion[]   @relation("ClinicalRuleVersionPublisher")
-  clinicalRuleActivations       RuleSetActivation[]     @relation("ClinicalRuleActivationActor")
-  clinicalRuleAuditEvents       RuleVersionAuditEvent[] @relation("ClinicalRuleAuditActor")
+  createdClinicalRuleVersions   ClinicalRuleVersion[]          @relation("ClinicalRuleVersionCreator")
+  approvedClinicalRuleVersions  ClinicalRuleVersion[]          @relation("ClinicalRuleVersionApprover")
+  publishedClinicalRuleVersions ClinicalRuleVersion[]          @relation("ClinicalRuleVersionPublisher")
+  clinicalRuleActivations       RuleSetActivation[]            @relation("ClinicalRuleActivationActor")
+  clinicalRuleAuditEvents       RuleVersionAuditEvent[]        @relation("ClinicalRuleAuditActor")
   pathwayHistory                PathwayStateHistory[]
   colposcopyFindings            ColposcopyFinding[]
   wizardSessions                WizardSession[]
   accessCertifications          AccessCertification[]
-  integrationValidations        IntegrationValidation[] @relation("IntegrationValidationReviewer")
-  integrationConnectionsCreated IntegrationConnection[] @relation("IntegrationConnectionCreator")
-  integrationConnectionsUpdated IntegrationConnection[] @relation("IntegrationConnectionUpdater")
-  openedSecurityIncidents       SecurityIncident[]      @relation("SecurityIncidentOpenedBy")
-  assignedSecurityIncidents     SecurityIncident[]      @relation("SecurityIncidentAssignedTo")
-  batchRuns                     BatchRun[]              @relation("BatchRunCreator")
-  reviewedBatchItems            BatchReviewItem[]       @relation("BatchItemReviewer")
-  createdAt                     DateTime                @default(now())
-  updatedAt                     DateTime                @updatedAt
+  integrationValidations        IntegrationValidation[]        @relation("IntegrationValidationReviewer")
+  integrationConnectionsCreated IntegrationConnection[]        @relation("IntegrationConnectionCreator")
+  integrationConnectionsUpdated IntegrationConnection[]        @relation("IntegrationConnectionUpdater")
+  integrationConnectivityChecks IntegrationConnectivityCheck[] @relation("IntegrationConnectivityCheckPerformer")
+  openedSecurityIncidents       SecurityIncident[]             @relation("SecurityIncidentOpenedBy")
+  assignedSecurityIncidents     SecurityIncident[]             @relation("SecurityIncidentAssignedTo")
+  batchRuns                     BatchRun[]                     @relation("BatchRunCreator")
+  reviewedBatchItems            BatchReviewItem[]              @relation("BatchItemReviewer")
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
 }
 
 model AccessCertification {
@@ -430,27 +431,27 @@ model IntegrationValidation {
 ///
 /// This is deliberately separate from IntegrationValidation, which records
 /// governed operational/database/AI/NCSR sign-off. Phase 3A stores metadata
-/// and readiness evidence only: credentialRef/certificateRef point at a future
-/// secret provider and never contain resolved secret values.
+/// and readiness evidence only: credentialRef/certificateRef point at a
+/// provider-neutral server resolver and never contain resolved secret values.
 model IntegrationConnection {
-  id                     String       @id @default(cuid())
+  id                     String                         @id @default(cuid())
   organisationId         String
-  organisation           Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  organisation           Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   connectorType          String
   name                   String
   description            String?
   sourceSystem           String
   sourceFacility         String?
-  environment            String       @default("DEMO")
-  state                  String       @default("NOT_CONFIGURED")
-  endpointJson           String       @default("{}")
-  authMethod             String       @default("NONE")
+  environment            String                         @default("DEMO")
+  state                  String                         @default("NOT_CONFIGURED")
+  endpointJson           String                         @default("{}")
+  authMethod             String                         @default("NONE")
   credentialRef          String?
   certificateRef         String?
   mappingVersion         String?
-  mappingJson            String       @default("{}")
-  scheduleJson           String       @default("{}")
-  timezone               String       @default("Pacific/Auckland")
+  mappingJson            String                         @default("{}")
+  scheduleJson           String                         @default("{}")
+  timezone               String                         @default("Pacific/Auckland")
   lastValidatedAt        DateTime?
   lastValidationStatus   String?
   lastValidationSummary  String?
@@ -458,16 +459,48 @@ model IntegrationConnection {
   lastFailureAt          DateTime?
   archivedAt             DateTime?
   createdByUserId        String
-  createdBy              User         @relation("IntegrationConnectionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdBy              User                           @relation("IntegrationConnectionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   updatedByUserId        String
-  updatedBy              User         @relation("IntegrationConnectionUpdater", fields: [updatedByUserId], references: [id], onDelete: Restrict)
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
+  updatedBy              User                           @relation("IntegrationConnectionUpdater", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+  connectivityChecks     IntegrationConnectivityCheck[]
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
 
   @@unique([organisationId, name])
   @@index([organisationId, state, updatedAt])
   @@index([organisationId, connectorType])
   @@index([updatedByUserId, updatedAt])
+}
+
+/// Append-only, secret-free evidence from an explicitly requested live
+/// connectivity test. These rows never represent ingestion or activation.
+model IntegrationConnectivityCheck {
+  id                      String                @id @default(cuid())
+  organisationId          String
+  organisation            Organisation          @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  integrationConnectionId String
+  integrationConnection   IntegrationConnection @relation(fields: [integrationConnectionId], references: [id], onDelete: Restrict)
+  startedAt               DateTime
+  completedAt             DateTime
+  status                  String
+  networkStatus           String
+  tlsStatus               String
+  authenticationStatus    String
+  protocolStatus          String
+  httpStatus              Int?
+  latencyMs               Int?
+  safeSummary             String
+  safeDetailsJson         String                @default("{}")
+  endpointHostname        String?
+  connectorType           String
+  environment             String
+  performedByUserId       String
+  performedBy             User                  @relation("IntegrationConnectivityCheckPerformer", fields: [performedByUserId], references: [id], onDelete: Restrict)
+  createdAt               DateTime              @default(now())
+
+  @@index([organisationId, completedAt])
+  @@index([integrationConnectionId, completedAt])
+  @@index([performedByUserId, completedAt])
 }
 
 model SecurityIncident {
@@ -565,16 +598,17 @@ model GPPractice {
 /// lib/organisation/current-organisation.ts. Nothing here implements tenant
 /// switching, and no request carries an organisation — that is deliberate.
 model Organisation {
-  id        String     @id @default(cuid())
+  id                            String                         @id @default(cuid())
   /// Stable lookup key, e.g. "counties-manukau". Matches RuleSetActivation.organisationKey.
-  key       String     @unique
-  name      String
-  shortName String?
-  isActive  Boolean    @default(true)
-  batchRuns BatchRun[]
-  integrationConnections IntegrationConnection[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  key                           String                         @unique
+  name                          String
+  shortName                     String?
+  isActive                      Boolean                        @default(true)
+  batchRuns                     BatchRun[]
+  integrationConnections        IntegrationConnection[]
+  integrationConnectivityChecks IntegrationConnectivityCheck[]
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
 
   @@index([isActive])
 }

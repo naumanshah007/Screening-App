@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  Activity,
   Archive,
   Cable,
   CheckCircle2,
@@ -48,6 +49,7 @@ import type {
   IntegrationDashboard,
 } from "@/lib/integrations/connections";
 import type { IntegrationConfigurationReport } from "@/lib/integrations/connection-validation";
+import type { IntegrationConnectivityCheckDto } from "@/lib/integrations/connectivity-checks";
 
 const WIZARD_STEPS = [
   "Connection",
@@ -100,7 +102,7 @@ function emptyDraft(type: ConnectorType, definition: ConnectorDefinition): Draft
       type === "HL7_V2_LAB"
         ? { acceptedMessageTypes: ["ORU^R01"], tlsMode: "MUTUAL_TLS" }
         : type === "FHIR_R4"
-          ? { resourceTypes: ["DiagnosticReport", "Observation"] }
+          ? { resourceTypes: ["DiagnosticReport", "Observation"], capabilityPath: "metadata" }
           : type === "SCREENING_REGISTER"
             ? { nhiLookupEnabled: true, permittedOperations: [] }
             : {},
@@ -161,14 +163,14 @@ function stateTone(state: string): BadgeTone {
 }
 
 function checkTone(status: string): BadgeTone {
-  if (status === "PASS") return "success";
-  if (status === "FAIL") return "danger";
+  if (["PASS", "PASSED"].includes(status)) return "success";
+  if (["FAIL", "FAILED", "INCOMPATIBLE"].includes(status)) return "danger";
   if (status === "WARNING") return "warn";
   return "neutral";
 }
 
 function formatDateTime(value: string | null) {
-  if (!value) return "Not validated";
+  if (!value) return "Not tested";
   return new Intl.DateTimeFormat("en-NZ", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -235,6 +237,7 @@ export function IntegrationCentreClient({
   const [form, setForm] = useState<DraftForm>(() => emptyDraft(definitions[0]!.type, definitions[0]!));
   const [report, setReport] = useState<IntegrationConfigurationReport | null>(null);
   const [auditConnection, setAuditConnection] = useState<IntegrationConnectionDto | null>(null);
+  const [connectivityConnection, setConnectivityConnection] = useState<IntegrationConnectionDto | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -281,7 +284,17 @@ export function IntegrationCentreClient({
       ...current,
       connections: current.connections.some((item) => item.id === connection.id)
         ? current.connections.map((item) =>
-            item.id === connection.id ? { ...connection, audits: item.audits } : item
+            item.id === connection.id
+              ? {
+                  ...connection,
+                  audits: connection.audits.length ? connection.audits : item.audits,
+                  connectivityChecks: connection.connectivityChecks.length
+                    ? connection.connectivityChecks
+                    : item.connectivityChecks,
+                  latestConnectivityCheck:
+                    connection.latestConnectivityCheck ?? item.latestConnectivityCheck,
+                }
+              : item
           )
         : [connection, ...current.connections],
     }));
@@ -297,6 +310,7 @@ export function IntegrationCentreClient({
       issues?: { path: string; message: string }[];
       connection?: IntegrationConnectionDto;
       report?: IntegrationConfigurationReport;
+      check?: IntegrationConnectivityCheckDto;
     };
     if (!response.ok) {
       const issue = body.issues?.[0];
@@ -393,6 +407,38 @@ export function IntegrationCentreClient({
     }
   };
 
+  const testLiveConnection = async (connection: IntegrationConnectionDto) => {
+    setBusy(true);
+    resetFeedback();
+    try {
+      const body = await request(`/api/admin/integrations/${connection.id}/live-test`, {
+        method: "POST",
+        body: "{}",
+      });
+      if (!body.check) throw new Error("Live connectivity response was incomplete");
+      const checks = [
+        body.check,
+        ...connection.connectivityChecks.filter((item) => item.id !== body.check!.id),
+      ];
+      const updated = {
+        ...connection,
+        connectivityChecks: checks,
+        latestConnectivityCheck: body.check,
+      };
+      setData((current) => ({
+        ...current,
+        connections: current.connections.map((item) => item.id === connection.id ? updated : item),
+      }));
+      setConnectivityConnection(updated);
+      setNotice(body.check.safeSummary);
+      router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to test live connectivity");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const changeState = async (connection: IntegrationConnectionDto, action: "PAUSE" | "RESUME" | "ARCHIVE") => {
     if (action === "ARCHIVE" && !window.confirm(`Archive ${connection.name}? Its audit history will remain preserved.`)) {
       return;
@@ -451,7 +497,7 @@ export function IntegrationCentreClient({
       <MetricGrid columns={4}>
         <MetricTile label="Configured connections" value={data.summary.configured} caption="Organisation-scoped instances" icon={<Cable className="h-4 w-4" />} />
         <MetricTile label="Ready for live test" value={data.summary.readyForLiveTest} caption="Configuration evidence only" icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
-        <MetricTile label="Needs configuration" value={data.summary.needsConfiguration} caption="Required readiness gaps" icon={<Settings2 className="h-4 w-4" />} tone="warn" />
+        <MetricTile label="Live verified" value={data.summary.liveVerified} caption="Current, non-stale evidence" icon={<Activity className="h-4 w-4" />} tone="success" />
         <MetricTile label="Paused / errors" value={data.summary.pausedOrErrors} caption="Administrative attention" icon={<AlertTriangle className="h-4 w-4" />} tone={data.summary.pausedOrErrors ? "danger" : "neutral"} />
       </MetricGrid>
 
@@ -474,6 +520,28 @@ export function IntegrationCentreClient({
                 const scheduleReady = connection.connectorType === "HL7_V2_LAB"
                   ? connection.schedule.cadence === "GATEWAY_MANAGED"
                   : Boolean(connection.schedule.cadence);
+                const latest = connection.latestConnectivityCheck;
+                const currentEvidence = connection.lastValidationStatus === "PASSED";
+                const liveValue = connector.gatewayRequired
+                  ? "Not available"
+                  : !latest
+                    ? "Not tested"
+                    : !currentEvidence && latest.status === "PASSED"
+                      ? "Historical only — revalidate"
+                      : latest.stale && latest.status === "PASSED"
+                        ? `Stale — ${latest.ageLabel}`
+                        : latest.status === "PASSED"
+                          ? `Verified ${latest.ageLabel}`
+                          : latest.status === "FAILED"
+                            ? `Failed ${latest.ageLabel}`
+                            : `Not tested · ${latest.ageLabel}`;
+                const liveTone: BadgeTone = latest?.status === "PASSED" && currentEvidence && !latest.stale
+                  ? "success"
+                  : latest?.status === "FAILED"
+                    ? "danger"
+                    : latest?.stale || !currentEvidence
+                      ? "warn"
+                      : "neutral";
                 return (
                   <article key={connection.id} className="rounded-xl border border-border bg-surface-raised p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
@@ -498,13 +566,17 @@ export function IntegrationCentreClient({
                       <ReadinessRow label="Mapping" value={`${connection.mappingComplete}/${connection.mappingRequired}`} tone={connection.mappingComplete === connection.mappingRequired ? "success" : "warn"} />
                       <ReadinessRow label="Credential ref" value={credentialReady ? (credentialRequired ? "Configured" : "Not required") : "Missing"} tone={credentialReady ? "success" : "warn"} />
                       <ReadinessRow label="Schedule" value={scheduleReady ? "Valid metadata" : "Needs configuration"} tone={scheduleReady ? "success" : "warn"} />
-                      <ReadinessRow label="Live connectivity" value={connector.gatewayRequired ? "Gateway required / Not receiving" : "Not tested"} />
-                      <ReadinessRow label="Activation" value="Unavailable in Phase 3A" />
+                      {connector.gatewayRequired ? <ReadinessRow label="Gateway" value="Required" tone="warn" /> : null}
+                      <ReadinessRow label="Last live test" value={latest ? `${latest.status === "PASSED" ? "Passed" : latest.status === "FAILED" ? "Failed" : "Not tested"} ${latest.ageLabel}` : "Not tested"} tone={liveTone} />
+                      <ReadinessRow label="Live test result" value={liveValue} tone={liveTone} />
+                      <ReadinessRow label="Activation" value="Not active" />
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="xs" variant="outline" onClick={() => openExisting(connection)} icon={<Settings2 className="h-3.5 w-3.5" />}>Configure</Button>
                       <Button size="xs" variant="outline" loading={busy} onClick={() => validateConfiguration(connection.id)} icon={<RefreshCcw className="h-3.5 w-3.5" />}>Validate Configuration</Button>
+                      <Button size="xs" loading={busy} disabled={!connection.liveTestAvailable} onClick={() => testLiveConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Test Live Connection</Button>
+                      <Button size="xs" variant="ghost" onClick={() => setConnectivityConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>View live history</Button>
                       <Button size="xs" variant="ghost" onClick={() => setAuditConnection(connection)} icon={<FileClock className="h-3.5 w-3.5" />}>View audit</Button>
                       {connection.state === "PAUSED" ? (
                         <Button size="xs" variant="ghost" onClick={() => changeState(connection, "RESUME")} icon={<Play className="h-3.5 w-3.5" />}>Resume</Button>
@@ -515,7 +587,10 @@ export function IntegrationCentreClient({
                     </div>
 
                     <p className="mt-3 text-[0.6875rem] text-muted-foreground">
-                      Last validation: {formatDateTime(connection.lastValidatedAt)} · Live connectivity not tested
+                      {!connection.liveTestAvailable ? connection.liveTestUnavailableReason : "A live pass proves connectivity only; activation remains governed and separate."}
+                    </p>
+                    <p className="mt-1 text-[0.6875rem] text-muted-foreground">
+                      Last validation: {formatDateTime(connection.lastValidatedAt)}{latest ? ` · Last live test: ${formatDateTime(latest.completedAt)}` : " · Live connectivity not tested"}
                     </p>
                   </article>
                 );
@@ -541,6 +616,8 @@ export function IntegrationCentreClient({
               <ReadinessRow label="Missing credential refs" value={String(data.health.missingCredentialReferences)} tone={data.health.missingCredentialReferences ? "warn" : "success"} />
               <ReadinessRow label="Invalid schedules" value={String(data.health.invalidSchedules)} tone={data.health.invalidSchedules ? "warn" : "success"} />
               <ReadinessRow label="Live connectivity not tested" value={String(data.health.liveConnectivityNotTested)} />
+              <ReadinessRow label="Live connectivity failures" value={String(data.health.liveConnectivityFailures)} tone={data.health.liveConnectivityFailures ? "danger" : "success"} />
+              <ReadinessRow label="Stale live evidence" value={String(data.health.staleConnectivityEvidence)} tone={data.health.staleConnectivityEvidence ? "warn" : "success"} />
             </div>
           </Panel>
 
@@ -596,7 +673,7 @@ export function IntegrationCentreClient({
             <ConnectionStep form={form} definition={definition} definitions={definitions} setForm={setForm} setEndpoint={setEndpoint} switchType={switchConnectorType} />
           ) : null}
           {step === 1 ? (
-            <AuthenticationStep form={form} definition={definition} setForm={setForm} />
+            <AuthenticationStep form={form} definition={definition} setForm={setForm} setEndpoint={setEndpoint} />
           ) : null}
           {step === 2 ? (
             <MappingStep form={form} definition={definition} mappingComplete={mappingComplete} setForm={setForm} />
@@ -644,6 +721,72 @@ export function IntegrationCentreClient({
                   }))} />
                 ) : (
                   <p className="text-sm text-muted-foreground">No audit entries are available.</p>
+                )}
+              </DrawerSection>
+            </>
+          ) : null}
+        </DetailDrawer>,
+        document.body
+      )}
+
+      {mounted && createPortal(
+        <DetailDrawer
+          open={Boolean(connectivityConnection)}
+          onClose={() => setConnectivityConnection(null)}
+          title="Live connectivity history"
+          subtitle={connectivityConnection?.name}
+          width="lg"
+        >
+          {connectivityConnection ? (
+            <>
+              <DrawerFields
+                fields={[
+                  { label: "Connector", value: connectivityConnection.connectorTitle },
+                  { label: "Configuration", value: connectivityConnection.lastValidationStatus === "PASSED" ? "Valid" : "Revalidation required" },
+                  { label: "Activation", value: "Not active" },
+                  { label: "Clinical data requested", value: "No" },
+                ]}
+              />
+              <PanelInset className="text-xs leading-relaxed text-muted-foreground">
+                Each row is append-only evidence from an explicit bounded test. A pass proves endpoint, network/TLS, authentication and configured capability semantics only; it does not authorise ingestion or activation.
+              </PanelInset>
+              {connectivityConnection.latestConnectivityCheck ? (
+                <DrawerSection
+                  title="Latest step-by-step result"
+                  action={<StatusBadge tone={checkTone(connectivityConnection.latestConnectivityCheck.status)}>{connectivityConnection.latestConnectivityCheck.status.replaceAll("_", " ")}</StatusBadge>}
+                >
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    {formatDateTime(connectivityConnection.latestConnectivityCheck.completedAt)} · {connectivityConnection.latestConnectivityCheck.ageLabel}{connectivityConnection.latestConnectivityCheck.stale ? " · stale" : ""}
+                  </p>
+                  <div className="space-y-3">
+                    {connectivityConnection.latestConnectivityCheck.diagnostics.map((item) => (
+                      <div key={item.key} className="rounded-lg border border-border bg-surface-raised p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold text-foreground">{item.label}</p>
+                          <StatusBadge size="sm" tone={checkTone(item.status)}>{item.value}</StatusBadge>
+                        </div>
+                        <p className="mt-1 text-[0.6875rem] leading-relaxed text-muted-foreground">{item.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </DrawerSection>
+              ) : (
+                <DrawerSection title="Latest result">
+                  <p className="text-sm text-muted-foreground">Live connectivity has not been tested.</p>
+                </DrawerSection>
+              )}
+              <DrawerSection title="Historical checks">
+                {connectivityConnection.connectivityChecks.length ? (
+                  <Timeline events={connectivityConnection.connectivityChecks.map((entry) => ({
+                    id: entry.id,
+                    title: entry.safeSummary,
+                    timestamp: formatDateTime(entry.completedAt),
+                    actor: entry.performedBy,
+                    description: `${entry.status.replaceAll("_", " ")} · network ${entry.networkStatus} · TLS ${entry.tlsStatus} · authentication ${entry.authenticationStatus} · protocol ${entry.protocolStatus}${entry.httpStatus ? ` · HTTP ${entry.httpStatus}` : ""}${entry.latencyMs !== null ? ` · ${entry.latencyMs} ms` : ""}`,
+                    tone: entry.status === "PASSED" ? "brand" : entry.status === "FAILED" ? "danger" : "neutral",
+                  }))} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">No historical checks are recorded.</p>
                 )}
               </DrawerSection>
             </>
@@ -710,7 +853,7 @@ function ConnectionStep({
         </PanelInset>
       ) : (
         <PanelInset className="text-xs text-muted-foreground">
-          Endpoint metadata is validated for syntax only. No remote request occurs in Phase 3A.
+          Validate Configuration checks metadata only. Test Live Connection is a separate explicit server-side action after validation passes.
         </PanelInset>
       )}
     </DrawerSection>
@@ -738,6 +881,7 @@ function ConnectorSpecificFields({ form, setEndpoint }: { form: DraftForm; setEn
     return (
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="FHIR base URL" required className="sm:col-span-2"><input className={fieldClass} type="url" value={value("baseUrl")} onChange={(event) => setEndpoint("baseUrl", event.target.value)} placeholder="Contract-provided base URL" /></Field>
+        <Field label="Capability path" required hint="Safe metadata operation only; normally metadata."><input className={fieldClass} value={value("capabilityPath")} onChange={(event) => setEndpoint("capabilityPath", event.target.value)} placeholder="metadata" /></Field>
         <Field label="Resource types" required><input className={fieldClass} value={(form.endpoint.resourceTypes as string[] | undefined)?.join(", ") ?? ""} onChange={(event) => setEndpoint("resourceTypes", event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} /></Field>
         <Field label="Identifier system" required><input className={fieldClass} value={value("identifierSystem")} onChange={(event) => setEndpoint("identifierSystem", event.target.value)} /></Field>
         <Field label="Paging strategy" required><input className={fieldClass} value={value("pagingStrategy")} onChange={(event) => setEndpoint("pagingStrategy", event.target.value)} placeholder="Bundle next-link or contract-defined" /></Field>
@@ -749,6 +893,7 @@ function ConnectorSpecificFields({ form, setEndpoint }: { form: DraftForm; setEn
     return (
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="Base URL" required className="sm:col-span-2"><input className={fieldClass} type="url" value={value("baseUrl")} onChange={(event) => setEndpoint("baseUrl", event.target.value)} placeholder="Vendor contract base URL" /></Field>
+        <Field label="Optional health / capability path" hint="If blank, only generic HTTP reachability can be established." className="sm:col-span-2"><input className={fieldClass} value={value("healthPath")} onChange={(event) => setEndpoint("healthPath", event.target.value)} placeholder="health" /></Field>
         <Field label="Organisation / site" required><input className={fieldClass} value={value("organisationSite")} onChange={(event) => setEndpoint("organisationSite", event.target.value)} /></Field>
         <Field label="Pagination strategy" required><input className={fieldClass} value={value("pagingStrategy")} onChange={(event) => setEndpoint("pagingStrategy", event.target.value)} /></Field>
         <Field label="Incremental-sync field" required className="sm:col-span-2"><input className={fieldClass} value={value("incrementalParameters")} onChange={(event) => setEndpoint("incrementalParameters", event.target.value)} placeholder="Generic configured field; no vendor contract assumed" /></Field>
@@ -758,6 +903,7 @@ function ConnectorSpecificFields({ form, setEndpoint }: { form: DraftForm; setEn
   return (
     <div className="mt-5 grid gap-4 sm:grid-cols-2">
       <Field label="Contract endpoint" required className="sm:col-span-2"><input className={fieldClass} type="url" value={value("baseUrl")} onChange={(event) => setEndpoint("baseUrl", event.target.value)} placeholder="Enter only an authorised contract endpoint" /></Field>
+      <Field label="Authorised connectivity path" hint="Required for live testing. Use only the contract-provided safe connectivity or capability operation." className="sm:col-span-2"><input className={fieldClass} value={value("connectivityPath")} onChange={(event) => setEndpoint("connectivityPath", event.target.value)} placeholder="Contract-provided operation" /></Field>
       <Field label="Facility / organisation ID" required><input className={fieldClass} value={value("facilityOrganisationId")} onChange={(event) => setEndpoint("facilityOrganisationId", event.target.value)} /></Field>
       <Field label="Screening history depth" required><input className={fieldClass} value={value("screeningHistoryDepth")} onChange={(event) => setEndpoint("screeningHistoryDepth", event.target.value)} /></Field>
       <Field label="Permitted operations" required><input className={fieldClass} value={(form.endpoint.permittedOperations as string[] | undefined)?.join(", ") ?? ""} onChange={(event) => setEndpoint("permittedOperations", event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} placeholder="Contract-defined selections" /></Field>
@@ -769,7 +915,8 @@ function ConnectorSpecificFields({ form, setEndpoint }: { form: DraftForm; setEn
   );
 }
 
-function AuthenticationStep({ form, definition, setForm }: { form: DraftForm; definition: ConnectorDefinition; setForm: React.Dispatch<React.SetStateAction<DraftForm>> }) {
+function AuthenticationStep({ form, definition, setForm, setEndpoint }: { form: DraftForm; definition: ConnectorDefinition; setForm: React.Dispatch<React.SetStateAction<DraftForm>>; setEndpoint: (key: string, value: DraftForm["endpoint"][string]) => void }) {
+  const endpointValue = (key: string) => String(form.endpoint[key] ?? "");
   return (
     <DrawerSection title="2. Authentication metadata">
       <PanelInset className="mb-4 flex items-start gap-3">
@@ -789,10 +936,28 @@ function AuthenticationStep({ form, definition, setForm }: { form: DraftForm; de
             {form.authMethod === "MUTUAL_TLS" ? <StatusBadge size="sm" tone={form.certificateConfigured && !form.clearCertificate ? "success" : "neutral"}>{form.certificateConfigured && !form.clearCertificate ? "Certificate reference configured" : "Certificate reference missing"}</StatusBadge> : null}
           </div>
         </div>
-        <Field label={form.credentialConfigured ? "Replacement credential reference" : "Credential reference"} hint="Example: vault:integrations/awanui-demo. Do not paste a key, token or password." className="sm:col-span-2">
-          <input className={fieldClass} value={form.credentialRefInput} onChange={(event) => setForm((current) => ({ ...current, credentialRefInput: event.target.value, clearCredential: false }))} autoComplete="off" placeholder={form.credentialConfigured ? "Leave blank to retain the configured reference" : "vault:integrations/example"} />
+        <Field label={form.credentialConfigured ? "Replacement credential reference" : "Credential reference"} hint="Example: env:INTEGRATION_FHIR_SECRET. Do not paste a key, token or password." className="sm:col-span-2">
+          <input className={fieldClass} value={form.credentialRefInput} onChange={(event) => setForm((current) => ({ ...current, credentialRefInput: event.target.value, clearCredential: false }))} autoComplete="off" placeholder={form.credentialConfigured ? "Leave blank to retain the configured reference" : "env:INTEGRATION_CONNECTOR_SECRET"} />
         </Field>
         {form.credentialConfigured ? <label className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={form.clearCredential} onChange={(event) => setForm((current) => ({ ...current, clearCredential: event.target.checked, credentialRefInput: "" }))} /> Remove configured credential reference</label> : null}
+        {form.authMethod === "API_KEY" ? (
+          <Field label="API key header" hint="Header name only; the secret value stays server-side." className="sm:col-span-2">
+            <input className={fieldClass} value={endpointValue("apiKeyHeader")} onChange={(event) => setEndpoint("apiKeyHeader", event.target.value)} placeholder="X-API-Key" />
+          </Field>
+        ) : null}
+        {form.authMethod === "BASIC" ? (
+          <Field label="Basic username" hint="The password resolves from the credential reference." className="sm:col-span-2">
+            <input className={fieldClass} value={endpointValue("basicUsername")} onChange={(event) => setEndpoint("basicUsername", event.target.value)} autoComplete="off" />
+          </Field>
+        ) : null}
+        {form.authMethod === "OAUTH2_CLIENT_CREDENTIALS" ? (
+          <>
+            <Field label="OAuth token endpoint" required className="sm:col-span-2"><input className={fieldClass} type="url" value={endpointValue("oauthTokenUrl")} onChange={(event) => setEndpoint("oauthTokenUrl", event.target.value)} placeholder="Contract-provided token endpoint" /></Field>
+            <Field label="OAuth client ID" required><input className={fieldClass} value={endpointValue("oauthClientId")} onChange={(event) => setEndpoint("oauthClientId", event.target.value)} autoComplete="off" /></Field>
+            <Field label="OAuth scopes"><input className={fieldClass} value={endpointValue("oauthScopes")} onChange={(event) => setEndpoint("oauthScopes", event.target.value)} /></Field>
+            <Field label="OAuth audience" className="sm:col-span-2"><input className={fieldClass} value={endpointValue("oauthAudience")} onChange={(event) => setEndpoint("oauthAudience", event.target.value)} /></Field>
+          </>
+        ) : null}
         {form.authMethod === "MUTUAL_TLS" ? (
           <>
             <Field label={form.certificateConfigured ? "Replacement certificate reference" : "Certificate reference"} hint="Reference metadata only; certificate material is not stored here." className="sm:col-span-2">
@@ -895,17 +1060,17 @@ function ReadinessStep({ form, definition, mappingComplete, report, busy, onVali
         <ReadinessRow label="Mapping" value={`${mappingComplete}/${definition.mappingRequirements.length}`} tone={mappingComplete === definition.mappingRequirements.length ? "success" : "warn"} />
         <ReadinessRow label="Credential ref" value={credentialReady ? (credentialRequired ? "Configured" : "Not required") : "Missing"} tone={credentialReady ? "success" : "warn"} />
         <ReadinessRow label="Schedule" value={scheduleReady ? "Valid metadata" : "Needs configuration"} tone={scheduleReady ? "success" : "warn"} />
-        <ReadinessRow label="Live connectivity" value={definition.gatewayRequired ? "Gateway required / Not receiving" : "Not tested"} />
-        <ReadinessRow label="Activation" value="Unavailable in Phase 3A" />
+        <ReadinessRow label="Live connectivity" value={definition.gatewayRequired ? "Unavailable — gateway required" : "Separate live test required"} />
+        <ReadinessRow label="Activation" value="Not active" />
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button onClick={onValidate} loading={busy} icon={<RefreshCcw className="h-4 w-4" />}>Validate Configuration</Button>
-        <p className="text-xs text-muted-foreground">Re-run after schedule or mapping changes. Readiness never activates the connector.</p>
+        <p className="text-xs text-muted-foreground">Re-run after schedule or mapping changes. Then close this wizard and use the separate Test Live Connection action.</p>
       </div>
       <ValidationReport report={report} />
       <PanelInset className="mt-4 flex items-start gap-3">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-        <p className="text-xs leading-relaxed text-muted-foreground">A passing result means ready for a separately authorised future live test. It does not mean the remote system was contacted, data was imported, or activation occurred.</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">Configuration validation does not contact the remote system. A later live-test pass still does not mean data was imported, governance was approved, or activation occurred.</p>
       </PanelInset>
     </DrawerSection>
   );
