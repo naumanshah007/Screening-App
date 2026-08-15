@@ -8,6 +8,7 @@ import test from "node:test";
 import { createClient } from "@libsql/client";
 
 import {
+  PERFORMANCE_READ_INDEX_MIGRATION,
   SPRINT_B_MIGRATION,
   deployRemoteLibsqlMigrations,
 } from "../../scripts/pilot/deploy-remote-libsql-migrations";
@@ -33,8 +34,9 @@ test("the governed Prisma deploy path survives an ambient RUST_LOG=warn on a new
       const migrations = await client.execute(
         "SELECT migration_name FROM _prisma_migrations ORDER BY started_at"
       );
-      assert.equal(migrations.rows.length, 20);
-      assert.equal(String(migrations.rows.at(-1)?.migration_name), SPRINT_B_MIGRATION);
+      assert.equal(migrations.rows.length, 21);
+      assert.equal(String(migrations.rows.at(-2)?.migration_name), SPRINT_B_MIGRATION);
+      assert.equal(String(migrations.rows.at(-1)?.migration_name), PERFORMANCE_READ_INDEX_MIGRATION);
     } finally {
       client.close();
     }

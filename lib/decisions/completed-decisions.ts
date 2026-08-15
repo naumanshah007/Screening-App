@@ -105,6 +105,32 @@ export type CompletedDecisionRecord = Prisma.BatchReviewItemGetPayload<{
   include: typeof completedDecisionInclude;
 }>;
 
+const completedDecisionListSelect = {
+  id: true,
+  batchRunId: true,
+  rowNumber: true,
+  patientName: true,
+  nhi: true,
+  externalPatientId: true,
+  patientAge: true,
+  gpPractice: true,
+  recommendation: true,
+  recommendationCode: true,
+  disposition: true,
+  reviewedAt: true,
+  overrideReason: true,
+  reviewNote: true,
+  referralPriority: true,
+  riskLevel: true,
+  reviewRequired: true,
+  reviewedBy: { select: { name: true, email: true } },
+  batchRun: { select: { source: true, sourceSystem: true } },
+} satisfies Prisma.BatchReviewItemSelect;
+
+export type CompletedDecisionListRecord = Prisma.BatchReviewItemGetPayload<{
+  select: typeof completedDecisionListSelect;
+}>;
+
 function isUserRole(role: string | null | undefined): role is UserRole {
   return Boolean(role && USER_ROLES.includes(role as UserRole));
 }
@@ -238,14 +264,16 @@ export async function listCompletedDecisions(args: {
   user: DecisionUser;
   filters?: CompletedDecisionFilters;
   limit?: number;
-}): Promise<CompletedDecisionRecord[]> {
+  skip?: number;
+}): Promise<CompletedDecisionListRecord[]> {
   if (!canViewCompletedDecisions(args.user)) return [];
 
   return prisma.batchReviewItem.findMany({
     where: buildCompletedDecisionWhere(args.user, args.filters),
-    include: completedDecisionInclude,
+    select: completedDecisionListSelect,
     orderBy: [{ reviewedAt: "desc" }, { updatedAt: "desc" }],
     take: args.limit ?? 300,
+    skip: args.skip ?? 0,
   });
 }
 

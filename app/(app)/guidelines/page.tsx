@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import {
   getGuidelineCatalogue,
   listGuidelineVersionHistory,
@@ -24,7 +24,7 @@ import { GuidelinesHome } from "./GuidelinesHome";
 export const dynamic = "force-dynamic";
 
 export default async function GuidelinesPage() {
-  const session = await auth();
+  const session = await getServerSession();
   if (!session?.user) redirect("/login");
 
   const [catalogue, history] = await Promise.all([

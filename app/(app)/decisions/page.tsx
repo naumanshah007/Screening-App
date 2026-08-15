@@ -9,7 +9,7 @@ import {
   type CompletedDecisionFilters,
   type CompletedDecisionRow,
 } from "@/components/decisions/CompletedDecisionsClient";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { isAuthorizedForRoute } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
 import {
@@ -27,7 +27,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const COMPLETED_DECISIONS_LIMIT = 300;
+const COMPLETED_DECISIONS_PAGE_SIZE = 50;
 
 type DecisionsSearchParams = Promise<{
   disposition?: string;
@@ -37,6 +37,7 @@ type DecisionsSearchParams = Promise<{
   dateFrom?: string;
   dateTo?: string;
   q?: string;
+  page?: string;
 }>;
 
 function cleanFilters(params: Awaited<DecisionsSearchParams>): CompletedDecisionFilters {
@@ -49,6 +50,16 @@ function cleanFilters(params: Awaited<DecisionsSearchParams>): CompletedDecision
     dateTo: params.dateTo || undefined,
     q: params.q?.trim().slice(0, 80) || undefined,
   };
+}
+
+function decisionsPageHref(filters: CompletedDecisionFilters, page: number) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) params.set(key, value);
+  }
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return query ? `/decisions?${query}` : "/decisions";
 }
 
 function mapRow(item: Awaited<ReturnType<typeof listCompletedDecisions>>[number]): CompletedDecisionRow {
@@ -88,7 +99,7 @@ export default async function CompletedDecisionsPage({
     notFound();
   }
 
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { id?: string; role?: string } | undefined;
   if (!canViewCompletedDecisions(user ?? {})) {
     redirect("/dashboard");
@@ -96,15 +107,29 @@ export default async function CompletedDecisionsPage({
 
   const params = await searchParams;
   const filters = cleanFilters(params);
+  const requestedPage = Number.parseInt(params.page ?? "1", 10);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0
+    ? requestedPage
+    : 1;
   const access = getCompletedDecisionAccess(user ?? {});
   const actions = [
     { label: "Open Review Queue", href: "/review", variant: "outline" as const },
     { label: "Pull Cases", href: "/batch", variant: "outline" as const },
   ].filter((action) => isAuthorizedForRoute(action.href, user?.role));
-  const [decisions, filterOptions] = await Promise.all([
-    listCompletedDecisions({ user: user ?? {}, filters, limit: COMPLETED_DECISIONS_LIMIT }),
+  const [decisionPage, filterOptions] = await Promise.all([
+    listCompletedDecisions({
+      user: user ?? {},
+      filters,
+      limit: COMPLETED_DECISIONS_PAGE_SIZE + 1,
+      skip: (page - 1) * COMPLETED_DECISIONS_PAGE_SIZE,
+    }),
     getCompletedDecisionFilterOptions(user ?? {}),
   ]);
+  const hasNextPage = decisionPage.length > COMPLETED_DECISIONS_PAGE_SIZE;
+  const decisions = decisionPage.slice(0, COMPLETED_DECISIONS_PAGE_SIZE);
+  if (page > 1 && decisions.length === 0) {
+    redirect(decisionsPageHref(filters, page - 1));
+  }
   const rows = decisions.map(mapRow);
 
   // Counts of the rows actually returned for the current filters. Stated as
@@ -112,7 +137,7 @@ export default async function CompletedDecisionsPage({
   const accepted = rows.filter((row) => row.disposition === "ACCEPTED").length;
   const rejected = rows.filter((row) => row.disposition === "REJECTED").length;
   const hasFilters = Object.values(filters).some(Boolean);
-  const scopeCaption = hasFilters ? "In this filtered result set" : "In this result set";
+  const scopeCaption = hasFilters ? "On this filtered page" : "On this page";
 
   return (
     <PageShell width="wide">
@@ -173,9 +198,23 @@ export default async function CompletedDecisionsPage({
           sources={filterOptions.sources}
           reviewers={filterOptions.reviewers}
           canFilterReviewer={access === "all"}
-          resultLimit={COMPLETED_DECISIONS_LIMIT}
-          isLimited={decisions.length >= COMPLETED_DECISIONS_LIMIT}
         />
+      )}
+
+      {(page > 1 || hasNextPage) && (
+        <nav className="flex items-center justify-between gap-3" aria-label="Completed Decision pages">
+          {page > 1 ? (
+            <Link className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted" href={decisionsPageHref(filters, page - 1)}>
+              Previous page
+            </Link>
+          ) : <span />}
+          <span className="text-sm text-muted-foreground">Page {page}</span>
+          {hasNextPage ? (
+            <Link className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted" href={decisionsPageHref(filters, page + 1)}>
+              Next page
+            </Link>
+          ) : <span />}
+        </nav>
       )}
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">

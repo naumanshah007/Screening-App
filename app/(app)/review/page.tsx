@@ -1,15 +1,14 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldAlert, ClipboardCheck, Inbox, Siren, HelpCircle } from "lucide-react";
 
 import { PageShell, PageHeader, Panel, MetricTile, MetricGrid } from "@/components/system";
 import { EmptyState } from "@/components/ui/empty-state";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { hasPermission } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
 import {
-  getNeedsInformationQueue,
-  getReviewQueueSnapshot,
+  getReviewQueuePage,
   reconstructBatchCaseResult,
 } from "@/lib/batch/persistence";
 import { WorklistClient, type WorklistItem } from "@/components/batch/WorklistClient";
@@ -17,7 +16,7 @@ import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const REVIEW_QUEUE_LIMIT = 300;
+const REVIEW_QUEUE_PAGE_SIZE = 50;
 
 const SOURCE_LABELS: Record<string, string> = {
   DEMO: "Demo dataset",
@@ -31,22 +30,31 @@ const SOURCE_LABELS: Record<string, string> = {
   HEALTH_NZ: "NCSR",
 };
 
-export default async function ReviewQueuePage() {
+export default async function ReviewQueuePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   if (!isFeatureEnabled("batchDemo")) {
     notFound();
   }
 
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { role?: string } | undefined;
   const canReview = hasPermission(user?.role, "cases:grade");
   const canManageInformation =
     hasPermission(user?.role, "cases:edit") || hasPermission(user?.role, "cases:grade");
 
-  const [snapshot, awaitingInformation] = await Promise.all([
-    getReviewQueueSnapshot(REVIEW_QUEUE_LIMIT),
-    getNeedsInformationQueue(REVIEW_QUEUE_LIMIT),
-  ]);
-  const queue = [...snapshot.items, ...awaitingInformation];
+  const params = await searchParams;
+  const requestedPage = Number.parseInt(params.page ?? "1", 10);
+  const snapshot = await getReviewQueuePage({
+    page: Number.isSafeInteger(requestedPage) ? requestedPage : 1,
+    pageSize: REVIEW_QUEUE_PAGE_SIZE,
+  });
+  if (snapshot.total > 0 && snapshot.page > snapshot.totalPages) {
+    redirect(`/review?page=${snapshot.totalPages}`);
+  }
+  const queue = snapshot.items;
   const mandatoryReviewCount = snapshot.mandatoryReview;
   const urgentClinicalCount = snapshot.urgentClinical;
 
@@ -112,7 +120,7 @@ export default async function ReviewQueuePage() {
         <MetricGrid columns={4}>
           <MetricTile
             label="Awaiting review"
-            value={snapshot.total}
+            value={snapshot.pending}
             caption="Pending clinician confirmation"
             icon={<Inbox className="h-4.5 w-4.5" />}
             tone="brand"
@@ -133,10 +141,10 @@ export default async function ReviewQueuePage() {
           />
           <MetricTile
             label="Awaiting information"
-            value={awaitingInformation.length}
+            value={snapshot.awaitingInformation}
             caption="Owned follow-up work · not completed"
             icon={<HelpCircle className="h-4.5 w-4.5" />}
-            tone={awaitingInformation.length > 0 ? "warn" : "neutral"}
+            tone={snapshot.awaitingInformation > 0 ? "warn" : "neutral"}
           />
         </MetricGrid>
       )}
@@ -157,7 +165,7 @@ export default async function ReviewQueuePage() {
               role="status"
               className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200"
             >
-              Showing the first {snapshot.items.length.toLocaleString()} of {snapshot.total.toLocaleString()} pending review items. Use intake-session views for targeted review until full pagination is added.
+              Showing {((snapshot.page - 1) * snapshot.pageSize + 1).toLocaleString()}–{Math.min(snapshot.page * snapshot.pageSize, snapshot.total).toLocaleString()} of {snapshot.total.toLocaleString()} active queue items.
             </div>
           )}
           <WorklistClient
@@ -167,6 +175,23 @@ export default async function ReviewQueuePage() {
             showSource
             removeCompletedOnAction
           />
+          {snapshot.totalPages > 1 && (
+            <nav className="flex items-center justify-between gap-3" aria-label="Review Queue pages">
+              {snapshot.page > 1 ? (
+                <Link className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted" href={`/review?page=${snapshot.page - 1}`}>
+                  Previous page
+                </Link>
+              ) : <span />}
+              <span className="text-sm text-muted-foreground">
+                Page {snapshot.page} of {snapshot.totalPages}
+              </span>
+              {snapshot.page < snapshot.totalPages ? (
+                <Link className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted" href={`/review?page=${snapshot.page + 1}`}>
+                  Next page
+                </Link>
+              ) : <span />}
+            </nav>
+          )}
         </>
       )}
 

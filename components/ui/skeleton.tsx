@@ -57,21 +57,29 @@ export function SkeletonTable({ rows = 5, cols = 4, className }: { rows?: number
 
 export function SkeletonPage({ className }: SkeletonProps) {
   return (
-    <div className={cn("p-6 space-y-6", className)} aria-hidden="true">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-96" />
+    <div
+      className={cn("p-6", className)}
+      role="status"
+      aria-label="Loading page"
+      data-navigation-feedback
+    >
+      <span className="sr-only">Loading page…</span>
+      <div className="space-y-6" aria-hidden="true">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-9 w-28 rounded-lg" />
         </div>
-        <Skeleton className="h-9 w-28 rounded-lg" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <SkeletonTable />
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <SkeletonCard key={i} />
-        ))}
-      </div>
-      <SkeletonTable />
     </div>
   );
 }

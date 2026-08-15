@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { PageShell } from "@/components/system";
 import { redirect } from "next/navigation";
@@ -62,7 +62,7 @@ export default async function AdminPage({
 }: {
   searchParams?: Promise<{ focusUser?: string; tab?: string }>;
 }) {
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { id?: string; role?: string } | undefined;
   if (user?.role !== "ADMIN" && user?.role !== "INTEGRATION_ADMIN") redirect("/dashboard");
   const params = (await searchParams) ?? {};
@@ -73,10 +73,17 @@ export default async function AdminPage({
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const databaseRuntime = getDatabaseRuntimeSummary();
   const storageRuntime = getDocumentStorageRuntimeSummary();
-  const readinessReport = await getRuntimeReadinessReport();
-  const integrationStatuses = await getEnterpriseIntegrationStatuses();
-  const ncsrCertificationSummary = await getNcsrCertificationSummary();
-  const integrationValidationStateMap = await getIntegrationValidationStateMap();
+  const [
+    readinessReport,
+    integrationStatuses,
+    ncsrCertificationSummary,
+    integrationValidationStateMap,
+  ] = await Promise.all([
+    getRuntimeReadinessReport(),
+    getEnterpriseIntegrationStatuses(),
+    getNcsrCertificationSummary(),
+    getIntegrationValidationStateMap(),
+  ]);
   const integrationValidationRows = integrationStatuses.map((integration) => ({
     id: integration.id,
     title: integration.title,

@@ -1049,6 +1049,12 @@ CREATE INDEX "BatchReviewItem_sourceEpisodeKey_idx" ON "BatchReviewItem"("source
 CREATE INDEX "BatchReviewItem_batchRunId_reviewRequired_idx" ON "BatchReviewItem"("batchRunId", "reviewRequired");
 
 -- CreateIndex
+CREATE INDEX "BatchReviewItem_disposition_reviewRequired_createdAt_idx" ON "BatchReviewItem"("disposition", "reviewRequired", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "BatchReviewItem_disposition_reviewedAt_idx" ON "BatchReviewItem"("disposition", "reviewedAt");
+
+-- CreateIndex
 CREATE INDEX "BatchReviewItem_reviewedByUserId_reviewedAt_idx" ON "BatchReviewItem"("reviewedByUserId", "reviewedAt");
 
 -- CreateIndex

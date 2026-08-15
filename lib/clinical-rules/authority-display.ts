@@ -16,6 +16,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { cache } from "react";
 
 import { getRuntimeClinicalEnvironment, LEGACY_ENGINE_VERSION, resolveClinicalAuthority } from "./authority";
 import { NATIONAL_RULE_SET_KEY } from "./constants";
@@ -41,7 +42,7 @@ const LEGACY_ONLY: ClinicalAuthorityDisplay = {
   canonicalMode: "NOT_EVALUATED",
 };
 
-export async function getClinicalAuthorityDisplay(args?: {
+async function resolveClinicalAuthorityDisplay(args?: {
   organisationKey?: string | null;
 }): Promise<ClinicalAuthorityDisplay> {
   try {
@@ -84,3 +85,11 @@ export async function getClinicalAuthorityDisplay(args?: {
     return LEGACY_ONLY;
   }
 }
+
+/**
+ * Presentation-only, request-scoped deduplication. Clinical evaluation calls
+ * `resolveClinicalAuthority` directly and is never served from this cache.
+ */
+export const getClinicalAuthorityDisplay = cache(
+  resolveClinicalAuthorityDisplay
+);

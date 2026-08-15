@@ -30,7 +30,7 @@ import {
   type Column,
 } from "@/components/system";
 import { EmptyState } from "@/components/ui/empty-state";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { isAuthorizedForRoute } from "@/lib/auth/permissions";
 import { getCurrentOrganisation } from "@/lib/organisation/current-organisation";
 import {
@@ -161,7 +161,7 @@ export default async function UsageActivityPage({
 }: {
   searchParams: Promise<UsageActivitySearchParams>;
 }) {
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { role?: string } | undefined;
   if (!isAuthorizedForRoute("/admin/usage", user?.role)) redirect("/dashboard");
 

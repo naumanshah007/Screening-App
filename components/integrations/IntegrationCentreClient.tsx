@@ -14,6 +14,7 @@ import {
   CircleDashed,
   FileClock,
   KeyRound,
+  Loader2,
   Pause,
   Play,
   Plus,
@@ -47,6 +48,7 @@ import type {
 import type {
   IntegrationConnectionDto,
   IntegrationDashboard,
+  IntegrationAuditDto,
 } from "@/lib/integrations/connections";
 import type { IntegrationConfigurationReport } from "@/lib/integrations/connection-validation";
 import type { IntegrationConnectivityCheckDto } from "@/lib/integrations/connectivity-checks";
@@ -307,6 +309,8 @@ export function IntegrationCentreClient({
   const [report, setReport] = useState<IntegrationConfigurationReport | null>(null);
   const [auditConnection, setAuditConnection] = useState<IntegrationConnectionDto | null>(null);
   const [connectivityConnection, setConnectivityConnection] = useState<IntegrationConnectionDto | null>(null);
+  const [evidenceLoading, setEvidenceLoading] = useState<"audit" | "history" | null>(null);
+  const [evidenceError, setEvidenceError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -407,12 +411,46 @@ export function IntegrationCentreClient({
       connection?: IntegrationConnectionDto;
       report?: IntegrationConfigurationReport;
       check?: IntegrationConnectivityCheckDto;
+      audits?: IntegrationAuditDto[];
+      connectivityChecks?: IntegrationConnectivityCheckDto[];
     };
     if (!response.ok) {
       const issue = body.issues?.[0];
       throw new Error(issue ? `${issue.path || "Configuration"}: ${issue.message}` : body.error ?? "Request failed");
     }
     return body;
+  };
+
+  const openEvidence = async (
+    connection: IntegrationConnectionDto,
+    kind: "audit" | "history"
+  ) => {
+    setEvidenceError("");
+    setEvidenceLoading(kind);
+    if (kind === "audit") setAuditConnection(connection);
+    else setConnectivityConnection(connection);
+
+    try {
+      const body = await request(`/api/admin/integrations/${connection.id}`, {
+        method: "GET",
+      });
+      const checks = body.connectivityChecks ?? [];
+      const hydrated: IntegrationConnectionDto = {
+        ...connection,
+        audits: body.audits ?? [],
+        connectivityChecks: checks,
+        latestConnectivityCheck: checks[0] ?? connection.latestConnectivityCheck,
+      };
+      replaceConnection(hydrated);
+      if (kind === "audit") setAuditConnection(hydrated);
+      else setConnectivityConnection(hydrated);
+    } catch (caught) {
+      setEvidenceError(
+        caught instanceof Error ? caught.message : "Unable to load connection evidence"
+      );
+    } finally {
+      setEvidenceLoading(null);
+    }
   };
 
   const payload = () => {
@@ -672,8 +710,8 @@ export function IntegrationCentreClient({
                       <Button size="xs" variant="outline" onClick={() => openExisting(connection)} icon={<Settings2 className="h-3.5 w-3.5" />}>Configure</Button>
                       <Button size="xs" variant="outline" loading={busy} onClick={() => validateConfiguration(connection.id)} icon={<RefreshCcw className="h-3.5 w-3.5" />}>Validate Configuration</Button>
                       <Button size="xs" loading={busy} disabled={!connection.liveTestAvailable} onClick={() => testLiveConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Test Connection</Button>
-                      <Button size="xs" variant="ghost" onClick={() => setConnectivityConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>View connection history</Button>
-                      <Button size="xs" variant="ghost" onClick={() => setAuditConnection(connection)} icon={<FileClock className="h-3.5 w-3.5" />}>View audit</Button>
+                      <Button size="xs" variant="ghost" onClick={() => void openEvidence(connection, "history")} icon={<Activity className="h-3.5 w-3.5" />}>View connection history</Button>
+                      <Button size="xs" variant="ghost" onClick={() => void openEvidence(connection, "audit")} icon={<FileClock className="h-3.5 w-3.5" />}>View audit</Button>
                       {connection.state === "PAUSED" ? (
                         <Button size="xs" variant="ghost" onClick={() => changeState(connection, "RESUME")} icon={<Play className="h-3.5 w-3.5" />}>Resume</Button>
                       ) : (
@@ -757,8 +795,8 @@ export function IntegrationCentreClient({
                   <div className="flex flex-wrap gap-2">
                     <Button size="xs" variant="outline" onClick={() => openExisting(connection)} icon={<Settings2 className="h-3.5 w-3.5" />}>Configure</Button>
                     <Button size="xs" loading={busy} disabled={!connection.liveTestAvailable} onClick={() => testLiveConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Test Connection</Button>
-                    <Button size="xs" variant="ghost" onClick={() => setConnectivityConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Connection history</Button>
-                    <Button size="xs" variant="ghost" onClick={() => setAuditConnection(connection)} icon={<FileClock className="h-3.5 w-3.5" />}>Audit evidence</Button>
+                    <Button size="xs" variant="ghost" onClick={() => void openEvidence(connection, "history")} icon={<Activity className="h-3.5 w-3.5" />}>Connection history</Button>
+                    <Button size="xs" variant="ghost" onClick={() => void openEvidence(connection, "audit")} icon={<FileClock className="h-3.5 w-3.5" />}>Audit evidence</Button>
                   </div>
                 </div>
               );
@@ -831,6 +869,7 @@ export function IntegrationCentreClient({
         >
           {auditConnection ? (
             <>
+              {evidenceError ? <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{evidenceError}</div> : null}
               <DrawerFields
                 fields={[
                   { label: "Connector", value: auditConnection.connectorTitle },
@@ -840,7 +879,11 @@ export function IntegrationCentreClient({
                 ]}
               />
               <DrawerSection title="Recorded changes">
-                {auditConnection.audits.length ? (
+                {evidenceLoading === "audit" ? (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading audit evidence…
+                  </p>
+                ) : auditConnection.audits.length ? (
                   <Timeline events={auditConnection.audits.map((entry) => ({
                     id: entry.id,
                     title: friendlyAuditAction(entry.action),
@@ -869,6 +912,7 @@ export function IntegrationCentreClient({
         >
           {connectivityConnection ? (
             <>
+              {evidenceError ? <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{evidenceError}</div> : null}
               <DrawerFields
                 fields={[
                   { label: "Connector", value: connectivityConnection.connectorTitle },
@@ -906,7 +950,11 @@ export function IntegrationCentreClient({
                 </DrawerSection>
               )}
               <DrawerSection title="Historical checks">
-                {connectivityConnection.connectivityChecks.length ? (
+                {evidenceLoading === "history" ? (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading connection history…
+                  </p>
+                ) : connectivityConnection.connectivityChecks.length ? (
                   <Timeline events={connectivityConnection.connectivityChecks.map((entry) => ({
                     id: entry.id,
                     title: entry.safeSummary,

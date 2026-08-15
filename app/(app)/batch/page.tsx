@@ -3,7 +3,7 @@ import { isFeatureEnabled } from "@/lib/features";
 import { getCurrentGovernedRuleset } from "@/lib/clinical-rules/current-ruleset";
 import { ENGINE_VERSION } from "@/lib/batch/processor";
 import { BatchPageClient } from "./BatchPageClient";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { isAuthorizedForRoute } from "@/lib/auth/permissions";
 
 /**
@@ -25,8 +25,10 @@ export default async function BatchPage() {
 
   // Null is a legitimate answer meaning no governed ruleset is active. It is
   // surfaced as "Not configured" rather than silently substituted.
-  const current = await getCurrentGovernedRuleset().catch(() => null);
-  const session = await auth();
+  const [current, session] = await Promise.all([
+    getCurrentGovernedRuleset().catch(() => null),
+    getServerSession(),
+  ]);
   const role = (session?.user as { role?: string } | undefined)?.role;
 
   return (

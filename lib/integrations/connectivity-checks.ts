@@ -161,6 +161,43 @@ export async function listConnectivityChecksForConnections(
   return byConnection;
 }
 
+/** Latest evidence only for fast connection-card rendering. */
+export async function listLatestConnectivityChecksForConnections(
+  organisationId: string,
+  connectionIds: string[],
+  now = new Date()
+) {
+  const latest = new Map<string, IntegrationConnectivityCheckDto>();
+  if (!connectionIds.length) return latest;
+
+  const timestamps = await prisma.integrationConnectivityCheck.groupBy({
+    by: ["integrationConnectionId"],
+    where: { organisationId, integrationConnectionId: { in: connectionIds } },
+    _max: { completedAt: true },
+  });
+  const pairs = timestamps.flatMap((row) =>
+    row._max.completedAt
+      ? [{
+          integrationConnectionId: row.integrationConnectionId,
+          completedAt: row._max.completedAt,
+        }]
+      : []
+  );
+  if (!pairs.length) return latest;
+
+  const rows = await prisma.integrationConnectivityCheck.findMany({
+    where: { organisationId, OR: pairs },
+    include: { performedBy: { select: { name: true, email: true } } },
+    orderBy: { completedAt: "desc" },
+  });
+  for (const row of rows) {
+    if (!latest.has(row.integrationConnectionId)) {
+      latest.set(row.integrationConnectionId, toConnectivityCheckDto(row, now));
+    }
+  }
+  return latest;
+}
+
 function safeAuditDetails(details: {
   connectorType: string;
   environment: string;

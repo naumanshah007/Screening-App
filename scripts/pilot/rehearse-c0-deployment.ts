@@ -21,12 +21,13 @@ import { PrismaClient } from "@prisma/client";
 import { evaluateRuntimeBoundary } from "../../lib/config/runtime-boundary";
 import {
   ACCEPTED_SPRINT_A_MIGRATION,
+  PERFORMANCE_READ_INDEX_MIGRATION,
   SPRINT_B_MIGRATION,
   deployRemoteLibsqlMigrations,
 } from "./deploy-remote-libsql-migrations";
 
 const ACCEPTED_SPRINT_A_SHA = "9b0e9de1e897951895adf251e6ce86d18f5f5e19";
-const EXPECTED_MIGRATION_COUNT = 20;
+const EXPECTED_MIGRATION_COUNT = 21;
 const SENTINEL_ID = "c0-upgrade-sentinel";
 const SENTINEL_KEY = "c0-synthetic-upgrade";
 
@@ -144,7 +145,10 @@ async function verifyDatabase(client: ReturnType<typeof createClient>, expectedM
   ]);
 
   assert(migrationRows.rows.length === expectedMigrations, `Expected ${expectedMigrations} applied migrations.`);
-  assert(String(migrationRows.rows.at(-1)?.migration_name) === SPRINT_B_MIGRATION, "Sprint B is not the final migration.");
+  assert(
+    String(migrationRows.rows.at(-1)?.migration_name) === PERFORMANCE_READ_INDEX_MIGRATION,
+    "The performance read-index migration is not the final migration."
+  );
   assert(sentinelRows.rows.length === 1, "Accepted-Sprint-A sentinel data did not survive the upgrade.");
   assert(String(integrityRows.rows[0]?.integrity_check) === "ok", "Database integrity_check failed.");
   assert(foreignKeyRows.rows.length === 0, "Database foreign_key_check failed.");
@@ -196,7 +200,7 @@ async function stopProcess(processHandle: ChildProcess) {
 async function main() {
   const rootDir = process.cwd();
   const beforeDigests = await migrationDigests(rootDir);
-  assert(beforeDigests.size === EXPECTED_MIGRATION_COUNT, "Expected exactly 20 checked-in migrations.");
+  assert(beforeDigests.size === EXPECTED_MIGRATION_COUNT, "Expected exactly 21 checked-in migrations.");
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "cervigrade-c0-deploy-"));
   let server: ChildProcess | null = null;
 
@@ -228,7 +232,7 @@ async function main() {
       const baseHistory = await baseClient.execute(
         "SELECT migration_name FROM _prisma_migrations ORDER BY started_at"
       );
-      assert(baseHistory.rows.length === EXPECTED_MIGRATION_COUNT - 1, "Accepted Sprint A did not produce 19 migrations.");
+      assert(baseHistory.rows.length === EXPECTED_MIGRATION_COUNT - 2, "Accepted Sprint A did not produce 19 migrations.");
       assert(
         String(baseHistory.rows.at(-1)?.migration_name) === ACCEPTED_SPRINT_A_MIGRATION,
         "Accepted Sprint A is not the baseline database's final migration."
@@ -251,6 +255,10 @@ async function main() {
       env: { DATABASE_URL: `file:${localUpgradeDatabase}` },
     });
     assert(prismaDeployOutput.includes(`Applying migration \`${SPRINT_B_MIGRATION}\``), "Prisma did not apply Sprint B.");
+    assert(
+      prismaDeployOutput.includes(`Applying migration \`${PERFORMANCE_READ_INDEX_MIGRATION}\``),
+      "Prisma did not apply the performance read indexes."
+    );
     const prismaStatusOutput = run({
       command: process.execPath,
       commandArgs: [prismaCli, "migrate", "status"],
@@ -292,8 +300,9 @@ async function main() {
     });
     assert(remoteMigrationResult.appliedBefore === 19, "Remote target did not begin at Sprint A.");
     assert(
-      remoteMigrationResult.appliedNow.length === 1 && remoteMigrationResult.appliedNow[0] === SPRINT_B_MIGRATION,
-      "Remote deployment did not apply exactly the Sprint B migration."
+      JSON.stringify(remoteMigrationResult.appliedNow) ===
+        JSON.stringify([SPRINT_B_MIGRATION, PERFORMANCE_READ_INDEX_MIGRATION]),
+      "Remote deployment did not apply Sprint B followed by the performance read indexes."
     );
 
     const remoteClient = createClient({ url, authToken });

@@ -7,6 +7,7 @@ import { createClient, type Client } from "@libsql/client";
 
 export const ACCEPTED_SPRINT_A_MIGRATION = "20260815160000_sprint_a_pilot_integrity";
 export const SPRINT_B_MIGRATION = "20260815193000_sprint_b_real_data_security_boundary";
+export const PERFORMANCE_READ_INDEX_MIGRATION = "20260816100000_performance_read_indexes";
 
 type MigrationFile = {
   name: string;

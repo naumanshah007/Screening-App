@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, Clock, TrendingUp, Stethoscope, Brain, ShieldCheck } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { PageShell } from "@/components/system";
 import { StatCard, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -356,7 +356,7 @@ export default async function AnalyticsPage() {
     notFound();
   }
 
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { role?: string } | undefined;
   const workspace = getWorkspaceContext(user?.role, true);
   const canManageUsers = user?.role === "ADMIN";

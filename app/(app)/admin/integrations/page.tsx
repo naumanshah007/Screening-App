@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { IntegrationCentreClient } from "@/components/integrations/IntegrationCentreClient";
 import { HeaderMeta, PageHeader, PageShell } from "@/components/system";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { isAuthorizedForRoute } from "@/lib/auth/permissions";
 import { INTEGRATION_CONNECTOR_DEFINITIONS } from "@/lib/integrations/connection-catalogue";
 import { getIntegrationDashboard } from "@/lib/integrations/connections";
@@ -12,7 +12,7 @@ import { getCurrentOrganisation } from "@/lib/organisation/current-organisation"
 export const dynamic = "force-dynamic";
 
 export default async function IntegrationCentrePage() {
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { role?: string } | undefined;
   if (!isAuthorizedForRoute("/admin/integrations", user?.role)) {
     redirect("/dashboard");

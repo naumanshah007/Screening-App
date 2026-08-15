@@ -19,6 +19,7 @@ import {
 } from "@/lib/integrations/connection-validation";
 import {
   getLiveTestAvailability,
+  listLatestConnectivityChecksForConnections,
   listConnectivityChecksForConnections,
   type IntegrationConnectivityCheckDto,
 } from "@/lib/integrations/connectivity-checks";
@@ -279,34 +280,14 @@ export async function getIntegrationDashboard(
     orderBy: [{ state: "asc" }, { updatedAt: "desc" }],
   });
   const ids = rows.map((row) => row.id);
-  const auditRows = ids.length
-    ? await prisma.auditLog.findMany({
-        where: { entity: "IntegrationConnection", entityId: { in: ids } },
-        include: { user: { select: { name: true, email: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 200,
-      })
-    : [];
-  const auditByConnection = new Map<string, IntegrationAuditDto[]>();
-  for (const row of auditRows) {
-    if (!row.entityId) continue;
-    const current = auditByConnection.get(row.entityId) ?? [];
-    if (current.length < 20) {
-      current.push({
-        id: row.id,
-        action: row.action,
-        at: row.createdAt.toISOString(),
-        actor: row.user?.name ?? row.user?.email ?? "System",
-        details: parseAuditDetails(row.newValue),
-      });
-      auditByConnection.set(row.entityId, current);
-    }
-  }
-  const checkByConnection = await listConnectivityChecksForConnections(organisationId, ids);
+  const latestCheckByConnection = await listLatestConnectivityChecksForConnections(
+    organisationId,
+    ids
+  );
   const connections = rows.map((row) => toDto(
     row,
-    auditByConnection.get(row.id) ?? [],
-    checkByConnection.get(row.id) ?? []
+    [],
+    latestCheckByConnection.has(row.id) ? [latestCheckByConnection.get(row.id)!] : []
   ));
   const missingCredentialReferences = connections.filter(
     (connection) => connection.authMethod !== "NONE" && !connection.credentialConfigured && !connection.certificateConfigured
@@ -343,6 +324,40 @@ export async function getIntegrationDashboard(
       liveConnectivityFailures: connections.filter((item) => item.latestConnectivityCheck?.status === "FAILED").length,
       staleConnectivityEvidence: connections.filter((item) => item.latestConnectivityCheck?.status === "PASSED" && item.latestConnectivityCheck.stale).length,
     },
+  };
+}
+
+export async function getIntegrationConnectionEvidence(
+  organisationId: string,
+  connectionId: string
+): Promise<Pick<IntegrationConnectionDto, "audits" | "connectivityChecks">> {
+  const connection = await prisma.integrationConnection.findFirst({
+    where: { id: connectionId, organisationId },
+    select: { id: true },
+  });
+  if (!connection) {
+    throw new Error("Integration connection not found for this organisation");
+  }
+
+  const [auditRows, checkByConnection] = await Promise.all([
+    prisma.auditLog.findMany({
+      where: { entity: "IntegrationConnection", entityId: connectionId },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    listConnectivityChecksForConnections(organisationId, [connectionId]),
+  ]);
+
+  return {
+    audits: auditRows.map((row) => ({
+      id: row.id,
+      action: row.action,
+      at: row.createdAt.toISOString(),
+      actor: row.user?.name ?? row.user?.email ?? "System",
+      details: parseAuditDetails(row.newValue),
+    })),
+    connectivityChecks: checkByConnection.get(connectionId) ?? [],
   };
 }
 

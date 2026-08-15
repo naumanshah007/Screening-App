@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { CompletedDecisionRecord } from "@/lib/decisions/completed-decisions";
+import type { CommandCentreMetrics } from "@/lib/decisions/dashboard-metrics";
 import { formatDisposition, isUrgentClinicalPriority } from "@/lib/decisions/package-generator";
 import { formatDateTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ const DISPOSITION_TONE: Record<string, string> = {
  * Shows the reviewer's disposition — the operative clinical outcome — never a
  * canonical shadow result.
  */
-export function RecentDecisionsTable({ decisions }: { decisions: CompletedDecisionRecord[] }) {
+export function RecentDecisionsTable({ decisions }: { decisions: CommandCentreMetrics["recentCompletedDecisions"] }) {
   if (decisions.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">

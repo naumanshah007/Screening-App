@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { createHash } from "node:crypto";
 
 import {
   DEMO_ACCOUNTS,
@@ -6,6 +7,28 @@ import {
   isDemoModeEnabled,
 } from "@/lib/config/demo-mode";
 import { prisma } from "@/lib/prisma";
+
+const credentialComparisonCache = new Map<string, Promise<boolean>>();
+
+function compareConfiguredCredential(password: string, passwordHash: string) {
+  // bcrypt comparison is deterministic for these exact inputs and costs about
+  // 90 ms per account. Keying by a digest of the configured password plus the
+  // stored hash means any password rotation or account reset is an immediate
+  // cache miss; no governance result can survive a state change.
+  const passwordDigest = createHash("sha256").update(password).digest("hex");
+  const key = `${passwordDigest}:${passwordHash}`;
+  const existing = credentialComparisonCache.get(key);
+  if (existing) return existing;
+
+  if (credentialComparisonCache.size >= 256) {
+    const oldest = credentialComparisonCache.keys().next().value;
+    if (oldest) credentialComparisonCache.delete(oldest);
+  }
+  const comparison = bcrypt.compare(password, passwordHash);
+  credentialComparisonCache.set(key, comparison);
+  void comparison.catch(() => credentialComparisonCache.delete(key));
+  return comparison;
+}
 
 /**
  * Handover readiness — can this deployment be used for real clinical work?
@@ -65,7 +88,7 @@ export async function evaluateHandoverReadiness(): Promise<HandoverReadiness> {
     const matches = await Promise.all(
       demoAccounts.map(async (account) =>
         account.passwordHash &&
-        (await bcrypt.compare(demoPassword, account.passwordHash))
+        (await compareConfiguredCredential(demoPassword, account.passwordHash))
           ? account.email
           : null
       )

@@ -1530,6 +1530,8 @@ model BatchReviewItem {
 
   @@index([batchRunId, disposition])
   @@index([batchRunId, reviewRequired])
+  @@index([disposition, reviewRequired, createdAt])
+  @@index([disposition, reviewedAt])
   @@index([reviewedByUserId, reviewedAt])
   @@index([sourceEpisodeKey])
 }

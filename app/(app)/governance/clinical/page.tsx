@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { canPerformClinicalRuleAction } from "@/lib/clinical-rules/governance";
 import { getClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
 import { getClinicalRuleVersionSnapshot } from "@/lib/clinical-rules/lifecycle";
@@ -33,7 +33,7 @@ function parseDetails(value: string | null) {
 }
 
 export default async function ClinicalGovernanceActivationPage() {
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { id?: string; role?: string } | undefined;
   if (!user?.id || !canPerformClinicalRuleAction(user.role, "view")) redirect("/dashboard");
   const userRole = user.role!;

@@ -3,7 +3,6 @@ import type { BatchReviewDisposition, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   buildCompletedDecisionWhere,
-  type CompletedDecisionRecord,
   type DecisionUser,
 } from "@/lib/decisions/completed-decisions";
 
@@ -60,7 +59,17 @@ export type CommandCentreMetrics = {
     createdAt: Date;
     createdBy: { name: string | null; email: string | null };
   }>;
-  recentCompletedDecisions: CompletedDecisionRecord[];
+  recentCompletedDecisions: Array<{
+    id: string;
+    batchRunId: string;
+    rowNumber: number;
+    nhi: string | null;
+    externalPatientId: string | null;
+    disposition: BatchReviewDisposition;
+    riskLevel: string;
+    referralPriority: string | null;
+    reviewedAt: Date | null;
+  }>;
 };
 
 const OPERATIONAL_ROLES: UserRole[] = [
@@ -274,23 +283,16 @@ export async function getCommandCentreMetrics(
     }),
     prisma.batchReviewItem.findMany({
       where: completedWhere,
-      include: {
-        reviewedBy: { select: { id: true, name: true, email: true, role: true } },
-        ruleEvaluation: true,
-        batchRun: {
-          select: {
-            id: true,
-            source: true,
-            sourceSystem: true,
-            sourceFileName: true,
-            engineVersion: true,
-            pinnedRuleVersionId: true,
-            pinnedRuleVersionDisplay: true,
-            pinnedRulesetChecksum: true,
-            createdAt: true,
-            createdBy: { select: { id: true, name: true, email: true, role: true } },
-          },
-        },
+      select: {
+        id: true,
+        batchRunId: true,
+        rowNumber: true,
+        nhi: true,
+        externalPatientId: true,
+        disposition: true,
+        riskLevel: true,
+        referralPriority: true,
+        reviewedAt: true,
       },
       orderBy: [{ reviewedAt: "desc" }, { updatedAt: "desc" }],
       take: 6,

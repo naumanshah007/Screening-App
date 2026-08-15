@@ -3,8 +3,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getApiPermissionError } from "@/lib/auth/api-permissions";
 import { integrationConnectionUpdateSchema } from "@/lib/integrations/connection-schema";
-import { updateIntegrationConnection } from "@/lib/integrations/connections";
+import {
+  getIntegrationConnectionEvidence,
+  updateIntegrationConnection,
+} from "@/lib/integrations/connections";
 import { requireCurrentOrganisation } from "@/lib/organisation/current-organisation";
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  const user = session?.user as { role?: string } | undefined;
+  const permissionError = getApiPermissionError(user, "admin:settings");
+  if (permissionError) {
+    return NextResponse.json(permissionError.body, { status: permissionError.status });
+  }
+
+  try {
+    const organisation = await requireCurrentOrganisation();
+    const { id } = await params;
+    const evidence = await getIntegrationConnectionEvidence(organisation.id, id);
+    return NextResponse.json(evidence);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unable to load integration evidence" },
+      { status: 404 }
+    );
+  }
+}
 
 export async function PATCH(
   request: NextRequest,

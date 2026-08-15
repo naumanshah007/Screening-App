@@ -97,16 +97,12 @@ export function CompletedDecisionsClient({
   sources,
   reviewers,
   canFilterReviewer,
-  resultLimit,
-  isLimited,
 }: {
   rows: CompletedDecisionRow[];
   filters: CompletedDecisionFilters;
   sources: FilterOption[];
   reviewers: FilterOption[];
   canFilterReviewer: boolean;
-  resultLimit: number;
-  isLimited: boolean;
 }) {
   const [selectedRow, setSelectedRow] = useState<CompletedDecisionRow | null>(null);
   const [preview, setPreview] = useState<SimulatedDecisionPackage | null>(null);
@@ -212,12 +208,6 @@ export function CompletedDecisionsClient({
           </form>
         </CardContent>
       </Card>
-
-      {isLimited && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200">
-          Showing the first {resultLimit.toLocaleString()} completed decisions. Narrow the filters for a smaller demo-safe result set.
-        </div>
-      )}
 
       <Card className="overflow-hidden">
         <CardContent className="p-0">

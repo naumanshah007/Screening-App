@@ -10,7 +10,7 @@ import {
   FileSearch,
 } from "lucide-react";
 
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as
     | { id?: string; role?: string; name?: string; email?: string }
     | undefined;

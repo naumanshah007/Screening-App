@@ -107,21 +107,20 @@ export async function getDashboardInsights(
   const today = startOfDay(now);
   const week = startOfCurrentWeek(now);
   const month = new Date(now.getFullYear(), now.getMonth(), 1);
+  const itemStart = trendStart < month ? trendStart : month;
 
-  const [trendRows, priorityRows, connectorRows, anyIntake] = await Promise.all([
-    // Pending items grouped later in JS by creation day. Only the fields needed.
+  const [itemRows, connectorRows] = await Promise.all([
+    // One bounded projection supplies both queue trend and priority buckets.
+    // Previously two overlapping reads fetched the same month of items.
     prisma.batchReviewItem.findMany({
-      where: { disposition: "PENDING", createdAt: { gte: trendStart } },
+      where: { createdAt: { gte: itemStart } },
       select: {
+        disposition: true,
         createdAt: true,
         reviewRequired: true,
         riskLevel: true,
         referralPriority: true,
       },
-    }),
-    prisma.batchReviewItem.findMany({
-      where: { createdAt: { gte: month } },
-      select: { createdAt: true, riskLevel: true },
     }),
     prisma.batchRun.groupBy({
       by: ["source", "sourceSystem"],
@@ -129,7 +128,6 @@ export async function getDashboardInsights(
       _sum: { totalCases: true },
       _max: { createdAt: true },
     }),
-    prisma.batchRun.count(),
   ]);
 
   // ── Queue trend ───────────────────────────────────────────────────────────
@@ -143,7 +141,8 @@ export async function getDashboardInsights(
       urgentPriority: 0,
     });
   }
-  for (const row of trendRows) {
+  for (const row of itemRows) {
+    if (row.disposition !== "PENDING" || row.createdAt < trendStart) continue;
     const point = trendByDay.get(isoDate(row.createdAt));
     if (!point) continue;
     point.totalInQueue += 1;
@@ -165,7 +164,8 @@ export async function getDashboardInsights(
     week: emptyCounts(),
     month: emptyCounts(),
   };
-  for (const row of priorityRows) {
+  for (const row of itemRows) {
+    if (row.createdAt < month) continue;
     const level = RISK_LEVELS.includes(row.riskLevel as RiskLevel)
       ? (row.riskLevel as RiskLevel)
       : null;
@@ -196,6 +196,6 @@ export async function getDashboardInsights(
       { period: "month", counts: buckets.month },
     ],
     connectors,
-    hasAnyIntake: anyIntake > 0,
+    hasAnyIntake: connectorRows.length > 0,
   };
 }

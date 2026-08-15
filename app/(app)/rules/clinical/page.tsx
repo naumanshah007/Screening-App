@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GitBranch, ShieldCheck } from "lucide-react";
 
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { canPerformClinicalRuleAction } from "@/lib/clinical-rules/governance";
 import { listClinicalRuleVersions } from "@/lib/clinical-rules/lifecycle";
 import { parseSnapshot } from "@/lib/clinical-rules/schema";
@@ -49,7 +49,7 @@ function lifecycleSteps(status: string): { id: string; label: string; state: Ste
 }
 
 export default async function ClinicalRuleVersionsPage() {
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { role?: string } | undefined;
   if (!canPerformClinicalRuleAction(user?.role, "view")) redirect("/dashboard");
   const versions = await listClinicalRuleVersions();

@@ -13,9 +13,10 @@
  * an HL7v2 lab feed, or an ERMS eReferral. Only the `source` enum differs.
  */
 
-import type { Prisma, BatchReviewDisposition } from "@prisma/client";
+import { Prisma, type BatchReviewDisposition } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { ensureDatabaseReady } from "@/lib/database/bootstrap";
 import type {
   BatchProcessingResult,
   BatchCaseResult,
@@ -896,6 +897,104 @@ export async function getNeedsInformationQueue(limit = 300): Promise<ReviewQueue
     orderBy: [{ informationRequestedAt: "asc" }, { updatedAt: "asc" }],
     take: limit,
   });
+}
+
+/**
+ * Bounded, server-paginated aggregate queue.
+ *
+ * The ID projection preserves the existing clinical sort exactly without
+ * serialising hundreds of full decision/evaluation records. Details are loaded
+ * only for the visible page in one follow-up query (never N+1).
+ */
+export async function getReviewQueuePage(args: {
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<{
+  items: ReviewQueueItemRecord[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  pending: number;
+  awaitingInformation: number;
+  mandatoryReview: number;
+  urgentClinical: number;
+}> {
+  await ensureDatabaseReady();
+  const pageSize = Math.min(Math.max(Math.trunc(args.pageSize ?? 50), 1), 100);
+  const page = Math.max(Math.trunc(args.page ?? 1), 1);
+  const offset = (page - 1) * pageSize;
+
+  const [idRows, grouped, mandatoryReview, urgentClinical] = await Promise.all([
+    prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "BatchReviewItem"
+      WHERE "disposition" IN ('PENDING', 'NEEDS_INFO')
+      ORDER BY
+        CASE "disposition" WHEN 'PENDING' THEN 0 ELSE 1 END,
+        CASE WHEN "disposition" = 'PENDING' THEN "reviewRequired" END DESC,
+        CASE WHEN "disposition" = 'PENDING' THEN
+          CASE "riskLevel"
+            WHEN 'URGENT' THEN 0
+            WHEN 'HIGH' THEN 1
+            WHEN 'MEDIUM' THEN 2
+            WHEN 'LOW' THEN 3
+            ELSE 9
+          END
+        END ASC,
+        CASE WHEN "disposition" = 'PENDING' THEN COALESCE("receivedDate", "createdAt") END DESC,
+        CASE WHEN "disposition" = 'NEEDS_INFO' THEN "informationRequestedAt" END ASC,
+        CASE WHEN "disposition" = 'NEEDS_INFO' THEN "updatedAt" END ASC
+      LIMIT ${pageSize} OFFSET ${offset}
+    `),
+    prisma.batchReviewItem.groupBy({
+      by: ["disposition"],
+      where: { disposition: { in: ["PENDING", "NEEDS_INFO"] } },
+      _count: { _all: true },
+    }),
+    prisma.batchReviewItem.count({
+      where: { disposition: "PENDING", reviewRequired: true },
+    }),
+    prisma.batchReviewItem.count({
+      where: {
+        disposition: "PENDING",
+        OR: [
+          { riskLevel: "URGENT" },
+          { referralPriority: { in: ["P1", "P1_HSC"] } },
+        ],
+      },
+    }),
+  ]);
+
+  const counts = new Map(
+    grouped.map((row) => [row.disposition, row._count._all])
+  );
+  const pending = counts.get("PENDING") ?? 0;
+  const awaitingInformation = counts.get("NEEDS_INFO") ?? 0;
+  const total = pending + awaitingInformation;
+  const ids = idRows.map((row) => row.id);
+  const records = ids.length
+    ? await prisma.batchReviewItem.findMany({
+        where: { id: { in: ids } },
+        include: reviewQueueInclude,
+      })
+    : [];
+  const byId = new Map(records.map((record) => [record.id, record]));
+
+  return {
+    items: ids.flatMap((id) => {
+      const record = byId.get(id);
+      return record ? [record] : [];
+    }),
+    page,
+    pageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    pending,
+    awaitingInformation,
+    mandatoryReview,
+    urgentClinical,
+  };
 }
 
 /** Lightweight counts for the sidebar badge. */

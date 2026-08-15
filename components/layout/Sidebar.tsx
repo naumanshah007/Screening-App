@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, GitBranch, BookOpen,
   BarChart2, Activity, Settings, FileSearch,
   Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight, ChevronDown,
   Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
-  ShieldCheck, Cable,
+  ShieldCheck, Cable, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDefaultAppRouteForRole, isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
@@ -172,6 +172,7 @@ function NavItem({ link, active, collapsed, primary }: {
     <li>
       <Link
         href={link.href}
+        prefetch={primary ? true : "auto"}
         title={collapsed ? link.label : undefined}
         className={cn(
           "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
@@ -223,8 +224,28 @@ function NavItem({ link, active, collapsed, primary }: {
             </span>
           )
         )}
+        <NavPendingIndicator collapsed={collapsed} />
       </Link>
     </li>
+  );
+}
+
+function NavPendingIndicator({ collapsed }: { collapsed: boolean }) {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+
+  return (
+    <span
+      role="status"
+      aria-label="Opening page"
+      className={cn(
+        "text-brand-600",
+        collapsed ? "absolute -bottom-0.5 -right-0.5" : "ml-auto"
+      )}
+      data-navigation-feedback
+    >
+      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+    </span>
   );
 }
 
@@ -234,8 +255,6 @@ export function Sidebar({
   userEmail,
   showCases = false,
   showBatch = false,
-  reviewPending = 0,
-  reviewUrgent = 0,
   clinicalAuthority,
 }: {
   userRole?: string;
@@ -243,8 +262,6 @@ export function Sidebar({
   userEmail?: string;
   showCases?: boolean;
   showBatch?: boolean;
-  reviewPending?: number;
-  reviewUrgent?: number;
   /** Which engine is clinically authoritative, shown persistently. */
   clinicalAuthority?: ClinicalAuthorityDisplay;
 }) {
@@ -254,8 +271,48 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [reviewBadge, setReviewBadge] = useState({ pending: 0, urgent: 0 });
 
-  const sections = buildSidebarSections({ userRole, showCases, showBatch, reviewPending, reviewUrgent })
+  useEffect(() => {
+    if (!showBatch || !isAuthorizedForRoute("/review", userRole)) return;
+
+    let disposed = false;
+    const controller = new AbortController();
+    const load = async () => {
+      const response = await fetch("/api/navigation/review-counts", {
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      }).catch(() => null);
+      if (!response?.ok || disposed) return;
+      const payload = (await response.json().catch(() => null)) as {
+        pending?: unknown;
+        urgent?: unknown;
+      } | null;
+      if (
+        payload &&
+        typeof payload.pending === "number" &&
+        typeof payload.urgent === "number"
+      ) {
+        setReviewBadge({ pending: payload.pending, urgent: payload.urgent });
+      }
+    };
+
+    void load();
+    const refresh = window.setInterval(() => void load(), 30_000);
+    return () => {
+      disposed = true;
+      controller.abort();
+      window.clearInterval(refresh);
+    };
+  }, [showBatch, userRole]);
+
+  const sections = buildSidebarSections({
+    userRole,
+    showCases,
+    showBatch,
+    reviewPending: reviewBadge.pending,
+    reviewUrgent: reviewBadge.urgent,
+  })
     .map((s) => ({ ...s, links: s.links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i) }))
     .filter((s) => s.links.length > 0);
 

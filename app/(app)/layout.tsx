@@ -1,8 +1,6 @@
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { isFeatureEnabled } from "@/lib/features";
-import { isAuthorizedForRoute } from "@/lib/auth/permissions";
-import { getReviewQueueCounts } from "@/lib/batch/persistence";
 import { getClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
 import { redirect } from "next/navigation";
 import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
@@ -13,17 +11,11 @@ import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const session = await getServerSession();
   if (!session) redirect("/login");
   const user = session.user as { name?: string; role?: string; email?: string };
   const showCases = isFeatureEnabled("casesV2");
   const showBatch = isFeatureEnabled("batchDemo");
-
-  // Live count for the Review Queue nav badge (only when the user can see it).
-  const reviewCounts =
-    showBatch && isAuthorizedForRoute("/review", user.role)
-      ? await getReviewQueueCounts()
-      : { pending: 0, urgent: 0 };
 
   // Which engine is clinically authoritative right now. Read-only, never throws.
   const clinicalAuthority = await getClinicalAuthorityDisplay();
@@ -45,8 +37,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         userEmail={user.email}
         showCases={showCases}
         showBatch={showBatch}
-        reviewPending={reviewCounts.pending}
-        reviewUrgent={reviewCounts.urgent}
         clinicalAuthority={clinicalAuthority}
       />
       <main

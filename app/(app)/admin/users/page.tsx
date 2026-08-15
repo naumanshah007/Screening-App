@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/server-session";
 import { listAdminUsers } from "@/lib/admin/user-management";
 import { isDemoModeEnabled } from "@/lib/config/demo-mode";
 import { evaluateHandoverReadiness } from "@/lib/ops/handover-readiness";
@@ -8,24 +9,44 @@ import { PageIntro } from "@/components/layout/PageIntro";
 import { PageShell } from "@/components/system";
 import { AdminUsersClient } from "./AdminUsersClient";
 import { DemoModeStatusPanel } from "./DemoModeStatusPanel";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Account state and demo-mode configuration are both runtime facts; this page
 // must never be served from a cache that predates a change to either.
 export const dynamic = "force-dynamic";
 
+async function HandoverStatus({ demoMode }: { demoMode: boolean }) {
+  const handover = await evaluateHandoverReadiness();
+  return <DemoModeStatusPanel demoMode={demoMode} handover={handover} />;
+}
+
+function HandoverStatusLoading() {
+  return (
+    <div
+      className="rounded-xl border border-border bg-card p-5"
+      role="status"
+      aria-label="Checking handover readiness"
+      data-navigation-feedback
+    >
+      <span className="sr-only">Checking handover readiness…</span>
+      <div className="space-y-3" aria-hidden="true">
+        <Skeleton className="h-5 w-56" />
+        <Skeleton className="h-4 w-full max-w-xl" />
+        <Skeleton className="h-16 w-full rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 export default async function AdminUsersPage() {
-  const session = await auth();
+  const session = await getServerSession();
   const user = session?.user as { id?: string; role?: string } | undefined;
 
   // User administration is ADMIN-only. INTEGRATION_ADMIN can reach /admin but
   // must not manage accounts or reset credentials.
   if (user?.role !== "ADMIN") redirect("/dashboard");
 
-  const [users, handover] = await Promise.all([
-    listAdminUsers(),
-    evaluateHandoverReadiness(),
-  ]);
-
+  const users = await listAdminUsers();
   const demoMode = isDemoModeEnabled();
 
   return (
@@ -35,7 +56,9 @@ export default async function AdminUsersPage() {
         description="Accounts, roles, access status and credential resets. Every action here is recorded in the immutable audit log."
       />
 
-      <DemoModeStatusPanel demoMode={demoMode} handover={handover} />
+      <Suspense fallback={<HandoverStatusLoading />}>
+        <HandoverStatus demoMode={demoMode} />
+      </Suspense>
 
       {/*
         Two-factor status, stated once at page level rather than as a red badge
