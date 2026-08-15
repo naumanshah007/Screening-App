@@ -31,6 +31,11 @@
     "usage:remediate-orphans": "tsx scripts/remediate-usage-orphans.ts",
     "pilot:recovery:rehearse": "tsx scripts/pilot/rehearse-local-restore.ts",
     "pilot:migrations:verify": "tsx scripts/pilot/verify-migration-chain.ts",
+    "pilot:prisma:migrate:deploy": "tsx scripts/pilot/run-prisma-migrate-deploy.ts",
+    "pilot:migrations:deploy-remote": "tsx scripts/pilot/deploy-remote-libsql-migrations.ts",
+    "pilot:c0:deployment:rehearse": "tsx scripts/pilot/rehearse-c0-deployment.ts",
+    "pilot:c0:identity:convert": "tsx scripts/pilot/convert-demo-seed-to-c0-synthetic-pilot.ts",
+    "pilot:c0:browser:serve": "tsx scripts/pilot/run-c0-browser-environment.ts",
     "rules:report:timing": "tsx scripts/rule-studio/timing-classification-report.ts",
     "test:ui": "tsx --test \"tests/ui/*.test.ts\""
   },

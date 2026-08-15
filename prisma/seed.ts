@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { DEMO_ACCOUNTS } from "../lib/config/demo-mode";
 import {
   createPrismaAdapter,
   isRemoteLibSqlUrl,
@@ -150,13 +149,13 @@ async function main() {
     { email: "deputy.admin@cs.nz", name: "Deputy Admin", role: "ADMIN" as const, gpPracticeId: null },
   ];
 
-  const demoAccountEmails = new Set(
-    DEMO_ACCOUNTS.map((account) => account.email)
-  );
-
   const createdUsers: Record<string, string> = {};
   for (const u of userDefs) {
-    const isDemoAccount = demoAccountEmails.has(u.email);
+    // Every identity created by this synthetic-only seed shares the operator-
+    // supplied demo credential, including supporting identities that are not
+    // shown on the one-click demo roster. All must therefore be refused by the
+    // PILOT authentication boundary.
+    const isDemoAccount = true;
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: {

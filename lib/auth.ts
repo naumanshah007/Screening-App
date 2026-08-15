@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 
 import { requiresPasswordUpdate } from "@/lib/auth/password-policy";
 import { evaluatePilotSession } from "@/lib/auth/session-policy";
+import { consumeRecoveryCode } from "@/lib/auth/recovery-codes";
 import { requiresTwoFactorSetup } from "@/lib/auth/two-factor-policy";
 import { verifyTwoFactorCode } from "@/lib/auth/two-factor";
 import { isDemoAccountEmail } from "@/lib/config/demo-mode";
@@ -134,18 +135,69 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         let authAssurance: AuthenticatedUser["authAssurance"] = "PASSWORD";
+        let authenticationMethod = "password";
         if (user.twoFAEnabled) {
           const code = String(credentials.code ?? "").trim();
-          if (!user.twoFASecret || !code || !verifyTwoFactorCode(user.twoFASecret, code)) {
+          const totpValid = Boolean(
+            user.twoFASecret && /^\d{6}$/.test(code) && verifyTwoFactorCode(user.twoFASecret, code)
+          );
+          let secondFactorValid = totpValid;
+          let recoveryFailureReason: string | null = null;
+
+          if (!secondFactorValid && code && /^[A-F0-9]{4}-?[A-F0-9]{4}$/i.test(code)) {
+            const recovery = consumeRecoveryCode({
+              storedJson: user.twoFARecoveryCodesJson,
+              code,
+            });
+            if (recovery.valid) {
+              // Compare-and-swap prevents two concurrent sign-ins from consuming
+              // the same one-time recovery code successfully.
+              const consumed = await prisma.user.updateMany({
+                where: {
+                  id: user.id,
+                  twoFARecoveryCodesJson: user.twoFARecoveryCodesJson,
+                },
+                data: { twoFARecoveryCodesJson: recovery.nextStoredJson },
+              });
+              secondFactorValid = consumed.count === 1;
+              if (secondFactorValid) {
+                authenticationMethod = "recovery_code";
+                await recordSecurityEvent({
+                  action: SECURITY_EVENT_ACTION.RECOVERY_CODE_USED,
+                  userId: user.id,
+                  request,
+                  details: { remainingCount: recovery.remainingCount },
+                });
+              } else {
+                recoveryFailureReason = "concurrent_reuse";
+              }
+            } else {
+              recoveryFailureReason = "invalid_code";
+            }
+          }
+
+          if (!secondFactorValid) {
+            if (recoveryFailureReason) {
+              await recordSecurityEvent({
+                action: SECURITY_EVENT_ACTION.RECOVERY_CODE_FAILED,
+                userId: user.id,
+                request,
+                details: { reason: recoveryFailureReason },
+              });
+            }
             await recordSecurityEvent({
               action: SECURITY_EVENT_ACTION.LOGIN_FAILED_2FA,
               userId: user.id,
               request,
-              details: { reason: code ? "invalid_code" : "missing_code" },
+              details: {
+                reason: code ? "invalid_code" : "missing_code",
+                factor: recoveryFailureReason ? "recovery_code" : "totp",
+              },
             });
             return null;
           }
           authAssurance = "MFA";
+          if (totpValid) authenticationMethod = "totp";
         } else if (boundary.mode === "PILOT") {
           // Password-only access exists solely to enrol an authenticator. Proxy
           // confines this session to password/security setup, then MFA enable
@@ -162,7 +214,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           action: SECURITY_EVENT_ACTION.LOGIN_SUCCESS,
           userId: user.id,
           request,
-          details: { role: user.role, method: authAssurance.toLowerCase() },
+          details: { role: user.role, method: authenticationMethod },
         });
 
         return {

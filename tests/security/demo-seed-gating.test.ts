@@ -184,8 +184,11 @@ test("the seed password is never logged or echoed", () => {
 test("every local demo seeding path marks identities as demo accounts", () => {
   const bootstrap = readFileSync("lib/database/bootstrap.ts", "utf8");
   const reset = readFileSync("scripts/demo-reset.ts", "utf8");
+  const seed = readFileSync("prisma/seed.ts", "utf8");
   assert.match(bootstrap, /isDemoAccount\s*=\s*1/);
   assert.match(reset, /isDemoAccount:\s*true/);
+  assert.match(seed, /const isDemoAccount = true/);
+  assert.doesNotMatch(seed, /demoAccountEmails\.has/);
 });
 
 test("schema comments ending in semicolons are not executed as standalone SQL", () => {

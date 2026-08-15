@@ -1,6 +1,6 @@
 # Pilot recovery and incident runbook
 
-Status: local synthetic restore path verified. Managed pilot backup/restore and incident coordination remain external gates.
+Status: isolated synthetic loss/restore and authenticated application-read path verified. Managed pilot backup/restore and incident coordination remain external gates.
 
 ## Synthetic restore rehearsal
 
@@ -11,15 +11,16 @@ npm run pilot:recovery:rehearse
 npm run pilot:migrations:verify
 ```
 
-The rehearsal creates the current schema, inserts a synthetic sentinel and protected audit event, closes the source, copies backup and restore files, then verifies:
+The rehearsal creates the current schema, inserts a synthetic user sentinel and protected audit event, closes the source, creates a backup, deletes the operational source to simulate loss, and restores a replacement. It then starts authenticated network libSQL over the restored file and verifies:
 
 - SQLite `integrity_check=ok`
 - no foreign-key violations
 - sentinel recovery
 - protected audit update refusal
 - protected audit delete refusal
+- Prisma Client can read the restored user and protected audit evidence over the authenticated network path
 
-All temporary files are removed. A PASS proves only the application/schema-level local recovery mechanism.
+All temporary credentials, keys, database files, and directories are removed. A PASS proves the application/schema-level recovery mechanism and remote-style application read, not a provider-managed backup service.
 
 ## Managed pilot restore — external procedure
 
