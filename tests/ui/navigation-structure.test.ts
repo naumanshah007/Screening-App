@@ -114,6 +114,11 @@ test("hiding an item never grants access", () => {
     "Users & Access must be gated by the guard for the page it opens"
   );
   assert.match(
+    SIDEBAR,
+    /authed\("\/admin\/usage", "Usage & Activity"\)/,
+    "Usage & Activity must be gated by its ADMIN-only route"
+  );
+  assert.match(
     PERMISSIONS,
     /prefix: "\/admin"/,
     "the /admin prefix guard must exist so the rest of /admin stays protected"

@@ -27,6 +27,7 @@ const ICONS: Record<string, React.ElementType> = {
   "/cases":      ClipboardList,
   "/coordinator": Users,
   "/analytics":  BarChart2,
+  "/admin/usage": Activity,
   "/readiness":  Activity,
   "/guidelines": BookOpen,
   "/rules":      GitBranch,
@@ -101,6 +102,7 @@ function buildSidebarSections(args: {
   // genuinely entitled to.
   const insights = [
     ...authed("/analytics", "Analytics"),
+    ...authed("/admin/usage", "Usage & Activity"),
     ...authed("/audit", "Audit Trail"),
   ];
 

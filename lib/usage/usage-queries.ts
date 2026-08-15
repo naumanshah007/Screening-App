@@ -4,9 +4,16 @@ import { prisma } from "@/lib/prisma";
 
 export type UsageQueryFilters = {
   organisationId?: string;
+  episodeId?: string;
   eventType?: string;
+  classification?: string;
+  rulesetVersion?: string;
+  source?: string;
   from?: Date;
   to?: Date;
+  /** Prefer this for UI date ranges: the instant belongs to the next range. */
+  toExclusive?: Date;
+  skip?: number;
   take?: number;
 };
 
@@ -19,12 +26,17 @@ function whereFor(filters: UsageQueryFilters): Prisma.UsageEventWhereInput {
     ...(filters.organisationId
       ? { organisationId: filters.organisationId }
       : {}),
+    ...(filters.episodeId ? { episodeId: filters.episodeId } : {}),
     ...(filters.eventType ? { eventType: filters.eventType } : {}),
-    ...(filters.from || filters.to
+    ...(filters.classification ? { classification: filters.classification } : {}),
+    ...(filters.rulesetVersion ? { rulesetVersion: filters.rulesetVersion } : {}),
+    ...(filters.source ? { source: filters.source } : {}),
+    ...(filters.from || filters.to || filters.toExclusive
       ? {
           occurredAt: {
             ...(filters.from ? { gte: filters.from } : {}),
             ...(filters.to ? { lte: filters.to } : {}),
+            ...(filters.toExclusive ? { lt: filters.toExclusive } : {}),
           },
         }
       : {}),
@@ -41,6 +53,7 @@ export function rawUsageEvents(filters: UsageQueryFilters = {}) {
     where: whereFor(filters),
     include: auditInclude,
     orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    skip: Math.max(0, filters.skip ?? 0),
     take: takeFor(filters),
   });
 }
@@ -55,6 +68,7 @@ export function effectiveUsageEvents(filters: UsageQueryFilters = {}) {
     },
     include: auditInclude,
     orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    skip: Math.max(0, filters.skip ?? 0),
     take: takeFor(filters),
   });
 }
@@ -68,6 +82,7 @@ export function invalidatedUsageEvents(filters: UsageQueryFilters = {}) {
     },
     include: auditInclude,
     orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    skip: Math.max(0, filters.skip ?? 0),
     take: takeFor(filters),
   });
 }
