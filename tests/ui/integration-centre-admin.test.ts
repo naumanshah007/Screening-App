@@ -16,6 +16,8 @@ const CONNECTIVITY_CHECKS = read("lib/integrations/connectivity-checks.ts");
 const OUTBOUND_POLICY = read("lib/integrations/outbound-policy.ts");
 const OUTBOUND_HTTP = read("lib/integrations/outbound-http.ts");
 const LIVE_TEST_ROUTE = read("app/api/admin/integrations/[id]/live-test/route.ts");
+const SYNTHETIC_FHIR_ROUTE = read("app/api/integration-test/fhir/metadata/route.ts");
+const PROXY = read("proxy.ts");
 const PERMISSIONS = read("lib/auth/permissions.ts");
 const API_ROUTES = [
   "app/api/admin/integrations/route.ts",
@@ -198,4 +200,15 @@ test("connectivity evidence migration is additive and append-only", () => {
   assert.match(CONNECTIVITY_MIGRATION, /BEFORE DELETE/);
   assert.doesNotMatch(CONNECTIVITY_MIGRATION, /(^|\n)\s*(DROP TABLE|ALTER TABLE|DELETE FROM|UPDATE )/m);
   assert.doesNotMatch(CONNECTIVITY_MIGRATION, /BatchRun|BatchReviewItem|ScreeningEpisode|EpisodeObservation|RuleEvaluation|UsageEvent/);
+});
+
+test("the controlled production QA endpoint is a public static metadata route only", () => {
+  assert.match(PROXY, /\/api\/integration-test\/fhir\/metadata/);
+  assert.match(SYNTHETIC_FHIR_ROUTE, /CapabilityStatement/);
+  assert.match(SYNTHETIC_FHIR_ROUTE, /DiagnosticReport/);
+  assert.match(SYNTHETIC_FHIR_ROUTE, /Observation/);
+  assert.doesNotMatch(
+    SYNTHETIC_FHIR_ROUTE,
+    /Patient\/|nhi|patientId|credentialReference|Authorization|prisma/i
+  );
 });

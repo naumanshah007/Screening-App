@@ -6,7 +6,13 @@ import {
 } from "@/lib/auth/permissions";
 
 // Routes that are always public (no session required)
-const PUBLIC_PATHS = new Set(["/login", "/api/auth"]);
+const PUBLIC_PATHS = new Set([
+  "/login",
+  // Static synthetic CapabilityStatement used only for bounded Phase 3B
+  // connectivity QA. It contains no session, patient, or clinical data.
+  "/api/integration-test/fhir/metadata",
+]);
+const PUBLIC_PREFIXES = ["/api/auth"];
 const PASSWORD_MANAGEMENT_PATH = "/account/password";
 const PASSWORD_MANAGEMENT_API_PREFIX = "/api/account/password";
 
@@ -14,9 +20,9 @@ function isPublic(pathname: string): boolean {
   // Public marketing landing — exact match only (every path startsWith "/").
   if (pathname === "/") return true;
   for (const p of PUBLIC_PATHS) {
-    if (pathname.startsWith(p)) return true;
+    if (pathname === p) return true;
   }
-  return false;
+  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export default auth((req) => {
