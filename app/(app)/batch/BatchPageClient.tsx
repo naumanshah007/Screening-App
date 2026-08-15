@@ -51,9 +51,11 @@ const ENGINE_VERSION = "business-figures-table1-v1";
 export function BatchPageClient({
   currentRuleset,
   routingService,
+  canConfigureIntegrations,
 }: {
   currentRuleset: { displayVersion: string; status: string } | null;
   routingService: string;
+  canConfigureIntegrations: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState<PageState>({ step: "empty" });
@@ -672,7 +674,7 @@ export function BatchPageClient({
 
       {/* ── Integration Readiness (visible on upload screen and after results) */}
       {(state.step === "empty" || state.step === "uploading" || state.step === "results") && (
-        <IntegrationReadinessPanel />
+        <IntegrationReadinessPanel canConfigure={canConfigureIntegrations} />
       )}
 
       {/* ── Detail Slide-Over ─────────────────────────────────────────────── */}

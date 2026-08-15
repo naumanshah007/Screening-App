@@ -171,6 +171,11 @@ export const ROUTE_GUARDS: RouteGuard[] = [
     description: "User and credential administration",
   },
   {
+    prefix: "/admin/integrations",
+    requiredRoles: ["ADMIN", "INTEGRATION_ADMIN"],
+    description: "Organisation integration configuration and readiness",
+  },
+  {
     prefix: "/admin/usage",
     requiredRoles: ["ADMIN"],
     description: "Operational usage and activity administration",

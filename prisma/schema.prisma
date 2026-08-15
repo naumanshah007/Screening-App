@@ -381,6 +381,8 @@ model User {
   wizardSessions                WizardSession[]
   accessCertifications          AccessCertification[]
   integrationValidations        IntegrationValidation[] @relation("IntegrationValidationReviewer")
+  integrationConnectionsCreated IntegrationConnection[] @relation("IntegrationConnectionCreator")
+  integrationConnectionsUpdated IntegrationConnection[] @relation("IntegrationConnectionUpdater")
   openedSecurityIncidents       SecurityIncident[]      @relation("SecurityIncidentOpenedBy")
   assignedSecurityIncidents     SecurityIncident[]      @relation("SecurityIncidentAssignedTo")
   batchRuns                     BatchRun[]              @relation("BatchRunCreator")
@@ -422,6 +424,50 @@ model IntegrationValidation {
 
   @@index([integrationId, validatedAt])
   @@index([validatedByUserId, validatedAt])
+}
+
+/// Organisation-scoped configuration for a future external connector.
+///
+/// This is deliberately separate from IntegrationValidation, which records
+/// governed operational/database/AI/NCSR sign-off. Phase 3A stores metadata
+/// and readiness evidence only: credentialRef/certificateRef point at a future
+/// secret provider and never contain resolved secret values.
+model IntegrationConnection {
+  id                     String       @id @default(cuid())
+  organisationId         String
+  organisation           Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  connectorType          String
+  name                   String
+  description            String?
+  sourceSystem           String
+  sourceFacility         String?
+  environment            String       @default("DEMO")
+  state                  String       @default("NOT_CONFIGURED")
+  endpointJson           String       @default("{}")
+  authMethod             String       @default("NONE")
+  credentialRef          String?
+  certificateRef         String?
+  mappingVersion         String?
+  mappingJson            String       @default("{}")
+  scheduleJson           String       @default("{}")
+  timezone               String       @default("Pacific/Auckland")
+  lastValidatedAt        DateTime?
+  lastValidationStatus   String?
+  lastValidationSummary  String?
+  lastSuccessfulImportAt DateTime?
+  lastFailureAt          DateTime?
+  archivedAt             DateTime?
+  createdByUserId        String
+  createdBy              User         @relation("IntegrationConnectionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedByUserId        String
+  updatedBy              User         @relation("IntegrationConnectionUpdater", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  @@unique([organisationId, name])
+  @@index([organisationId, state, updatedAt])
+  @@index([organisationId, connectorType])
+  @@index([updatedByUserId, updatedAt])
 }
 
 model SecurityIncident {
@@ -526,6 +572,7 @@ model Organisation {
   shortName String?
   isActive  Boolean    @default(true)
   batchRuns BatchRun[]
+  integrationConnections IntegrationConnection[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

@@ -81,6 +81,7 @@ test("Advanced is collapsible and technical items live there", () => {
     SIDEBAR.indexOf("return [", advancedStart)
   );
   for (const item of [
+    "Integration Centre",
     "Local Referral & Booking Rules",
     "Rule Studio",
     "Deployment Readiness",
@@ -103,6 +104,11 @@ test("a section with no links is not rendered", () => {
 test("hiding an item never grants access", () => {
   // Every entitlement-bearing item resolves through isAuthorizedForRoute, which
   // reads ROUTE_GUARDS — the same source the server enforces.
+  assert.match(
+    SIDEBAR,
+    /authed\("\/admin\/integrations", "Integration Centre"\)/,
+    "Integration Centre must be gated by its exact route"
+  );
   assert.match(
     SIDEBAR,
     /function authed\(href: string, label: string\): NavLink\[\] \{\s*return isAuthorizedForRoute\(href, userRole\)/,

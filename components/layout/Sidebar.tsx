@@ -8,7 +8,7 @@ import {
   BarChart2, Activity, Settings, FileSearch,
   Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight, ChevronDown,
   Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
-  ShieldCheck,
+  ShieldCheck, Cable,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDefaultAppRouteForRole, isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
@@ -28,6 +28,7 @@ const ICONS: Record<string, React.ElementType> = {
   "/coordinator": Users,
   "/analytics":  BarChart2,
   "/admin/usage": Activity,
+  "/admin/integrations": Cable,
   "/readiness":  Activity,
   "/guidelines": BookOpen,
   "/rules":      GitBranch,
@@ -125,6 +126,7 @@ function buildSidebarSections(args: {
   // Collapsed by default and never part of the normal clinical workflow. These
   // remain fully functional — relocated and renamed rather than removed.
   const advanced = [
+    ...(isAdmin || isIntegrationAdmin ? authed("/admin/integrations", "Integration Centre") : []),
     ...((isAdmin || isIntegrationAdmin) && showCases
       ? authed("/rules", "Local Referral & Booking Rules")
       : []),
