@@ -53,6 +53,13 @@ const MODE_LABEL: Record<string, string> = {
   SIMULATION: "Simulation",
 };
 
+const CLINICAL_MODE_LABEL: Record<string, string> = {
+  LIVE_PRODUCTION: "Production",
+  LIVE_DEMO: "Demo",
+  SHADOW: "parallel evaluation",
+  SIMULATION: "simulation",
+};
+
 export function ClinicalAuthorityBadge({
   authorityEngine,
   ruleSetVersion,
@@ -80,11 +87,15 @@ export function ClinicalAuthorityBadge({
         className
       )}
       title={
-        isCanonicalAuthority && isOperative
-          ? `Clinical authority: canonical ${ruleSetVersion}. Pathway routing remains legacy${
-              routerEngine ? ` (${routerEngine})` : ""
-            }.`
-          : "Clinical authority: legacy engine. Canonical rules are recorded for comparison only and are not clinically active."
+        clinical
+          ? isCanonicalAuthority && isOperative
+            ? `Current governed rules: ${ruleSetVersion}.`
+            : "Previous grading rules remain clinically authoritative; the evaluated successor rules are not clinically active."
+          : isCanonicalAuthority && isOperative
+            ? `Clinical authority: canonical ${ruleSetVersion}. Pathway routing remains legacy${
+                routerEngine ? ` (${routerEngine})` : ""
+              }.`
+            : "Clinical authority: legacy engine. Canonical rules are recorded for comparison only and are not clinically active."
       }
     >
       <span className="font-medium">
@@ -108,7 +119,9 @@ export function ClinicalAuthorityBadge({
           be mistaken for the deciding authority. */}
       {ruleSetVersion && !isOperative ? (
         <span className="opacity-80">
-          · {ruleSetVersion} {MODE_LABEL[evaluationMode ?? ""] ?? "not active"}
+          · {ruleSetVersion} {clinical
+            ? CLINICAL_MODE_LABEL[evaluationMode ?? ""] ?? "not active"
+            : MODE_LABEL[evaluationMode ?? ""] ?? "not active"}
         </span>
       ) : null}
 
@@ -157,7 +170,7 @@ export function ActiveClinicalAuthorityIndicator({
       </span>
       {!canonicalActive && ruleSetVersion ? (
         <span className="text-muted-foreground">
-          {ruleSetVersion}: {canonicalStatus ?? "DRAFT"} · shadow/simulation only, not clinically active
+          {ruleSetVersion}: {canonicalStatus ?? "DRAFT"} · evaluation only, not clinically active
         </span>
       ) : null}
     </div>

@@ -210,9 +210,9 @@ function ClinicalAuthorityMonitoringPanel({
 }) {
   const metrics = [
     ["Total evaluations", summary.counts.totalEvaluations, "Governed evaluations recorded"],
-    ["Evaluation failures", summary.counts.canonicalEvaluationFailures + summary.counts.adapterFailures, "Fail-closed to Legacy"],
+    ["Evaluation failures", summary.counts.canonicalEvaluationFailures + summary.counts.adapterFailures, "Fail-closed to current grading"],
     ["Authority failures", summary.counts.authorityResolutionFailures, "Resolver failures"],
-    ["Legacy disagreements", summary.counts.disagreements, `${summary.counts.urgentDisagreements} urgent-case`],
+    ["Ruleset disagreements", summary.counts.disagreements, `${summary.counts.urgentDisagreements} urgent-case`],
     ["Missing-information stops", summary.counts.missingInformationStops, "Reviewer confirmation required"],
     ["Timing ambiguity", summary.counts.timingAmbiguities, "Clinician timing required"],
     ["Clinician overrides", summary.counts.clinicianOverrides, "Live canonical evaluations only"],
@@ -220,7 +220,7 @@ function ClinicalAuthorityMonitoringPanel({
     ["Urgent evaluations", summary.counts.urgentEvaluations, "CRITICAL / URGENT branches"],
     ["Queue anomalies", summary.counts.queueAnomalies, "Open cases past due"],
     ["DB failures", summary.counts.databaseFailures, "Recorded persistence errors"],
-    ["De-escalation blocks", summary.counts.deEscalationBlocks, "Legacy safety floor retained"],
+    ["De-escalation blocks", summary.counts.deEscalationBlocks, "Current grading safety floor retained"],
   ] as const;
   const hardTriggerCount =
     summary.counts.canonicalEvaluationFailures +

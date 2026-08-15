@@ -144,7 +144,7 @@ function buildSidebarSections(args: {
           link("/patients", "Patient Registry"),
           link("/pathway", "Pathway Wizard"),
           link("/gp", "GP Referral"),
-          link("/coordinator", "Legacy Referral Queue"),
+          link("/coordinator", "Referral Queue"),
         ]
       : []),
   ];

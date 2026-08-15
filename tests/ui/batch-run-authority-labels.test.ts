@@ -72,12 +72,12 @@ test("run authority is derived from persisted item state", () => {
   );
 });
 
-test("a historical legacy run keeps its truthful legacy labelling", () => {
-  // The false branch must still exist: historical runs are legacy and must say
-  // so rather than being relabelled to make the UI look consistent.
+test("a historical run keeps its truthful previous-rules labelling", () => {
+  // The false branch must still exist: historical runs must identify the
+  // previous grading rules as authoritative without surfacing internal labels.
   assert.match(
     PAGE,
-    /:\s*"Legacy engine \(authoritative\)"/,
-    "a non-canonical run must still be labelled as legacy-authoritative"
+    /:\s*"Previous grading rules \(authoritative\)"/,
+    "a non-canonical run must still identify its actual grading authority"
   );
 });

@@ -664,7 +664,7 @@ export default async function AdminPage({
                   icon={Database}
                   eyebrow={workspace.label}
                   title="No rule versions published"
-                  description="Clinical rule versions must pass two-person review before publishing. Legacy grading remains authoritative until a version is published and activated."
+                  description="Clinical rule versions must pass two-person review before publishing. Current grading remains authoritative until a version is published and activated."
                   nextStep="Open Rule Studio to review a draft and record the governance trail."
                   action={{ href: "/rules/clinical", label: "Open Rule Studio" }}
                 />

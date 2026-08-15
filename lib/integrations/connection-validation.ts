@@ -244,7 +244,7 @@ export async function validateIntegrationConfiguration(
     detail:
       mapped === required
         ? "Every required connector-specific mapping has a source path."
-        : "Mapping is incomplete; configuration cannot be ready for a live test.",
+        : "Mapping is incomplete; configuration cannot be ready to test.",
   };
   const scheduleCheck: ConfigurationCheck = {
     key: "schedule",
@@ -257,7 +257,7 @@ export async function validateIntegrationConfiguration(
   };
   const connectivityCheck: ConfigurationCheck = {
     key: "connectivity",
-    label: "Live connectivity",
+    label: "Connection test",
     status: "NOT_TESTED",
     value: connectorType === "HL7_V2_LAB" ? "Gateway required / Not receiving" : "Not tested",
     detail: "Configuration validation performs no remote request.",
@@ -269,11 +269,11 @@ export async function validateIntegrationConfiguration(
   const readyForLiveTest = !failed && mapped === required;
   const readinessCheck: ConfigurationCheck = {
     key: "readiness",
-    label: "Ready for live testing",
+    label: "Ready to test",
     status: readyForLiveTest ? "PASS" : "WARNING",
     value: readyForLiveTest ? "YES" : "NO",
     detail: readyForLiveTest
-      ? "Configuration is ready for a separate explicit live connectivity test."
+      ? "Configuration is ready for a separate explicit connection test."
       : "Resolve configuration, credential, mapping, and schedule gaps first.",
   };
   const status = failed ? "FAILED" : readyForLiveTest ? "PASSED" : "WARNING";
@@ -293,8 +293,8 @@ export async function validateIntegrationConfiguration(
       readinessCheck,
     ],
     summary: readyForLiveTest
-      ? "Configuration valid and ready for a separate live test. Live connectivity was not tested."
-      : `${status === "FAILED" ? "Configuration has required gaps" : "Configuration needs mapping"}. Live connectivity was not tested.`,
+      ? "Configuration valid and ready for a separate connection test. The connection was not tested."
+      : `${status === "FAILED" ? "Configuration has required gaps" : "Configuration needs mapping"}. The connection was not tested.`,
   };
 }
 

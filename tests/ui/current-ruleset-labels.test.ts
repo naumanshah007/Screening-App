@@ -47,11 +47,11 @@ test("an operative governed ruleset is described in clinician-facing terms", () 
   );
 });
 
-test("the shadow heading is not shown once the ruleset is operative", () => {
+test("the evaluation heading switches when the ruleset is operative", () => {
   assert.match(
     PANEL,
-    /canonicalIsOperative \? "Current ruleset" : "Canonical shadow"/,
-    "the heading must switch away from 'shadow' when the ruleset decides cases"
+    /canonicalIsOperative \? "Current ruleset" : "Ruleset evaluation"/,
+    "the heading must distinguish the operative ruleset from a non-operative evaluation"
   );
 });
 

@@ -202,7 +202,7 @@ export default async function BatchRunDetailPage({
               label={
                 runIsCanonical
                   ? "Pathway routing (not the recommendation authority)"
-                  : "Legacy engine (authoritative)"
+                  : "Previous grading rules (authoritative)"
               }
               value={<span className="font-mono">{run.engineVersion}</span>}
             />
@@ -210,7 +210,7 @@ export default async function BatchRunDetailPage({
               label={
                 runIsCanonical
                   ? "Current governed rules (authoritative)"
-                  : "Versioned shadow (not authoritative)"
+                  : "Versioned evaluation (not authoritative)"
               }
               value={
                 <span className="font-mono">
@@ -306,7 +306,7 @@ export default async function BatchRunDetailPage({
           role="status"
           className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200"
         >
-          No governed clinical version is active in the demo environment. This run retains its original versioned-shadow pin; clinical regrading is unavailable until a validated version is published and activated.
+          No governed clinical version is active in the demo environment. This run retains its original non-operative evaluation pin; clinical regrading is unavailable until a validated version is published and activated.
         </div>
       )}
       <WorklistClient

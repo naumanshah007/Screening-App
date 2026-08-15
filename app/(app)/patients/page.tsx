@@ -89,7 +89,7 @@ export default function PatientsPage() {
     <PageShell width="wide">
       <div className="page-aura">
         <PageIntro
-          eyebrow="Legacy tools"
+          eyebrow="Clinical records"
           title="Patients"
           description={hasLoaded ? `${total.toLocaleString()} patients on the cervical screening register.` : "Cervical screening register"}
           actions={[{ href: "/patients/new", label: "Register patient", icon: <Plus className="h-4 w-4" /> }]}

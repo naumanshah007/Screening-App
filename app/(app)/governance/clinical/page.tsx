@@ -201,7 +201,7 @@ export default async function ClinicalGovernanceActivationPage() {
                   */}
                   {authority.authorityEngine === "CANONICAL"
                     ? `${currentGoverned?.displayVersion ?? version.displayVersion} · ACTIVE`
-                    : "Legacy engine"}
+                    : "Previous grading rules"}
                 </StatusBadge>
               </div>
               <p className="mt-1.5 text-xs text-muted-foreground">

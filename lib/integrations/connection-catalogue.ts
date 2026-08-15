@@ -82,7 +82,7 @@ export const INTEGRATION_CONNECTOR_DEFINITIONS: readonly ConnectorDefinition[] =
     description: catalogueDescription("fhir_r4"),
     authMethods: ["NONE", "API_KEY", "BASIC", "OAUTH2_CLIENT_CREDENTIALS", "MUTUAL_TLS"],
     gatewayRequired: false,
-    scheduleHint: "Polling metadata only; a Phase 3B live test requests CapabilityStatement metadata, never patient records.",
+    scheduleHint: "Polling metadata only; a connection test requests CapabilityStatement metadata, never patient records.",
     mappingRequirements: [
       { id: "nhi", label: "NHI", description: "Patient identifier/system mapping" },
       { id: "accessionSpecimen", label: "Accession / specimen", description: "Diagnostic report identity" },

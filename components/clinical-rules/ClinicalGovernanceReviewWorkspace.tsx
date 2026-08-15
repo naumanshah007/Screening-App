@@ -147,7 +147,7 @@ function GovernanceCaseCard({
         <div className="grid gap-3 text-sm lg:grid-cols-2">
           {[
             ["Source guidance", item.sourceGuidance],
-            ["Current Legacy behaviour", item.currentLegacyBehaviour],
+            ["Current grading behaviour", item.currentLegacyBehaviour],
             ["Canonical behaviour", item.canonicalBehaviour],
             ["Proposed final behaviour", item.proposedFinalBehaviour],
             ["Safety impact", item.safetyImpact],

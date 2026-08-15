@@ -46,7 +46,7 @@ export default async function IntegrationCentrePage() {
       <PageHeader
         eyebrow="Administration · Advanced"
         title="Integration Centre"
-        description="Validate connector configuration and run explicit, bounded server-side live connectivity tests. A successful test never activates a connector or imports clinical data."
+        description="Validate connection configuration and run explicit, bounded server-side connection tests. A successful test never enables data ingestion or imports clinical data."
         meta={
           <>
             <HeaderMeta
@@ -60,8 +60,8 @@ export default async function IntegrationCentrePage() {
               icon={<Cable className="h-4 w-4" />}
             />
             <HeaderMeta
-              label="Phase"
-              value="Secure live connectivity"
+              label="Connection testing"
+              value="Secure and bounded"
               icon={<Workflow className="h-4 w-4" />}
             />
           </>

@@ -345,7 +345,7 @@ export default function GPPortalPage() {
   return (
     <PageShell>
       <PageIntro
-        eyebrow="Legacy cervical tool"
+        eyebrow="Clinical pathway tool"
         title="Cervical Results Entry"
         description="Manual validation tool — not the primary enterprise referral workflow. Use this workspace for cervical screening result entry and pathway support; for colposcopy and gynaecology referral grading, use the enterprise case workflow."
         trailing={

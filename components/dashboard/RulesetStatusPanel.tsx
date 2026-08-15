@@ -27,7 +27,7 @@ export function RulesetStatusPanel({ authority }: { authority: ClinicalAuthority
     authority.canonicalMode === "SIMULATION"
       ? "Simulation enabled"
       : authority.canonicalMode === "SHADOW"
-        ? "Shadow evaluation available"
+        ? "Parallel evaluation available"
         : authority.canonicalMode === "NOT_EVALUATED"
           ? "Not yet evaluated"
           : authority.canonicalMode;
@@ -64,11 +64,11 @@ export function RulesetStatusPanel({ authority }: { authority: ClinicalAuthority
                   here. The version itself is still shown alongside. */}
               {canonicalIsOperative && authority.canonicalVersion
                 ? "Current governed rules"
-                : "Legacy Engine"}
+                : "Current grading rules"}
             </span>
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Pathway routing: Legacy router
+            Pathway routing: Current clinical router
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export function RulesetStatusPanel({ authority }: { authority: ClinicalAuthority
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {/* "Shadow" is only true while canonical is NOT deciding cases.
                 Once it is operative this heading would actively mislead. */}
-            {canonicalIsOperative ? "Current ruleset" : "Canonical shadow"}
+            {canonicalIsOperative ? "Current ruleset" : "Ruleset evaluation"}
           </p>
           {authority.canonicalVersion ? (
             <>
@@ -99,7 +99,7 @@ export function RulesetStatusPanel({ authority }: { authority: ClinicalAuthority
             </>
           ) : (
             <p className="mt-1 text-xs text-muted-foreground">
-              No canonical ruleset loaded in this environment.
+              No evaluated successor ruleset is loaded in this environment.
             </p>
           )}
         </div>

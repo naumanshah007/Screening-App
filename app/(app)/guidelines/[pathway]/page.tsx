@@ -61,6 +61,7 @@ export default async function GuidelinePathwayPage({
           breadcrumb={[{ label: "Guidelines", href: "/guidelines" }, { label: summary.title }]}
           trailing={
             <ClinicalAuthorityBadge
+              presentation="clinical"
               authorityEngine={catalogue.authority.authorityEngine}
               ruleSetVersion={catalogue.authority.canonicalVersion}
               ruleSetChecksum={catalogue.authority.canonicalChecksum}

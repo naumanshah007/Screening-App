@@ -140,10 +140,10 @@ function notTestedResult(
     safeSummary: summary,
     readyForPilotTest: false,
     diagnostics: [
-      diagnostic("configuration", "Configuration", source.lastValidationStatus === "PASSED" ? "PASS" : "FAIL", source.lastValidationStatus === "PASSED" ? "Valid" : "Validation required", "Validate configuration separately before live testing."),
-      diagnostic("network", "Live connectivity", "NOT_TESTED", "Not tested", summary),
-      diagnostic("mapping", "Clinical mapping", coverage.complete === coverage.required ? "PASS" : "FAIL", `${coverage.complete}/${coverage.required}`, "Existing Phase 3A mapping result; no clinical data was requested."),
-      diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector."),
+      diagnostic("configuration", "Configuration", source.lastValidationStatus === "PASSED" ? "PASS" : "FAIL", source.lastValidationStatus === "PASSED" ? "Valid" : "Validation required", "Validate configuration separately before connection testing."),
+      diagnostic("network", "Connection test", "NOT_TESTED", "Not tested", summary),
+      diagnostic("mapping", "Clinical mapping", coverage.complete === coverage.required ? "PASS" : "FAIL", `${coverage.complete}/${coverage.required}`, "Existing mapping result; no clinical data was requested."),
+      diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion."),
     ],
     safeDetails: { mappingComplete: coverage.complete, mappingRequired: coverage.required },
   };
@@ -176,7 +176,7 @@ async function authenticate(
       status: "NOT_SUPPORTED",
       headers: {},
       sensitiveHeaders: [],
-      diagnostics: diagnostic("authentication", "Authentication", "NOT_SUPPORTED", "mTLS not supported", "Configured; live mTLS testing is not supported in this deployment."),
+      diagnostics: diagnostic("authentication", "Authentication", "NOT_SUPPORTED", "mTLS not supported", "Configured; mTLS connection testing is not supported in this deployment."),
     };
   }
   if (!source.credentialRef) throw new SecretResolutionError();
@@ -276,7 +276,7 @@ function failureFromError(source: ConnectivitySource, error: unknown): Connectiv
       diagnostics: [
         diagnostic("endpointPolicy", "Endpoint policy", "FAIL", "Blocked", error.safeMessage),
         diagnostic("network", "DNS / network", "NOT_TESTED", "Not attempted", "No outbound connection was opened."),
-        diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector."),
+        diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion."),
       ],
       safeDetails: { policyStatus: "BLOCKED", mappingComplete: coverage.complete, mappingRequired: coverage.required },
       auditCategory: "POLICY_BLOCKED",
@@ -294,7 +294,7 @@ function failureFromError(source: ConnectivitySource, error: unknown): Connectiv
       diagnostics: [
         diagnostic("endpointPolicy", "Endpoint policy", "NOT_TESTED", "Not attempted", "Credential resolution failed before the request."),
         diagnostic("authentication", "Credential reference", "FAIL", "Unresolved", "Configured reference could not be resolved."),
-        diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector."),
+        diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion."),
       ],
       safeDetails: { credentialConfigured: Boolean(source.credentialRef) },
       auditCategory: "CREDENTIAL_RESOLUTION_FAILED",
@@ -317,14 +317,14 @@ function failureFromError(source: ConnectivitySource, error: unknown): Connectiv
         diagnostic("network", "DNS / network", "PASS", "Passed", "The configured token endpoint returned an HTTP response."),
         diagnostic("tls", "TLS", error.response.tls, error.response.tls === "PASS" ? "Passed" : "Not required", error.response.tls === "PASS" ? "A TLS session completed." : "The token endpoint uses HTTP; no TLS claim is made."),
         diagnostic("authentication", "Authentication", "FAIL", "Failed", error.safeMessage),
-        diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector."),
+        diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion."),
       ],
       safeDetails: { failureCategory: error.code, mappingComplete: coverage.complete, mappingRequired: coverage.required },
     };
   }
   const safe = error instanceof SafeOutboundRequestError
     ? error
-    : new SafeOutboundRequestError("UNEXPECTED_FAILURE", "Live connection test failed safely.");
+    : new SafeOutboundRequestError("UNEXPECTED_FAILURE", "Connection test failed safely.");
   const policyNotTested = ["INVALID_AUTH_METADATA", "INVALID_ENDPOINT_PATH", "UNEXPECTED_FAILURE"].includes(safe.code);
   return {
     status: "FAILED",
@@ -345,7 +345,7 @@ function failureFromError(source: ConnectivitySource, error: unknown): Connectiv
       diagnostic("network", "DNS / network", safe.networkStatus, safe.networkStatus === "FAIL" ? "Failed" : "Not tested", safe.safeMessage),
       diagnostic("tls", "TLS", safe.tlsStatus, safe.tlsStatus === "FAIL" ? "Failed" : "Not tested", safe.safeMessage),
       diagnostic("authentication", "Authentication", safe.code.startsWith("OAUTH") ? "FAIL" : "NOT_TESTED", safe.code.startsWith("OAUTH") ? "Failed" : "Not tested", safe.safeMessage),
-      diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector."),
+      diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion."),
     ],
     safeDetails: { failureCategory: safe.code, mappingComplete: coverage.complete, mappingRequired: coverage.required },
   };
@@ -362,16 +362,16 @@ export async function testIntegrationConnectivity(
   const secretProvider = dependencies.secretProvider ?? serverSecretProvider;
 
   if (connectorType === "HL7_V2_LAB") {
-    return notTestedResult(source, "Live MLLP receiver testing is unavailable in this deployment. Required component: CerviGrade HL7 Gateway.");
+    return notTestedResult(source, "MLLP receiver connection testing is unavailable in this deployment. Required component: CerviGrade HL7 Gateway.");
   }
   if (["PAUSED", "ARCHIVED"].includes(source.state)) {
-    return notTestedResult(source, "Live testing is unavailable while the connector is paused or archived.");
+    return notTestedResult(source, "Connection testing is unavailable while the connection is paused or archived.");
   }
   if (source.lastValidationStatus !== "PASSED") {
-    return notTestedResult(source, "Validate Configuration must pass before a live connection test.");
+    return notTestedResult(source, "Validate Configuration must pass before a connection test.");
   }
   if (source.authMethod === "MUTUAL_TLS") {
-    return notTestedResult(source, "Configured; live mTLS testing is not supported in this deployment.", "NOT_SUPPORTED");
+    return notTestedResult(source, "Configured; mTLS connection testing is not supported in this deployment.", "NOT_SUPPORTED");
   }
   if (!endpoint.baseUrl) {
     return notTestedResult(source, connectorType === "SCREENING_REGISTER" ? "Awaiting authorised endpoint / integration contract." : "A configured HTTP endpoint is required.");
@@ -414,7 +414,7 @@ export async function testIntegrationConnectivity(
       ? authentication.diagnostics
       : diagnostic("authentication", "Authentication", "NOT_TESTED", "Not verified", "The remote operation failed without a definitive authentication response.");
     const commonDiagnostics: ConnectivityDiagnostic[] = [
-      diagnostic("configuration", "Configuration", "PASS", "Valid", "Phase 3A configuration validation passed separately."),
+      diagnostic("configuration", "Configuration", "PASS", "Valid", "Configuration validation passed separately."),
       diagnostic("endpointPolicy", "Endpoint policy", "PASS", "Passed", "URL syntax and every resolved destination address passed the outbound policy."),
       diagnostic("network", "DNS / network", "PASS", "Passed", "The configured endpoint returned an HTTP response."),
       diagnostic("tls", "TLS", response.tls === "PASS" ? "PASS" : "NOT_REQUIRED", response.tls === "PASS" ? "Passed" : "Not required", response.tls === "PASS" ? "A TLS session completed." : "The configured endpoint uses HTTP; no TLS claim is made."),
@@ -436,7 +436,7 @@ export async function testIntegrationConnectivity(
         diagnostics: [
           ...commonDiagnostics.slice(0, 4),
           diagnostic("authentication", "Authentication", "FAIL", "Failed", `Remote system returned HTTP ${response.statusCode}.`),
-          diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector."),
+          diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion."),
         ],
         safeDetails: { redirects: response.redirects, mappingComplete: coverage.complete, mappingRequired: coverage.required },
       };
@@ -453,7 +453,7 @@ export async function testIntegrationConnectivity(
         endpointHostname: response.target.hostname,
         safeSummary: `Remote endpoint returned HTTP ${response.statusCode}.`,
         readyForPilotTest: false,
-        diagnostics: [...commonDiagnostics, diagnostic("protocol", "Protocol response", "FAIL", `HTTP ${response.statusCode}`, "The endpoint responded, but the configured capability operation did not succeed."), diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector.")],
+        diagnostics: [...commonDiagnostics, diagnostic("protocol", "Protocol response", "FAIL", `HTTP ${response.statusCode}`, "The endpoint responded, but the configured capability operation did not succeed."), diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion.")],
         safeDetails: { redirects: response.redirects, mappingComplete: coverage.complete, mappingRequired: coverage.required },
       };
     }
@@ -472,7 +472,7 @@ export async function testIntegrationConnectivity(
           endpointHostname: response.target.hostname,
           safeSummary: capability.reason,
           readyForPilotTest: false,
-          diagnostics: [...commonDiagnostics, diagnostic("protocol", "FHIR capability endpoint", "FAIL", "Failed", capability.reason), diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Connectivity testing never activates a connector.")],
+          diagnostics: [...commonDiagnostics, diagnostic("protocol", "FHIR capability endpoint", "FAIL", "Failed", capability.reason), diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Connection testing never enables data ingestion.")],
           safeDetails: { redirects: response.redirects, mappingComplete: coverage.complete, mappingRequired: coverage.required },
         };
       }
@@ -490,15 +490,15 @@ export async function testIntegrationConnectivity(
         httpStatus: response.statusCode,
         latencyMs: response.latencyMs,
         endpointHostname: response.target.hostname,
-        safeSummary: passed ? "Live FHIR R4 capability connection verified." : capability.compatible ? "FHIR capability is missing required resources." : "FHIR version is incompatible with R4.",
+        safeSummary: passed ? "FHIR R4 capability connection verified." : capability.compatible ? "FHIR capability is missing required resources." : "FHIR version is incompatible with R4.",
         readyForPilotTest: passed && coverage.complete === coverage.required,
         diagnostics: [
           ...commonDiagnostics,
           diagnostic("protocol", "FHIR capability endpoint", capability.compatible ? "PASS" : "INCOMPATIBLE", capability.fhirVersion, capability.compatible ? "A plausible FHIR R4 CapabilityStatement responded." : "The reported FHIR version is not R4."),
           diagnostic("resources", "Required resources", resourcesPass ? "PASS" : "FAIL", `${available.length}/${required.length}`, `DiagnosticReport ${capability.resources.includes("DiagnosticReport") ? "available" : "missing"}; Observation ${capability.resources.includes("Observation") ? "available" : "missing"}; Patient ${capability.resources.includes("Patient") ? "available" : "optional/not advertised"}.`),
-          diagnostic("mapping", "Clinical mapping", coverage.complete === coverage.required ? "PASS" : "FAIL", `${coverage.complete}/${coverage.required}`, "Existing Phase 3A mapping result; no patient records were requested."),
-          diagnostic("pilot", "Ready for pilot testing", passed && coverage.complete === coverage.required ? "PASS" : "FAIL", passed && coverage.complete === coverage.required ? "YES" : "NO", "Pilot readiness is distinct from production activation."),
-          diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Production governance and an explicit activation phase are still required."),
+          diagnostic("mapping", "Clinical mapping", coverage.complete === coverage.required ? "PASS" : "FAIL", `${coverage.complete}/${coverage.required}`, "Existing mapping result; no patient records were requested."),
+          diagnostic("pilot", "Ready for pilot testing", passed && coverage.complete === coverage.required ? "PASS" : "FAIL", passed && coverage.complete === coverage.required ? "YES" : "NO", "Pilot readiness is distinct from enabling Production data ingestion."),
+          diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Production governance and an explicit enablement step are still required."),
         ],
         safeDetails: { fhirVersion: capability.fhirVersion, advertisedResources: capability.resources.filter((resource) => ["DiagnosticReport", "Observation", "Patient"].includes(resource)), redirects: response.redirects, mappingComplete: coverage.complete, mappingRequired: coverage.required },
       };
@@ -524,9 +524,9 @@ export async function testIntegrationConnectivity(
       diagnostics: [
         ...commonDiagnostics,
         diagnostic("protocol", register ? "Contract capability" : "API-specific capability", "NOT_VERIFIED", "Not verified", register ? "Only the configured authorised operation was called; no Health NZ contract semantics were invented." : "HTTP success alone is not evidence of PMS vendor compatibility."),
-        diagnostic("mapping", "Clinical mapping", coverage.complete === coverage.required ? "PASS" : "FAIL", `${coverage.complete}/${coverage.required}`, "Existing Phase 3A mapping result; no patient records were requested."),
-        diagnostic("pilot", "Ready for pilot testing", coverage.complete === coverage.required ? "PASS" : "FAIL", coverage.complete === coverage.required ? "YES" : "NO", "Pilot readiness is not production activation or ingestion authorisation."),
-        diagnostic("activation", "Ready for activation", "NOT_TESTED", "NO", "Production governance and an explicit activation phase are still required."),
+        diagnostic("mapping", "Clinical mapping", coverage.complete === coverage.required ? "PASS" : "FAIL", `${coverage.complete}/${coverage.required}`, "Existing mapping result; no patient records were requested."),
+        diagnostic("pilot", "Ready for pilot testing", coverage.complete === coverage.required ? "PASS" : "FAIL", coverage.complete === coverage.required ? "YES" : "NO", "Pilot readiness is not Production data-ingestion authorisation."),
+        diagnostic("activation", "Data ingestion", "NOT_TESTED", "Not enabled", "Production governance and an explicit enablement step are still required."),
       ],
       safeDetails: { capabilityPathConfigured: Boolean(path), redirects: response.redirects, mappingComplete: coverage.complete, mappingRequired: coverage.required },
     };

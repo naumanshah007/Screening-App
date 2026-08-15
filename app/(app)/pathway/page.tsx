@@ -137,7 +137,7 @@ export default function PathwayWizardStartPage() {
       <div className="page-aura border-b border-border bg-card px-6 py-5">
         <div className="max-w-2xl mx-auto space-y-4">
           <PageIntro
-            eyebrow="Legacy cervical tool"
+            eyebrow="Clinical pathway tool"
             title="Cervical Pathway Wizard"
             description="Manual validation tool — not the primary enterprise referral workflow. Use the guided wizard when you need step-by-step cervical pathway support; enterprise referral grading starts from cases."
             trailing={

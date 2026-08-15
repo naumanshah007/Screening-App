@@ -115,16 +115,16 @@ export function getLiveTestAvailability(
 ): LiveTestAvailability {
   const endpoint = parseStoredJson(connection.endpointJson, endpointMetadataSchema, {});
   if (connection.connectorType === "HL7_V2_LAB") {
-    return { available: false, reason: "Live MLLP receiver test unavailable — CerviGrade HL7 Gateway required." };
+    return { available: false, reason: "MLLP receiver connection test unavailable — CerviGrade HL7 Gateway required." };
   }
   if (["PAUSED", "ARCHIVED"].includes(connection.state)) {
-    return { available: false, reason: "Resume the connector before live testing." };
+    return { available: false, reason: "Resume the connection before testing." };
   }
   if (connection.lastValidationStatus !== "PASSED") {
     return { available: false, reason: "Validate Configuration must pass first." };
   }
   if (connection.authMethod === "MUTUAL_TLS") {
-    return { available: false, reason: "Configured; live mTLS testing is not supported in this deployment." };
+    return { available: false, reason: "Configured; mTLS connection testing is not supported in this deployment." };
   }
   if (!endpoint.baseUrl) {
     return { available: false, reason: connection.connectorType === "SCREENING_REGISTER" ? "Awaiting authorised endpoint / integration contract." : "A configured HTTP endpoint is required." };
@@ -135,7 +135,7 @@ export function getLiveTestAvailability(
   ) {
     return { available: false, reason: "Awaiting authorised endpoint / integration contract." };
   }
-  return { available: true, reason: "Ready for an explicit bounded live connection test." };
+  return { available: true, reason: "Ready for an explicit bounded connection test." };
 }
 
 export async function listConnectivityChecksForConnections(

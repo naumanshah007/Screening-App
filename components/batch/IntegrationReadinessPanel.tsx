@@ -49,7 +49,7 @@ export function IntegrationReadinessPanel({ canConfigure }: { canConfigure: bool
               <p className="text-xs font-semibold text-foreground">External connector intake</p>
               <StatusBadge size="sm" tone="neutral">Not connected</StatusBadge>
             </div>
-            <p className="mt-1 text-[0.6875rem] leading-relaxed text-muted-foreground">Live connectivity has not been tested. Configuration readiness is not evidence of remote connectivity or a successful import.</p>
+            <p className="mt-1 text-[0.6875rem] leading-relaxed text-muted-foreground">The connection has not been tested. Configuration readiness is not evidence of remote connectivity or a successful import.</p>
           </div>
         </PanelInset>
       </div>

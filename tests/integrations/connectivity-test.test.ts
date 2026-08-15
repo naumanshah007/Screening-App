@@ -85,7 +85,7 @@ test("FHIR capability testing verifies only R4 metadata and required resource de
   assert.equal(result.readyForPilotTest, true);
   assert.deepEqual(result.safeDetails.advertisedResources, ["DiagnosticReport", "Observation", "Patient"]);
   assert.match(JSON.stringify(result), /no patient records were requested/i);
-  assert.equal(result.diagnostics.find((item) => item.key === "activation")?.value, "NO");
+  assert.equal(result.diagnostics.find((item) => item.key === "activation")?.value, "Not enabled");
 });
 
 test("FHIR wrong versions, malformed JSON, non-FHIR bodies and missing resources fail honestly", async () => {

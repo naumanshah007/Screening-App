@@ -72,14 +72,18 @@ test("the wizard contains all six guided stages and connector-specific coverage"
   assert.match(CLIENT, /aria-label=\{`\$\{requirement\.label\} source mapping`\}/);
 });
 
-test("configuration validation never claims or attempts live connectivity", () => {
-  const phase3Ui = `${PAGE}\n${CLIENT}\n${VALIDATION}`;
-  assert.doesNotMatch(phase3Ui, /\bConnected\b|Connection successful|\bOnline\b/);
-  assert.doesNotMatch(phase3Ui, /Test Connection/);
-  assert.match(phase3Ui, /Validate Configuration/);
-  assert.match(phase3Ui, /Live connectivity/);
-  assert.match(phase3Ui, /Not tested/);
-  assert.match(phase3Ui, /no remote request/i);
+test("configuration validation never claims or attempts remote connectivity", () => {
+  const validationStep = CLIENT.slice(
+    CLIENT.indexOf("function ValidationStep"),
+    CLIENT.indexOf("function ScheduleStep")
+  );
+  const validationUi = `${validationStep}\n${VALIDATION}`;
+  assert.doesNotMatch(validationUi, /\bConnected\b|Connection successful|\bOnline\b/);
+  assert.doesNotMatch(validationStep, />Test Connection</);
+  assert.match(validationUi, /Validate Configuration/);
+  assert.match(validationUi, /Connection test/);
+  assert.match(validationUi, /Not tested/);
+  assert.match(validationUi, /no remote request/i);
   assert.doesNotMatch(VALIDATION, /fetch\(|axios|createConnection|net\.|tls\.|WebSocket/);
 });
 
@@ -123,7 +127,7 @@ test("the state machine has no ACTIVE transition and readiness is explicit", () 
   assert.doesNotMatch(states, /"ACTIVE"/);
   assert.match(states, /"READY_FOR_LIVE_TEST"/);
   assert.match(VALIDATION, /readyForLiveTest/);
-  assert.match(CLIENT, /Activation[\s\S]*Not active/);
+  assert.match(CLIENT, /Data ingestion[\s\S]*Not enabled/);
 });
 
 test("Pull Cases is an operational summary with one admin configuration surface", () => {
@@ -149,14 +153,14 @@ test("the migration is additive and leaves clinical and usage evidence untouched
   );
 });
 
-test("Phase 3B keeps configuration validation and live testing separate", () => {
+test("configuration validation and connection testing remain separate", () => {
   assert.match(CLIENT, />Validate Configuration<\/Button>/);
-  assert.match(CLIENT, />Test Live Connection<\/Button>/);
+  assert.match(CLIENT, />Test Connection<\/Button>/);
   assert.match(CLIENT, /liveTestAvailable/);
-  assert.match(CLIENT, /Live connectivity history/);
-  assert.match(CLIENT, /Last live test/);
-  assert.match(CLIENT, /Not active/);
-  assert.match(CLIENT, /A live pass proves connectivity only/);
+  assert.match(CLIENT, /Connection test history/);
+  assert.match(CLIENT, /Last connection test/);
+  assert.match(CLIENT, /Not enabled/);
+  assert.match(CLIENT, /successful connection test proves connectivity only/);
   assert.doesNotMatch(CLIENT, /Ready for activation[^\n]*YES/);
   assert.doesNotMatch(CONNECTIVITY_CHECKS, /state:\s*"ACTIVE"|lastSuccessfulImportAt:\s*/);
 });
@@ -188,8 +192,8 @@ test("connector boundaries are truthful and no secret material enters the client
   assert.match(CONNECTIVITY, /Observation/);
   assert.match(CONNECTIVITY, /API-specific capability[\s\S]*NOT_VERIFIED/);
   assert.match(CONNECTIVITY, /Awaiting authorised endpoint \/ integration contract/);
-  assert.match(CONNECTIVITY, /Live MLLP receiver testing is unavailable/);
-  assert.match(CONNECTIVITY, /live mTLS testing is not supported/);
+  assert.match(CONNECTIVITY, /MLLP receiver connection testing is unavailable/);
+  assert.match(CONNECTIVITY, /mTLS connection testing is not supported/);
   assert.doesNotMatch(CLIENT, /accessToken|secretValue|resolved\.value/);
   assert.doesNotMatch(CONNECTIVITY_CHECKS, /Authorization|access_token|client_secret|resolved\.value/);
 });

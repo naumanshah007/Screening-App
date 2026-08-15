@@ -126,7 +126,7 @@ function draftFromConnection(connection: IntegrationConnectionDto): DraftForm {
   return {
     id: connection.id,
     connectorType: connection.connectorType,
-    name: connection.name,
+    name: customerConnectionName(connection),
     description: connection.description ?? "",
     sourceSystem: connection.sourceSystem,
     sourceFacility: connection.sourceFacility ?? "",
@@ -147,11 +147,80 @@ function draftFromConnection(connection: IntegrationConnectionDto): DraftForm {
 }
 
 function stateLabel(state: string) {
+  if (state === "READY_FOR_LIVE_TEST") return "Ready to Test";
   return state
     .toLowerCase()
     .split("_")
     .map((part) => part[0]?.toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function environmentLabel(environment: string) {
+  if (environment === "DEMO") return "Demo";
+  if (environment === "TEST") return "Test";
+  if (environment === "PRODUCTION_LIKE" || environment === "PILOT") return "Pilot";
+  if (environment === "PRODUCTION") return "Production";
+  return environment.replaceAll("_", " ").toLowerCase().replace(/^./, (character) => character.toUpperCase());
+}
+
+const INTERNAL_PROJECT_LANGUAGE = /\b(?:phase\s*[0-3](?:a|b)?|sprint\s*[ab]|c0)\b/i;
+const VALIDATION_CONNECTION_LANGUAGE = /\b(?:qa|ssrf|security validation|policy validation|controlled fhir)\b/i;
+
+function isTestValidationConnection(connection: IntegrationConnectionDto) {
+  const searchable = [connection.name, connection.description, connection.sourceSystem]
+    .filter(Boolean)
+    .join(" ");
+  return VALIDATION_CONNECTION_LANGUAGE.test(searchable) ||
+    (connection.environment === "TEST" && INTERNAL_PROJECT_LANGUAGE.test(searchable));
+}
+
+function customerConnectionName(connection: IntegrationConnectionDto) {
+  const searchable = [connection.name, connection.description, connection.sourceSystem]
+    .filter(Boolean)
+    .join(" ");
+
+  if (/^Awanui Labs\b/i.test(connection.name) && INTERNAL_PROJECT_LANGUAGE.test(searchable)) {
+    return "Awanui Labs — Demo HL7";
+  }
+  if (/\bssrf\b/i.test(searchable)) {
+    return "Outbound Security Validation";
+  }
+  if (connection.connectorType === "FHIR_R4" && isTestValidationConnection(connection)) {
+    return "FHIR R4 Test Connection";
+  }
+
+  const cleaned = connection.name
+    .replace(/\bphase\s*[0-3](?:a|b)?\b/gi, "")
+    .replace(/\bsprint\s*[ab]\b/gi, "")
+    .replace(/\bc0\b/gi, "")
+    .replace(/\bqa\b/gi, "Validation")
+    .replace(/\bssrf\b/gi, "Outbound Security")
+    .replace(/\s*[—–-]\s*(?=[—–-]|$)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s—–-]+|[\s—–-]+$/g, "")
+    .trim();
+
+  return cleaned || `${connection.connectorTitle} Connection`;
+}
+
+function auditDetailValue(key: string, value: unknown) {
+  if (key.toLowerCase() === "environment" && typeof value === "string") {
+    return environmentLabel(value);
+  }
+  return Array.isArray(value) ? value.join(", ") : String(value);
+}
+
+function needsAttention(connection: IntegrationConnectionDto) {
+  const credentialMissing = connection.authMethod !== "NONE" &&
+    !connection.credentialConfigured && !connection.certificateConfigured;
+  const scheduleInvalid = connection.connectorType === "HL7_V2_LAB"
+    ? connection.schedule.cadence !== "GATEWAY_MANAGED"
+    : !connection.schedule.cadence;
+  return ["PAUSED", "ERROR"].includes(connection.state) ||
+    connection.lastValidationStatus === "FAILED" ||
+    connection.mappingComplete < connection.mappingRequired ||
+    credentialMissing ||
+    scheduleInvalid;
 }
 
 function stateTone(state: string): BadgeTone {
@@ -251,6 +320,33 @@ export function IntegrationCentreClient({
   const mappingComplete = definition.mappingRequirements.filter(
     (requirement) => Boolean(form.mapping[requirement.id]?.trim())
   ).length;
+  const configuredConnections = useMemo(
+    () => data.connections.filter((connection) => !isTestValidationConnection(connection)),
+    [data.connections]
+  );
+  const validationConnections = useMemo(
+    () => data.connections.filter(isTestValidationConnection),
+    [data.connections]
+  );
+  const customerSummary = useMemo(() => ({
+    configured: configuredConnections.length,
+    readyToTest: configuredConnections.filter((connection) => connection.state === "READY_FOR_LIVE_TEST").length,
+    recentlyVerified: configuredConnections.filter((connection) =>
+      connection.lastValidationStatus === "PASSED" &&
+      connection.latestConnectivityCheck?.status === "PASSED" &&
+      !connection.latestConnectivityCheck.stale
+    ).length,
+    needsAttention: configuredConnections.filter(needsAttention).length,
+  }), [configuredConnections]);
+  const integrationHealth = useMemo(() => ({
+    configurationFailures: configuredConnections.filter((connection) => connection.lastValidationStatus === "FAILED").length,
+    mappingIncomplete: configuredConnections.filter((connection) => connection.mappingComplete < connection.mappingRequired).length,
+    missingCredentialReferences: configuredConnections.filter((connection) => connection.authMethod !== "NONE" && !connection.credentialConfigured && !connection.certificateConfigured).length,
+    invalidSchedules: configuredConnections.filter((connection) => connection.connectorType === "HL7_V2_LAB" ? connection.schedule.cadence !== "GATEWAY_MANAGED" : !connection.schedule.cadence).length,
+    connectionNotTested: configuredConnections.filter((connection) => !connection.latestConnectivityCheck || connection.latestConnectivityCheck.status === "NOT_TESTED").length,
+    connectionTestFailures: configuredConnections.filter((connection) => connection.latestConnectivityCheck?.status === "FAILED").length,
+    staleConnectionEvidence: configuredConnections.filter((connection) => connection.latestConnectivityCheck?.status === "PASSED" && connection.latestConnectivityCheck.stale).length,
+  }), [configuredConnections]);
 
   const setEndpoint = (key: string, value: DraftForm["endpoint"][string]) =>
     setForm((current) => ({ ...current, endpoint: { ...current.endpoint, [key]: value } }));
@@ -362,7 +458,7 @@ export function IntegrationCentreClient({
       // Any saved configuration change makes an earlier report stale. The
       // readiness step must show that honestly and require an explicit rerun.
       setReport(null);
-      setNotice("Configuration metadata saved. Live connectivity remains not tested.");
+      setNotice("Configuration metadata saved. The connection remains untested.");
       router.refresh();
       return connection;
     } finally {
@@ -415,7 +511,7 @@ export function IntegrationCentreClient({
         method: "POST",
         body: "{}",
       });
-      if (!body.check) throw new Error("Live connectivity response was incomplete");
+      if (!body.check) throw new Error("Connection test response was incomplete");
       const checks = [
         body.check,
         ...connection.connectivityChecks.filter((item) => item.id !== body.check!.id),
@@ -433,14 +529,14 @@ export function IntegrationCentreClient({
       setNotice(body.check.safeSummary);
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to test live connectivity");
+      setError(cause instanceof Error ? cause.message : "Unable to test the connection");
     } finally {
       setBusy(false);
     }
   };
 
   const changeState = async (connection: IntegrationConnectionDto, action: "PAUSE" | "RESUME" | "ARCHIVE") => {
-    if (action === "ARCHIVE" && !window.confirm(`Archive ${connection.name}? Its audit history will remain preserved.`)) {
+    if (action === "ARCHIVE" && !window.confirm(`Archive ${customerConnectionName(connection)}? Its audit history will remain preserved.`)) {
       return;
     }
     setBusy(true);
@@ -495,25 +591,25 @@ export function IntegrationCentreClient({
       ) : null}
 
       <MetricGrid columns={4}>
-        <MetricTile label="Configured connections" value={data.summary.configured} caption="Organisation-scoped instances" icon={<Cable className="h-4 w-4" />} />
-        <MetricTile label="Ready for live test" value={data.summary.readyForLiveTest} caption="Configuration evidence only" icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
-        <MetricTile label="Live verified" value={data.summary.liveVerified} caption="Current, non-stale evidence" icon={<Activity className="h-4 w-4" />} tone="success" />
-        <MetricTile label="Paused / errors" value={data.summary.pausedOrErrors} caption="Administrative attention" icon={<AlertTriangle className="h-4 w-4" />} tone={data.summary.pausedOrErrors ? "danger" : "neutral"} />
+        <MetricTile label="Configured connections" value={customerSummary.configured} caption="Customer connections" icon={<Cable className="h-4 w-4" />} />
+        <MetricTile label="Ready to test" value={customerSummary.readyToTest} caption="Configuration validated" icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
+        <MetricTile label="Recently verified" value={customerSummary.recentlyVerified} caption="Current connection evidence" icon={<Activity className="h-4 w-4" />} tone="success" />
+        <MetricTile label="Needs attention" value={customerSummary.needsAttention} caption="Configuration or status issue" icon={<AlertTriangle className="h-4 w-4" />} tone={customerSummary.needsAttention ? "danger" : "neutral"} />
       </MetricGrid>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Panel
-          title="Configured connector instances"
-          description="Each card is an organisation-owned instance of a catalogue connector type."
+          title="Configured connections"
+          description="Connections configured for this organisation."
           action={
             <Button onClick={openNew} disabled={!organisationConfigured} icon={<Plus className="h-4 w-4" />}>
-              Configure connector
+              Configure connection
             </Button>
           }
         >
-          {data.connections.length ? (
+          {configuredConnections.length ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              {data.connections.map((connection) => {
+              {configuredConnections.map((connection) => {
                 const connector = definitions.find((item) => item.type === connection.connectorType)!;
                 const credentialRequired = connection.authMethod !== "NONE";
                 const credentialReady = !credentialRequired || connection.credentialConfigured || connection.certificateConfigured;
@@ -550,8 +646,8 @@ export function IntegrationCentreClient({
                           {connection.connectorType === "HL7_V2_LAB" ? <Radio className="h-4 w-4" /> : <Waypoints className="h-4 w-4" />}
                         </span>
                         <div className="min-w-0">
-                          <h3 className="truncate text-sm font-semibold text-foreground">{connection.name}</h3>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{connector.shortTitle} · {connection.environment.replaceAll("_", "-")}</p>
+                          <h3 className="truncate text-sm font-semibold text-foreground">{customerConnectionName(connection)}</h3>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{connector.shortTitle} · {environmentLabel(connection.environment)}</p>
                         </div>
                       </div>
                       <StatusBadge size="sm" tone={stateTone(connection.state)}>{stateLabel(connection.state)}</StatusBadge>
@@ -567,16 +663,16 @@ export function IntegrationCentreClient({
                       <ReadinessRow label="Credential ref" value={credentialReady ? (credentialRequired ? "Configured" : "Not required") : "Missing"} tone={credentialReady ? "success" : "warn"} />
                       <ReadinessRow label="Schedule" value={scheduleReady ? "Valid metadata" : "Needs configuration"} tone={scheduleReady ? "success" : "warn"} />
                       {connector.gatewayRequired ? <ReadinessRow label="Gateway" value="Required" tone="warn" /> : null}
-                      <ReadinessRow label="Last live test" value={latest ? `${latest.status === "PASSED" ? "Passed" : latest.status === "FAILED" ? "Failed" : "Not tested"} ${latest.ageLabel}` : "Not tested"} tone={liveTone} />
-                      <ReadinessRow label="Live test result" value={liveValue} tone={liveTone} />
-                      <ReadinessRow label="Activation" value="Not active" />
+                      <ReadinessRow label="Last connection test" value={latest ? `${latest.status === "PASSED" ? "Passed" : latest.status === "FAILED" ? "Failed" : "Not tested"} ${latest.ageLabel}` : "Not tested"} tone={liveTone} />
+                      <ReadinessRow label="Connection test" value={liveValue} tone={liveTone} />
+                      <ReadinessRow label="Data ingestion" value="Not enabled" />
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="xs" variant="outline" onClick={() => openExisting(connection)} icon={<Settings2 className="h-3.5 w-3.5" />}>Configure</Button>
                       <Button size="xs" variant="outline" loading={busy} onClick={() => validateConfiguration(connection.id)} icon={<RefreshCcw className="h-3.5 w-3.5" />}>Validate Configuration</Button>
-                      <Button size="xs" loading={busy} disabled={!connection.liveTestAvailable} onClick={() => testLiveConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Test Live Connection</Button>
-                      <Button size="xs" variant="ghost" onClick={() => setConnectivityConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>View live history</Button>
+                      <Button size="xs" loading={busy} disabled={!connection.liveTestAvailable} onClick={() => testLiveConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Test Connection</Button>
+                      <Button size="xs" variant="ghost" onClick={() => setConnectivityConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>View connection history</Button>
                       <Button size="xs" variant="ghost" onClick={() => setAuditConnection(connection)} icon={<FileClock className="h-3.5 w-3.5" />}>View audit</Button>
                       {connection.state === "PAUSED" ? (
                         <Button size="xs" variant="ghost" onClick={() => changeState(connection, "RESUME")} icon={<Play className="h-3.5 w-3.5" />}>Resume</Button>
@@ -587,10 +683,10 @@ export function IntegrationCentreClient({
                     </div>
 
                     <p className="mt-3 text-[0.6875rem] text-muted-foreground">
-                      {!connection.liveTestAvailable ? connection.liveTestUnavailableReason : "A live pass proves connectivity only; activation remains governed and separate."}
+                      {!connection.liveTestAvailable ? connection.liveTestUnavailableReason : "A successful connection test proves connectivity only; data ingestion remains not enabled."}
                     </p>
                     <p className="mt-1 text-[0.6875rem] text-muted-foreground">
-                      Last validation: {formatDateTime(connection.lastValidatedAt)}{latest ? ` · Last live test: ${formatDateTime(latest.completedAt)}` : " · Live connectivity not tested"}
+                      Last validation: {formatDateTime(connection.lastValidatedAt)}{latest ? ` · Last connection test: ${formatDateTime(latest.completedAt)}` : " · Connection not tested"}
                     </p>
                   </article>
                 );
@@ -599,25 +695,25 @@ export function IntegrationCentreClient({
           ) : (
             <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
               <CircleDashed className="mx-auto h-8 w-8 text-muted-foreground" />
-              <h3 className="mt-3 text-sm font-semibold text-foreground">No connector instances configured</h3>
+              <h3 className="mt-3 text-sm font-semibold text-foreground">No customer connections configured</h3>
               <p className="mx-auto mt-1 max-w-lg text-xs leading-relaxed text-muted-foreground">
                 The connector catalogue describes what CerviGrade could support. Configure an organisation instance to assess metadata, mappings, credentials and schedule readiness.
               </p>
-              <Button className="mt-4" onClick={openNew} disabled={!organisationConfigured} icon={<Plus className="h-4 w-4" />}>Configure first connector</Button>
+              <Button className="mt-4" onClick={openNew} disabled={!organisationConfigured} icon={<Plus className="h-4 w-4" />}>Configure first connection</Button>
             </div>
           )}
         </Panel>
 
         <div className="space-y-4">
-          <Panel title="Readiness health" description="Not tested is neutral, not an error.">
+          <Panel title="Integration health" description="Not tested is neutral, not an error.">
             <div className="space-y-1">
-              <ReadinessRow label="Configuration failures" value={String(data.health.configurationFailures)} tone={data.health.configurationFailures ? "danger" : "success"} />
-              <ReadinessRow label="Mapping incomplete" value={String(data.health.mappingIncomplete)} tone={data.health.mappingIncomplete ? "warn" : "success"} />
-              <ReadinessRow label="Missing credential refs" value={String(data.health.missingCredentialReferences)} tone={data.health.missingCredentialReferences ? "warn" : "success"} />
-              <ReadinessRow label="Invalid schedules" value={String(data.health.invalidSchedules)} tone={data.health.invalidSchedules ? "warn" : "success"} />
-              <ReadinessRow label="Live connectivity not tested" value={String(data.health.liveConnectivityNotTested)} />
-              <ReadinessRow label="Live connectivity failures" value={String(data.health.liveConnectivityFailures)} tone={data.health.liveConnectivityFailures ? "danger" : "success"} />
-              <ReadinessRow label="Stale live evidence" value={String(data.health.staleConnectivityEvidence)} tone={data.health.staleConnectivityEvidence ? "warn" : "success"} />
+              <ReadinessRow label="Configuration failures" value={String(integrationHealth.configurationFailures)} tone={integrationHealth.configurationFailures ? "danger" : "success"} />
+              <ReadinessRow label="Mapping incomplete" value={String(integrationHealth.mappingIncomplete)} tone={integrationHealth.mappingIncomplete ? "warn" : "success"} />
+              <ReadinessRow label="Missing credential refs" value={String(integrationHealth.missingCredentialReferences)} tone={integrationHealth.missingCredentialReferences ? "warn" : "success"} />
+              <ReadinessRow label="Invalid schedules" value={String(integrationHealth.invalidSchedules)} tone={integrationHealth.invalidSchedules ? "warn" : "success"} />
+              <ReadinessRow label="Connection not tested" value={String(integrationHealth.connectionNotTested)} />
+              <ReadinessRow label="Connection test failures" value={String(integrationHealth.connectionTestFailures)} tone={integrationHealth.connectionTestFailures ? "danger" : "success"} />
+              <ReadinessRow label="Stale connection evidence" value={String(integrationHealth.staleConnectionEvidence)} tone={integrationHealth.staleConnectionEvidence ? "warn" : "success"} />
             </div>
           </Panel>
 
@@ -636,6 +732,40 @@ export function IntegrationCentreClient({
           </Panel>
         </div>
       </div>
+
+      {validationConnections.length ? (
+        <details className="group rounded-xl border border-border bg-card">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span>Test &amp; validation connections</span>
+            <StatusBadge size="sm" tone="neutral">{validationConnections.length}</StatusBadge>
+          </summary>
+          <div className="space-y-3 border-t border-border px-4 py-4">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Administrative validation connections are kept separate from normal configured connections. Their connection history and audit evidence remain available here.
+            </p>
+            {validationConnections.map((connection) => {
+              const latest = connection.latestConnectivityCheck;
+              return (
+                <div key={connection.id} className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{customerConnectionName(connection)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {connection.connectorTitle} · {environmentLabel(connection.environment)} · {stateLabel(connection.state)}
+                      {latest ? ` · Last connection test ${latest.ageLabel}` : " · Connection not tested"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="xs" variant="outline" onClick={() => openExisting(connection)} icon={<Settings2 className="h-3.5 w-3.5" />}>Configure</Button>
+                    <Button size="xs" loading={busy} disabled={!connection.liveTestAvailable} onClick={() => testLiveConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Test Connection</Button>
+                    <Button size="xs" variant="ghost" onClick={() => setConnectivityConnection(connection)} icon={<Activity className="h-3.5 w-3.5" />}>Connection history</Button>
+                    <Button size="xs" variant="ghost" onClick={() => setAuditConnection(connection)} icon={<FileClock className="h-3.5 w-3.5" />}>Audit evidence</Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      ) : null}
 
       {mounted && createPortal(
         <DetailDrawer
@@ -696,7 +826,7 @@ export function IntegrationCentreClient({
           open={Boolean(auditConnection)}
           onClose={() => setAuditConnection(null)}
           title="Configuration audit"
-          subtitle={auditConnection?.name}
+          subtitle={auditConnection ? customerConnectionName(auditConnection) : undefined}
           width="lg"
         >
           {auditConnection ? (
@@ -716,7 +846,7 @@ export function IntegrationCentreClient({
                     title: friendlyAuditAction(entry.action),
                     timestamp: formatDateTime(entry.at),
                     actor: entry.actor,
-                    description: entry.details ? Object.entries(entry.details).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`).join(" · ") : "Safe metadata only",
+                    description: entry.details ? Object.entries(entry.details).map(([key, value]) => `${key}: ${auditDetailValue(key, value)}`).join(" · ") : "Safe metadata only",
                     tone: entry.action.includes("VALIDATED") ? "brand" : "neutral",
                   }))} />
                 ) : (
@@ -733,8 +863,8 @@ export function IntegrationCentreClient({
         <DetailDrawer
           open={Boolean(connectivityConnection)}
           onClose={() => setConnectivityConnection(null)}
-          title="Live connectivity history"
-          subtitle={connectivityConnection?.name}
+          title="Connection test history"
+          subtitle={connectivityConnection ? customerConnectionName(connectivityConnection) : undefined}
           width="lg"
         >
           {connectivityConnection ? (
@@ -743,12 +873,12 @@ export function IntegrationCentreClient({
                 fields={[
                   { label: "Connector", value: connectivityConnection.connectorTitle },
                   { label: "Configuration", value: connectivityConnection.lastValidationStatus === "PASSED" ? "Valid" : "Revalidation required" },
-                  { label: "Activation", value: "Not active" },
+                  { label: "Data ingestion", value: "Not enabled" },
                   { label: "Clinical data requested", value: "No" },
                 ]}
               />
               <PanelInset className="text-xs leading-relaxed text-muted-foreground">
-                Each row is append-only evidence from an explicit bounded test. A pass proves endpoint, network/TLS, authentication and configured capability semantics only; it does not authorise ingestion or activation.
+                Each row is append-only evidence from an explicit bounded test. A pass proves endpoint, network/TLS, authentication and configured capability semantics only; it does not authorise or enable data ingestion.
               </PanelInset>
               {connectivityConnection.latestConnectivityCheck ? (
                 <DrawerSection
@@ -772,7 +902,7 @@ export function IntegrationCentreClient({
                 </DrawerSection>
               ) : (
                 <DrawerSection title="Latest result">
-                  <p className="text-sm text-muted-foreground">Live connectivity has not been tested.</p>
+                  <p className="text-sm text-muted-foreground">The connection has not been tested.</p>
                 </DrawerSection>
               )}
               <DrawerSection title="Historical checks">
@@ -834,7 +964,7 @@ function ConnectionStep({
           <select className={fieldClass} value={form.environment} onChange={(event) => setForm((current) => ({ ...current, environment: event.target.value as DraftForm["environment"] }))}>
             <option value="DEMO">Demo</option>
             <option value="TEST">Test</option>
-            <option value="PRODUCTION_LIKE">Production-like</option>
+            <option value="PRODUCTION_LIKE">Pilot</option>
           </select>
         </Field>
         <Field label="Timezone" required>
@@ -853,7 +983,7 @@ function ConnectionStep({
         </PanelInset>
       ) : (
         <PanelInset className="text-xs text-muted-foreground">
-          Validate Configuration checks metadata only. Test Live Connection is a separate explicit server-side action after validation passes.
+          Validate Configuration checks metadata only. Test Connection is a separate explicit server-side action after validation passes.
         </PanelInset>
       )}
     </DrawerSection>
@@ -903,7 +1033,7 @@ function ConnectorSpecificFields({ form, setEndpoint }: { form: DraftForm; setEn
   return (
     <div className="mt-5 grid gap-4 sm:grid-cols-2">
       <Field label="Contract endpoint" required className="sm:col-span-2"><input className={fieldClass} type="url" value={value("baseUrl")} onChange={(event) => setEndpoint("baseUrl", event.target.value)} placeholder="Enter only an authorised contract endpoint" /></Field>
-      <Field label="Authorised connectivity path" hint="Required for live testing. Use only the contract-provided safe connectivity or capability operation." className="sm:col-span-2"><input className={fieldClass} value={value("connectivityPath")} onChange={(event) => setEndpoint("connectivityPath", event.target.value)} placeholder="Contract-provided operation" /></Field>
+      <Field label="Authorised connectivity path" hint="Required for connection testing. Use only the contract-provided safe connectivity or capability operation." className="sm:col-span-2"><input className={fieldClass} value={value("connectivityPath")} onChange={(event) => setEndpoint("connectivityPath", event.target.value)} placeholder="Contract-provided operation" /></Field>
       <Field label="Facility / organisation ID" required><input className={fieldClass} value={value("facilityOrganisationId")} onChange={(event) => setEndpoint("facilityOrganisationId", event.target.value)} /></Field>
       <Field label="Screening history depth" required><input className={fieldClass} value={value("screeningHistoryDepth")} onChange={(event) => setEndpoint("screeningHistoryDepth", event.target.value)} /></Field>
       <Field label="Permitted operations" required><input className={fieldClass} value={(form.endpoint.permittedOperations as string[] | undefined)?.join(", ") ?? ""} onChange={(event) => setEndpoint("permittedOperations", event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} placeholder="Contract-defined selections" /></Field>
@@ -1060,17 +1190,17 @@ function ReadinessStep({ form, definition, mappingComplete, report, busy, onVali
         <ReadinessRow label="Mapping" value={`${mappingComplete}/${definition.mappingRequirements.length}`} tone={mappingComplete === definition.mappingRequirements.length ? "success" : "warn"} />
         <ReadinessRow label="Credential ref" value={credentialReady ? (credentialRequired ? "Configured" : "Not required") : "Missing"} tone={credentialReady ? "success" : "warn"} />
         <ReadinessRow label="Schedule" value={scheduleReady ? "Valid metadata" : "Needs configuration"} tone={scheduleReady ? "success" : "warn"} />
-        <ReadinessRow label="Live connectivity" value={definition.gatewayRequired ? "Unavailable — gateway required" : "Separate live test required"} />
-        <ReadinessRow label="Activation" value="Not active" />
+        <ReadinessRow label="Connection test" value={definition.gatewayRequired ? "Unavailable — gateway required" : "Separate test required"} />
+        <ReadinessRow label="Data ingestion" value="Not enabled" />
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button onClick={onValidate} loading={busy} icon={<RefreshCcw className="h-4 w-4" />}>Validate Configuration</Button>
-        <p className="text-xs text-muted-foreground">Re-run after schedule or mapping changes. Then close this wizard and use the separate Test Live Connection action.</p>
+        <p className="text-xs text-muted-foreground">Re-run after schedule or mapping changes. Then close this wizard and use the separate Test Connection action.</p>
       </div>
       <ValidationReport report={report} />
       <PanelInset className="mt-4 flex items-start gap-3">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-        <p className="text-xs leading-relaxed text-muted-foreground">Configuration validation does not contact the remote system. A later live-test pass still does not mean data was imported, governance was approved, or activation occurred.</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">Configuration validation does not contact the remote system. A later connection-test pass still does not mean data was imported, governance was approved, or data ingestion was enabled.</p>
       </PanelInset>
     </DrawerSection>
   );
