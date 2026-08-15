@@ -19,8 +19,7 @@ test("dashboard metrics summarise completed decision split", () => {
   assert.deepEqual(split, {
     accepted: 7,
     rejected: 2,
-    needsInfo: 3,
-    total: 12,
+    total: 9,
   });
 });
 

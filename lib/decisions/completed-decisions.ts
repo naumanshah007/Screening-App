@@ -40,7 +40,6 @@ export const COMPLETED_DECISION_OWN_ROLES: UserRole[] = [
 const COMPLETED_DISPOSITIONS: BatchReviewDisposition[] = [
   "ACCEPTED",
   "REJECTED",
-  "NEEDS_INFO",
 ];
 
 const SOURCES: BatchRunSource[] = [

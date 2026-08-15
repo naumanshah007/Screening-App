@@ -21,6 +21,7 @@ import type {
   BatchCaseResult,
   CanonicalBatchCase,
   SourceType,
+  IntakeParseManifest,
 } from "@/lib/batch/types";
 import { getRuntimeClinicalEnvironment, resolveClinicalAuthority } from "@/lib/clinical-rules/authority";
 import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
@@ -124,6 +125,17 @@ export type BatchRunDetailRecord = Prisma.BatchRunGetPayload<{
 
 export type BatchReviewItemRecord = BatchRunDetailRecord["items"][number];
 
+export class DuplicateIngestionReceiptError extends Error {
+  constructor(
+    public readonly existingRunId: string | null,
+    public readonly receivedAt: Date,
+    public readonly caseCount: number
+  ) {
+    super("This file has already been received and was not processed again.");
+    this.name = "DuplicateIngestionReceiptError";
+  }
+}
+
 // ─── Save a run ────────────────────────────────────────────────────────────────
 
 /**
@@ -140,6 +152,9 @@ export async function saveBatchRun(args: {
   result: BatchProcessingResult;
   actorUserId: string;
   sourceSystem?: string;
+  deliveryKey?: string | null;
+  intakeSourceType?: SourceType;
+  parseManifest: IntakeParseManifest;
   /**
    * Arrivals that were pulled in this intake but deliberately NOT sent for
    * review — automatically deselected duplicates, or rows the operator
@@ -152,7 +167,7 @@ export async function saveBatchRun(args: {
    */
   withheldCases?: CanonicalBatchCase[];
 }): Promise<BatchRunDetailRecord> {
-  const { result, actorUserId } = args;
+  const { result, actorUserId, parseManifest } = args;
 
   const reviewRequiredCount = result.results.filter(isReviewRequired).length;
   const runtimeEnvironment = getRuntimeClinicalEnvironment();
@@ -209,16 +224,27 @@ export async function saveBatchRun(args: {
   // are append-only. Refusing to persist is the recoverable outcome.
   const organisationId = await requireCurrentOrganisationId();
 
-  const run = await prisma.batchRun.create({
+  const deliveryKey = args.deliveryKey?.trim() || null;
+  const intakeSourceType = args.intakeSourceType ?? result.sourceType;
+  const channel = deliveryKey ? "upload" : null;
+
+  const createRun = (tx: Prisma.TransactionClient) => tx.batchRun.create({
     data: {
       organisationId,
-      source: mapSourceType(result.sourceType),
+      source: mapSourceType(intakeSourceType),
       sourceSystem: args.sourceSystem ?? null,
       sourceFileName: result.sourceFileName ?? null,
       engineVersion: result.engineVersion,
       pinnedRuleVersionId: runRuleVersion?.id ?? null,
       pinnedRuleVersionDisplay: runRuleVersion?.displayVersion ?? null,
       pinnedRulesetChecksum: runRuleVersion?.checksum ?? null,
+      deliveryKey,
+      intakeStatus: "PROCESSING",
+      sourceRecordCount: parseManifest.sourceRecordCount,
+      parsedRecordCount: parseManifest.parsedRecordCount,
+      skippedRecordCount: parseManifest.skippedRecordCount,
+      intakeManifestJson: JSON.stringify(parseManifest),
+      outcomeManifestJson: JSON.stringify({ schemaVersion: 1, status: "PROCESSING" }),
       totalCases: result.results.length,
       pendingCount: result.results.length,
       reviewRequiredCount,
@@ -227,6 +253,60 @@ export async function saveBatchRun(args: {
     },
     include: batchRunDetailInclude,
   });
+
+  let run: BatchRunDetailRecord;
+  if (channel && deliveryKey) {
+    try {
+      run = await prisma.$transaction(async (tx) => {
+        const existing = await tx.ingestionReceipt.findUnique({
+          where: {
+            organisationId_channel_deliveryKey: { organisationId, channel, deliveryKey },
+          },
+        });
+        if (existing) {
+          throw new DuplicateIngestionReceiptError(
+            existing.batchRunId,
+            existing.receivedAt,
+            existing.caseCount
+          );
+        }
+
+        const created = await createRun(tx);
+        await tx.ingestionReceipt.create({
+          data: {
+            organisationId,
+            channel,
+            deliveryKey,
+            batchRunId: created.id,
+            caseCount: parseManifest.sourceRecordCount,
+          },
+        });
+        return created;
+      });
+    } catch (error) {
+      if (error instanceof DuplicateIngestionReceiptError) throw error;
+      // The unique constraint is the race-safe guard when two identical files
+      // arrive between the read and create above. Reload the winner and return
+      // the same explicit duplicate response.
+      if ((error as { code?: string })?.code === "P2002") {
+        const existing = await prisma.ingestionReceipt.findUnique({
+          where: {
+            organisationId_channel_deliveryKey: { organisationId, channel, deliveryKey },
+          },
+        });
+        if (existing) {
+          throw new DuplicateIngestionReceiptError(
+            existing.batchRunId,
+            existing.receivedAt,
+            existing.caseCount
+          );
+        }
+      }
+      throw error;
+    }
+  } else {
+    run = await prisma.$transaction((tx) => createRun(tx));
+  }
 
   /*
     Register every arrival against its clinical episode.
@@ -252,6 +332,18 @@ export async function saveBatchRun(args: {
     block slow enough to time out in the first place.
   */
   const episodeIdByRow = new Map<number, string>();
+  const classificationCounts = {
+    NEW: 0,
+    ALREADY_IN_REVIEW: 0,
+    COMPLETED: 0,
+    UPDATED: 0,
+    POSSIBLE_DUPLICATE: 0,
+  };
+  let episodeRegistrationFailed = 0;
+  let governedEvaluationCompleted = 0;
+  let governedEvaluationFailed = 0;
+  const failedCaseIds = new Set<string>();
+  let classificationFailed = false;
 
   // Everything that arrived: what is being reviewed, and what was withheld.
   // Withheld cases are re-routed and re-classified server-side rather than
@@ -263,16 +355,18 @@ export async function saveBatchRun(args: {
       ? processBatch(withheldCases, { includeWarnings: true, includeInvalid: true })
       : null;
 
-  const arrivals: { item: BatchCaseResult; withheld: boolean }[] = [];
   try {
     const classified = await classifyIncomingCases({ organisationId, items: result.results });
     for (const entry of classified) {
-      arrivals.push({ item: result.results[entry.index], withheld: false });
+      classificationCounts[entry.classification] += 1;
     }
 
     const withheldClassified = withheldRouted
       ? await classifyIncomingCases({ organisationId, items: withheldRouted.results })
       : [];
+    for (const entry of withheldClassified) {
+      classificationCounts[entry.classification] += 1;
+    }
 
     for (const [index, entry] of [...classified, ...withheldClassified].entries()) {
       const withheld = index >= classified.length;
@@ -333,6 +427,8 @@ export async function saveBatchRun(args: {
         }
       } catch (arrivalError) {
         // One arrival, not the batch.
+        episodeRegistrationFailed += 1;
+        failedCaseIds.add(item.case.caseId);
         console.error("Episode registration failed for arrival", item.case.caseId, arrivalError);
       }
     }
@@ -340,6 +436,11 @@ export async function saveBatchRun(args: {
     // Recorded rather than raised. A case that reaches the queue without an
     // episode link is a provenance gap; a case that never reaches the queue
     // because episode bookkeeping failed is a clinical one.
+    episodeRegistrationFailed += result.results.length + withheldCases.length;
+    classificationFailed = true;
+    for (const item of [...result.results, ...(withheldRouted?.results ?? [])]) {
+      failedCaseIds.add(item.case.caseId);
+    }
     console.error("Episode registration failed for batch run", run.id, error);
   }
 
@@ -448,6 +549,7 @@ export async function saveBatchRun(args: {
             reviewRequired: isReviewRequired(operativeResult),
           },
         });
+        governedEvaluationCompleted += 1;
 
         // Meter the governed evaluation that just happened.
         //
@@ -494,6 +596,11 @@ export async function saveBatchRun(args: {
           }
         }
       } catch (error) {
+        governedEvaluationFailed += 1;
+        const failedSource = result.results.find(
+          (candidate) => candidate.case.source.rowNumber === reviewItem.rowNumber
+        );
+        if (failedSource) failedCaseIds.add(failedSource.case.caseId);
         // FAIL CLOSED.
         //
         // This block previously only wrote an audit row, which left the legacy
@@ -543,10 +650,58 @@ export async function saveBatchRun(args: {
     include: batchRunDetailInclude,
   });
   if (!persisted) throw new Error("Persisted batch run could not be reloaded.");
+  const technicalFailureCount = failedCaseIds.size;
+  const rejectedAtValidation = withheldCases.filter(
+    (item) => item.validationStatus === "invalid"
+  ).length;
+  const hasAccountedIssues =
+    parseManifest.skippedRecordCount > 0 ||
+    parseManifest.errors.length > 0 ||
+    rejectedAtValidation > 0;
+  const intakeStatus = technicalFailureCount > 0
+    ? "PARTIAL"
+    : hasAccountedIssues
+      ? "COMPLETED_WITH_ISSUES"
+      : "COMPLETED";
+  const classifiedCount = Object.values(classificationCounts).reduce((sum, count) => sum + count, 0);
+  const outcomeManifest = {
+    schemaVersion: 1,
+    status: intakeStatus,
+    counts: {
+      received: parseManifest.sourceRecordCount,
+      parsed: parseManifest.parsedRecordCount,
+      skippedDuringParse: parseManifest.skippedRecordCount,
+      prepared: parseManifest.preparedRecordCount,
+      processed: result.results.length,
+      withheld: withheldCases.length,
+      alreadyInReview: classificationCounts.ALREADY_IN_REVIEW,
+      completedPreviously: classificationCounts.COMPLETED,
+      updated: classificationCounts.UPDATED,
+      possibleDuplicate: classificationCounts.POSSIBLE_DUPLICATE,
+      new: classificationCounts.NEW,
+      rejectedAtValidation,
+      governedEvaluationsCompleted: governedEvaluationCompleted,
+      governedEvaluationsFailed: governedEvaluationFailed,
+      episodeRegistrationFailed,
+      failed: technicalFailureCount,
+    },
+    reconciliation: {
+      sourceAccounted:
+        parseManifest.sourceRecordCount ===
+        parseManifest.parsedRecordCount + parseManifest.skippedRecordCount,
+      preparedAccounted:
+        parseManifest.preparedRecordCount === result.results.length + withheldCases.length,
+      classificationsAccounted:
+        !classificationFailed && classifiedCount === parseManifest.preparedRecordCount,
+    },
+  };
   await prisma.batchRun.update({
     where: { id: run.id },
     data: {
       reviewRequiredCount: persisted.items.filter((item) => item.reviewRequired).length,
+      intakeStatus,
+      outcomeManifestJson: JSON.stringify(outcomeManifest),
+      completedAt: new Date(),
     },
   });
   return (await prisma.batchRun.findUnique({
@@ -663,6 +818,38 @@ export async function getReviewQueue(limit = 300): Promise<ReviewQueueItemRecord
   });
 }
 
+export async function getReviewQueueSnapshot(limit = 300): Promise<{
+  items: ReviewQueueItemRecord[];
+  total: number;
+  mandatoryReview: number;
+  urgentClinical: number;
+}> {
+  const [items, total, mandatoryReview, urgentClinical] = await Promise.all([
+    getReviewQueue(limit),
+    prisma.batchReviewItem.count({ where: { disposition: "PENDING" } }),
+    prisma.batchReviewItem.count({ where: { disposition: "PENDING", reviewRequired: true } }),
+    prisma.batchReviewItem.count({
+      where: {
+        disposition: "PENDING",
+        OR: [
+          { riskLevel: "URGENT" },
+          { referralPriority: { in: ["P1", "P1_HSC"] } },
+        ],
+      },
+    }),
+  ]);
+  return { items, total, mandatoryReview, urgentClinical };
+}
+
+export async function getNeedsInformationQueue(limit = 300): Promise<ReviewQueueItemRecord[]> {
+  return prisma.batchReviewItem.findMany({
+    where: { disposition: "NEEDS_INFO" },
+    include: reviewQueueInclude,
+    orderBy: [{ informationRequestedAt: "asc" }, { updatedAt: "asc" }],
+    take: limit,
+  });
+}
+
 /** Lightweight counts for the sidebar badge. */
 export async function getReviewQueueCounts(): Promise<{ pending: number; urgent: number }> {
   const [pending, urgent] = await Promise.all([
@@ -675,6 +862,12 @@ export async function getReviewQueueCounts(): Promise<{ pending: number; urgent:
 // ─── Review (bulk disposition) ────────────────────────────────────────────────
 
 export class BatchReviewError extends Error {}
+export class BatchReviewConflictError extends Error {
+  constructor(message = "One or more cases changed while you were reviewing them. Refresh and review the current decision state.") {
+    super(message);
+    this.name = "BatchReviewConflictError";
+  }
+}
 
 async function recomputeRunCounts(
   tx: Prisma.TransactionClient,
@@ -728,28 +921,63 @@ export async function applyDisposition(args: {
   if (disposition === "REJECTED" && !overrideReason && !note) {
     throw new BatchReviewError("A reason is required when rejecting cases.");
   }
+  if (disposition === "NEEDS_INFO" && !note) {
+    throw new BatchReviewError("What information is needed must be recorded.");
+  }
 
   const items = await prisma.batchReviewItem.findMany({
     where: { id: { in: args.itemIds } },
-    select: { id: true, batchRunId: true },
+    select: {
+      id: true,
+      batchRunId: true,
+      disposition: true,
+      reviewedByUserId: true,
+      reviewedAt: true,
+      recommendationCode: true,
+      recommendation: true,
+      ruleEvaluationId: true,
+      authorityEngine: true,
+    },
   });
-  if (items.length === 0) {
-    throw new BatchReviewError("No matching cases found.");
+  const requestedIds = Array.from(new Set(args.itemIds));
+  if (items.length !== requestedIds.length) {
+    throw new BatchReviewConflictError("One or more selected cases no longer exist. Refresh before continuing.");
+  }
+  if (items.some((item) => item.disposition !== "PENDING")) {
+    throw new BatchReviewConflictError();
   }
   const validIds = items.map((i) => i.id);
   const runIds = Array.from(new Set(items.map((i) => i.batchRunId)));
+  const owner = disposition === "NEEDS_INFO"
+    ? await prisma.user.findUnique({
+        where: { id: reviewedByUserId },
+        select: { name: true, email: true },
+      })
+    : null;
 
   await prisma.$transaction(async (tx) => {
-    await tx.batchReviewItem.updateMany({
-      where: { id: { in: validIds } },
+    const updated = await tx.batchReviewItem.updateMany({
+      where: { id: { in: validIds }, disposition: "PENDING" },
       data: {
         disposition,
         reviewedByUserId,
         reviewedAt: new Date(),
         reviewNote: note,
         overrideReason,
+        ...(disposition === "NEEDS_INFO"
+          ? {
+              informationOwnerUserId: reviewedByUserId,
+              informationOwnerName: owner?.name ?? owner?.email ?? "Assigned reviewer",
+              informationRequestedAt: new Date(),
+              informationReceivedAt: null,
+              informationResolutionNote: null,
+            }
+          : {}),
       },
     });
+    if (updated.count !== validIds.length) {
+      throw new BatchReviewConflictError();
+    }
 
     for (const runId of runIds) {
       await recomputeRunCounts(tx, runId);
@@ -761,6 +989,18 @@ export async function applyDisposition(args: {
         action: "REVIEW",
         entity: "BatchReviewItem",
         entityId: runIds[0],
+        oldValue: JSON.stringify({
+          items: items.map((item) => ({
+            id: item.id,
+            disposition: item.disposition,
+            reviewedByUserId: item.reviewedByUserId,
+            reviewedAt: item.reviewedAt,
+            recommendationCode: item.recommendationCode,
+            recommendation: item.recommendation,
+            ruleEvaluationId: item.ruleEvaluationId,
+            authorityEngine: item.authorityEngine,
+          })),
+        }),
         newValue: JSON.stringify({
           runIds,
           disposition,
@@ -774,6 +1014,67 @@ export async function applyDisposition(args: {
   });
 
   return { updated: validIds.length, affectedRuns: runIds.length };
+}
+
+/**
+ * Record that requested information arrived and return the work item to the
+ * pending review queue. This changes workflow state only; clinical facts and
+ * governed evaluations remain immutable until an explicit correction/regrade.
+ */
+export async function returnNeedsInformationToQueue(args: {
+  itemId: string;
+  actorUserId: string;
+  resolutionNote: string;
+}): Promise<void> {
+  const resolutionNote = args.resolutionNote.trim();
+  if (!resolutionNote) {
+    throw new BatchReviewError("Record what information was received.");
+  }
+
+  const item = await prisma.batchReviewItem.findUnique({
+    where: { id: args.itemId },
+    select: {
+      id: true,
+      batchRunId: true,
+      disposition: true,
+      informationOwnerUserId: true,
+      informationOwnerName: true,
+      informationRequestedAt: true,
+      reviewNote: true,
+    },
+  });
+  if (!item) throw new BatchReviewConflictError("The work item no longer exists.");
+  if (item.disposition !== "NEEDS_INFO") throw new BatchReviewConflictError();
+
+  await prisma.$transaction(async (tx) => {
+    const updated = await tx.batchReviewItem.updateMany({
+      where: { id: item.id, disposition: "NEEDS_INFO" },
+      data: {
+        disposition: "PENDING",
+        informationReceivedAt: new Date(),
+        informationResolutionNote: resolutionNote,
+      },
+    });
+    if (updated.count !== 1) throw new BatchReviewConflictError();
+
+    await recomputeRunCounts(tx, item.batchRunId);
+    await tx.auditLog.create({
+      data: {
+        userId: args.actorUserId,
+        action: "INFORMATION_RECEIVED_RETURNED_TO_REVIEW",
+        entity: "BatchReviewItem",
+        entityId: item.id,
+        oldValue: JSON.stringify({
+          disposition: item.disposition,
+          informationOwnerUserId: item.informationOwnerUserId,
+          informationOwnerName: item.informationOwnerName,
+          informationRequestedAt: item.informationRequestedAt,
+          requestReason: item.reviewNote,
+        }),
+        newValue: JSON.stringify({ disposition: "PENDING", resolutionNote }),
+      },
+    });
+  });
 }
 
 /** Per-run bulk disposition (validates membership), returns the updated run. */

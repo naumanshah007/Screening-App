@@ -70,6 +70,8 @@ interface BatchValidationPreviewProps {
   } | null;
   onProcess: (selectedCaseIds: string[]) => void;
   processing?: boolean;
+  /** When set, duplicate classification has not completed and preparation is blocked. */
+  classificationUnavailableReason?: string | null;
   /** Called when user clicks "Add Test Case Manually" */
   onAddManual?: () => void;
   /** Called when user clicks Edit on a row */
@@ -122,6 +124,7 @@ export function BatchValidationPreview({
   episodes,
   onProcess,
   processing = false,
+  classificationUnavailableReason,
   onAddManual,
   onEditCase,
   onDuplicateCase,
@@ -325,6 +328,7 @@ export function BatchValidationPreview({
         blockedCount={invalidCount}
         episodeSummary={episodes?.summary ?? null}
         processing={processing}
+        classificationUnavailableReason={classificationUnavailableReason}
         onProcess={() => onProcess(selectedCaseIds)}
         onAddManual={onAddManual}
         onSelectAll={

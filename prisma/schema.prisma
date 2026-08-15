@@ -1393,6 +1393,16 @@ model BatchRun {
   pinnedRuleVersion        ClinicalRuleVersion? @relation("PinnedClinicalRuleVersion", fields: [pinnedRuleVersionId], references: [id], onDelete: Restrict)
   pinnedRuleVersionDisplay String?
   pinnedRulesetChecksum    String?
+  /// Transport-level receipt and reconciliation. These fields describe what
+  /// happened to the delivery; they never participate in clinical identity.
+  deliveryKey              String?
+  intakeStatus             String               @default("COMPLETED")
+  sourceRecordCount        Int                  @default(0)
+  parsedRecordCount        Int                  @default(0)
+  skippedRecordCount       Int                  @default(0)
+  intakeManifestJson       String               @default("{}")
+  outcomeManifestJson      String               @default("{}")
+  completedAt              DateTime?
   totalCases               Int
   pendingCount             Int                  @default(0)
   acceptedCount            Int                  @default(0)
@@ -1437,11 +1447,11 @@ model BatchReviewItem {
   //
   /// Accession / specimen identifier. NOT a message control ID — that names one
   /// transmission and changes on resend; this names the specimen and does not.
-  sourceEpisodeKey  String?
+  sourceEpisodeKey String?
   /// Originating laboratory or facility. Not the tenant.
-  sourceFacility    String?
-  testType          String?
-  collectedOn       DateTime?
+  sourceFacility   String?
+  testType         String?
+  collectedOn      DateTime?
 
   /// Digest of everything that arrived. Changes when a name spelling or
   /// demographic detail is corrected — useful provenance, but it must never
@@ -1461,8 +1471,8 @@ model BatchReviewItem {
   /// that newer information exists, and the record of what was known at the
   /// time survives intact. Overwriting it would destroy the audit trail of what
   /// a clinician was actually looking at.
-  supersededByItemId    String?
-  supersededAt          DateTime?
+  supersededByItemId String?
+  supersededAt       DateTime?
 
   // Engine output snapshot (denormalised for fast worklist sorting/filtering)
   figure             String
@@ -1492,12 +1502,19 @@ model BatchReviewItem {
   legacyDecisionJson String?
 
   // Reviewer disposition
-  disposition      BatchReviewDisposition @default(PENDING)
-  reviewedByUserId String?
-  reviewedBy       User?                  @relation("BatchItemReviewer", fields: [reviewedByUserId], references: [id])
-  reviewedAt       DateTime?
-  reviewNote       String?
-  overrideReason   String?
+  disposition               BatchReviewDisposition @default(PENDING)
+  reviewedByUserId          String?
+  reviewedBy                User?                  @relation("BatchItemReviewer", fields: [reviewedByUserId], references: [id])
+  reviewedAt                DateTime?
+  reviewNote                String?
+  overrideReason            String?
+  /// Operational ownership of a request for missing information. Returning
+  /// the item to PENDING records receipt; it does not rewrite clinical facts.
+  informationOwnerUserId    String?
+  informationOwnerName      String?
+  informationRequestedAt    DateTime?
+  informationReceivedAt     DateTime?
+  informationResolutionNote String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1514,7 +1531,7 @@ model BatchReviewItem {
 /// them. The fingerprints are lookup keys; the accession number and facility
 /// are what a match is explained with.
 model ScreeningEpisode {
-  id             String  @id @default(cuid())
+  id             String @id @default(cuid())
   organisationId String
 
   /// Deterministic identity, present only when the source named the specimen.
@@ -1557,9 +1574,9 @@ model EpisodeObservation {
   batchRunId String?
 
   /// NEW | ALREADY_IN_REVIEW | COMPLETED | UPDATED | POSSIBLE_DUPLICATE
-  classification String
+  classification    String
   /// Explained in the source's own terms, not as a fingerprint.
-  explanation    String
+  explanation       String
   /// Null when the arrival was not turned into a reviewable case.
   batchReviewItemId String?
 
@@ -1600,7 +1617,7 @@ model UsageEvent {
   episodeId      String
 
   /// FIRST_TRIAGE | UPDATE_REEVALUATION | REGRADE | DUPLICATE_SUPPRESSED
-  eventType String
+  eventType      String
   /// The episode classification that produced this event, for reconciliation.
   classification String
 
@@ -1637,19 +1654,19 @@ model UsageEvent {
 /// most one terminal INVALIDATE per event; retries converge on the unique
 /// (usageEventId, correctionType) key rather than accumulating duplicates.
 model UsageEventCorrection {
-  id               String                         @id @default(cuid())
-  usageEventId     String
-  usageEvent       UsageEvent                     @relation(fields: [usageEventId], references: [id], onDelete: Restrict)
-  correctionType   UsageEventCorrectionType
-  reasonCode       UsageEventCorrectionReasonCode
-  reasonDetail     String?
-  createdAt        DateTime                       @default(now())
-  actorUserId      String?
-  systemActor      String?
-  organisationId   String
+  id             String                         @id @default(cuid())
+  usageEventId   String
+  usageEvent     UsageEvent                     @relation(fields: [usageEventId], references: [id], onDelete: Restrict)
+  correctionType UsageEventCorrectionType
+  reasonCode     UsageEventCorrectionReasonCode
+  reasonDetail   String?
+  createdAt      DateTime                       @default(now())
+  actorUserId    String?
+  systemActor    String?
+  organisationId String
   /// JSON produced only by the allow-listed correction service. Never accepts
   /// arbitrary request payloads or secret-bearing connection objects.
-  metadataJson     String?
+  metadataJson   String?
 
   @@unique([usageEventId, correctionType])
   @@index([organisationId, createdAt])

@@ -1,14 +1,19 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ShieldAlert, ClipboardCheck, Inbox, Siren } from "lucide-react";
+import { ShieldAlert, ClipboardCheck, Inbox, Siren, HelpCircle } from "lucide-react";
 
 import { PageShell, PageHeader, Panel, MetricTile, MetricGrid } from "@/components/system";
 import { EmptyState } from "@/components/ui/empty-state";
 import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
-import { getReviewQueue, reconstructBatchCaseResult } from "@/lib/batch/persistence";
+import {
+  getNeedsInformationQueue,
+  getReviewQueueSnapshot,
+  reconstructBatchCaseResult,
+} from "@/lib/batch/persistence";
 import { WorklistClient, type WorklistItem } from "@/components/batch/WorklistClient";
+import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +31,6 @@ const SOURCE_LABELS: Record<string, string> = {
   HEALTH_NZ: "NCSR",
 };
 
-function isUrgentClinicalPriority(item: { riskLevel: string; referralPriority: string | null }) {
-  return item.riskLevel === "URGENT" || item.referralPriority === "P1" || item.referralPriority === "P1_HSC";
-}
-
 export default async function ReviewQueuePage() {
   if (!isFeatureEnabled("batchDemo")) {
     notFound();
@@ -38,10 +39,16 @@ export default async function ReviewQueuePage() {
   const session = await auth();
   const user = session?.user as { role?: string } | undefined;
   const canReview = hasPermission(user?.role, "cases:grade");
+  const canManageInformation =
+    hasPermission(user?.role, "cases:edit") || hasPermission(user?.role, "cases:grade");
 
-  const queue = await getReviewQueue(REVIEW_QUEUE_LIMIT);
-  const mandatoryReviewCount = queue.filter((i) => i.reviewRequired).length;
-  const urgentClinicalCount = queue.filter(isUrgentClinicalPriority).length;
+  const [snapshot, awaitingInformation] = await Promise.all([
+    getReviewQueueSnapshot(REVIEW_QUEUE_LIMIT),
+    getNeedsInformationQueue(REVIEW_QUEUE_LIMIT),
+  ]);
+  const queue = [...snapshot.items, ...awaitingInformation];
+  const mandatoryReviewCount = snapshot.mandatoryReview;
+  const urgentClinicalCount = snapshot.urgentClinical;
 
   const items: WorklistItem[] = queue.map((item) => ({
     id: item.id,
@@ -70,6 +77,14 @@ export default async function ReviewQueuePage() {
     reviewNote: item.reviewNote,
     supersededAt: item.supersededAt?.toISOString() ?? null,
     overrideReason: item.overrideReason,
+    informationOwnerName: item.informationOwnerName,
+    informationRequestedAt: item.informationRequestedAt
+      ? formatDateTime(item.informationRequestedAt)
+      : null,
+    informationReceivedAt: item.informationReceivedAt
+      ? formatDateTime(item.informationReceivedAt)
+      : null,
+    informationResolutionNote: item.informationResolutionNote,
     result: reconstructBatchCaseResult(item),
     sourceSystem: item.batchRun.sourceSystem ?? SOURCE_LABELS[item.batchRun.source] ?? item.batchRun.source,
     runId: item.batchRunId,
@@ -97,7 +112,7 @@ export default async function ReviewQueuePage() {
         <MetricGrid columns={4}>
           <MetricTile
             label="Awaiting review"
-            value={items.length}
+            value={snapshot.total}
             caption="Pending clinician confirmation"
             icon={<Inbox className="h-4.5 w-4.5" />}
             tone="brand"
@@ -117,11 +132,11 @@ export default async function ReviewQueuePage() {
             tone="danger"
           />
           <MetricTile
-            label="Your role"
-            value={canReview ? "Accept / reject" : "View only"}
-            caption={canReview ? "You can confirm decisions" : "You cannot action cases"}
-            icon={<ClipboardCheck className="h-4.5 w-4.5" />}
-            tone="neutral"
+            label="Awaiting information"
+            value={awaitingInformation.length}
+            caption="Owned follow-up work · not completed"
+            icon={<HelpCircle className="h-4.5 w-4.5" />}
+            tone={awaitingInformation.length > 0 ? "warn" : "neutral"}
           />
         </MetricGrid>
       )}
@@ -137,15 +152,21 @@ export default async function ReviewQueuePage() {
         </Panel>
       ) : (
         <>
-          {items.length >= REVIEW_QUEUE_LIMIT && (
+          {snapshot.total > snapshot.items.length && (
             <div
               role="status"
               className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200"
             >
-              Showing the first {REVIEW_QUEUE_LIMIT.toLocaleString()} pending review items. Use intake-session views for targeted review until full pagination is added.
+              Showing the first {snapshot.items.length.toLocaleString()} of {snapshot.total.toLocaleString()} pending review items. Use intake-session views for targeted review until full pagination is added.
             </div>
           )}
-          <WorklistClient initialItems={items} canReview={canReview} showSource removeCompletedOnAction />
+          <WorklistClient
+            initialItems={items}
+            canReview={canReview}
+            canManageInformation={canManageInformation}
+            showSource
+            removeCompletedOnAction
+          />
         </>
       )}
 

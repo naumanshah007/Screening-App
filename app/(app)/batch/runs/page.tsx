@@ -57,9 +57,10 @@ export default async function BatchRunsPage() {
       ) : (
         <div className="space-y-3">
           {runs.map((run) => {
-            const reviewed = run.acceptedCount + run.rejectedCount + run.needsInfoCount;
+            const reviewed = run.acceptedCount + run.rejectedCount;
             const progress = run.totalCases > 0 ? Math.round((reviewed / run.totalCases) * 100) : 0;
-            const complete = run.pendingCount === 0;
+            const unresolved = run.pendingCount + run.needsInfoCount;
+            const complete = unresolved === 0;
             return (
               <Link
                 key={run.id}
@@ -81,7 +82,13 @@ export default async function BatchRunsPage() {
                           </span>
                         )}
                         <StatusBadge tone={complete ? "success" : "info"} size="sm">
-                          {complete ? "Review complete" : `${run.pendingCount} pending`}
+                          {complete ? "Review complete" : `${unresolved} unresolved`}
+                        </StatusBadge>
+                        <StatusBadge
+                          tone={run.intakeStatus === "COMPLETED" ? "success" : run.intakeStatus === "PARTIAL" ? "danger" : "warn"}
+                          size="sm"
+                        >
+                          Intake {run.intakeStatus.toLowerCase().replaceAll("_", " ")}
                         </StatusBadge>
                         {run.reviewRequiredCount > 0 && (
                           <StatusBadge tone="warn" size="sm">

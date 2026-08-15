@@ -10,6 +10,7 @@ import {
   StepTimeline,
   MetricTile,
   MetricGrid,
+  StatusBadge,
   type StepState,
 } from "@/components/system";
 import { auth } from "@/lib/auth";
@@ -51,6 +52,8 @@ export default async function BatchRunDetailPage({
   const session = await auth();
   const user = session?.user as { role?: string } | undefined;
   const canReview = hasPermission(user?.role, "cases:grade");
+  const canManageInformation =
+    hasPermission(user?.role, "cases:edit") || hasPermission(user?.role, "cases:grade");
   const canClinicalRegrade = hasPermission(user?.role, "rules:simulate");
 
   const run = await getBatchRunWithItems(id);
@@ -73,6 +76,18 @@ export default async function BatchRunDetailPage({
     run.items.every(
       (item) => item.authorityEngine === "CANONICAL" && Boolean(item.ruleEvaluationId)
     );
+  const outcome = (() => {
+    try {
+      return JSON.parse(run.outcomeManifestJson) as {
+        schemaVersion?: number;
+        counts?: Record<string, number>;
+        reconciliation?: Record<string, boolean>;
+      };
+    } catch {
+      return null;
+    }
+  })();
+  const outcomeCounts = outcome?.counts;
 
 
   const items: WorklistItem[] = run.items.map((item) => ({
@@ -102,12 +117,24 @@ export default async function BatchRunDetailPage({
     reviewNote: item.reviewNote,
     supersededAt: item.supersededAt?.toISOString() ?? null,
     overrideReason: item.overrideReason,
+    informationOwnerName: item.informationOwnerName,
+    informationRequestedAt: item.informationRequestedAt
+      ? formatDateTime(item.informationRequestedAt)
+      : null,
+    informationReceivedAt: item.informationReceivedAt
+      ? formatDateTime(item.informationReceivedAt)
+      : null,
+    informationResolutionNote: item.informationResolutionNote,
     result: reconstructBatchCaseResult(item),
   }));
 
   const pending = items.filter((item) => item.disposition === "PENDING").length;
+  const needsInformation = items.filter((item) => item.disposition === "NEEDS_INFO").length;
+  const unresolved = pending + needsInformation;
   const mandatoryReview = items.filter((item) => item.reviewRequired).length;
-  const reviewed = items.length - pending;
+  const reviewed = items.filter(
+    (item) => item.disposition === "ACCEPTED" || item.disposition === "REJECTED"
+  ).length;
 
   // Run lifecycle. Every state is read from what the run actually recorded —
   // the review step only completes when no item is still pending.
@@ -133,8 +160,10 @@ export default async function BatchRunDetailPage({
     {
       id: "reviewed",
       label: "Clinician review",
-      state: pending === 0 ? "complete" : "current",
-      caption: pending === 0 ? "All cases actioned" : `${pending} still pending`,
+      state: unresolved === 0 ? "complete" : "current",
+      caption: unresolved === 0
+        ? "All cases actioned"
+        : `${pending} pending · ${needsInformation} awaiting information`,
     },
   ];
 
@@ -205,25 +234,58 @@ export default async function BatchRunDetailPage({
         <StepTimeline steps={runSteps} />
       </Panel>
 
+      {outcome?.schemaVersion === 1 && outcomeCounts && (
+        <Panel
+          title="Intake reconciliation"
+          description="Durable accounting from the source delivery through routing and governed evaluation"
+          action={
+            <StatusBadge
+              tone={run.intakeStatus === "COMPLETED" ? "success" : run.intakeStatus === "PARTIAL" ? "danger" : "warn"}
+              size="sm"
+            >
+              {run.intakeStatus.replaceAll("_", " ")}
+            </StatusBadge>
+          }
+        >
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              ["Received", outcomeCounts.received],
+              ["Parsed", outcomeCounts.parsed],
+              ["Queued for review", outcomeCounts.processed],
+              ["Withheld", outcomeCounts.withheld],
+              ["Failed", outcomeCounts.failed],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="mt-0.5 text-xl font-semibold text-foreground">{value ?? 0}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Episode history: {outcomeCounts.new ?? 0} new · {outcomeCounts.alreadyInReview ?? 0} already in review · {outcomeCounts.completedPreviously ?? 0} previously completed · {outcomeCounts.updated ?? 0} updated · {outcomeCounts.possibleDuplicate ?? 0} possible duplicate. Parse-skipped and validation-rejected rows remain recorded in this manifest.
+          </p>
+        </Panel>
+      )}
+
       <MetricGrid columns={4}>
         <MetricTile
-          label="Cases in session"
+          label="Queued for review"
           value={run.totalCases}
-          caption="Pulled and graded together"
+          caption="Prepared from this intake"
           icon={<Database className="h-4.5 w-4.5" />}
           tone="brand"
         />
         <MetricTile
-          label="Awaiting review"
-          value={pending}
-          caption="No disposition recorded yet"
+          label="Unresolved work"
+          value={unresolved}
+          caption={`${pending} pending · ${needsInformation} awaiting information`}
           icon={<Inbox className="h-4.5 w-4.5" />}
-          tone={pending > 0 ? "warn" : "success"}
+          tone={unresolved > 0 ? "warn" : "success"}
         />
         <MetricTile
           label="Reviewed"
           value={reviewed}
-          caption="Accepted, rejected or needs information"
+          caption="Accepted or rejected"
           icon={<ClipboardCheck className="h-4.5 w-4.5" />}
           tone="neutral"
         />
@@ -251,6 +313,7 @@ export default async function BatchRunDetailPage({
         runId={run.id}
         initialItems={items}
         canReview={canReview}
+        canManageInformation={canManageInformation}
         engineVersion={run.engineVersion}
       />
     </PageShell>

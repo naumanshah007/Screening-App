@@ -30,7 +30,7 @@ test("completed decisions access excludes GP and missing user context", () => {
 test("completed decision where clause filters to completed records", () => {
   const where = buildCompletedDecisionWhere({ id: "admin-1", role: "ADMIN" });
   assert.deepEqual(where, {
-    disposition: { in: ["ACCEPTED", "REJECTED", "NEEDS_INFO"] },
+    disposition: { in: ["ACCEPTED", "REJECTED"] },
   });
 });
 
@@ -38,7 +38,7 @@ test("completed decision where clause applies reviewer own-scope", () => {
   const where = buildCompletedDecisionWhere({ id: "smo-1", role: "SMO_REVIEWER" });
   assert.deepEqual(where, {
     AND: [
-      { disposition: { in: ["ACCEPTED", "REJECTED", "NEEDS_INFO"] } },
+      { disposition: { in: ["ACCEPTED", "REJECTED"] } },
       { reviewedByUserId: "smo-1" },
     ],
   });
@@ -71,7 +71,7 @@ test("completed decision detail lookup preserves own-scope IDOR guard", () => {
     AND: [
       {
         AND: [
-          { disposition: { in: ["ACCEPTED", "REJECTED", "NEEDS_INFO"] } },
+          { disposition: { in: ["ACCEPTED", "REJECTED"] } },
           { reviewedByUserId: "smo-1" },
         ],
       },

@@ -35,7 +35,7 @@ export type CompletedDecisionRow = {
   intakeSessionId: string;
   originalRecommendation: string;
   recommendationCode: string;
-  disposition: "ACCEPTED" | "REJECTED" | "NEEDS_INFO";
+  disposition: "ACCEPTED" | "REJECTED";
   finalDecision: string;
   reviewer: string;
   reviewedAt: string;
@@ -65,7 +65,6 @@ const DISPOSITION_BADGE: Record<
 > = {
   ACCEPTED: { variant: "low", label: "Accepted" },
   REJECTED: { variant: "urgent", label: "Rejected" },
-  NEEDS_INFO: { variant: "info", label: "Needs information" },
 };
 
 const EXPORT_FORMATS = [
@@ -149,7 +148,6 @@ export function CompletedDecisionsClient({
                 options={[
                   { value: "ACCEPTED", label: "Accepted" },
                   { value: "REJECTED", label: "Rejected" },
-                  { value: "NEEDS_INFO", label: "Needs information" },
                 ]}
               />
             </div>
@@ -386,6 +384,23 @@ export function CompletedDecisionsClient({
                 <Field label="Clinical rule version" value={preview.summary.ruleVersion} />
                 <Field label="Ruleset checksum" value={preview.summary.rulesetChecksum} mono />
                 <Field label="Engine version" value={preview.summary.engineVersion} mono />
+                <Field
+                  label="Export evaluation authority"
+                  value={preview.governedEvaluation?.authority ?? "Not recorded"}
+                />
+                <Field
+                  label="Evaluation mode"
+                  value={preview.governedEvaluation?.evaluationMode ?? "Not recorded"}
+                  mono
+                />
+                <Field
+                  label="Authority engine"
+                  value={preview.governedEvaluation?.authorityEngine ?? "Not recorded"}
+                />
+                <Field
+                  label="Authority reason"
+                  value={preview.governedEvaluation?.authorityReason ?? "Not recorded"}
+                />
                 <Field label="Patient" value={preview.summary.patientDisplay} />
                 <Field label="Source system" value={preview.summary.sourceSystem} />
                 <Field label="Intake session" value={preview.summary.intakeSessionId} />

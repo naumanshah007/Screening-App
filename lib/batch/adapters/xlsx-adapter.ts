@@ -62,7 +62,7 @@ export class ExcelUploadAdapter implements DataSourceAdapter<ArrayBuffer | Buffe
 
     if (!dataSheet) {
       errors.push({ rowIndex: 0, message: "No usable data sheet found in workbook." });
-      return { rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
+      return { sourceRecordCount: 0, rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
     }
 
     // Read header row
@@ -75,7 +75,7 @@ export class ExcelUploadAdapter implements DataSourceAdapter<ArrayBuffer | Buffe
 
     if (headers.every((h) => h === "")) {
       errors.push({ rowIndex: 1, message: "Header row is empty." });
-      return { rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
+      return { sourceRecordCount: 0, rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
     }
 
     const knownFields = getKnownFieldNames();
@@ -110,6 +110,7 @@ export class ExcelUploadAdapter implements DataSourceAdapter<ArrayBuffer | Buffe
     }
 
     return {
+      sourceRecordCount: rows.length,
       rows,
       warnings,
       errors,

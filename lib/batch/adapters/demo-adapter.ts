@@ -41,6 +41,7 @@ export class DemoDatasetAdapter implements DataSourceAdapter<void> {
     });
 
     return {
+      sourceRecordCount: rows.length,
       rows,
       warnings: [],
       errors: [],

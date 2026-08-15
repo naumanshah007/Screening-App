@@ -26,6 +26,7 @@ export function BatchActionPanel({
   blockedCount,
   episodeSummary,
   processing,
+  classificationUnavailableReason,
   onProcess,
   onAddManual,
   onSelectAll,
@@ -46,6 +47,7 @@ export function BatchActionPanel({
     POSSIBLE_DUPLICATE: number;
   } | null;
   processing?: boolean;
+  classificationUnavailableReason?: string | null;
   onProcess: () => void;
   onAddManual?: () => void;
   onSelectAll?: () => void;
@@ -151,7 +153,7 @@ export function BatchActionPanel({
             variant="primary"
             size="lg"
             onClick={onProcess}
-            disabled={selectedCount === 0 || processing}
+            disabled={selectedCount === 0 || processing || Boolean(classificationUnavailableReason)}
             loading={processing}
           >
             Prepare {selectedCount} for Review Queue
@@ -159,6 +161,12 @@ export function BatchActionPanel({
           </Button>
         </div>
       </div>
+
+      {classificationUnavailableReason && (
+        <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/20 dark:text-red-200">
+          <strong>Episode history check required:</strong> {classificationUnavailableReason}
+        </div>
+      )}
 
       {/* ── Safety notice ───────────────────────────────────────────────
           Restrained and inline: it must be unmissable without competing with

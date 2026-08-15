@@ -9,11 +9,9 @@ export type FunnelStage = {
 };
 
 /**
- * Intake → decision conversion, from real counts.
- *
- * Percentages are expressed against the FIRST stage, and the first stage is
- * always 100% of itself. Where the first stage is zero, no percentages are
- * shown at all rather than rendering 0% or NaN across the row.
+ * Weekly activity events. These counts share a time boundary but are not a
+ * cohort: a decision completed this week may come from an earlier intake.
+ * Consequently the component deliberately shows no conversion percentages.
  */
 export function WorkflowFunnel({
   stages,
@@ -22,7 +20,6 @@ export function WorkflowFunnel({
   stages: FunnelStage[];
   scopeLabel: string;
 }) {
-  const base = stages[0]?.value ?? 0;
   const max = Math.max(...stages.map((stage) => stage.value), 1);
 
   return (
@@ -63,15 +60,12 @@ export function WorkflowFunnel({
               ) : (
                 <div className={cn("rounded-lg px-3 py-2.5 text-center", tint)}>{content}</div>
               )}
-              <p className="mt-1.5 text-center text-[11px] tabular-nums text-muted-foreground">
-                {base > 0 ? `${Math.round((stage.value / base) * 100)}%` : "—"}
-              </p>
             </div>
           );
         })}
       </div>
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Conversion from intake to exported evidence · {scopeLabel}
+        Event activity since Monday · {scopeLabel}. Current pending workload is reported separately as backlog.
       </p>
     </div>
   );

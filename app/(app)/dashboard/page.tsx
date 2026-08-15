@@ -165,7 +165,7 @@ export default async function DashboardPage({
         <MetricTile
           label="Pending review"
           value={metrics.pendingReview}
-          caption={`${scopeLabel} · awaiting clinician`}
+          caption="Current backlog · awaiting clinician"
           icon={<Inbox className="h-4.5 w-4.5" />}
           tone="brand"
           href={showBatch ? "/review" : undefined}
@@ -220,26 +220,21 @@ export default async function DashboardPage({
       {/* ── Funnel + trend + split ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
         <Panel
-          title="Decision workflow funnel"
-          description="Real counts for the current week"
+          title="Weekly workflow activity"
+          description="Independent event counts since Monday · not a cohort conversion"
           className="xl:col-span-4"
         >
           <WorkflowFunnel
             scopeLabel={scopeLabel}
             stages={[
               {
-                label: "Pulled",
+                label: "Intake created",
                 value: metrics.casesPulledThisWeek,
                 href: showBatch ? "/batch" : undefined,
               },
+              { label: "Decisions completed", value: metrics.completedThisWeek, href: "/decisions" },
               {
-                label: "Pending",
-                value: metrics.pendingReview,
-                href: showBatch ? "/review" : undefined,
-              },
-              { label: "Completed", value: metrics.completedThisWeek, href: "/decisions" },
-              {
-                label: "Exported",
+                label: "Packages previewed / exported",
                 value: metrics.packagePreviewedOrExportedThisWeek,
                 href: "/decisions",
               },

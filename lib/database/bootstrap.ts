@@ -843,6 +843,14 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
       "sourceSystem" TEXT,
       "sourceFileName" TEXT,
       "engineVersion" TEXT NOT NULL,
+      "deliveryKey" TEXT,
+      "intakeStatus" TEXT NOT NULL DEFAULT 'COMPLETED',
+      "sourceRecordCount" INTEGER NOT NULL DEFAULT 0,
+      "parsedRecordCount" INTEGER NOT NULL DEFAULT 0,
+      "skippedRecordCount" INTEGER NOT NULL DEFAULT 0,
+      "intakeManifestJson" TEXT NOT NULL DEFAULT '{}',
+      "outcomeManifestJson" TEXT NOT NULL DEFAULT '{}',
+      "completedAt" DATETIME,
       "totalCases" INTEGER NOT NULL,
       "pendingCount" INTEGER NOT NULL DEFAULT 0,
       "acceptedCount" INTEGER NOT NULL DEFAULT 0,
@@ -891,6 +899,11 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
       "reviewedAt" DATETIME,
       "reviewNote" TEXT,
       "overrideReason" TEXT,
+      "informationOwnerUserId" TEXT,
+      "informationOwnerName" TEXT,
+      "informationRequestedAt" DATETIME,
+      "informationReceivedAt" DATETIME,
+      "informationResolutionNote" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL,
       CONSTRAINT "BatchReviewItem_batchRunId_fkey"
@@ -924,6 +937,50 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
     "sourceFileName",
     "TEXT"
   );
+  await addColumnIfMissing(client, "BatchRun", batchRunColumns, "deliveryKey", "TEXT");
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "intakeStatus",
+    "TEXT NOT NULL DEFAULT 'COMPLETED'"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "sourceRecordCount",
+    "INTEGER NOT NULL DEFAULT 0"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "parsedRecordCount",
+    "INTEGER NOT NULL DEFAULT 0"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "skippedRecordCount",
+    "INTEGER NOT NULL DEFAULT 0"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "intakeManifestJson",
+    "TEXT NOT NULL DEFAULT '{}'"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchRun",
+    batchRunColumns,
+    "outcomeManifestJson",
+    "TEXT NOT NULL DEFAULT '{}'"
+  );
+  await addColumnIfMissing(client, "BatchRun", batchRunColumns, "completedAt", "DATETIME");
 
   const batchReviewColumns = await getTableColumns(client, "BatchReviewItem");
   await addColumnIfMissing(
@@ -975,6 +1032,11 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
     "legacyDecisionJson",
     "TEXT"
   );
+  await addColumnIfMissing(client, "BatchReviewItem", batchReviewColumns, "informationOwnerUserId", "TEXT");
+  await addColumnIfMissing(client, "BatchReviewItem", batchReviewColumns, "informationOwnerName", "TEXT");
+  await addColumnIfMissing(client, "BatchReviewItem", batchReviewColumns, "informationRequestedAt", "DATETIME");
+  await addColumnIfMissing(client, "BatchReviewItem", batchReviewColumns, "informationReceivedAt", "DATETIME");
+  await addColumnIfMissing(client, "BatchReviewItem", batchReviewColumns, "informationResolutionNote", "TEXT");
 
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "BatchRun_createdByUserId_createdAt_idx"

@@ -15,7 +15,6 @@ type DecisionSplitInput = Array<{
 export type DecisionSplit = {
   accepted: number;
   rejected: number;
-  needsInfo: number;
   total: number;
 };
 
@@ -145,7 +144,7 @@ function emptyMetrics(policy: CommandCentreMetricPolicy): CommandCentreMetrics {
     casesPulledThisWeek: 0,
     completedToday: 0,
     completedThisWeek: 0,
-    decisionSplit: { accepted: 0, rejected: 0, needsInfo: 0, total: 0 },
+    decisionSplit: { accepted: 0, rejected: 0, total: 0 },
     averageIntakeToDecisionMinutes: null,
     packagePreviewedOrExported: 0,
     packagePreviewedOrExportedThisWeek: 0,
@@ -169,14 +168,13 @@ export function startOfCurrentWeek(now = new Date()) {
 }
 
 export function summariseDecisionSplit(grouped: DecisionSplitInput): DecisionSplit {
-  const split = { accepted: 0, rejected: 0, needsInfo: 0, total: 0 };
+  const split = { accepted: 0, rejected: 0, total: 0 };
   for (const row of grouped) {
     const count = row._count._all;
     if (row.disposition === "ACCEPTED") split.accepted = count;
     if (row.disposition === "REJECTED") split.rejected = count;
-    if (row.disposition === "NEEDS_INFO") split.needsInfo = count;
   }
-  split.total = split.accepted + split.rejected + split.needsInfo;
+  split.total = split.accepted + split.rejected;
   return split;
 }
 

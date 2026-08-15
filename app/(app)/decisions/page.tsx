@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ClipboardCheck, Inbox, CheckCircle2, XCircle, HelpCircle } from "lucide-react";
+import { ClipboardCheck, CheckCircle2, XCircle, Inbox } from "lucide-react";
 
 import { PageShell, PageHeader, Panel, MetricTile, MetricGrid } from "@/components/system";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -111,7 +111,6 @@ export default async function CompletedDecisionsPage({
   // "in this result set" so a filtered view is never read as an all-time total.
   const accepted = rows.filter((row) => row.disposition === "ACCEPTED").length;
   const rejected = rows.filter((row) => row.disposition === "REJECTED").length;
-  const needsInfo = rows.filter((row) => row.disposition === "NEEDS_INFO").length;
   const hasFilters = Object.values(filters).some(Boolean);
   const scopeCaption = hasFilters ? "In this filtered result set" : "In this result set";
 
@@ -133,7 +132,7 @@ export default async function CompletedDecisionsPage({
       />
 
       {rows.length > 0 && (
-        <MetricGrid columns={4}>
+        <MetricGrid columns={3}>
           <MetricTile
             label="Completed decisions"
             value={rows.length}
@@ -155,13 +154,6 @@ export default async function CompletedDecisionsPage({
             icon={<XCircle className="h-4.5 w-4.5" />}
             tone="danger"
           />
-          <MetricTile
-            label="Needs information"
-            value={needsInfo}
-            caption="Returned for further detail"
-            icon={<HelpCircle className="h-4.5 w-4.5" />}
-            tone="warn"
-          />
         </MetricGrid>
       )}
 
@@ -170,7 +162,7 @@ export default async function CompletedDecisionsPage({
           <EmptyState
             icon={ClipboardCheck}
             title="No completed decisions yet"
-            description="When a reviewer accepts, rejects, or marks a queued case as needing information, the completed decision appears here with a simulated export package."
+            description="When a reviewer accepts or rejects a queued case, the completed decision appears here with a simulated export package. Cases awaiting information remain in the Review Queue."
             action={{ label: "Open Review Queue", href: "/review", variant: "primary" }}
           />
         </Panel>

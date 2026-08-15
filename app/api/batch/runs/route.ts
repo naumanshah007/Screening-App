@@ -4,7 +4,12 @@ import { auth } from "@/lib/auth";
 import { getApiPermissionError } from "@/lib/auth/api-permissions";
 import { isFeatureEnabled } from "@/lib/features";
 import { processBatch } from "@/lib/batch/processor";
-import { saveBatchRun, listBatchRuns } from "@/lib/batch/persistence";
+import {
+  DuplicateIngestionReceiptError,
+  saveBatchRun,
+  listBatchRuns,
+} from "@/lib/batch/persistence";
+import { normalizeIntakeParseManifest } from "@/lib/batch/intake-manifest";
 import type { CanonicalBatchCase } from "@/lib/batch/types";
 
 /**
@@ -64,6 +69,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Arrivals pulled in this intake but not sent for review. Recorded as
+    // observations so a suppressed result is never indistinguishable from a
+    // lost one.
+    if (Array.isArray(body.withheldCases) && body.withheldCases.length > 500) {
+      return NextResponse.json(
+        { error: `Too many withheld cases (${body.withheldCases.length}). Maximum is 500; no rows were saved.` },
+        { status: 400 }
+      );
+    }
+    const withheldCases: CanonicalBatchCase[] = Array.isArray(body.withheldCases)
+      ? body.withheldCases
+      : [];
+    const parseManifest = normalizeIntakeParseManifest(
+      body.parseManifest,
+      cases.length + withheldCases.length
+    );
+
+    const allArrivals = [...cases, ...withheldCases];
+    const fileArrival = allArrivals.find(({ source }) =>
+      source.sourceType === "csv" || source.sourceType === "xlsx" || source.sourceType === "json"
+    );
+    const isFileUpload = Boolean(fileArrival);
+    const deliveryKey = typeof body.deliveryKey === "string" ? body.deliveryKey.trim() : "";
+    if (isFileUpload && !/^sha256:[a-f0-9]{64}$/.test(deliveryKey)) {
+      return NextResponse.json(
+        { error: "Uploaded files require a valid SHA-256 delivery receipt." },
+        { status: 400 }
+      );
+    }
+
     // Re-run the engine server-side so persisted decisions are authoritative.
     const result = processBatch(cases, {
       includeWarnings: body.includeWarnings ?? true,
@@ -77,22 +112,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Arrivals pulled in this intake but not sent for review. Recorded as
-    // observations so a suppressed result is never indistinguishable from a
-    // lost one.
-    const withheldCases: CanonicalBatchCase[] = Array.isArray(body.withheldCases)
-      ? body.withheldCases.slice(0, 500)
-      : [];
-
     const run = await saveBatchRun({
       result,
       actorUserId: user!.id!,
       sourceSystem: typeof body.sourceSystem === "string" ? body.sourceSystem : undefined,
       withheldCases,
+      parseManifest,
+      deliveryKey: isFileUpload ? deliveryKey : null,
+      intakeSourceType: fileArrival?.source.sourceType,
     });
 
     return NextResponse.json({ runId: run.id, totalCases: run.totalCases });
   } catch (e) {
+    if (e instanceof DuplicateIngestionReceiptError) {
+      return NextResponse.json(
+        {
+          error: e.message,
+          code: "DUPLICATE_DELIVERY",
+          existingRunId: e.existingRunId,
+          receivedAt: e.receivedAt.toISOString(),
+          sourceRecordCount: e.caseCount,
+        },
+        { status: 409 }
+      );
+    }
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: `Failed to save batch run: ${message}` }, { status: 500 });
   }

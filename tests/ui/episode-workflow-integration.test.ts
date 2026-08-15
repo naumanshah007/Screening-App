@@ -37,19 +37,21 @@ test("classification is a read, and cannot write", () => {
   );
 });
 
-test("a failed classification degrades to 'everything is new', never to a blocked pull", () => {
-  // Losing the hints is an inconvenience. Losing the ability to pull cases is an
-  // outage, and silently dropping cases would be worse than either.
+test("a failed classification is visible and blocks preparation until duplicate awareness is restored", () => {
+  // File-first pilot intake cannot truthfully default an unavailable history
+  // check to "everything is new". The rows remain visible and editable, while
+  // only the preparation action is held.
   assert.match(
     PAGE,
-    /catch \{\s*\/\/ Deliberately silent: absence of hints is a safe degradation\./,
-    "the client must swallow a classification failure"
+    /setClassificationStatus\("error"\)/,
+    "classification failure must become explicit UI state"
   );
   assert.match(
-    PAGE,
-    /if \(!response\.ok\) return;/,
-    "a non-OK response must leave the screen in its pre-feature state"
+    PANEL,
+    /disabled=\{selectedCount === 0 \|\| processing \|\| Boolean\(classificationUnavailableReason\)\}/,
+    "preparation must wait for duplicate awareness"
   );
+  assert.match(PANEL, /Episode history check required/);
 });
 
 test("already-decided cases are deselected by default, not removed or disabled", () => {

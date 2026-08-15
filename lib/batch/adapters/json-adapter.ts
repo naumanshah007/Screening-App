@@ -24,7 +24,7 @@ export class JSONUploadAdapter implements DataSourceAdapter<string> {
       parsed = JSON.parse(jsonString);
     } catch (e) {
       errors.push({ rowIndex: 0, message: `Invalid JSON: ${e instanceof Error ? e.message : String(e)}` });
-      return { rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
+      return { sourceRecordCount: 0, rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
     }
 
     // Unwrap common wrapper shapes
@@ -41,16 +41,16 @@ export class JSONUploadAdapter implements DataSourceAdapter<string> {
           rowIndex: 0,
           message: "JSON must be an array of objects, or an object with a 'cases', 'data', or 'rows' array.",
         });
-        return { rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
+        return { sourceRecordCount: 0, rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
       }
     } else {
       errors.push({ rowIndex: 0, message: "JSON root must be an array or object." });
-      return { rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
+      return { sourceRecordCount: 0, rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
     }
 
     if (records.length === 0) {
       warnings.push({ rowIndex: 0, field: "_root", message: "JSON array is empty." });
-      return { rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
+      return { sourceRecordCount: 0, rows: [], warnings, errors, detectedColumns: [], unmappedColumns: [] };
     }
 
     // Collect all keys across all records to detect columns
@@ -79,6 +79,13 @@ export class JSONUploadAdapter implements DataSourceAdapter<string> {
       rows.push(row);
     }
 
-    return { rows, warnings, errors, detectedColumns, unmappedColumns };
+    return {
+      sourceRecordCount: records.length,
+      rows,
+      warnings,
+      errors,
+      detectedColumns,
+      unmappedColumns,
+    };
   }
 }

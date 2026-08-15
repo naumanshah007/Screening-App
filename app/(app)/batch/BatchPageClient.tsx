@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell, PageHeader, Panel, StepTimeline } from "@/components/system";
 import { BatchIntakeContext } from "@/components/batch/BatchIntakeContext";
+import { BatchIntakeManifest } from "@/components/batch/BatchIntakeManifest";
 import { BatchUploader } from "@/components/batch/BatchUploader";
 import { SourceConnectors } from "@/components/batch/SourceConnectors";
 import { BatchValidationPreview } from "@/components/batch/BatchValidationPreview";
@@ -22,6 +23,8 @@ import type {
   BatchProcessingResult,
   ParsedSourceRow,
   CanonicalBatchCase,
+  AdapterParseResult,
+  IntakeParseManifest,
 } from "@/lib/batch/types";
 import type { BatchValidationResult } from "@/lib/batch/validation";
 import type { EpisodeClassification } from "@/lib/batch/episode-classification";
@@ -64,10 +67,20 @@ export function BatchPageClient({
   const [uploadError, setUploadError] = useState("");
   const [savingWorklist, setSavingWorklist] = useState(false);
   const [worklistError, setWorklistError] = useState("");
+  const [duplicateReceipt, setDuplicateReceipt] = useState<{
+    runId: string;
+    receivedAt?: string;
+  } | null>(null);
   const [showManual, setShowManual] = useState(false);
-  // Which arrivals have been seen before. Null until the answer arrives, and on
-  // failure — the UI must render identically to how it did before this feature.
+  // Which arrivals have been seen before. Null while the required history check
+  // is pending or unavailable; classificationStatus distinguishes those states.
   const [episodes, setEpisodes] = useState<EpisodeClassificationResponse | null>(null);
+  const [classificationStatus, setClassificationStatus] = useState<
+    "idle" | "checking" | "ready" | "error"
+  >("idle");
+  const [classificationError, setClassificationError] = useState("");
+  const [parseManifest, setParseManifest] = useState<IntakeParseManifest | null>(null);
+  const [deliveryKey, setDeliveryKey] = useState<string | null>(null);
 
   // ── Manual case form state ──────────────────────────────────────────────
   const [manualFormOpen, setManualFormOpen] = useState(false);
@@ -82,6 +95,39 @@ export function BatchPageClient({
     sourceSystem: string;
     sourceFileName?: string;
   } | null>(null);
+
+  /**
+   * Duplicate awareness is a required intake gate. A failed history check is
+   * shown and blocks preparation; it is never silently treated as "all new".
+   */
+  const classifyEpisodes = useCallback(async (cases: CanonicalBatchCase[]) => {
+    setEpisodes(null);
+    setClassificationError("");
+    if (cases.length === 0) {
+      setClassificationStatus("idle");
+      return;
+    }
+    setClassificationStatus("checking");
+    try {
+      const response = await fetch("/api/batch/episodes/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cases }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error || `Episode history check failed (HTTP ${response.status}).`);
+      }
+      const payload = (await response.json()) as EpisodeClassificationResponse;
+      setEpisodes(payload);
+      setClassificationStatus("ready");
+    } catch (error) {
+      setClassificationError(
+        error instanceof Error ? error.message : "Episode history could not be checked."
+      );
+      setClassificationStatus("error");
+    }
+  }, []);
 
   // ── Revalidate all rows (base + manual) ─────────────────────────────────
   const revalidateAll = useCallback(async (
@@ -124,13 +170,30 @@ export function BatchPageClient({
     };
 
     setState({ step: "loaded", validation: merged });
-  }, []);
+    setParseManifest((current) => current
+      ? { ...current, preparedRecordCount: merged.totalRows }
+      : {
+          schemaVersion: 1,
+          sourceRecordCount: merged.totalRows,
+          parsedRecordCount: merged.totalRows,
+          skippedRecordCount: 0,
+          preparedRecordCount: merged.totalRows,
+          warnings: [],
+          errors: [],
+          detectedColumns: [],
+          unmappedColumns: [],
+        }
+    );
+    await classifyEpisodes(merged.cases);
+    return merged;
+  }, [classifyEpisodes]);
 
   // ── Shared: validate rows and transition to "loaded" ─────────────────────
   const validateAndLoad = useCallback(async (
     rows: ParsedSourceRow[],
     sourceType: "demo" | "csv" | "xlsx" | "json",
-    fileName?: string
+    fileName?: string,
+    receipt?: { manifest: IntakeParseManifest; deliveryKey: string } | null
   ) => {
     const meta = {
       sourceType,
@@ -139,33 +202,22 @@ export function BatchPageClient({
     };
     setBaseRows(rows);
     setBaseSourceMeta(meta);
+    setParseManifest(receipt?.manifest ?? {
+      schemaVersion: 1,
+      sourceRecordCount: rows.length,
+      parsedRecordCount: rows.length,
+      skippedRecordCount: 0,
+      preparedRecordCount: rows.length,
+      warnings: [],
+      errors: [],
+      detectedColumns: rows[0]?._sourceFields ?? [],
+      unmappedColumns: [],
+    });
+    setDeliveryKey(receipt?.deliveryKey ?? null);
     // Reset manual rows on new upload
     setManualRows([]);
     await revalidateAll(rows, [], meta);
   }, [revalidateAll]);
-
-  /**
-   * Ask which of these arrivals have been seen before.
-   *
-   * Read-only and best-effort. If it fails the operator simply sees no
-   * "already in review" hints, which is exactly how intake behaved before this
-   * existed — safe, and far better than blocking a pull.
-   */
-  const classifyEpisodes = useCallback(async (cases: CanonicalBatchCase[]) => {
-    setEpisodes(null);
-    try {
-      const response = await fetch("/api/batch/episodes/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cases }),
-      });
-      if (!response.ok) return;
-      const payload = (await response.json()) as EpisodeClassificationResponse;
-      setEpisodes(payload);
-    } catch {
-      // Deliberately silent: absence of hints is a safe degradation.
-    }
-  }, []);
 
   // ── Load cases pulled from a connected data source ────────────────────────
   const loadFromConnector = useCallback(
@@ -173,6 +225,18 @@ export function BatchPageClient({
       setUploadError("");
       setBaseRows([]);
       setManualRows([]);
+      setDeliveryKey(null);
+      setParseManifest({
+        schemaVersion: 1,
+        sourceRecordCount: cases.length,
+        parsedRecordCount: cases.length,
+        skippedRecordCount: 0,
+        preparedRecordCount: cases.length,
+        warnings: [],
+        errors: [],
+        detectedColumns: [],
+        unmappedColumns: [],
+      });
       setBaseSourceMeta({
         sourceType: "demo",
         sourceSystem,
@@ -245,12 +309,25 @@ export function BatchPageClient({
         externalPatientId: undefined,
       });
       setState({ step: "loaded", validation });
+      setParseManifest({
+        schemaVersion: 1,
+        sourceRecordCount: rows.length,
+        parsedRecordCount: rows.length,
+        skippedRecordCount: 0,
+        preparedRecordCount: rows.length,
+        warnings: [],
+        errors: [],
+        detectedColumns: rows[0]?._sourceFields ?? [],
+        unmappedColumns: [],
+      });
+      setDeliveryKey(null);
+      await classifyEpisodes(validation.cases);
     } catch (err) {
       console.error("Failed to load messy demo dataset:", err);
       setUploadError("Failed to load real-world sample.");
       setState({ step: "empty" });
     }
-  }, []);
+  }, [classifyEpisodes]);
 
   // ── Upload a file ─────────────────────────────────────────────────────────
   const loadFile = useCallback(async (file: File) => {
@@ -258,41 +335,37 @@ export function BatchPageClient({
     setUploadError("");
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-      let rows: ParsedSourceRow[];
+      const { uploadedFileDeliveryKey } = await import("@/lib/batch/file-receipt");
+      const { manifestFromAdapter } = await import("@/lib/batch/intake-manifest");
+      const fileDeliveryKey = await uploadedFileDeliveryKey(file);
+      let parsed: AdapterParseResult;
+      let sourceType: "csv" | "xlsx" | "json";
 
       if (ext === "csv") {
         const text = await file.text();
         const { CSVUploadAdapter } = await import("@/lib/batch/adapters/csv-adapter");
         const adapter = new CSVUploadAdapter();
-        const parsed = await adapter.parse(text, file.name);
-        rows = parsed.rows;
-        if (parsed.errors.length > 0 && rows.length === 0) {
-          throw new Error(parsed.errors.map((e) => e.message).join("; "));
-        }
-        await validateAndLoad(rows, "csv", file.name);
+        parsed = await adapter.parse(text, file.name);
+        sourceType = "csv";
       } else if (ext === "xlsx" || ext === "xls") {
         const buffer = await file.arrayBuffer();
         const { ExcelUploadAdapter } = await import("@/lib/batch/adapters/xlsx-adapter");
         const adapter = new ExcelUploadAdapter();
-        const parsed = await adapter.parse(buffer, file.name);
-        rows = parsed.rows;
-        if (parsed.errors.length > 0 && rows.length === 0) {
-          throw new Error(parsed.errors.map((e) => e.message).join("; "));
-        }
-        await validateAndLoad(rows, "xlsx", file.name);
+        parsed = await adapter.parse(buffer, file.name);
+        sourceType = "xlsx";
       } else if (ext === "json") {
         const text = await file.text();
         const { JSONUploadAdapter } = await import("@/lib/batch/adapters/json-adapter");
         const adapter = new JSONUploadAdapter();
-        const parsed = await adapter.parse(text, file.name);
-        rows = parsed.rows;
-        if (parsed.errors.length > 0 && rows.length === 0) {
-          throw new Error(parsed.errors.map((e) => e.message).join("; "));
-        }
-        await validateAndLoad(rows, "json", file.name);
+        parsed = await adapter.parse(text, file.name);
+        sourceType = "json";
       } else {
         throw new Error(`Unsupported file type: .${ext}`);
       }
+      await validateAndLoad(parsed.rows, sourceType, file.name, {
+        manifest: manifestFromAdapter(parsed),
+        deliveryKey: fileDeliveryKey,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error reading file.";
       setUploadError(msg);
@@ -420,6 +493,10 @@ export function BatchPageClient({
   const processRows = useCallback(
     async (selectedCaseIds: string[]) => {
       if (state.step !== "loaded") return;
+      if (classificationStatus !== "ready") {
+        setClassificationError("Episode history must be checked before cases can be prepared.");
+        return;
+      }
       const validation = state.validation;
       setState({ step: "processing", validation });
 
@@ -442,14 +519,15 @@ export function BatchPageClient({
         setState({ step: "loaded", validation });
       }
     },
-    [state]
+    [state, classificationStatus]
   );
 
   // ── Save processed results to the persisted review worklist ───────────────
   const saveToWorklist = useCallback(async () => {
     if (state.step !== "results") return;
     setSavingWorklist(true);
-    setWorklistError("");
+      setWorklistError("");
+      setDuplicateReceipt(null);
     try {
       // Send the originating canonical cases; the server re-runs the engine so
       // persisted decisions are authoritative (never trusts the client).
@@ -479,19 +557,33 @@ export function BatchPageClient({
             undefined,
           includeWarnings: true,
           includeInvalid: false,
+          deliveryKey,
+          parseManifest: parseManifest
+            ? { ...parseManifest, preparedRecordCount: state.validation.cases.length }
+            : null,
         }),
       });
+      const payload = await res.json().catch(() => ({ error: res.statusText })) as {
+        error?: string;
+        code?: string;
+        existingRunId?: string;
+        receivedAt?: string;
+        runId?: string;
+      };
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        if (payload.code === "DUPLICATE_DELIVERY" && payload.existingRunId) {
+          setDuplicateReceipt({ runId: payload.existingRunId, receivedAt: payload.receivedAt });
+        }
+        throw new Error(payload.error || `HTTP ${res.status}`);
       }
-      const { runId } = await res.json();
+      const runId = payload.runId;
+      if (!runId) throw new Error("The saved intake did not return a run identifier.");
       router.push(`/review?added=${runId}`);
     } catch (err) {
       setWorklistError(err instanceof Error ? err.message : "Failed to add cases to the Review Queue.");
       setSavingWorklist(false);
     }
-  }, [state, router]);
+  }, [state, router, deliveryKey, parseManifest]);
 
   // ── Reset ─────────────────────────────────────────────────────────────────
   const reset = useCallback(() => {
@@ -502,6 +594,12 @@ export function BatchPageClient({
     setManualRows([]);
     setBaseRows([]);
     setBaseSourceMeta(null);
+    setParseManifest(null);
+    setDeliveryKey(null);
+    setEpisodes(null);
+    setClassificationStatus("idle");
+    setClassificationError("");
+    setDuplicateReceipt(null);
     setManualFormOpen(false);
     setEditingCase(null);
   }, []);
@@ -620,19 +718,29 @@ export function BatchPageClient({
 
       {/* ── Validation Preview ────────────────────────────────────────────── */}
       {(state.step === "loaded" || state.step === "processing") && (
-        <BatchValidationPreview
-          cases={state.validation.cases}
-          validCount={state.validation.validCount}
-          warningCount={state.validation.warningCount}
-          invalidCount={state.validation.invalidCount}
-          episodes={episodes}
-          onProcess={processRows}
-          processing={state.step === "processing"}
-          onAddManual={handleOpenAddManual}
-          onEditCase={handleEditCase}
-          onDuplicateCase={handleDuplicateCase}
-          onDeleteCase={handleDeleteCase}
-        />
+        <>
+          {parseManifest && <BatchIntakeManifest manifest={parseManifest} />}
+          <BatchValidationPreview
+            cases={state.validation.cases}
+            validCount={state.validation.validCount}
+            warningCount={state.validation.warningCount}
+            invalidCount={state.validation.invalidCount}
+            episodes={episodes}
+            classificationUnavailableReason={
+              classificationStatus === "checking"
+                ? "Checking prior episode history…"
+                : classificationStatus === "error"
+                  ? classificationError
+                  : null
+            }
+            onProcess={processRows}
+            processing={state.step === "processing"}
+            onAddManual={handleOpenAddManual}
+            onEditCase={handleEditCase}
+            onDuplicateCase={handleDuplicateCase}
+            onDeleteCase={handleDeleteCase}
+          />
+        </>
       )}
 
       {/* ── Results ──────────────────────────────────────────────────────── */}
@@ -652,7 +760,14 @@ export function BatchPageClient({
                   with the full case context.
                 </p>
                 {worklistError && (
-                  <p className="text-red-600 dark:text-red-400 mt-1">{worklistError}</p>
+                  <div className="mt-1 text-red-600 dark:text-red-400">
+                    <p>{worklistError}</p>
+                    {duplicateReceipt && (
+                      <a className="font-medium underline" href={`/batch/runs/${duplicateReceipt.runId}`}>
+                        Open the original intake{duplicateReceipt.receivedAt ? ` from ${new Date(duplicateReceipt.receivedAt).toLocaleString("en-NZ")}` : ""}
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

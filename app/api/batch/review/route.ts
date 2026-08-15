@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getApiPermissionError } from "@/lib/auth/api-permissions";
 import { isFeatureEnabled } from "@/lib/features";
-import { applyDisposition, BatchReviewError } from "@/lib/batch/persistence";
+import {
+  applyDisposition,
+  BatchReviewConflictError,
+  BatchReviewError,
+} from "@/lib/batch/persistence";
 
 const ALLOWED_DISPOSITIONS = ["ACCEPTED", "REJECTED", "NEEDS_INFO"] as const;
 type AllowedDisposition = (typeof ALLOWED_DISPOSITIONS)[number];
@@ -53,6 +57,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (e) {
+    if (e instanceof BatchReviewConflictError) {
+      return NextResponse.json({ error: e.message, code: "REVIEW_CONFLICT" }, { status: 409 });
+    }
     if (e instanceof BatchReviewError) {
       return NextResponse.json({ error: e.message }, { status: 400 });
     }

@@ -305,12 +305,32 @@ export interface ParseError {
 }
 
 export interface AdapterParseResult {
+  /** Number of source records presented to the adapter, before any row is skipped. */
+  sourceRecordCount: number;
   rows: ParsedSourceRow[];
   warnings: ParseWarning[];
   errors: ParseError[];
   /** All column names found in the source. */
   detectedColumns: string[];
   /** Column names that don't match any known engine field. */
+  unmappedColumns: string[];
+}
+
+/**
+ * Durable receipt for the client-side parsing step. It travels with the batch
+ * run so an operator can reconcile the original delivery without relying on
+ * transient upload-screen state.
+ */
+export interface IntakeParseManifest {
+  schemaVersion: 1;
+  sourceRecordCount: number;
+  parsedRecordCount: number;
+  skippedRecordCount: number;
+  /** Rows currently prepared after explicit operator additions/removals. */
+  preparedRecordCount: number;
+  warnings: ParseWarning[];
+  errors: ParseError[];
+  detectedColumns: string[];
   unmappedColumns: string[];
 }
 

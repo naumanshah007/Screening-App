@@ -7,7 +7,6 @@ import type { DecisionSplit } from "@/lib/decisions/dashboard-metrics";
 const SEGMENTS = [
   { key: "accepted", label: "Accepted", colour: "#0d9488" },
   { key: "rejected", label: "Rejected", colour: "#dc2626" },
-  { key: "needsInfo", label: "Needs information", colour: "#f59e0b" },
 ] as const;
 
 /**
@@ -21,9 +20,8 @@ export function DecisionSplitChart({ split }: { split: DecisionSplit }) {
   const values: Record<string, number> = {
     accepted: split.accepted,
     rejected: split.rejected,
-    needsInfo: split.needsInfo,
   };
-  const total = split.accepted + split.rejected + split.needsInfo;
+  const total = split.accepted + split.rejected;
 
   if (total === 0) {
     return (

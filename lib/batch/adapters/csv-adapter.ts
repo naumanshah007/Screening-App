@@ -58,8 +58,16 @@ export class CSVUploadAdapter implements DataSourceAdapter<string> {
       }
       return row;
     });
+    // PapaParse may report a malformed source row without returning a data
+    // object for it. Use the highest reported row index as a lower bound so
+    // that row remains visible in the receipt instead of disappearing.
+    const highestReportedRow = (result.errors ?? []).reduce(
+      (highest, error) => Math.max(highest, error.row ?? -1),
+      -1
+    );
 
     return {
+      sourceRecordCount: Math.max(result.data?.length ?? 0, highestReportedRow + 1),
       rows,
       warnings,
       errors,

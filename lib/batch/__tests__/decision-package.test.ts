@@ -24,6 +24,8 @@ const completedItem: DecisionPackageInput = {
   reviewedAt: new Date("2026-06-19T02:30:00.000Z"),
   reviewNote: "Reviewer confirmed routine pathway.",
   overrideReason: null,
+  authorityEngine: "LEGACY",
+  authorityReason: "Canonical rules were evaluated in shadow mode for comparison only.",
   reviewedBy: {
     id: "reviewer-1",
     name: "SMO Reviewer",
@@ -123,12 +125,30 @@ test("completed-decision exports visibly preserve pinned ruleset provenance", ()
   assert.ok(pkg.hl7StyleMessage.includes("RULEVERSION^Clinical rule version||CG-NCSP-3.0.0"));
   assert.ok(pkg.hl7StyleMessage.includes(`RULECHECKSUM^Ruleset checksum||${checksum}`));
   assert.ok(pkg.gpLetter.body.includes("Clinical rule version: CG-NCSP-3.0.0"));
-  assert.equal(pkg.canonicalShadow?.authority, "SHADOW_ONLY");
-  assert.equal(pkg.canonicalShadow?.ruleVersion, "CG-NCSP-3.1.0");
-  assert.deepEqual(pkg.canonicalShadow?.matchedRuleIds, ["F3-16"]);
-  assert.ok(pkg.csvExportRow.canonical_shadow_branch_path.includes("node:rule:F3-16"));
-  assert.ok(JSON.stringify(pkg.fhirLikeJson).includes("Canonical branch path"));
-  assert.ok(pkg.hl7StyleMessage.includes("SHADOWPATH^Canonical shadow branch path"));
+  assert.equal(pkg.governedEvaluation?.authority, "COMPARISON_ONLY");
+  assert.equal(pkg.governedEvaluation?.evaluationMode, "SHADOW");
+  assert.equal(pkg.governedEvaluation?.ruleVersion, "CG-NCSP-3.1.0");
+  assert.deepEqual(pkg.governedEvaluation?.matchedRuleIds, ["F3-16"]);
+  assert.ok(pkg.csvExportRow.governed_evaluation_branch_path.includes("node:rule:F3-16"));
+  assert.ok(JSON.stringify(pkg.fhirLikeJson).includes("Governed branch path"));
+  assert.ok(pkg.hl7StyleMessage.includes("GOVPATH^Governed evaluation branch path"));
+});
+
+test("export authority is operative only for a live canonical evaluation", () => {
+  const pkg = buildSimulatedDecisionPackage({
+    ...completedItem,
+    authorityEngine: "CANONICAL",
+    authorityReason: "The active governed ruleset produced the operative recommendation.",
+    ruleEvaluation: {
+      ...completedItem.ruleEvaluation!,
+      evaluationMode: "LIVE_DEMO",
+    },
+  });
+
+  assert.equal(pkg.governedEvaluation?.authority, "OPERATIVE");
+  assert.equal(pkg.governedEvaluation?.authorityEngine, "CANONICAL");
+  assert.equal(pkg.csvExportRow.governed_evaluation_authority, "OPERATIVE");
+  assert.equal(pkg.csvExportRow.governed_evaluation_mode, "LIVE_DEMO");
 });
 
 test("CSV exports neutralise spreadsheet formulas", () => {

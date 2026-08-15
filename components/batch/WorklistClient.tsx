@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  CheckCircle2, XCircle, HelpCircle, Eye, Loader2, ShieldAlert,
+  CheckCircle2, XCircle, HelpCircle, Eye, Loader2, ShieldAlert, RotateCcw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,10 @@ export interface WorklistItem {
   reviewedAt: string | null;
   reviewNote: string | null;
   overrideReason: string | null;
+  informationOwnerName?: string | null;
+  informationRequestedAt?: string | null;
+  informationReceivedAt?: string | null;
+  informationResolutionNote?: string | null;
   result: BatchCaseResult;
   /**
    * Set when a later arrival for the same episode carried new clinical
@@ -85,6 +89,7 @@ function isUrgentClinicalPriority(item: WorklistItem) {
 export function WorklistClient({
   initialItems,
   canReview,
+  canManageInformation = false,
   engineVersion,
   showSource = false,
   removeCompletedOnAction = false,
@@ -93,6 +98,8 @@ export function WorklistClient({
   runId?: string;
   initialItems: WorklistItem[];
   canReview: boolean;
+  /** Coordinators and reviewers may record that requested information arrived. */
+  canManageInformation?: boolean;
   engineVersion?: string;
   /** Show the originating source/run per row (aggregate Review Queue). */
   showSource?: boolean;
@@ -105,6 +112,10 @@ export function WorklistClient({
   const [filter, setFilter] = useState<Filter>("all");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
 
   // Holds the item that was opened. The live row is preferred on every render
   // so the drawer reflects a disposition recorded from anywhere; the snapshot
@@ -119,6 +130,8 @@ export function WorklistClient({
     itemIds: string[];
   } | null>(null);
   const [reasonText, setReasonText] = useState("");
+  const [informationModal, setInformationModal] = useState<WorklistItem | null>(null);
+  const [informationReceivedText, setInformationReceivedText] = useState("");
 
   const counts = useMemo(() => {
     const c = { pending: 0, accepted: 0, rejected: 0, needs_info: 0, review: 0 };
@@ -143,17 +156,21 @@ export function WorklistClient({
     }
   }, [items, filter]);
 
-  const visibleIds = useMemo(() => visible.map((i) => i.id), [visible]);
+  const visibleIds = useMemo(
+    () => visible.filter((item) => item.disposition === "PENDING").map((item) => item.id),
+    [visible]
+  );
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
 
   const toggle = useCallback((id: string) => {
+    if (items.find((item) => item.id === id)?.disposition !== "PENDING") return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }, []);
+  }, [items]);
 
   const toggleAllVisible = useCallback(() => {
     setSelected((prev) => {
@@ -184,12 +201,19 @@ export function WorklistClient({
           }),
         });
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: res.statusText }));
+          const err = await res.json().catch(() => ({ error: res.statusText })) as {
+            error?: string;
+            code?: string;
+          };
+          if (res.status === 409 || err.code === "REVIEW_CONFLICT") {
+            router.refresh();
+            throw new Error(`${err.error || "This case was already changed."} The queue has been refreshed.`);
+          }
           throw new Error(err.error || `HTTP ${res.status}`);
         }
         const idSet = new Set(itemIds);
         setItems((prev) => {
-          if (removeCompletedOnAction) {
+          if (removeCompletedOnAction && disposition !== "NEEDS_INFO") {
             return prev.filter((it) => !idSet.has(it.id));
           }
 
@@ -202,6 +226,14 @@ export function WorklistClient({
                   reviewedAt: "just now",
                   reviewNote: reason ?? null,
                   overrideReason: disposition === "REJECTED" ? (reason ?? null) : null,
+                  ...(disposition === "NEEDS_INFO"
+                    ? {
+                        informationOwnerName: "You",
+                        informationRequestedAt: "just now",
+                        informationReceivedAt: null,
+                        informationResolutionNote: null,
+                      }
+                    : {}),
                 }
               : it
           );
@@ -228,14 +260,60 @@ export function WorklistClient({
 
   const submitReason = useCallback(() => {
     if (!reasonModal) return;
-    if (reasonModal.disposition === "REJECTED" && !reasonText.trim()) {
-      setError("A reason is required to reject.");
+    if (!reasonText.trim()) {
+      setError(
+        reasonModal.disposition === "REJECTED"
+          ? "A reason is required to reject."
+          : "Describe the information that is needed."
+      );
       return;
     }
     const { disposition, itemIds } = reasonModal;
     setReasonModal(null);
     void applyDisposition(itemIds, disposition, reasonText.trim() || undefined);
   }, [reasonModal, reasonText, applyDisposition]);
+
+  const returnInformationToReview = useCallback(async () => {
+    if (!informationModal || !informationReceivedText.trim()) {
+      setError("Record what information was received.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/batch/review/${informationModal.id}/information`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resolutionNote: informationReceivedText.trim() }),
+      });
+      const payload = await response.json().catch(() => ({ error: response.statusText })) as {
+        error?: string;
+        code?: string;
+      };
+      if (!response.ok) {
+        if (response.status === 409 || payload.code === "REVIEW_CONFLICT") router.refresh();
+        throw new Error(payload.error || `HTTP ${response.status}`);
+      }
+      const resolutionNote = informationReceivedText.trim();
+      setItems((current) => current.map((item) =>
+        item.id === informationModal.id
+          ? {
+              ...item,
+              disposition: "PENDING",
+              informationReceivedAt: "just now",
+              informationResolutionNote: resolutionNote,
+            }
+          : item
+      ));
+      setInformationModal(null);
+      setInformationReceivedText("");
+      router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to return the case to review.");
+    } finally {
+      setBusy(false);
+    }
+  }, [informationModal, informationReceivedText, router]);
 
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
 
@@ -288,9 +366,10 @@ export function WorklistClient({
   return (
     <div className="space-y-4">
       {/* Summary stat strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatCard label={removeCompletedOnAction ? "Pending queue" : "Total"} value={items.length} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <StatCard label={removeCompletedOnAction ? "Open work shown" : "Total"} value={items.length} />
         <StatCard label="Pending" value={counts.pending} tone="info" />
+        <StatCard label="Awaiting information" value={counts.needs_info} tone="warn" />
         <StatCard label="Accepted" value={counts.accepted} tone="success" />
         <StatCard label="Rejected" value={counts.rejected} tone="danger" />
         <StatCard label="Mandatory review" value={counts.review} tone="warn" icon={<ShieldAlert className="h-3.5 w-3.5" />} />
@@ -400,6 +479,7 @@ export function WorklistClient({
                           <input
                             type="checkbox"
                             checked={isSel}
+                            disabled={item.disposition !== "PENDING"}
                             onChange={() => toggle(item.id)}
                             aria-label={`Select ${item.patientName ?? patientNhi(item)}`}
                             className="h-4 w-4 rounded border-border"
@@ -475,24 +555,44 @@ export function WorklistClient({
                             {item.reviewedByName}{item.reviewedAt ? ` · ${item.reviewedAt}` : ""}
                           </p>
                         )}
+                        {item.disposition === "NEEDS_INFO" && (
+                          <div className="mt-1 max-w-[220px] text-xs text-muted-foreground">
+                            <p>Owner: {item.informationOwnerName ?? "Unassigned"}</p>
+                            {item.informationRequestedAt && <p>Requested {item.informationRequestedAt}</p>}
+                            {item.reviewNote && <p className="line-clamp-2">Needed: {item.reviewNote}</p>}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                           <Button size="xs" variant="ghost" onClick={() => openDetail(item)}>
                             <Eye className="h-3.5 w-3.5" /> View
                           </Button>
-                          {canReview && item.disposition !== "ACCEPTED" && (
+                          {canReview && item.disposition === "PENDING" && (
                             <Button size="xs" variant="ghost" disabled={busy}
                               onClick={() => applyDisposition([item.id], "ACCEPTED")}
                               aria-label="Accept">
                               <CheckCircle2 className="h-4 w-4 text-success" />
                             </Button>
                           )}
-                          {canReview && item.disposition !== "REJECTED" && (
+                          {canReview && item.disposition === "PENDING" && (
                             <Button size="xs" variant="ghost" disabled={busy}
                               onClick={() => requestReason("REJECTED", [item.id])}
                               aria-label="Reject">
                               <XCircle className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                          {canManageInformation && item.disposition === "NEEDS_INFO" && (
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() => {
+                                setInformationReceivedText("");
+                                setInformationModal(item);
+                              }}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" /> Information received
                             </Button>
                           )}
                         </div>
@@ -535,7 +635,7 @@ export function WorklistClient({
         description={
           reasonModal?.disposition === "REJECTED"
             ? `A reason is required and recorded in the audit trail. Applies to ${reasonModal?.itemIds.length ?? 0} case(s).`
-            : `Optional note. Applies to ${reasonModal?.itemIds.length ?? 0} case(s).`
+            : `Describe what is needed. You will be recorded as the owner. Applies to ${reasonModal?.itemIds.length ?? 0} case(s).`
         }
         footer={
           <>
@@ -555,6 +655,29 @@ export function WorklistClient({
           placeholder={reasonModal?.disposition === "REJECTED"
             ? "e.g. Duplicate referral; already booked under existing case."
             : "e.g. Awaiting NCSR history before disposition."}
+          rows={3}
+          autoFocus
+        />
+      </Dialog>
+
+      <Dialog
+        open={Boolean(informationModal)}
+        onClose={() => setInformationModal(null)}
+        title="Return to Review Queue"
+        description="Record what arrived. This returns the case to pending review without changing clinical facts; correct facts and re-evaluate explicitly if the new information changes them."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setInformationModal(null)}>Cancel</Button>
+            <Button variant="primary" disabled={busy} onClick={returnInformationToReview}>
+              Return to review
+            </Button>
+          </>
+        }
+      >
+        <Textarea
+          value={informationReceivedText}
+          onChange={(event) => setInformationReceivedText(event.target.value)}
+          placeholder="e.g. NCSR history received and attached; screening history can now be verified."
           rows={3}
           autoFocus
         />
