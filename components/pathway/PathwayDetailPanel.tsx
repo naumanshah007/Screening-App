@@ -137,8 +137,12 @@ export function PathwayDetailPanel({
 
         {detail ? (
           <dl className="space-y-4">
-            <Field label="Governed condition">{detail.sourceConditionText}</Field>
-            <Field label="Provisional outcome">{detail.provisionalOutcome}</Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Rule ID" mono>{node.ruleId}</Field>
+              <Field label="Node ID" mono>{node.id}</Field>
+            </div>
+            <Field label="Clinical condition">{detail.sourceConditionText}</Field>
+            <Field label="Outcome">{detail.provisionalOutcome}</Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Timing">{detail.timingDestination || "As specified by outcome"}</Field>
               <Field label="Care setting">{detail.careSetting}</Field>
@@ -207,7 +211,11 @@ export function PathwayDetailPanel({
               </div>
             </Field>
 
-            <Field label="Source">
+            <Field label="Controlling source">
+              {detail.controllingSource.document} · {detail.controllingSource.reference}
+            </Field>
+
+            <Field label="Source references">
               <ul className="space-y-1">
                 {detail.sourceReferences.map((reference, index) => (
                   <li key={`${reference.document}-${index}`} className="flex items-start gap-1.5">
@@ -223,13 +231,19 @@ export function PathwayDetailPanel({
               </ul>
             </Field>
 
+            <Field label="Predicate / AST">
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-2.5 font-mono text-[10.5px] leading-5">
+                {JSON.stringify(detail.conditionExpression, null, 2)}
+              </pre>
+            </Field>
+
             <Field label="Automation boundary">{detail.automationBoundary}</Field>
             <Field label="Implementation note">{detail.implementationNote}</Field>
 
             {governance && (
               <details className="rounded-lg border border-border bg-muted/30 p-3">
                 <summary className="cursor-pointer list-none text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                  Governance &amp; provenance
+                  Technical provenance
                 </summary>
                 <dl className="mt-3 space-y-3">
                   <Field label="Ruleset ID" mono>
@@ -255,6 +269,9 @@ export function PathwayDetailPanel({
         ) : (
           <div className="space-y-4">
             <p className="text-[13px] leading-[1.6] text-muted-foreground">{node.fullText}</p>
+            <dl>
+              <Field label="Node ID" mono>{node.id}</Field>
+            </dl>
             {node.kind === "ENTRY" && (
               <dl className="grid grid-cols-2 gap-4">
                 <Field label="Decision points">{String(graph.counts.decisions)}</Field>

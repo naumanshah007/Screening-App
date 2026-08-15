@@ -81,6 +81,7 @@ export type PathwayNode = {
 export type PathwayNodeDetail = {
   section: string;
   pathwayStage: string;
+  conditionExpression: RuleDefinition["conditionExpression"];
   sourceConditionText: string;
   provisionalOutcome: string;
   timingDestination: string;
@@ -91,6 +92,7 @@ export type PathwayNodeDetail = {
   safetyPriority: SafetyPriority;
   requiredFacts: string[];
   sourceReferences: SourceReference[];
+  controllingSource: SourceReference;
   implementationNote: string;
   updateStatus: string;
   governedClassification: string | null;
@@ -253,6 +255,7 @@ function detailFor(rule: RuleDefinition | undefined): PathwayNodeDetail | null {
   return {
     section: rule.section,
     pathwayStage: rule.pathwayStage,
+    conditionExpression: structuredClone(rule.conditionExpression),
     sourceConditionText: rule.sourceConditionText,
     provisionalOutcome: rule.provisionalOutcome,
     timingDestination: rule.timingDestination,
@@ -263,6 +266,7 @@ function detailFor(rule: RuleDefinition | undefined): PathwayNodeDetail | null {
     safetyPriority: rule.safetyPriority,
     requiredFacts: [...rule.requiredFacts],
     sourceReferences: rule.sourceReferences.map((reference) => ({ ...reference })),
+    controllingSource: { ...rule.sourceReferences[0] },
     implementationNote: rule.implementationNote,
     updateStatus: rule.updateStatus,
     governedClassification: rule.governedClassification ?? null,

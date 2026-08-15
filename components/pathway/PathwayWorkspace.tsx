@@ -38,9 +38,15 @@ export function PathwayWorkspace({
 
   const graph = useMemo(() => {
     try {
-      return buildPathwayGraph(snapshot, viewKey);
+      const built = buildPathwayGraph(snapshot, viewKey);
+      return built.viewType === "MASTER"
+        ? { ...built, title: "Complete Governed Decision Tree" }
+        : built;
     } catch {
-      return buildPathwayGraph(snapshot, summaries[0].key);
+      const fallback = buildPathwayGraph(snapshot, summaries[0].key);
+      return fallback.viewType === "MASTER"
+        ? { ...fallback, title: "Complete Governed Decision Tree" }
+        : fallback;
     }
   }, [snapshot, viewKey, summaries]);
 

@@ -97,29 +97,29 @@ test("governance separates environment authority from production readiness", () 
   );
   assert.match(
     GOVERNANCE,
-    /Real pilot \/ production readiness/,
+    /Production governance/,
     "production readiness must be its own labelled block"
   );
   assert.match(
     GOVERNANCE,
-    /Independent clinical governance:/,
+    /const productionGovernanceStatus = productionGovernanceComplete/,
     "readiness must state whether independent governance is complete"
   );
   assert.match(
     GOVERNANCE,
-    /clinicalEnvironment === "PRODUCTION"/,
+    /const environmentLabel =/,
     "the authority block must name the environment it applies to"
   );
   assert.match(
     GOVERNANCE,
-    /synthetic\/demo cases in this environment/,
-    "a non-production environment must say the cases are synthetic"
+    /Current governed rules/,
+    "the environment-specific current rules must remain distinct from production governance"
   );
 });
 
 test("local rules are presented as an operational overlay", () => {
   assert.match(LOCAL_RULES, /title="Local Referral & Booking Rules"/);
-  assert.match(LOCAL_RULES, /Operational service overlay/);
+  assert.match(LOCAL_RULES, /Local operational rules/);
   assert.match(
     LOCAL_RULES,
     /do\s*\n?\s*not replace the current governed NCSP screening rules/,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { GitBranch, ShieldCheck, Plus } from "lucide-react";
+import { GitBranch, ShieldCheck } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { PageShell, PageHeader, Panel, DrawerDisclosure } from "@/components/system";
@@ -54,7 +54,7 @@ export default async function RulesPage() {
         distinction is unmissable.
       */}
       <Panel className="px-4 py-3.5">
-        <p className="text-sm font-semibold text-foreground">Operational service overlay</p>
+        <p className="text-sm font-semibold text-foreground">Local operational rules</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           These local triage and booking rules support service operations. They do
           not replace the current governed NCSP screening rules.

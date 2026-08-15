@@ -64,8 +64,12 @@ test("governed snapshot keeps its published counts", async () => {
 
 test("every governed view renders as one connected tree", async () => {
   const built = snapshot();
-  for (const summary of listPathwaySummaries(built)) {
+  const summaries = listPathwaySummaries(built);
+  assert.equal(summaries.length, built.views.length);
+  for (const summary of summaries) {
     const graph = buildPathwayGraph(built, summary.key);
+    assert.ok(graph.nodes.length > 0, `${summary.key} must render nodes`);
+    assert.ok(graph.edges.length > 0, `${summary.key} must render edges`);
     assert.equal(
       componentCount(graph),
       1,

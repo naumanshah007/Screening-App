@@ -11,7 +11,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { NcsrCertificationManager } from "./NcsrCertificationManager";
 import { IntegrationValidationManager } from "./IntegrationValidationManager";
 import { cn, formatDate } from "@/lib/utils";
-import { listAdminUsers } from "@/lib/admin/user-management";
 import { getDatabaseRuntimeSummary } from "@/lib/config/database";
 import { getDocumentStorageRuntimeSummary } from "@/lib/documents/storage";
 import { getNcsrCertificationSummary } from "@/lib/integrations/colposcopy-registry/access";
@@ -107,11 +106,9 @@ export default async function AdminPage({
     activeRules,
     recentAuditCount,
     patientStats,
-    practices,
     rulesets,
     sessionsThirtyDays,
     referralStats,
-    users,
     incidentOverview,
     incidentAutomationOverview,
   ] = await Promise.all([
@@ -126,16 +123,6 @@ export default async function AdminPage({
     }),
     canManageUsers
       ? prisma.patient.groupBy({ by: ["status"], _count: true })
-      : Promise.resolve([]),
-    canManageUsers
-      ? prisma.gPPractice.findMany({
-          select: {
-            id: true,
-            name: true,
-            hpiNumber: true,
-          },
-          orderBy: [{ name: "asc" }],
-        })
       : Promise.resolve([]),
     prisma.clinicalRuleVersion.findMany({
       include: {
@@ -157,7 +144,6 @@ export default async function AdminPage({
           _count: true,
         })
       : Promise.resolve([]),
-    canManageUsers ? listAdminUsers() : Promise.resolve([]),
     getSecurityIncidentOverview(),
     getSecurityIncidentAutomationOverview(),
   ]);
@@ -206,8 +192,8 @@ export default async function AdminPage({
     <PageShell>
         <PageIntro
           eyebrow={workspace.label}
-          title="Admin Dashboard"
-          description="System administration, runtime readiness, rule governance, and audit visibility."
+          title="System Operations"
+          description="Security, integration assurance, runtime status, and operational audit controls."
           actions={[
             canManageUsers
               ? { href: "/rules", label: "Open rules" }
@@ -215,6 +201,9 @@ export default async function AdminPage({
             canManageUsers
               ? { href: "/analytics", label: "View analytics" }
               : { href: "/audit", label: "View audit" },
+            ...(canManageUsers
+              ? [{ href: "/batch/runs", label: "View intake history", variant: "outline" as const }]
+              : []),
           ]}
         />
 

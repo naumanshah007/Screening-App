@@ -67,10 +67,9 @@ test("clinical governance and Production activation have a dedicated guarded wor
   const permissions = read("lib/auth/permissions.ts");
   const page = read("app/(app)/governance/clinical/page.tsx");
   const panel = read("components/clinical-rules/ActivationGovernancePanel.tsx");
-  // The sidebar label was shortened to "Governance" for clinician-facing
-  // terminology. What must not regress is that the route is present in the
-  // navigation and guarded — asserted here and on the next line respectively.
-  assert.ok(sidebar.includes('/governance/clinical", "Governance"'));
+  // The route is retained in the collapsed Advanced navigation and remains
+  // guarded; moving it out of ordinary Administration does not change access.
+  assert.ok(sidebar.includes('/governance/clinical", "Clinical Governance"'));
   assert.ok(permissions.includes('prefix: "/governance/clinical"'));
   assert.ok(page.includes("CLINICAL_GOVERNANCE_CASES"));
   assert.ok(page.includes("ACTIVATION_GATE_DEFINITIONS"));

@@ -55,9 +55,8 @@ test("clinician-facing labels replace internal vocabulary", () => {
   for (const [label, retired] of [
     ['"Analytics"', "Operational Analytics"],
     ['"Users & Access"', null],
-    ['"Governance"', "Clinical Governance & Activation"],
+    ['"Clinical Governance"', "Clinical Governance & Activation"],
     ['"Local Referral & Booking Rules"', "Rule Governance"],
-    ['"Deployment Readiness"', "Pilot Readiness"],
   ] as [string, string | null][]) {
     assert.ok(SIDEBAR.includes(label), `missing label ${label}`);
     if (retired) {
@@ -82,11 +81,43 @@ test("Advanced is collapsible and technical items live there", () => {
   );
   for (const item of [
     "Integration Centre",
-    "Local Referral & Booking Rules",
     "Rule Studio",
-    "Deployment Readiness",
+    "Clinical Governance",
+    "System Operations",
+    "Local Referral & Booking Rules",
   ]) {
     assert.ok(advanced.includes(item), `${item} belongs under Advanced`);
+  }
+});
+
+test("governance is not exposed in ordinary Administration", () => {
+  const administration = SIDEBAR.slice(
+    SIDEBAR.indexOf("const administration = ["),
+    SIDEBAR.indexOf("const advanced = [")
+  );
+  assert.match(administration, /Users & Access/);
+  assert.doesNotMatch(administration, /governance\/clinical|Clinical Governance/);
+
+  const advanced = SIDEBAR.slice(
+    SIDEBAR.indexOf("const advanced = ["),
+    SIDEBAR.indexOf("return [", SIDEBAR.indexOf("const advanced = ["))
+  );
+  assert.match(advanced, /authed\("\/governance\/clinical", "Clinical Governance"\)/);
+  assert.match(advanced, /isAdmin \|\| isIntegrationAdmin/);
+});
+
+test("prototype and historical workflows are hidden from navigation", () => {
+  for (const label of [
+    "Deployment Readiness",
+    "Manual Cases",
+    "Patient Registry",
+    "Pathway Wizard",
+    "GP Referral",
+    "Legacy Referral Queue",
+    "Intake Sessions",
+    "Referral Queue",
+  ]) {
+    assert.doesNotMatch(SIDEBAR, new RegExp(`"${label}"`), `${label} must stay off the sidebar`);
   }
 });
 

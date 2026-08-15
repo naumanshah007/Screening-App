@@ -53,13 +53,15 @@ export default async function ClinicalRuleVersionsPage() {
   const user = session?.user as { role?: string } | undefined;
   if (!canPerformClinicalRuleAction(user?.role, "view")) redirect("/dashboard");
   const versions = await listClinicalRuleVersions();
+  const currentVersion = versions.find((version) => version.status === "ACTIVE") ?? null;
+  const reviewVersion = versions.find((version) => version.status === "DRAFT") ?? null;
 
   return (
     <PageShell width="wide">
       <PageHeader
         eyebrow="National clinical logic"
-        title="Versioned Clinical Rule Studio"
-        description="One canonical NCSP graph per version, with synchronized master/pathway views, immutable publication, controlled demo activation, and evaluation provenance."
+        title="Clinical Rule Studio"
+        description="Inspect the current governed NCSP rules, create a successor version, and move it through controlled review without changing the active version in place."
         actions={
           <Link
             href="/rules"
@@ -69,6 +71,39 @@ export default async function ClinicalRuleVersionsPage() {
           </Link>
         }
       />
+
+      <Panel title="Rules version workflow" className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <PanelInset>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">Current governed rules</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="text-lg font-semibold text-foreground">{currentVersion?.displayVersion ?? "Not configured"}</p>
+              {currentVersion ? <StatusBadge tone="success" dot>Active</StatusBadge> : <StatusBadge tone="warn">Unavailable</StatusBadge>}
+            </div>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">The active version is immutable. Use Create new version on its card before making any rule change.</p>
+          </PanelInset>
+          <PanelInset>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">Current review version</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="text-lg font-semibold text-foreground">{reviewVersion?.displayVersion ?? "No draft under review"}</p>
+              {reviewVersion ? <StatusBadge tone="warn" dot>Draft</StatusBadge> : null}
+            </div>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">A successor is validated, clinically reviewed, approved, published, and deliberately activated before it becomes current.</p>
+          </PanelInset>
+        </div>
+        <StepTimeline
+          steps={[
+            { id: "current", label: "Current version", state: "complete" },
+            { id: "draft", label: "Successor draft", state: reviewVersion ? "current" : "upcoming" },
+            { id: "validation", label: "Validation", state: "upcoming" },
+            { id: "clinical-review", label: "Clinical review", state: "upcoming" },
+            { id: "approval", label: "Governance approval", state: "upcoming" },
+            { id: "publication", label: "Publication", state: "upcoming" },
+            { id: "activation", label: "Controlled activation", state: "upcoming" },
+          ]}
+        />
+        <p className="text-xs leading-5 text-muted-foreground">New cases use the newly activated version. Historical cases retain their original ruleset and authority; an explicit re-evaluation creates a new linked evaluation.</p>
+      </Panel>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel className="lg:col-span-2">
@@ -151,6 +186,7 @@ export default async function ClinicalRuleVersionsPage() {
                   <div className="text-xs text-muted-foreground">Created {formatDateTime(version.createdAt)}{version.publishedAt ? ` · Published ${formatDateTime(version.publishedAt)}` : ""}</div>
                   <ClinicalRuleVersionActions
                     id={version.id}
+                    displayVersion={version.displayVersion}
                     status={version.status}
                     sourceSummary={version.sourceGuidelineSummary}
                     canEdit={canPerformClinicalRuleAction(user?.role, "edit")}

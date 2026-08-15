@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/tabs";
 import { ClinicalRuleGraphStudio } from "@/components/clinical-rules/ClinicalRuleGraphStudio";
+import { PathwayCatalogue } from "@/components/pathway/PathwayCatalogue";
 import { PathwayWorkspace } from "@/components/pathway/PathwayWorkspace";
 import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { ClinicalRuleSimulationPanel } from "@/components/clinical-rules/ClinicalRuleSimulationPanel";
@@ -149,6 +150,7 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
             </div>
             <ClinicalRuleVersionActions
               id={version.id}
+              displayVersion={version.displayVersion}
               status={version.status}
               sourceSummary={version.sourceGuidelineSummary}
               canEdit={canPerformClinicalRuleAction(user?.role, "edit")}
@@ -169,7 +171,17 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
         </div>
       </Panel>
 
-      {evaluatedSnapshotLocked && (
+      {version.status === "ACTIVE" ? (
+        <div role="status" className="flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-950 dark:border-brand-800 dark:bg-brand-950/20 dark:text-brand-200">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+          <div>
+            <p className="font-semibold">Current governed version · read-only</p>
+            <p className="mt-1 leading-6">
+              {version.displayVersion} remains immutable while it evaluates new cases. Choose Create new version to make changes in a separately governed draft.
+            </p>
+          </div>
+        </div>
+      ) : evaluatedSnapshotLocked ? (
         <div role="status" className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
           <div>
@@ -179,7 +191,7 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
             </p>
           </div>
         </div>
-      )}
+      ) : null}
 
       <Tabs defaultTab="overview" className="rounded-2xl border border-border bg-card shadow-sm">
         <TabList className="px-2">
@@ -212,7 +224,15 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
         </TabPanel>
 
         <TabPanel id="views" className="p-6">
-          <div className="grid gap-4 lg:grid-cols-2">{[...snapshot.views].sort((a, b) => a.displayOrder - b.displayOrder).map((view) => <Card key={view.key}><CardHeader><div><CardTitle>{view.title}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{view.description}</p></div><Badge variant={view.viewType === "MASTER" ? "info" : "default"}>{view.viewType}</Badge></CardHeader><CardContent className="text-sm text-muted-foreground">{view.includedNodeIds.length} canonical nodes · {view.includedEdgeIds.length} canonical edges · layout only is view-specific</CardContent></Card>)}</div>
+          <PathwayCatalogue
+            snapshot={snapshot}
+            governance={{
+              rulesetId: version.displayVersion,
+              lifecycle: version.status,
+              checksum: version.checksum,
+              sourcePackageVersion: snapshot.sourcePackage.version,
+            }}
+          />
         </TabPanel>
 
         <TabPanel id="rules" className="p-6">

@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, GitBranch, BookOpen,
   BarChart2, Activity, Settings, FileSearch,
-  Stethoscope, HeartPulse, LogOut, ChevronLeft, ChevronRight, ChevronDown,
-  Menu, X, Database, ClipboardCheck, Inbox, FileCheck2,
+  LogOut, ChevronLeft, ChevronRight, ChevronDown,
+  Menu, X, Inbox, FileCheck2,
   ShieldCheck, Cable, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,21 +24,18 @@ type NavSection = { id: string; label: string; links: NavLink[]; collapsible?: b
 
 const ICONS: Record<string, React.ElementType> = {
   "/dashboard":  LayoutDashboard,
+  "/batch":      ClipboardList,
   "/cases":      ClipboardList,
   "/coordinator": Users,
   "/analytics":  BarChart2,
   "/admin/usage": Activity,
+  "/admin/users": Users,
   "/admin/integrations": Cable,
-  "/readiness":  Activity,
   "/guidelines": BookOpen,
   "/rules":      GitBranch,
-  "/patients":   Users,
-  "/pathway":    HeartPulse,
-  "/gp":         Stethoscope,
+  "/rules/clinical": GitBranch,
   "/admin":      Settings,
   "/audit":      FileSearch,
-  "/batch":      Database,
-  "/batch/runs": ClipboardCheck,
   "/review":     Inbox,
   "/decisions":  FileCheck2,
   "/governance/clinical": ShieldCheck,
@@ -107,7 +104,7 @@ function buildSidebarSections(args: {
     ...authed("/audit", "Audit Trail"),
   ];
 
-  // ── Administration: who can use the product, and clinical governance ──────
+  // ── Administration: the ordinary account-management surface ──────────────
   const administration = [
     // Points at /admin/users, the focused account-management surface, rather
     // than /admin, which is a mixed operations page (NCSR, security incidents,
@@ -118,34 +115,26 @@ function buildSidebarSections(args: {
     // is ADMIN-only, so reading the broader guard offered INTEGRATION_ADMIN a
     // link that bounced them straight back to /dashboard.
     ...authed("/admin/users", "Users & Access"),
-    ...authed("/governance/clinical", "Governance"),
   ];
 
   // ── Advanced: technical and service-configuration tools ───────────────────
   //
-  // Collapsed by default and never part of the normal clinical workflow. These
-  // remain fully functional — relocated and renamed rather than removed.
+  // Collapsed by default and limited to authorised administrative/technical
+  // users. Prototype and historical routes remain guarded and directly
+  // addressable, but are no longer advertised as current product workflows.
   const advanced = [
     ...(isAdmin || isIntegrationAdmin ? authed("/admin/integrations", "Integration Centre") : []),
-    ...((isAdmin || isIntegrationAdmin) && showCases
-      ? authed("/rules", "Local Referral & Booking Rules")
-      : []),
     ...(isAdmin || isIntegrationAdmin ? authed("/rules/clinical", "Rule Studio") : []),
-    ...(isAdmin || isIntegrationAdmin ? authed("/readiness", "Deployment Readiness") : []),
+    ...(isAdmin || isIntegrationAdmin
+      ? authed("/governance/clinical", "Clinical Governance")
+      : []),
     // /admin keeps security incidents, integration validation and NCSR
     // certification — genuinely separate from account management, which now
     // lives only at /admin/users. Without this entry that content would be
     // unreachable from the sidebar.
     ...(isAdmin || isIntegrationAdmin ? authed("/admin", "System Operations") : []),
-    ...(isAdmin
-      ? [
-          ...(showBatch ? authed("/batch/runs", "Intake Sessions") : []),
-          ...(showCases ? authed("/cases", "Manual Cases") : []),
-          link("/patients", "Patient Registry"),
-          link("/pathway", "Pathway Wizard"),
-          link("/gp", "GP Referral"),
-          link("/coordinator", "Referral Queue"),
-        ]
+    ...(isAdmin && showCases
+      ? authed("/rules", "Local Referral & Booking Rules")
       : []),
   ];
 

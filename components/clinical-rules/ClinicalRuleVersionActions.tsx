@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 
 export function ClinicalRuleVersionActions({
   id,
+  displayVersion,
   status,
   canEdit,
   canValidate,
@@ -20,6 +21,7 @@ export function ClinicalRuleVersionActions({
   sourceSummary,
 }: {
   id: string;
+  displayVersion: string;
   status: string;
   canEdit: boolean;
   canValidate: boolean;
@@ -32,6 +34,12 @@ export function ClinicalRuleVersionActions({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<string>();
+
+  const suggestedSuccessor = (() => {
+    const match = /^(.*?)(\d+)\.(\d+)\.(\d+)$/.exec(displayVersion);
+    if (!match) return `${displayVersion}-next`;
+    return `${match[1]}${match[2]}.${match[3]}.${Number(match[4]) + 1}`;
+  })();
 
   async function run(action: string, body?: unknown) {
     setPending(action);
@@ -57,8 +65,8 @@ export function ClinicalRuleVersionActions({
   }
 
   async function cloneVersion() {
-    const displayVersion = window.prompt("New semantic version", "CG-NCSP-3.0.1");
-    if (!displayVersion) return;
+    const successorVersion = window.prompt("New version", suggestedSuccessor);
+    if (!successorVersion) return;
     const changeSummary = window.prompt("Change summary");
     if (!changeSummary) return;
     setPending("clone");
@@ -68,14 +76,14 @@ export function ClinicalRuleVersionActions({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           sourceVersionId: id,
-          displayVersion,
+          displayVersion: successorVersion,
           changeSummary,
           changeClassification: "CLINICAL_LOGIC",
         }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Unable to clone version");
-      toast.success("Draft created from immutable snapshot");
+      toast.success("New draft created from the immutable current version");
       router.push(`/rules/clinical/${result.version.id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to clone version");
@@ -87,7 +95,7 @@ export function ClinicalRuleVersionActions({
   return (
     <div className="flex flex-wrap gap-2">
       {canEdit && ["PUBLISHED", "ACTIVE", "RETIRED", "ARCHIVED"].includes(status) && (
-        <Button size="sm" variant="outline" loading={pending === "clone"} onClick={() => void cloneVersion()} icon={<Copy className="h-4 w-4" />}>Clone draft</Button>
+        <Button size="sm" variant="outline" loading={pending === "clone"} onClick={() => void cloneVersion()} icon={<Copy className="h-4 w-4" />}>Create new version</Button>
       )}
       {canValidate && ["DRAFT", "VALIDATED"].includes(status) && (
         <Button size="sm" variant="outline" loading={pending === "validate"} onClick={() => void run("validate")} icon={<FileCheck2 className="h-4 w-4" />}>Validate</Button>

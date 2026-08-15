@@ -49,19 +49,29 @@ test("the governed version is resolved, not hard-coded", () => {
   );
   assert.match(
     PAGE,
-    /title=\{`\$\{version\.displayVersion\} approval centre`\}/,
-    "the heading must name the version actually being governed"
+    /<HeaderMeta label="Review version" value=\{governingDraft \? version\.displayVersion : "None"\}/,
+    "the summary must name the version actually being governed"
   );
 });
 
-test("the active-authority badge names the deciding ruleset, not the draft", () => {
+test("the current governed summary names the deciding ruleset, not the draft", () => {
   // Once a draft exists these are different versions. Printing the draft's
   // identifier beside "ACTIVE" would state that an unapproved draft is
   // deciding cases.
   assert.match(
     PAGE,
-    /\$\{currentGoverned\?\.displayVersion \?\? version\.displayVersion\} · ACTIVE/,
-    "the authority badge must resolve from the current governed ruleset"
+    /const governedVersion = currentGoverned\?\.displayVersion \?\? "Not configured"/,
+    "the current-rules summary must resolve from the current governed ruleset"
+  );
+  assert.match(
+    PAGE,
+    /currentGoverned\s*\? `Active for \$\{environmentLabel\}`/,
+    "only the current governed ruleset may be labelled active"
+  );
+  assert.match(
+    PAGE,
+    /No governed version is active for new cases\./,
+    "an unactivated draft must not be presented as the current governed rules"
   );
 });
 
@@ -74,7 +84,7 @@ test("a page with no draft successor says so and names the next step", () => {
   );
   assert.match(
     PAGE,
-    /clone \{version\.displayVersion\} into a new draft/,
+    /Create a new version from the immutable current rules/,
     "the notice must name the action that unblocks the register"
   );
 });
