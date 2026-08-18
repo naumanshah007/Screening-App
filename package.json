@@ -14,14 +14,14 @@
     "test:router": "tsx --test \"lib/engine/__tests__/source-router-regression.test.ts\"",
     "test:security": "tsx --test \"tests/security/*.test.ts\"",
     "test:conformance": "tsx --test \"tests/clinical-conformance/*.test.ts\"",
-    "test:all": "npm run test:engine && npm run test:batch && npm run test:rules && npm run test:router && npm run test:security && npm run test:conformance && npm run test:db && npm run test:integrations && npm run test:ui",
+    "test:all": "npm run test:engine && npm run test:batch && npm run test:rules && npm run test:cases && npm run test:security && npm run test:conformance && npm run test:db && npm run test:integrations && npm run test:ui",
     "// test:source-verification": "Requires the external v2.1 source package. See docs/canonical-cutover/13-source-artifact-and-reproducibility.md",
     "test:source-verification": "tsx --test \"lib/clinical-rules/__tests__/governed-snapshot-source-verification.test.ts\" \"lib/clinical-rules/__tests__/successor-v3-1.test.ts\"",
     "rules:export:snapshot": "tsx scripts/rule-studio/export-governed-snapshot.ts",
     "rules:import:v2.1": "tsx scripts/import-ncsp-rulebook-v2-1.ts",
     "rules:import:v2.1:successor": "tsx scripts/import-ncsp-rulebook-v2-1-successor.ts",
     "rules:simulate:v2-input-gaps": "tsx scripts/rule-studio/persist-canonical-v2-input-gap-simulations.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "prisma generate && tsc --noEmit",
     "demo:reset": "tsx scripts/demo-reset.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
@@ -37,7 +37,8 @@
     "pilot:c0:identity:convert": "tsx scripts/pilot/convert-demo-seed-to-c0-synthetic-pilot.ts",
     "pilot:c0:browser:serve": "tsx scripts/pilot/run-c0-browser-environment.ts",
     "rules:report:timing": "tsx scripts/rule-studio/timing-classification-report.ts",
-    "test:ui": "tsx --test \"tests/ui/*.test.ts\""
+    "test:ui": "tsx --test \"tests/ui/*.test.ts\"",
+    "test:cases": "tsx --test \"lib/cases/__tests__/*.test.ts\""
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
