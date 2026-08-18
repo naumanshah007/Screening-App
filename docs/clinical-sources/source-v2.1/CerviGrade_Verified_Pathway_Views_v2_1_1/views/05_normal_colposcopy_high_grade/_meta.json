@@ -1,0 +1,15 @@
+{
+  "id": "05_normal_colposcopy_high_grade",
+  "title": "Normal Colposcopy after High-Grade Cytology",
+  "description": "Figure 5 plus the related 2026 CIN2 active-surveillance pathway",
+  "clusters": [
+    "cluster_f5",
+    "cluster_cin2"
+  ],
+  "nodeCount": 40,
+  "edgeCount": 43,
+  "ruleCount": 18,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

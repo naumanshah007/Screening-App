@@ -1,0 +1,11 @@
+[
+  {"id":"F1-TRANSITION-INVITE-NOW","source":"Clinical Practice Guidelines for Cervical Screening in Aotearoa NZ, June 2023 v1.1, Figure 1","entry":"never screened, under-screened, or overdue","expected":"invite now for HPV primary screening","review":"provisional; original figure not present in supplied workspace"},
+  {"id":"F2-UNRESOLVED-HIGH-GRADE","source":"2023 v1.1, Figure 2","entry":"prior high-grade/glandular history not returned to regular screening","expected":"colposcopy/Test of Cure/specialist routing by history","review":"provisional"},
+  {"id":"F3-HPV-NOT-DETECTED-IMMUNE-COMPETENT","source":"2023 v1.1, Figure 3","entry":"asymptomatic, HPV not detected","expected":"5-year recall","review":"deterministic"},
+  {"id":"F3-HPV16_18-COLPOSCOPY","source":"2023 v1.1, Figure 3","entry":"HPV 16/18","expected":"colposcopy; do not wait for cytology where source states referral","review":"deterministic"},
+  {"id":"F3-HPV-OTHER-LOW-GRADE","source":"2023 v1.1, Figure 3","entry":"HPV Other and negative/ASC-US/LSIL","expected":"repeat/cytology/age-dependent pathway","review":"deterministic"},
+  {"id":"F6-TOC-HPV-DETECTED-COLPOSCOPY","source":"2023 v1.1, Figure 6","entry":"Test of Cure, HPV detected","expected":"colposcopy","review":"deterministic"},
+  {"id":"T1-HYSTERECTOMY-UNKNOWN-HISTORY-HPV-6M","source":"2023 v1.1, Table 1","entry":"total hysterectomy, no known history","expected":"required test pathway; no automatic cessation","review":"deterministic"},
+  {"id":"F9-PREGNANCY-HIGH-GRADE-COLPOSCOPY","source":"2023 v1.1, Figure 9","entry":"pregnancy plus qualifying high-grade/glandular cytology","expected":"experienced-colposcopist/specialist pathway and mandatory review","review":"clinician-led downstream"},
+  {"id":"F10-SUSPECTED-CANCER-URGENT-REFERRAL","source":"2023 v1.1, Figure 10","entry":"abnormal bleeding with cancer concern","expected":"urgent referral not delayed for co-test","review":"deterministic"}
+]

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { cloneElement, isValidElement, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
@@ -29,9 +29,28 @@ export function Dropdown({ trigger, children, align = "right", className }: Drop
     };
   }, []);
 
+  const enhancedTrigger = isValidElement<{
+    onClick?: React.MouseEventHandler;
+    "aria-haspopup"?: "menu";
+    "aria-expanded"?: boolean;
+  }>(trigger)
+    ? cloneElement(trigger, {
+        onClick: (event: React.MouseEvent) => {
+          trigger.props.onClick?.(event);
+          if (!event.defaultPrevented) setOpen((value) => !value);
+        },
+        "aria-haspopup": "menu",
+        "aria-expanded": open,
+      })
+    : (
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-haspopup="menu" aria-expanded={open}>
+        {trigger}
+      </button>
+    );
+
   return (
     <div ref={ref} className="relative inline-block">
-      <div onClick={() => setOpen((o) => !o)}>{trigger}</div>
+      {enhancedTrigger}
       {open && (
         <div
           className={cn(

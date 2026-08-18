@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
-import { canManageCaseRuleReleases } from "@/lib/cases/rule-governance";
+import { canActivateCaseRuleReleases } from "@/lib/cases/rule-governance";
 import { publishCaseRuleSetRelease } from "@/lib/cases/rule-releases";
 import { isFeatureEnabled } from "@/lib/features";
 
@@ -25,7 +25,7 @@ export async function POST(
   if (!session || !user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-  if (!canManageCaseRuleReleases(user.role)) {
+  if (!canActivateCaseRuleReleases(user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -44,8 +44,11 @@ export async function POST(
       message === "Case rule release not found"
         ? 404
         : message === "Case rule release must be reviewed before publishing" ||
+            message === "Only reviewed releases can be activated" ||
             message === "Reviewer and publisher must be different users" ||
-            message === "Case rule release regression suite must pass before publishing"
+            message === "Reviewer and activator must be different users" ||
+            message === "Case rule release regression suite must pass before publishing" ||
+            message === "Regression suite must pass before activation"
           ? 409
           : 500;
     return NextResponse.json({ error: message }, { status });

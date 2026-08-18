@@ -21,6 +21,10 @@ import type {
   BatchCaseResult,
   SourceType,
 } from "@/lib/batch/types";
+import { getActiveCaseRuleSetRelease } from "@/lib/cases/rule-releases";
+import { parseCaseRuleReleaseDefinition } from "@/lib/cases/rule-policy";
+import { gradeCanonicalCase } from "@/lib/batch/rule-facts";
+import type { DecisionSnapshot } from "@/lib/batch/reprocessing";
 import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 
@@ -96,10 +100,54 @@ export async function saveBatchRun(args: {
   const reviewRequiredCount = result.results.filter(isReviewRequired).length;
   const shadowRuleVersion = await resolveShadowClinicalRuleVersion().catch(() => null);
 
+  // Booking triage grade — run each case through the active, admin-editable
+  // rule release. Cervical screening pulls map to the COLPOSCOPY service line.
+  // Best-effort: if no release is published, items simply have no triage grade.
+  const activeRelease = await getActiveCaseRuleSetRelease("COLPOSCOPY").catch(() => null);
+  const ruleDefinition = activeRelease
+    ? parseCaseRuleReleaseDefinition({
+        serviceLine: activeRelease.serviceLine,
+        definitionJson: activeRelease.definitionJson,
+      })
+    : null;
+
+  // Reprocessing — find how many times each NHI in this batch was seen before
+  // and the most recent prior item id, in a single query.
+  const nhis = Array.from(
+    new Set(
+      result.results
+        .map((r) => r.case.nhi ?? r.case.source.externalPatientId)
+        .filter((v): v is string => Boolean(v))
+    )
+  );
+  const priorItems = nhis.length
+    ? await prisma.batchReviewItem.findMany({
+        where: { nhi: { in: nhis } },
+        select: { id: true, nhi: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+  const priorByNhi = new Map<string, { count: number; latestId: string }>();
+  for (const p of priorItems) {
+    if (!p.nhi) continue;
+    const existing = priorByNhi.get(p.nhi);
+    if (existing) existing.count += 1;
+    else priorByNhi.set(p.nhi, { count: 1, latestId: p.id });
+  }
+
   const itemData: Prisma.BatchReviewItemCreateWithoutBatchRunInput[] =
     result.results.map((item) => {
       const c = item.case;
       const d = item.decision;
+      const nhi = c.nhi ?? c.source.externalPatientId ?? null;
+      const prior = nhi ? priorByNhi.get(nhi) : undefined;
+
+      // Grade against the active release (only for successfully-processed cases).
+      const grade =
+        ruleDefinition && item.status === "success"
+          ? gradeCanonicalCase({ ruleDefinition, batchCase: c })
+          : null;
+
       return {
         rowNumber: c.source.rowNumber,
         label: c.label ?? null,
@@ -107,7 +155,7 @@ export async function saveBatchRun(args: {
         patientAge: c.patientAge ?? null,
         ethnicityPrimary: c.ethnicityPrimary ?? null,
         patientName: c.patientName ?? null,
-        nhi: c.nhi ?? c.source.externalPatientId ?? null,
+        nhi,
         gpPractice: c.gpPractice ?? null,
         receivedDate: c.receivedDate ? new Date(c.receivedDate) : null,
         figure: d.figure,
@@ -122,6 +170,17 @@ export async function saveBatchRun(args: {
         caseJson: JSON.stringify(c),
         inputJson: JSON.stringify(item.input),
         decisionJson: JSON.stringify(d),
+        // Booking triage grade
+        triagePriority: grade?.recommendation.priority ?? null,
+        triageCategory: grade?.recommendation.category ?? null,
+        triageOutcome: grade?.recommendation.outcome ?? null,
+        triageTargetDays: grade?.recommendation.targetDays ?? null,
+        triageRuleCode: grade?.matchedRuleCode ?? null,
+        triageRuleReleaseId: grade ? activeRelease?.id ?? null : null,
+        triageRuleVersion: grade ? activeRelease?.version ?? null : null,
+        // Reprocessing
+        priorDecisionCount: prior?.count ?? 0,
+        priorItemId: prior?.latestId ?? null,
       };
     });
 
@@ -265,6 +324,129 @@ export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCa
   };
 }
 
+// ─── Reprocessing: prior decision snapshots for the drill-in compare ──────────
+
+export type SnapshotItem = {
+  recommendation: string;
+  recommendationCode: string;
+  riskLevel: string;
+  referralPriority: string | null;
+  triagePriority: string | null;
+  disposition: string;
+  reviewedAt: Date | null;
+  createdAt: Date;
+  reviewedBy: { name: string | null; email: string } | null;
+};
+
+function toSnapshot(item: SnapshotItem): DecisionSnapshot {
+  const date = item.reviewedAt ?? item.createdAt;
+  return {
+    recommendation: item.recommendation,
+    recommendationCode: item.recommendationCode,
+    riskLevel: item.riskLevel,
+    referralPriority: item.referralPriority,
+    triagePriority: item.triagePriority,
+    disposition: item.disposition,
+    reviewedByName: item.reviewedBy?.name ?? item.reviewedBy?.email ?? null,
+    reviewedAt: item.reviewedAt ? item.reviewedAt.toISOString() : null,
+    date: date.toISOString(),
+  };
+}
+
+export function buildSnapshotFromRecord(item: SnapshotItem): DecisionSnapshot {
+  return toSnapshot(item);
+}
+
+/** Load DecisionSnapshots for a set of prior item ids, keyed by id. */
+export async function getPriorSnapshots(
+  priorItemIds: string[]
+): Promise<Map<string, DecisionSnapshot>> {
+  const ids = Array.from(new Set(priorItemIds.filter(Boolean)));
+  if (ids.length === 0) return new Map();
+  const rows = await prisma.batchReviewItem.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      recommendation: true,
+      recommendationCode: true,
+      riskLevel: true,
+      referralPriority: true,
+      triagePriority: true,
+      disposition: true,
+      reviewedAt: true,
+      createdAt: true,
+      reviewedBy: { select: { name: true, email: true } },
+    },
+  });
+  const map = new Map<string, DecisionSnapshot>();
+  for (const r of rows) map.set(r.id, toSnapshot(r));
+  return map;
+}
+
+// ─── Re-grade a run with the currently-active rule release ────────────────────
+
+/**
+ * Re-applies the active COLPOSCOPY rule release to a run's still-PENDING items.
+ * Lets a demo show: edit a rule → activate → re-grade → booking priorities move,
+ * without re-pulling. Returns how many items changed.
+ */
+export async function regradeRunWithActiveRules(args: {
+  runId: string;
+  actorUserId: string;
+}): Promise<{ regraded: number; changed: number; ruleVersion: string | null }> {
+  const release = await getActiveCaseRuleSetRelease("COLPOSCOPY").catch(() => null);
+  if (!release) {
+    throw new BatchReviewError("No active rule release to grade against.");
+  }
+  const ruleDefinition = parseCaseRuleReleaseDefinition({
+    serviceLine: release.serviceLine,
+    definitionJson: release.definitionJson,
+  });
+
+  const items = await prisma.batchReviewItem.findMany({
+    where: { batchRunId: args.runId, disposition: "PENDING" },
+    select: { id: true, caseJson: true, engineStatus: true, triagePriority: true },
+  });
+
+  let changed = 0;
+  await prisma.$transaction(async (tx) => {
+    for (const item of items) {
+      if (item.engineStatus === "error") continue;
+      const batchCase = JSON.parse(item.caseJson);
+      const grade = gradeCanonicalCase({ ruleDefinition, batchCase });
+      if (grade.recommendation.priority !== item.triagePriority) changed += 1;
+      await tx.batchReviewItem.update({
+        where: { id: item.id },
+        data: {
+          triagePriority: grade.recommendation.priority,
+          triageCategory: grade.recommendation.category,
+          triageOutcome: grade.recommendation.outcome,
+          triageTargetDays: grade.recommendation.targetDays ?? null,
+          triageRuleCode: grade.matchedRuleCode,
+          triageRuleReleaseId: release.id,
+          triageRuleVersion: release.version,
+        },
+      });
+    }
+    await tx.auditLog.create({
+      data: {
+        userId: args.actorUserId,
+        action: "REGRADE",
+        entity: "BatchRun",
+        entityId: args.runId,
+        newValue: JSON.stringify({
+          ruleReleaseId: release.id,
+          ruleVersion: release.version,
+          regraded: items.length,
+          changed,
+        }),
+      },
+    });
+  });
+
+  return { regraded: items.length, changed, ruleVersion: release.version };
+}
+
 // ─── Review queue (aggregate, across all runs) ────────────────────────────────
 
 const reviewQueueInclude = {
@@ -370,18 +552,22 @@ export async function applyDisposition(args: {
   }
 
   const items = await prisma.batchReviewItem.findMany({
-    where: { id: { in: args.itemIds } },
-    select: { id: true, batchRunId: true },
+    where: { id: { in: args.itemIds }, disposition: "PENDING" },
+    select: { id: true, batchRunId: true, reviewRequired: true },
   });
-  if (items.length === 0) {
-    throw new BatchReviewError("No matching cases found.");
+  const requestedIds = Array.from(new Set(args.itemIds));
+  if (items.length !== requestedIds.length) {
+    throw new BatchReviewError("One or more cases were already reviewed or no longer exist. Refresh the queue and try again.");
+  }
+  if (disposition === "ACCEPTED" && items.some((item) => item.reviewRequired) && !note) {
+    throw new BatchReviewError("A clinical review note is required when accepting mandatory-review cases.");
   }
   const validIds = items.map((i) => i.id);
   const runIds = Array.from(new Set(items.map((i) => i.batchRunId)));
 
   await prisma.$transaction(async (tx) => {
-    await tx.batchReviewItem.updateMany({
-      where: { id: { in: validIds } },
+    const update = await tx.batchReviewItem.updateMany({
+      where: { id: { in: validIds }, disposition: "PENDING" },
       data: {
         disposition,
         reviewedByUserId,
@@ -390,6 +576,9 @@ export async function applyDisposition(args: {
         overrideReason,
       },
     });
+    if (update.count !== validIds.length) {
+      throw new BatchReviewError("Another reviewer updated one or more cases. Refresh the queue and try again.");
+    }
 
     for (const runId of runIds) {
       await recomputeRunCounts(tx, runId);

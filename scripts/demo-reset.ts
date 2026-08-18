@@ -4,6 +4,9 @@ import bcrypt from "bcryptjs";
 import { createPrismaAdapter } from "../lib/config/database";
 import { ENGINE_VERSION, processBatch } from "../lib/batch/processor";
 import { isReviewRequired } from "../lib/batch/persistence";
+import { gradeCanonicalCase } from "../lib/batch/rule-facts";
+import { getActiveCaseRuleSetRelease } from "../lib/cases/rule-releases";
+import { parseCaseRuleReleaseDefinition } from "../lib/cases/rule-policy";
 import type { CanonicalBatchCase } from "../lib/batch/types";
 import { buildDecisionPackageAuditPayload } from "../lib/decisions/package-audit";
 
@@ -219,11 +222,24 @@ async function createDemoRun(users: Awaited<ReturnType<typeof upsertDemoUsers>>)
     NEEDS_INFO: 0,
   };
 
+  // Grade seeded items against the active rule release so the dashboard's
+  // Booking Priority Mix is populated out-of-the-box (matches saveBatchRun).
+  const activeRelease = await getActiveCaseRuleSetRelease("COLPOSCOPY").catch(() => null);
+  const ruleDefinition = activeRelease
+    ? parseCaseRuleReleaseDefinition({
+        serviceLine: activeRelease.serviceLine,
+        definitionJson: activeRelease.definitionJson,
+      })
+    : null;
+
   const items: Prisma.BatchReviewItemUncheckedCreateWithoutBatchRunInput[] = result.results.map((item) => {
     const c = item.case;
     const d = item.decision;
     const disposition = dispositionFor(c.caseId);
     counts[disposition.disposition] += 1;
+    const grade = ruleDefinition && item.status === "success"
+      ? gradeCanonicalCase({ ruleDefinition, batchCase: c })
+      : null;
 
     return {
       rowNumber: c.source.rowNumber,
@@ -247,6 +263,13 @@ async function createDemoRun(users: Awaited<ReturnType<typeof upsertDemoUsers>>)
       caseJson: JSON.stringify(c),
       inputJson: JSON.stringify(item.input),
       decisionJson: JSON.stringify(d),
+      triagePriority: grade?.recommendation.priority ?? null,
+      triageCategory: grade?.recommendation.category ?? null,
+      triageOutcome: grade?.recommendation.outcome ?? null,
+      triageTargetDays: grade?.recommendation.targetDays ?? null,
+      triageRuleCode: grade?.matchedRuleCode ?? null,
+      triageRuleReleaseId: grade ? activeRelease?.id ?? null : null,
+      triageRuleVersion: grade ? activeRelease?.version ?? null : null,
       disposition: disposition.disposition,
       reviewedByUserId: disposition.reviewerKey ? users[disposition.reviewerKey].id : null,
       reviewedAt: disposition.reviewedAt ?? null,

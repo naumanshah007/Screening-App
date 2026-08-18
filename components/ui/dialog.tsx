@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { X, AlertTriangle } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { Button } from "./button";
 
 interface DialogProps {
@@ -23,11 +23,33 @@ const sizeClasses = {
 
 export function Dialog({ open, onClose, title, description, children, footer, size = "md" }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ));
+      if (focusable.length === 0) {
+        e.preventDefault();
+        panelRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener("keydown", handleKey);
     document.body.style.overflow = "hidden";
     panelRef.current?.focus();
@@ -45,8 +67,8 @@ export function Dialog({ open, onClose, title, description, children, footer, si
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="dialog-title"
-      aria-describedby={description ? "dialog-description" : undefined}
+      aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
     >
       <div
         className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-fade-in"
@@ -65,9 +87,9 @@ export function Dialog({ open, onClose, title, description, children, footer, si
       >
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border">
           <div>
-            <h2 id="dialog-title" className="text-lg font-semibold text-foreground">{title}</h2>
+            <h2 id={titleId} className="text-lg font-semibold text-foreground">{title}</h2>
             {description && (
-              <p id="dialog-description" className="text-sm text-muted-foreground mt-0.5">{description}</p>
+              <p id={descriptionId} className="text-sm text-muted-foreground mt-0.5">{description}</p>
             )}
           </div>
           <button

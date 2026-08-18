@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
 
 @theme inline {
   /* ---------- Fonts ---------- */
@@ -476,4 +477,107 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ============================================================
+   Clinical pathway graph — tone tokens
+   ------------------------------------------------------------
+   One palette shared by Guidelines, Rule Studio and Case Review.
+   Tones map from the governed `visualCategory` on each node, so the
+   colour of a node is decided by clinical governance, not the renderer.
+   Red is reserved for governed safety stops; amber for clinician-review
+   / more-information-required states.
+   ============================================================ */
+:root {
+  --pw-canvas:          #f6f9fc;
+  --pw-canvas-dot:      #d8e3ef;
+  --pw-card:            #ffffff;
+  --pw-card-fg:         #0f172a;
+  --pw-card-muted:      #64748b;
+  --pw-edge:            #b6c6d8;
+  --pw-edge-strong:     #0d9488;
+  --pw-edge-dim:        #e3ebf3;
+  --pw-ring:            #0d9488;
+
+  --pw-entry-bg:        #f1f5fb;
+  --pw-entry-border:    #b3c7df;
+  --pw-entry-accent:    #1e3a5f;
+  --pw-entry-fg:        #16294a;
+
+  --pw-decision-bg:     #f2fbf9;
+  --pw-decision-border: #99d9d0;
+  --pw-decision-accent: #0d9488;
+  --pw-decision-fg:     #10403c;
+
+  --pw-routine-bg:      #f2fbf4;
+  --pw-routine-border:  #b3e2c1;
+  --pw-routine-accent:  #16a34a;
+  --pw-routine-fg:      #14361f;
+
+  --pw-monitor-bg:      #f1f8fe;
+  --pw-monitor-border:  #b2d8f2;
+  --pw-monitor-accent:  #0284c7;
+  --pw-monitor-fg:      #14344c;
+
+  --pw-referral-bg:     #f4f4fd;
+  --pw-referral-border: #c5c6ee;
+  --pw-referral-accent: #4f46e5;
+  --pw-referral-fg:     #23225b;
+
+  --pw-review-bg:       #fffaf0;
+  --pw-review-border:   #f4d79a;
+  --pw-review-accent:   #b45309;
+  --pw-review-fg:       #452a08;
+
+  --pw-urgent-bg:       #fef4f4;
+  --pw-urgent-border:   #f3b8b8;
+  --pw-urgent-accent:   #c02626;
+  --pw-urgent-fg:       #4c1414;
+}
+
+[data-theme="dark"] {
+  --pw-canvas:          #080d16;
+  --pw-canvas-dot:      #1c2637;
+  --pw-card:            #101827;
+  --pw-card-fg:         #e8eef7;
+  --pw-card-muted:      #93a3b8;
+  --pw-edge:            #33455e;
+  --pw-edge-strong:     #2dd4bf;
+  --pw-edge-dim:        #1b2637;
+  --pw-ring:            #2dd4bf;
+
+  --pw-entry-bg:        #14213a;
+  --pw-entry-border:    #34527d;
+  --pw-entry-accent:    #9dbbe4;
+  --pw-entry-fg:        #dfe9f8;
+
+  --pw-decision-bg:     #0d2a2a;
+  --pw-decision-border: #1d5f5a;
+  --pw-decision-accent: #5eead4;
+  --pw-decision-fg:     #d3f5f0;
+
+  --pw-routine-bg:      #0d2618;
+  --pw-routine-border:  #1f5c37;
+  --pw-routine-accent:  #6ee7a0;
+  --pw-routine-fg:      #d5f6e2;
+
+  --pw-monitor-bg:      #0b2437;
+  --pw-monitor-border:  #1c557f;
+  --pw-monitor-accent:  #7cc9f5;
+  --pw-monitor-fg:      #d3ebfb;
+
+  --pw-referral-bg:     #1a1a38;
+  --pw-referral-border: #3b3a75;
+  --pw-referral-accent: #a5a3f5;
+  --pw-referral-fg:     #e0dffb;
+
+  --pw-review-bg:       #2c2109;
+  --pw-review-border:   #6b5115;
+  --pw-review-accent:   #f0c05a;
+  --pw-review-fg:       #f8ecd2;
+
+  --pw-urgent-bg:       #2e1213;
+  --pw-urgent-border:   #74282b;
+  --pw-urgent-accent:   #f38b8b;
+  --pw-urgent-fg:       #f9dcdc;
 }

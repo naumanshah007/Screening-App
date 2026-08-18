@@ -12,13 +12,15 @@ export function RuleReleaseActionButton({
   variant = "outline",
   disabled = false,
   disabledReason,
+  confirmMessage,
 }: {
   releaseId: string;
-  action: "review" | "publish";
+  action: "review" | "activate";
   label: string;
-  variant?: "outline" | "success";
+  variant?: "outline" | "success" | "primary";
   disabled?: boolean;
   disabledReason?: string;
+  confirmMessage?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,9 @@ export function RuleReleaseActionButton({
   async function handleClick() {
     if (disabled) {
       setError(disabledReason ?? "Action is currently unavailable");
+      return;
+    }
+    if (confirmMessage && !window.confirm(confirmMessage)) {
       return;
     }
 

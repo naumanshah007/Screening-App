@@ -94,6 +94,16 @@ test("decision package avoids overclaiming live integration wording", () => {
   }
 });
 
+test("decision package HL7 message uses a valid MSH-7 timestamp (YYYYMMDDHHMMSS)", () => {
+  const pkg = buildSimulatedDecisionPackage(completedItem, "2026-06-19T03:00:00.000Z");
+  const msh = pkg.hl7StyleMessage.split("\n")[0];
+  const mshFields = msh.split("|");
+  // MSH-7 (date/time of message) is the 7th field; MSH-1 is the field separator,
+  // so index 6 in the split array.
+  assert.equal(mshFields[6], "20260619030000");
+  assert.ok(!mshFields[6].includes("T"), "HL7 timestamp must not contain a 'T' separator");
+});
+
 test("decision package rejects pending review items", () => {
   assert.throws(
     () => buildSimulatedDecisionPackage({ ...completedItem, disposition: "PENDING" }),

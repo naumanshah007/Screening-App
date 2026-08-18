@@ -1,0 +1,438 @@
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+     This update should be read in conjunction with the Clinical Practice Guidelines for
+                 Cervical Screening in Aotearoa New Zealand, June 2023.
+
+
+Background
+Clinical practice guidelines require regular review. The Clinical Practice Guidelines
+(CPG) for Cervical Screening in Aotearoa New Zealand were finalised in June 2023 and
+implemented in September 2023, coinciding with the introduction of HPV Primary
+Screening.
+
+Updated guidelines have been developed to replace the June 2023 version. These
+updates have significant implications for digital infrastructure, Register services,
+communications, and provider training, and will require substantial resources for full
+implementation.
+
+Importantly, some changes—particularly those affecting the Cervical Screening
+Register—must be in place before the guidelines can be fully enacted. However, certain
+components of the updated guidelines that enhance clarity and enable colposcopy
+clinics to allocate resources more effectively can be implemented immediately, as they
+do not require changes to the Register. These components are introduced here.
+
+
+Definitions, translations and acronyms
+Please refer to the current Clinical Practice Guidelines for Cervical Screening in
+Aotearoa New Zealand for terminology, abbreviations and definitions.
+
+
+Associated documents
+
+ Associated policies, procedures and resources
+
+ Clinical Practice Guidelines for Cervical Screening in Aotearoa New Zealand
+
+ Standards of practice for providers of National Cervical Screening Programme
+ services
+
+
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      1 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+Purpose of the update
+This addendum describes clinical scenarios from the updated Clinical Practice
+Guidelines where colposcopy clinics can safely direct their resources more effectively,
+and addresses some gaps in the current guidelines. This update can be implemented
+immediately and supersedes the current guidelines.
+
+    •   Section 6. Section R6.05: Type 3 TZ at colposcopy and ASC-US/LSIL cytology –
+        cytological review prior to observation.
+
+    •   Section 8. Section R8.03: Active surveillance of CIN2 in participants aged under
+        30.
+
+    •   Section 8. Section R8.06: Management of positive margins after treatment of HSIL
+        in participants aged under 50 years.
+
+    •   Section 9. Section R9.14: Follow-up after excision treatment for AIS.
+
+    •   Screening after gynaecological cancer.
+
+    •   Section 12: Immune deficiency.
+
+
+Guideline updates
+
+Section 6. Section R6.05: Type 3 TZ at colposcopy and ASC-US/LSIL cytology –
+cytological review prior to observation.
+
+The current guidelines advise those with Type 3 TZ at colposcopy and ASC-US/LSIL
+cytology require cytological review at MDM.
+
+ UPDATED RECOMMENDATION
+
+ R6.05                                       For those with a Type 3 TZ who are HPV positive, LG
+ Type 3 TZ at colposcopy                     cytology and normal colposcopy, MDM cytological
+ and ASC-US/LSIL cytology                    review is not required.
+ – cytological review prior
+ to observation.
+
+
+
+Section 8. Section R8.03: Active surveillance of CIN2 in participants aged under 30.
+
+The current guidelines state that it may be acceptable to offer a period of colposcopic
+observation to some participants who have a histological diagnosis of CIN2.
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      2 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+The updated guidelines are more explicit regarding recommendations around this. The
+criteria for active surveillance of CIN2 are detailed here and shown in Figure 1:
+
+ RECOMMENDATION
+
+ R8.03                                       Participants aged under 30 at time of diagnosis can be
+ Active surveillance of CIN2                 offered active surveillance of CIN2 if:
+ in participants aged under
+                                             •   there is a Type 1 or 2 TZ and a CIN3 or invasive lesion
+ 30.
+                                                 is excluded
+
+                                             •   CIN2 has been diagnosed on histology and
+                                                 reviewed at MDM
+
+                                             •   The participant agrees to regular 6 monthly follow-
+                                                 up colposcopy examinations including repeat
+                                                 cervical cytology, and biopsy of any lesions present
+
+                                             •   the participant understands that the time period for
+                                                 colposcopic observation of CIN2 could be up to 24
+                                                 months
+
+                                             •   Treatment must be offered if the CIN2 has not
+                                                 resolved within 24 months. If CIN3 is diagnosed
+                                                 during follow-up, then treatment is recommended.
+
+                                             Practice Point
+
+                                             It is important to discuss the benefits and risks of active
+                                             surveillance of CIN2 with participants to guide shared
+                                             decision making when opting for surveillance or
+                                             treatment. Participants should be informed that they
+                                             can change the plan from active surveillance to
+                                             treatment at any time during the follow-up if CIN2 is still
+                                             present.
+
+                                             When CIN2 has regressed, participants can be
+                                             discharged from colposcopy clinic and should
+                                             complete a Test of Cure prior to returning to the regular
+                                             screening interval.
+
+
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      3 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+ Figure 1: Active surveillance of CIN2 under 30 years of age
+
+
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      4 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+Section 8. Section R8.06: Management of positive margins after excision treatment of
+HSIL in participants aged under 50 years.
+
+The current guidelines state that the first Test of Cure surveillance following treatment
+for HSIL should be in colposcopy clinic if the histology does not show complete excision.
+Follow-up is in primary care if the histology shows complete excision.
+
+The updated guidelines remove the requirement for colposcopy follow-up in those
+aged under 50 who have positive excision margins at time of treatment. This is
+because HPV testing is more sensitive than either colposcopy or excision margin status.
+
+ UPDATED RECOMMENDATION
+
+ R8.06                                       For those aged under 50 with positive excision margins
+ Management of positive                      at the time of their HSIL treatment, Test of Cure follow-
+ margins after excision                      up can be done in primary/community care.
+ treatment of HSIL in
+ participants aged under
+ 50 years.
+
+
+
+Section 9. Section R9.14: Follow-up after excision treatment for AIS.
+
+The current guidelines recommend colposcopy follow-up for those with completely
+excised HPV positive AIS.
+
+The updated guidelines recommend that when participants are treated for
+histologically confirmed HPV detected AIS and the histology confirms clear margins,
+follow-up can occur in primary/community care. This is because a positive HPV test
+has shown to be the most significant predictor of residual disease. The follow-up
+should be a co-test at 6 and 18 months for a Test of Cure.
+
+ UPDATED RECOMMENDATION
+
+ R9.14                                       Following treatment for HPV detected AIS with clear
+ Follow-up after excision                    excision margins, follow-up can be in
+ treatment for AIS.                          primary/community care (not colposcopy) with a co-
+                                             test at 6 and 18 months.
+
+
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      5 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+Screening after gynaecological cancer.
+
+This is not explicit in the current guidelines.
+
+HPV and cytology testing following treatment for cervical and vaginal cancer is not
+screening. Because of this, anyone with cervical or vaginal cancer is unenrolled from
+the Cervical Screening Register and communications (notifications) from the National
+Cervical Screening Programme (NCSP) should not be sent. NCSP does not provide
+recommendations on tests received for this group, except for those with a stage 1a1
+Cervical Cancer.
+
+ UPDATED RECOMMENDATION
+
+ For people who have had stage 1a1 cervical cancers (squamous cell cancer (SCC) or
+ adenocarcinoma):
+
+ •   Treated by local excision (i.e. LLETZ or cone): these participants will return to
+     regular cervical screening after successful treatment and completion of a Test of
+     Cure.
+
+         o     If HPV is detected (any type) or cytology is abnormal during the Test of
+               Cure period participants should be referred to colposcopy.
+
+         o     If there is an HPV detected test after the completion of a Test of Cure,
+               further management should follow the HPV primary screening guidelines.
+
+ •   Treated by total hysterectomy: these participants can cease cervical screening
+     after completing a Test of Cure.
+
+ For people who are unenrolled because of previous cancer, there are no restrictions
+ on continuing to have HPV or cervical cytology tests. This should be determined by
+ the clinician and the participant. NCSP will not be making recommendations on tests
+ and management for this group.
+
+ For people who have had a HSIL without a Test of Cure prior to a hysterectomy for a
+ non-cervical gynaecological cancer, a Test of Cure should be undertaken. If the Test
+ of Cure results are HPV not detected and negative cytology on two consecutive
+ occasions 12 months apart, the participant can cease screening.
+
+ People with gynaecological cancers who have had a sub-total hysterectomy
+ should continue screening and will continue to receive notifications from the Cervical
+ Screening Register.
+
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      6 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+Section 12: Immune deficiency.
+
+The updated guidelines are more explicit as to what constitutes immune deficiency for
+the purposes of cervical screening and can be applied now.
+
+SCREENING INTERVAL                 CONDITIONS AND MEDICATIONS
+
+3-yearly screening                 Living with human immunodeficiency virus (HIV), regardless
+recommended [a]                    of viral load
+
+                                   Solid organ transplant with immunosuppressive therapy
+
+                                   Active haematological malignancy (e.g. Leukaemia,
+                                   lymphoma, other lymphoproliferative disorder, plasma cell
+                                   dyscrasia)
+
+                                   Haematopoietic stem cell transplant (HSCT) recipients or
+                                   chimeric antigen receptor T-cell (CAR-T) therapy within 2
+                                   years of transplantation. Has chronic graft versus host
+                                   disease.
+
+                                   Primary immunodeficiency including combined
+                                   immunodeficiency syndromes (e.g. systemic lupus
+                                   erythematosus, complement deficiencies)
+
+                                   Major antibody deficiency (e.g. common variable immune
+                                   deficiency [CVID] or agammaglobulinemia).
+
+                                   Defects of innate immunity, including phagocytic cells (e.g.
+                                   NF-kappa-B essential modulator (NEMO) deficiency
+                                   syndrome, natural killer (NK) cell deficiency)
+
+                                   Defects of immune regulation (e.g. autoimmune
+                                   enteropathy or ulcerative colitis)
+
+                                   Phenocopies of primary immunodeficiencies
+
+3-yearly screening                 Long term haemodialysis or peritoneal dialysis (>6 months)
+should be highly
+                                   When participants are taking multiple
+considered [b]
+                                   immunosuppressants where the cumulative effect is
+                                   considered to be severely immunosuppressive
+
+                                   Participants taking long-term treatment (>6 months) with
+                                   highly immunosuppressive therapies.
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      7 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+SCREENING INTERVAL                 CONDITIONS AND MEDICATIONS
+
+                                   Including the following immunosuppressive medications:
+
+                                   High-dose corticosteroid treatment equivalent to >20
+                                   mg/day of prednisone for ≥14 days in a month, or pulse
+                                   corticosteroid therapy
+
+                                   Selected conventional and targeted synthetic disease-
+                                   modifying anti-rheumatic drugs (sDMARDS), taken for long-
+                                   term treatment for > 6 months: leflunomide
+
+                                   Mycophenolate
+
+                                   Methotrexate (≥10 mg/week)
+
+                                   Azathioprine (≥1mg/kg day)
+
+                                   6-mercaptopurine (≥0.5 mg/kg/day)
+
+                                   Alkylating agents: cyclophosphamide, chlorambucil
+
+                                   Systemic calcineurin inhibitors: cyclosporin, tacrolimus
+
+                                   JAK inhibitors: tofacitinib, baricitinib, ruxolitinib, upadacitinib
+
+                                   Multiple sclerosis medications: dimethyl fumarate,
+                                   fingolimod, teriflunomide
+
+                                   TNF inhibitors: etanercept, infliximab
+
+                                   Anti-interleukin monoclonal antibody therapy:
+                                   secukinumab, dupilumab, tocilizumab
+
+                                   Anti-integrins: natalizumab
+
+                                   Anti-complement antibodies: eculizumab
+
+                                   Anti-CD52 antibodies: alemtuzumab
+
+                                   Sphingosine 1-phosphate receptor modulators: fingolimod
+
+                                   Potent B-cell or T-cell depleting therapy within the last 12
+                                   months: muromonab, teplizumab, rituximab, ocrelizumab
+
+
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      8 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+Guideline
+
+Addendum to Clinical Practice Guidelines for Cervical Screening in
+                      Aotearoa New Zealand
+Some conditions and medications are NOT considered immune suppressant in the
+context of cervical screening:
+
+                                   CONDITIONS AND MEDICATIONS
+
+Conditions not                     Diabetes
+considered immune
+                                   Thyroid disease (Graves’ disease)
+deficient in the context of
+cervical screening                 Previous splenectomy
+
+                                   Coeliac disease
+
+Medications not                    Hydroxychloroquine, sulfasalazine or mesalazine when used
+considered                         as monotherapy
+immunosuppressive in
+                                   Low-dose or brief corticosteroid therapy
+context of cervical
+screening                          Replacement corticosteroid treatment for adrenal
+                                   insufficiency
+
+                                   Most standard chemotherapy regimens for solid tumours
+                                   are not considered to be highly immunosuppressive, as well
+                                   as other antineoplastic treatments, such as hormone
+                                   therapy, immunotherapy and targeted therapy
+
+                                   People with history of cancer and those being treated with
+                                   chemotherapy short-term (< 6 months) for solid
+                                   tumours. However, particular cases, especially with
+                                   prolonged treatments or multiple prior lines of cytotoxic
+                                   therapy, may be discussed with the oncologist.
+
+
+
+Further information
+For further information about this update, contact your clinical lead or email
+NCSP@tewhatuora.govt.nz.
+
+
+Review history*
+
+Version      Updated by                      Date         Description of changes
+
+
+
+
+OWNER TITLE:            NCSP Clinical lead                                          DOC ID:    18519
+AUTHORISER TITLE:       Clinical Director Screening                                 VERSION:   1.0
+PUBLISHED:          02/02/2026                    REVIEW DUE:   02/02/2026          PAGE:      9 of 9
+                      IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+

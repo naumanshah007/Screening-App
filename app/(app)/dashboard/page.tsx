@@ -15,12 +15,13 @@ import {
 import { auth } from "@/lib/auth";
 import { isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
 import { isFeatureEnabled } from "@/lib/features";
-import { Badge } from "@/components/ui/badge";
+import { Badge, PriorityBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   getCommandCentreMetrics,
+  startOfCurrentWeek,
   type DecisionSplit,
 } from "@/lib/decisions/dashboard-metrics";
 import { SOURCE_LABELS } from "@/lib/decisions/completed-decisions";
@@ -60,6 +61,13 @@ function formatDuration(minutes: number | null) {
 function splitPercent(value: number, split: DecisionSplit) {
   if (split.total === 0) return 0;
   return Math.round((value / split.total) * 100);
+}
+
+function formatDateParam(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function sourceLabel(source: string, sourceSystem?: string | null) {
@@ -109,13 +117,15 @@ function FunnelStep({
   label,
   value,
   icon,
+  href,
 }: {
   label: string;
   value: number;
   icon: React.ReactNode;
+  href?: string;
 }) {
-  return (
-    <div className="rounded-lg border border-border bg-muted/25 px-4 py-3">
+  const content = (
+    <div className="rounded-lg border border-border bg-muted/25 px-4 py-3 transition-colors hover:border-brand-300/60 hover:bg-muted/40">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         {icon}
         {label}
@@ -124,6 +134,18 @@ function FunnelStep({
         {value.toLocaleString()}
       </div>
     </div>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link
+      href={href}
+      className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+      aria-label={`View ${label}`}
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -159,7 +181,13 @@ export default async function DashboardPage() {
   const metrics = await getCommandCentreMetrics(user ?? {});
   const actions = commandCentreActions(user?.role);
   const canPullCases = isAuthorizedForRoute("/batch", user?.role);
+  const canOpenReview = isAuthorizedForRoute("/review", user?.role);
+  const canOpenBatchRuns = isAuthorizedForRoute("/batch/runs", user?.role);
+  const canOpenDecisions = isAuthorizedForRoute("/decisions", user?.role);
+  const canOpenAudit = isAuthorizedForRoute("/audit", user?.role);
   const split = metrics.decisionSplit;
+  const todayParam = formatDateParam(new Date());
+  const weekParam = formatDateParam(startOfCurrentWeek(new Date()));
   const hasAnyBatchActivity =
     metrics.casesPulledThisWeek > 0 ||
     metrics.pendingReview > 0 ||
@@ -224,6 +252,7 @@ export default async function DashboardPage() {
           subtext={metrics.policy.queueLabel}
           variant={metrics.pendingReview > 0 ? "info" : "success"}
           icon={<Inbox className="h-5 w-5" />}
+          href={canOpenReview ? "/review?filter=pending" : undefined}
         />
         <StatCard
           label="Mandatory clinician review"
@@ -231,6 +260,7 @@ export default async function DashboardPage() {
           subtext={`${metrics.policy.queueLabel} · safety-stop or evidence gap`}
           variant={metrics.mandatoryClinicianReview > 0 ? "warning" : "success"}
           icon={<ShieldAlert className="h-5 w-5" />}
+          href={canOpenReview ? "/review?filter=review" : undefined}
         />
         <StatCard
           label="Urgent clinical priority"
@@ -238,6 +268,7 @@ export default async function DashboardPage() {
           subtext={`${metrics.policy.queueLabel} · urgent risk or P1 priority`}
           variant={metrics.urgentClinicalPriority > 0 ? "urgent" : "success"}
           icon={<Stethoscope className="h-5 w-5" />}
+          href={canOpenReview ? "/review?filter=urgent" : undefined}
         />
         <StatCard
           label="Avg intake to decision"
@@ -245,6 +276,7 @@ export default async function DashboardPage() {
           subtext={metrics.policy.completedLabel}
           variant="default"
           icon={<Clock className="h-5 w-5" />}
+          href={canOpenDecisions ? "/decisions" : undefined}
         />
         <StatCard
           label="Cases pulled today"
@@ -252,6 +284,7 @@ export default async function DashboardPage() {
           subtext={metrics.policy.intakeLabel}
           variant="default"
           icon={<Database className="h-5 w-5" />}
+          href={canOpenBatchRuns ? "/batch/runs" : undefined}
         />
         <StatCard
           label="Cases pulled this week"
@@ -259,6 +292,7 @@ export default async function DashboardPage() {
           subtext={`${metrics.policy.intakeLabel} · Monday to today`}
           variant="default"
           icon={<Database className="h-5 w-5" />}
+          href={canOpenBatchRuns ? "/batch/runs" : undefined}
         />
         <StatCard
           label="Completed today"
@@ -266,6 +300,7 @@ export default async function DashboardPage() {
           subtext={metrics.policy.completedLabel}
           variant="success"
           icon={<FileCheck2 className="h-5 w-5" />}
+          href={canOpenDecisions ? `/decisions?dateFrom=${todayParam}&dateTo=${todayParam}` : undefined}
         />
         <StatCard
           label="Completed this week"
@@ -273,6 +308,7 @@ export default async function DashboardPage() {
           subtext={`${metrics.policy.packageLabel}: ${metrics.packagePreviewedOrExportedThisWeek}`}
           variant="success"
           icon={<FileCheck2 className="h-5 w-5" />}
+          href={canOpenDecisions ? `/decisions?dateFrom=${weekParam}&dateTo=${todayParam}` : undefined}
         />
       </div>
 
@@ -288,21 +324,25 @@ export default async function DashboardPage() {
                 label="Pulled this week"
                 value={metrics.casesPulledThisWeek}
                 icon={<Database className="h-3.5 w-3.5" />}
+                href={canOpenBatchRuns ? "/batch/runs" : undefined}
               />
               <FunnelStep
                 label="Pending"
                 value={metrics.pendingReview}
                 icon={<Inbox className="h-3.5 w-3.5" />}
+                href={canOpenReview ? "/review?filter=pending" : undefined}
               />
               <FunnelStep
                 label="Completed this week"
                 value={metrics.completedThisWeek}
                 icon={<FileCheck2 className="h-3.5 w-3.5" />}
+                href={canOpenDecisions ? `/decisions?dateFrom=${weekParam}&dateTo=${todayParam}` : undefined}
               />
               <FunnelStep
                 label="Packages previewed/exported"
                 value={metrics.packagePreviewedOrExportedThisWeek}
                 icon={<FileSearch className="h-3.5 w-3.5" />}
+                href={canOpenAudit ? "/audit?days=7" : undefined}
               />
             </div>
             <div className="rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
@@ -338,6 +378,52 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {metrics.policy.canViewOperationalMetrics && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Booking Priority Mix</CardTitle>
+            <Badge variant="info">
+              {metrics.activeRuleVersion ? `Rules v${metrics.activeRuleVersion}` : "No active rules"}
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Pending queue graded by the active, admin-editable rule release. Edit and activate a
+              new version, then re-grade an intake to see this shift.
+            </p>
+            {metrics.bookingPriorityMix.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No graded pending cases yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {metrics.bookingPriorityMix.map((b) => {
+                  const content = (
+                    <>
+                      <PriorityBadge priority={b.priority} />
+                      <span className="text-lg font-bold text-foreground tabular-nums">{b.count}</span>
+                    </>
+                  );
+                  const className = "inline-flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2";
+
+                  return canOpenReview ? (
+                    <Link
+                      key={b.priority}
+                      href={`/review?priority=${encodeURIComponent(b.priority)}`}
+                      className={className}
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={b.priority} className={className}>
+                      {content}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card>

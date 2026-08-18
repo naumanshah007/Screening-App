@@ -24,6 +24,7 @@ import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
 import { answersToInputFields, getVisibleAnswerMap } from "@/lib/wizard/steps";
 import type { ClinicalInput } from "@/lib/engine/types";
 import { addMonths } from "date-fns";
+import { canAccessWizardSession } from "@/lib/wizard/access";
 import { evaluateClinicalCase } from "@/lib/clinical-rules/evaluator";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
@@ -42,10 +43,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-  const actorUserId = session.user.id;
+  const actorUserId = user.id;
 
   const { id } = await params;
 
@@ -67,6 +69,9 @@ export async function POST(
   });
 
   if (!wizardSession) {
+    return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
+  }
+  if (!canAccessWizardSession(user, wizardSession.createdById)) {
     return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
   }
   if (wizardSession.status === "COMPLETE") {
@@ -166,6 +171,66 @@ export async function POST(
       })
     : null;
 
+  const patientResponse = {
+    id: patient.id,
+    firstName: patient.firstName,
+    lastName: patient.lastName,
+    name: `${patient.firstName} ${patient.lastName}`,
+    nhi: patient.nhi,
+    dateOfBirth: patient.dateOfBirth,
+    email: patient.email,
+  };
+
+  if (req.nextUrl.searchParams.get("preview") === "true") {
+    return NextResponse.json({
+      preview: true,
+      decision,
+      screeningSessionId: "",
+      referral: null,
+      recall: null,
+      patient: patientResponse,
+      versionedShadow,
+    });
+  }
+
+  if (decision.safetyOutcome || decision.validationStatus !== "IMPLEMENTED") {
+    return NextResponse.json(
+      {
+        error: "This recommendation requires additional information or clinical review and cannot be finalised from the manual pathway.",
+        decision,
+      },
+      { status: 409 }
+    );
+  }
+
+  // Claim finalisation before creating any clinical records. This compare-and-set
+  // makes duplicate browser requests and concurrent retries harmless.
+  const finalizationMarker = JSON.stringify({
+    finalizing: true,
+    claimedBy: actorUserId,
+    claimedAt: new Date().toISOString(),
+  });
+  const claim = await prisma.wizardSession.updateMany({
+    where: { id, status: "IN_PROGRESS", decisionJson: null },
+    data: { decisionJson: finalizationMarker },
+  });
+  if (claim.count !== 1) {
+    const current = await prisma.wizardSession.findUnique({
+      where: { id },
+      select: { status: true, decisionJson: true },
+    });
+    if (current?.status === "COMPLETE" && current.decisionJson) {
+      return NextResponse.json({
+        alreadyComplete: true,
+        decision: JSON.parse(current.decisionJson),
+      });
+    }
+    return NextResponse.json(
+      { error: "This assessment is already being finalised. Please wait and retry." },
+      { status: 409 }
+    );
+  }
+
   // ── Create a fresh ScreeningSession for this wizard completion ───────────
   // Each wizard run produces its own clinical record (counters carry forward from
   // the patient's latest session, but a new record is always created).
@@ -174,10 +239,12 @@ export async function POST(
     ? addMonths(now, decision.recallIntervalMonths)
     : null;
 
-  const screeningSession = await prisma.screeningSession.create({
+  try {
+    const persisted = await prisma.$transaction(async (tx) => {
+  const screeningSession = await tx.screeningSession.create({
     data: {
       patientId: patient.id,
-      createdById: session.user.id,
+      createdById: actorUserId,
       status: (
         decision.referralRequired
           ? "REFERRED"
@@ -210,7 +277,7 @@ export async function POST(
 
   // ── Create TestResult ──────────────────────────────────────────────────────
   if (clinicalInput.hpvResult || clinicalInput.cytologyResult) {
-    await prisma.testResult.create({
+    await tx.testResult.create({
       data: {
         screeningSessionId: screeningSession.id,
         testDate: now,
@@ -234,10 +301,10 @@ export async function POST(
     clinicalInput.mdmOutcome !== undefined;
 
   if (shouldPersistColposcopy) {
-    await prisma.colposcopyFinding.create({
+    await tx.colposcopyFinding.create({
       data: {
         screeningSessionId: screeningSession.id,
-        clinicianId: session.user.id,
+        clinicianId: actorUserId,
         colposcopyDate: now,
         tzType: (clinicalInput.colposcopyTZType ?? clinicalInput.tzType) as TZType | undefined,
         visibleLesion: clinicalInput.visibleLesion ?? (
@@ -261,7 +328,7 @@ export async function POST(
   let referral = null;
   if (decision.referralRequired && decision.referralPriority) {
     const targetDays = PRIORITY_DAYS[decision.referralPriority] ?? 84;
-    referral = await prisma.referral.create({
+    referral = await tx.referral.create({
       data: {
         screeningSessionId: screeningSession.id,
         type: (decision.referralType as ReferralType | undefined) ?? ReferralType.COLPOSCOPY,
@@ -276,7 +343,7 @@ export async function POST(
   // ── Create Recall ─────────────────────────────────────────────────────────
   let recall = null;
   if (decision.recallRequired && decision.recallIntervalMonths && patient.gpPracticeId) {
-    recall = await prisma.recall.create({
+    recall = await tx.recall.create({
       data: {
         patientId: patient.id,
         practiceId: patient.gpPracticeId,
@@ -288,22 +355,22 @@ export async function POST(
   }
 
   // ── PathwayStateHistory ────────────────────────────────────────────────────
-  await prisma.pathwayStateHistory.create({
+  await tx.pathwayStateHistory.create({
     data: {
       screeningSessionId: screeningSession.id,
       fromState: existingSession?.activeModule ?? null,
       toState: decision.figure,
       transitionReason: decision.recommendationCode,
-      createdByUserId: session.user.id,
+      createdByUserId: actorUserId,
       pathwayFigure: decision.figure as PathwayFigure,
       riskLevel: decision.riskLevel as RiskLevel,
     },
   });
 
   // ── AuditLog ──────────────────────────────────────────────────────────────
-  await prisma.auditLog.create({
+  await tx.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: actorUserId,
       action: "WIZARD_COMPLETE",
       entity: "WizardSession",
       entityId: id,
@@ -323,9 +390,9 @@ export async function POST(
     },
   });
 
-  await prisma.auditLog.create({
+  await tx.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: actorUserId,
       action: "FINAL_RECOMMENDATION_GENERATED",
       entity: "WizardSession",
       entityId: id,
@@ -340,12 +407,9 @@ export async function POST(
     },
   });
 
-  // ── Mark wizard complete (atomic: only if still IN_PROGRESS) ─────────────
-  // Using updateMany with a status filter prevents duplicate-completion race conditions.
-  // If two requests arrive concurrently, only one will find status=IN_PROGRESS and succeed;
-  // the other will silently match 0 rows without throwing a unique constraint error.
-  await prisma.wizardSession.updateMany({
-    where: { id, status: { not: "COMPLETE" } },
+  // ── Mark wizard complete in the same transaction as all clinical records ─
+  await tx.wizardSession.update({
+    where: { id },
     data: {
       status: "COMPLETE",
       completedAt: now,
@@ -356,18 +420,26 @@ export async function POST(
     },
   });
 
-  return NextResponse.json({
+  return {
     decision,
     screeningSessionId: screeningSession.id,
     referral,
     recall,
-    patient: {
-      id: patient.id,
-      name: `${patient.firstName} ${patient.lastName}`,
-      nhi: patient.nhi,
-      dateOfBirth: patient.dateOfBirth,
-      email: patient.email,
-    },
+  };
+    });
+
+  return NextResponse.json({
+    ...persisted,
+    patient: patientResponse,
     versionedShadow,
   });
+  } catch (error) {
+    // The clinical transaction rolled back. Release only our own claim so the
+    // user can retry safely; never clear a completed decision.
+    await prisma.wizardSession.updateMany({
+      where: { id, status: "IN_PROGRESS", decisionJson: finalizationMarker },
+      data: { decisionJson: null },
+    });
+    throw error;
+  }
 }

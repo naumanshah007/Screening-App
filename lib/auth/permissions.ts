@@ -18,6 +18,11 @@ export type Permission =
   | "cases:grade"
   | "cases:book"
   | "cases:smo_grade"        // SMO-only grading decisions
+  // Legacy patient registry / manual pathway
+  | "patients:view"
+  | "patients:edit"
+  | "pathway:use"
+  | "recalls:send"
   // Documents & evidence
   | "documents:upload"
   | "documents:ingest"
@@ -55,6 +60,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "admin:users", "admin:settings",
     "ai:recommend",
     "integration:ncsr_pull",
+    "patients:view", "patients:edit", "pathway:use", "recalls:send",
   ],
   SMO_REVIEWER: [
     "cases:view", "cases:grade", "cases:smo_grade", "cases:book",
@@ -63,6 +69,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "analytics:view",
     "ai:recommend",
     "integration:ncsr_pull",
+    "patients:view", "pathway:use",
   ],
   COLPOSCOPIST: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book",
@@ -70,6 +77,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
     "ai:recommend",
+    "patients:view", "patients:edit", "pathway:use",
   ],
   COLPO_CNS: [
     "cases:view", "cases:create", "cases:edit", "cases:book",
@@ -78,6 +86,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "analytics:view",
     "ai:recommend",
     "integration:ncsr_pull",
+    "patients:view", "patients:edit", "pathway:use", "recalls:send",
   ],
   GYNAE_GRADER: [
     "cases:view", "cases:create", "cases:edit", "cases:grade", "cases:book",
@@ -85,11 +94,13 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "rules:view", "rules:validate", "rules:approve", "rules:simulate", "rules:export",
     "analytics:view",
     "ai:recommend",
+    "patients:view", "patients:edit", "pathway:use",
   ],
   COORDINATOR: [
     "cases:view", "cases:create", "cases:edit", "cases:book",
     "documents:upload",
     "analytics:view",
+    "patients:view", "patients:edit", "pathway:use", "recalls:send",
   ],
   GP: [
     "cases:view",
@@ -127,6 +138,21 @@ const DEFAULT_APP_ROUTE_BY_ROLE: Record<UserRole, string> = {
 };
 
 export const ROUTE_GUARDS: RouteGuard[] = [
+  {
+    prefix: "/patients",
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
+    description: "Patient registry",
+  },
+  {
+    prefix: "/pathway",
+    requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],
+    description: "Manual pathway",
+  },
+  {
+    prefix: "/gp",
+    requiredRoles: ["ADMIN", "GP"],
+    description: "GP referral entry",
+  },
   {
     prefix: "/review",
     requiredRoles: ["ADMIN", "SMO_REVIEWER", "COLPOSCOPIST", "GYNAE_GRADER", "COLPO_CNS", "COORDINATOR"],

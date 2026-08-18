@@ -420,7 +420,7 @@ export async function generateRuleDecision(args: {
   );
 
   if (!activeRuleSetRelease) {
-    throw new Error("No active case rule release is published for this service");
+    throw new Error("No active case rule release is configured for this service");
   }
 
   const evaluationFacts = buildEvaluationFacts(referralCase);

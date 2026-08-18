@@ -87,7 +87,7 @@ export function RuleReleaseEditForm({
         value={changeNotes}
         onChange={(event) => setChangeNotes(event.target.value)}
         placeholder="Summarise the rule, threshold, or policy changes for reviewers."
-        hint="Saving a draft clears the existing review stamp so the release must be reviewed again before publish."
+        hint="Saving a draft clears the existing review stamp so the release must be reviewed again before activation."
       />
       <Textarea
         label="Definition JSON"

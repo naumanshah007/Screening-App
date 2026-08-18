@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import {
   formatCaseRuleReleaseDefinitionJson,
   getBaselineCaseRuleReleaseDefinition,
+  type CaseRuleDefinition,
+  type CaseRuleReleaseDefinition,
   validateCaseRuleReleaseDefinitionJson,
 } from "@/lib/cases/rule-policy";
 import { runCaseRuleRegression } from "@/lib/cases/rule-regression";
@@ -61,7 +63,7 @@ const BASELINE_RULE_RELEASES: Record<ServiceLine, BaselineRulePack> = {
     version: "2026.03.21.1",
     name: "Colposcopy Enterprise Baseline",
     description:
-      "Initial enterprise rule release wrapping the deterministic colposcopy triage logic in a publishable release.",
+      "Initial enterprise rule release wrapping the deterministic colposcopy triage logic in governed release control.",
     changeNotes:
       "Seeds the enterprise colposcopy rules under release control before full attachment-level parity work.",
     definition: {
@@ -72,7 +74,7 @@ const BASELINE_RULE_RELEASES: Record<ServiceLine, BaselineRulePack> = {
     version: "2026.03.21.1",
     name: "Gynaecology Enterprise Baseline",
     description:
-      "Initial enterprise rule release wrapping the deterministic gynaecology triage logic in a publishable release.",
+      "Initial enterprise rule release wrapping the deterministic gynaecology triage logic in governed release control.",
     changeNotes:
       "Seeds the enterprise gynaecology rules under release control before full guideline matrix parity work.",
     definition: {
@@ -214,7 +216,7 @@ export async function createCaseRuleSetDraft(args: {
       definitionJson:
         latest?.definitionJson ??
         JSON.stringify(BASELINE_RULE_RELEASES[args.serviceLine].definition),
-      changeNotes: `Draft cloned from ${latest?.version ?? "baseline"}. Update notes before review/publish.`,
+      changeNotes: `Draft cloned from ${latest?.version ?? "baseline"}. Update notes before review and activation.`,
       isActive: false,
     },
     include: caseRuleSetReleaseInclude,
@@ -237,9 +239,136 @@ export async function createCaseRuleSetDraft(args: {
   return created;
 }
 
+/**
+ * Activate a reviewed release. Exactly one release is active per service line.
+ * The reviewer and activator must be different users.
+ */
+export async function activateCaseRuleSetRelease(args: {
+  id: string;
+  actorUserId: string;
+}) {
+  const release = await prisma.caseRuleSetRelease.findUnique({
+    where: { id: args.id },
+  });
+
+  if (!release) {
+    throw new Error("Case rule release not found");
+  }
+  if (release.isActive) {
+    return release;
+  }
+  if (!release.reviewedByUserId || !release.reviewedAt) {
+    throw new Error("Only reviewed releases can be activated");
+  }
+  if (release.reviewedByUserId === args.actorUserId) {
+    throw new Error("Reviewer and activator must be different users");
+  }
+
+  const regression = runCaseRuleRegression({
+    serviceLine: release.serviceLine,
+    definitionJson: release.definitionJson,
+  });
+  if (regression.failed > 0) {
+    throw new Error("Regression suite must pass before activation");
+  }
+
+  const activated = await prisma.$transaction(async (tx) => {
+    await tx.caseRuleSetRelease.updateMany({
+      where: { serviceLine: release.serviceLine },
+      data: { isActive: false },
+    });
+    return tx.caseRuleSetRelease.update({
+      where: { id: release.id },
+      data: {
+        isActive: true,
+        publishedByUserId: release.publishedByUserId ?? args.actorUserId,
+        publishedAt: release.publishedAt ?? new Date(),
+      },
+      include: caseRuleSetReleaseInclude,
+    });
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: args.actorUserId,
+      action: "ACTIVATE",
+      entity: "CaseRuleSetRelease",
+      entityId: activated.id,
+      newValue: JSON.stringify({
+        serviceLine: activated.serviceLine,
+        version: activated.version,
+        activatedByUserId: args.actorUserId,
+      }),
+    },
+  });
+
+  return activated;
+}
+
 function normaliseOptionalText(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function assertNonEmpty(value: string | null | undefined, message: string) {
+  if (!value || value.trim().length === 0) {
+    throw new Error(message);
+  }
+}
+
+function hasRuleCondition(rule: CaseRuleDefinition) {
+  if (rule.kind === "case_flag") {
+    return Boolean(rule.flagName);
+  }
+
+  if (rule.kind === "fact_any" || rule.kind === "fact_all") {
+    return rule.factLabels.length > 0;
+  }
+
+  if (rule.kind === "fact_threshold") {
+    return (
+      rule.signalLabels.length > 0 &&
+      rule.thresholdLabel.trim().length > 0 &&
+      Number.isFinite(rule.thresholdMin)
+    );
+  }
+
+  return Boolean(
+    rule.allFactLabels?.length ||
+      rule.anyFactLabels?.length ||
+      rule.absentFactLabels?.length ||
+      rule.thresholdLabel
+  );
+}
+
+function assertDefinitionReadyForGovernance(definition: CaseRuleReleaseDefinition) {
+  const seenCodes = new Set<string>();
+
+  for (const [index, rule] of definition.rules.entries()) {
+    const position = index + 1;
+    assertNonEmpty(rule.code, `Rule ${position} requires a rule code`);
+    assertNonEmpty(rule.title, `${rule.code} requires a title`);
+    assertNonEmpty(rule.impact, `${rule.code} requires an impact summary`);
+    assertNonEmpty(
+      rule.recommendation.category,
+      `${rule.code} requires a recommendation category`
+    );
+    assertNonEmpty(rule.recommendation.outcome, `${rule.code} requires an outcome`);
+    assertNonEmpty(
+      rule.recommendation.rationale,
+      `${rule.code} requires a rationale`
+    );
+
+    const normalizedCode = rule.code.trim().toUpperCase();
+    if (seenCodes.has(normalizedCode)) {
+      throw new Error(`Rule code ${rule.code} is duplicated`);
+    }
+    seenCodes.add(normalizedCode);
+
+    if (!hasRuleCondition(rule)) {
+      throw new Error(`${rule.code} requires at least one matching condition`);
+    }
+  }
 }
 
 export async function updateCaseRuleSetReleaseDraft(args: {
@@ -276,13 +405,19 @@ export async function updateCaseRuleSetReleaseDraft(args: {
     serviceLine: release.serviceLine,
     definitionJson: args.definitionJson,
   });
+  assertDefinitionReadyForGovernance(definition);
+
+  const changeNotes = normaliseOptionalText(args.changeNotes);
+  if (!changeNotes) {
+    throw new Error("change notes are required before saving a draft");
+  }
 
   const updated = await prisma.caseRuleSetRelease.update({
     where: { id: release.id },
     data: {
       name,
       description: normaliseOptionalText(args.description),
-      changeNotes: normaliseOptionalText(args.changeNotes),
+      changeNotes,
       schemaVersion: "2.0",
       definitionJson: formatCaseRuleReleaseDefinitionJson(definition),
       reviewedByUserId: null,
@@ -330,6 +465,20 @@ export async function reviewCaseRuleSetRelease(args: {
   if (!release) {
     throw new Error("Case rule release not found");
   }
+  if (release.isActive || release.publishedAt) {
+    throw new Error("Only editable drafts can be reviewed");
+  }
+  if (!release.changeNotes?.trim()) {
+    throw new Error("Change notes are required before review");
+  }
+
+  const regression = runCaseRuleRegression({
+    serviceLine: release.serviceLine,
+    definitionJson: release.definitionJson,
+  });
+  if (regression.failed > 0) {
+    throw new Error("Regression suite must pass before review");
+  }
 
   const reviewed = await prisma.caseRuleSetRelease.update({
     where: { id: args.id },
@@ -362,67 +511,5 @@ export async function publishCaseRuleSetRelease(args: {
   id: string;
   actorUserId: string;
 }) {
-  const release = await prisma.caseRuleSetRelease.findUnique({
-    where: { id: args.id },
-  });
-
-  if (!release) {
-    throw new Error("Case rule release not found");
-  }
-
-  if (!release.reviewedByUserId || !release.reviewedAt) {
-    throw new Error("Case rule release must be reviewed before publishing");
-  }
-
-  if (release.reviewedByUserId === args.actorUserId) {
-    throw new Error("Reviewer and publisher must be different users");
-  }
-
-  const regression = runCaseRuleRegression({
-    serviceLine: release.serviceLine,
-    definitionJson: release.definitionJson,
-  });
-  if (regression.failed > 0) {
-    throw new Error("Case rule release regression suite must pass before publishing");
-  }
-
-  const published = await prisma.$transaction(async (tx) => {
-    await tx.caseRuleSetRelease.updateMany({
-      where: {
-        serviceLine: release.serviceLine,
-      },
-      data: {
-        isActive: false,
-      },
-    });
-
-    return tx.caseRuleSetRelease.update({
-      where: { id: release.id },
-      data: {
-        isActive: true,
-        publishedByUserId: args.actorUserId,
-        publishedAt: new Date(),
-      },
-      include: caseRuleSetReleaseInclude,
-    });
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: args.actorUserId,
-      action: "PUBLISH",
-      entity: "CaseRuleSetRelease",
-      entityId: published.id,
-      newValue: JSON.stringify({
-        serviceLine: published.serviceLine,
-        version: published.version,
-        publishedByUserId: published.publishedByUserId,
-        publishedAt: published.publishedAt,
-        regressionPassed: regression.passed,
-        regressionTotal: regression.total,
-      }),
-    },
-  });
-
-  return published;
+  return activateCaseRuleSetRelease(args);
 }

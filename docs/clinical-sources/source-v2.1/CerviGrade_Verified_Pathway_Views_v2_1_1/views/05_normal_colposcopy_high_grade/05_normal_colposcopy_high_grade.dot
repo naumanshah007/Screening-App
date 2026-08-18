@@ -1,0 +1,103 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Normal Colposcopy after High-Grade Cytology\nFigure 5 plus the related 2026 CIN2 active-surveillance pathway\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f5 { label="FIGURE 5 - Normal colposcopy after cytology >=ASC-H"; color="#C026D3"; style="rounded"; penwidth=1.6;
+F5_ENTRY [label="HPV detected any type + cytology >=ASC-H\nNormal colposcopy / no visible lesion"];
+F5_COMP [label="Figure 5 mandatory facts complete?\nTZ, lesion status, original/reviewed cytology, MDM outcome", shape="diamond"];
+F5_CSTOP [label="Missing specialist facts -> MDM/clinician review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F5_TZ [label="TZ type?", shape="diamond"];
+F5_MDM [label="MDM / cytopathology review", fillcolor="#FFF4CC", color="#B7791F"];
+F5_REV [label="Reviewed cytology?", shape="diamond"];
+F5_DOWN [label="Downgraded to negative/ASC-US/LSIL\nFollow amended low-grade pathway"];
+F5_ASC [label="Confirmed ASC-H"];
+F5_HSIL [label="Confirmed/upgraded HSIL"];
+F5_VAIN [label="Full vaginal/lower-genital-tract colposcopy completed?\nExclude VAIN before excision", shape="diamond", fillcolor="#FFF4CC", color="#B7791F"];
+F5_STOP [label="Not completed -> clinician safety stop", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F5_DEC [label="Type 1/2 confirmed ASC-H\nDiagnostic excision or informed observation?", shape="diamond"];
+F5_INF [label="Documented informed treatment-deferral plan?", shape="diamond", fillcolor="#FFF4CC", color="#B7791F"];
+F5_6M [label="Repeat HPV + cytology + colposcopy in 6 months"];
+F5_6RES [label="6-month result?", shape="diamond"];
+F5_ADV [label="Abnormal cytology and/or visible lesion\nSpecialist reassessment; reconsider excision/treatment"];
+F5_PERSIST [label="HPV detected + negative cytology + normal colposcopy\nRepeat HPV/cytology/colposcopy in 12 months"];
+F5_NEG [label="HPV not detected + negative cytology + no lesion\nRepeat co-test in 12 months"];
+F5_REG [label="Subsequent double-negative sequence complete\nReturn 5 years if immune competent / 3 years if verified immune deficient", shape=box, peripheries=2, fillcolor="#EDE9FE", color="#6D28D9"];
+F5_EXC [label="Diagnostic excision"];
+F5_HIST [label="Histology after excision?", shape="diamond"];
+F5_BEN [label="Benign/no high-grade\nMDM surveillance"];
+F5_LSIL [label="LSIL/CIN1\nLow-grade pathway"];
+F5_HST [label="HSIL/CIN2/3 treated\n-> Figure 6"];
+F5_AIS [label="AIS\n-> Figure 7/AIS follow-up"];
+F5_CA [label="Invasive disease\n-> oncology", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F5_TZ3 [label="Type 3 TZ + confirmed ASC-H/HSIL\nDiagnostic excision of TZ", fillcolor="#FFF4CC", color="#B7791F"];
+F5_ENTRY -> F5_COMP;
+F5_COMP -> F5_CSTOP [label="No"];
+F5_COMP -> F5_TZ [label="Yes"];
+F5_TZ -> F5_MDM [label="Type 1/2"];
+F5_TZ -> F5_MDM [label="Type 3"];
+F5_MDM -> F5_REV;
+F5_REV -> F5_DOWN [label="Downgraded"];
+F5_REV -> F5_ASC [label="ASC-H"];
+F5_REV -> F5_HSIL [label="HSIL"];
+F5_ASC -> F5_TZ3 [label="Type 3"];
+F5_ASC -> F5_VAIN [label="Type 1/2"];
+F5_HSIL -> F5_VAIN;
+F5_VAIN -> F5_STOP [label="No"];
+F5_VAIN -> F5_DEC [label="Yes - ASC-H"];
+F5_VAIN -> F5_EXC [label="Yes - HSIL"];
+F5_DEC -> F5_EXC [label="Excision"];
+F5_DEC -> F5_INF [label="Observation"];
+F5_INF -> F5_STOP [label="No"];
+F5_INF -> F5_6M [label="Yes"];
+F5_6M -> F5_6RES;
+F5_6RES -> F5_ADV [label="Abnormal cytology/lesion"];
+F5_6RES -> F5_PERSIST [label="HPV+ only"];
+F5_6RES -> F5_NEG [label="Double negative"];
+F5_PERSIST -> F5_6RES [label="Repeat at 12 months"];
+F5_NEG -> F5_REG [label="Again double negative"];
+F5_TZ3 -> F5_EXC;
+F5_EXC -> F5_HIST;
+F5_HIST -> F5_BEN [label="Benign"];
+F5_HIST -> F5_LSIL [label="LSIL"];
+F5_HIST -> F5_HST [label="HSIL"];
+F5_HIST -> F5_AIS [label="AIS"];
+F5_HIST -> F5_CA [label="Invasive"];
+}
+subgraph cluster_cin2 { label="2026 ADDENDUM - Active surveillance of CIN2 under age 30"; color="#16A34A"; style="rounded"; penwidth=1.6;
+CIN2_ENTRY [label="CIN2 on biopsy\nAge <30\nType 1/2 TZ\nCIN3/invasion excluded"];
+CIN2_MDM [label="Initial MDM review + shared decision", fillcolor="#FFF4CC", color="#B7791F"];
+CIN2_RES [label="MDM outcome?", shape="diamond"];
+CIN2_LSIL [label="Biopsy downgraded to LSIL\nDischarge; HPV +/- cytology in 12 months"];
+CIN2_CONF [label="CIN2 confirmed\nColposcopy/cytology every 6 months\nUp to 24 months"];
+CIN2_CHOICE [label="Participant requests treatment while CIN2 remains?", shape="diamond"];
+CIN2_TX [label="Clinician-led treatment planning\nAvailable at any surveillance event", fillcolor="#FFF4CC", color="#B7791F"];
+CIN2_FMDM [label="Follow-up MDM review before 24 months\nDocument revised plan", fillcolor="#FFF4CC", color="#B7791F"];
+CIN2_CIN3 [label="CIN3 diagnosed\nTreatment recommended"];
+CIN2_REG [label="CIN2 regresses\nDischarge; Test of Cure at 12 months"];
+CIN2_24 [label="CIN2 persists at 24 months\nTreatment recommended"];
+CIN2_ENTRY -> CIN2_MDM;
+CIN2_MDM -> CIN2_RES;
+CIN2_RES -> CIN2_LSIL [label="Downgraded"];
+CIN2_RES -> CIN2_CONF [label="Confirmed"];
+CIN2_RES -> CIN2_CIN3 [label="Upgraded CIN3"];
+CIN2_CONF -> CIN2_CHOICE;
+CIN2_CHOICE -> CIN2_TX [label="Yes"];
+CIN2_CHOICE -> CIN2_FMDM [label="No / surveillance continues"];
+CIN2_FMDM -> CIN2_REG [label="Regression"];
+CIN2_FMDM -> CIN2_24 [label="Persists at 24 months"];
+CIN2_FMDM -> CIN2_CIN3 [label="CIN3"];
+}
+
+V5_F6 [label="Open Figure 6 — HSIL Test of Cure", fillcolor="#EDE9FE", color="#6D28D9"];
+V5_AIS [label="Open Figure 7 — AIS follow-up", fillcolor="#EDE9FE", color="#6D28D9"];
+CIN2_NOTE [label="SEPARATE 2026 PATHWAY\nEligible biopsy-confirmed CIN2 before treatment; not a continuation of the Figure 5 negative-surveillance endpoint", shape="note", fillcolor="#DCFCE7", color="#15803D"];
+F5_HST -> V5_F6 [style="dashed"];
+F5_AIS -> V5_AIS [style="dashed"];
+CIN2_NOTE -> CIN2_ENTRY [label="Separate entry", style="dashed", color="#15803D"];
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

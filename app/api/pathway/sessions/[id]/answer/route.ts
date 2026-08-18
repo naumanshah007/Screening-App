@@ -14,13 +14,15 @@ import {
   getStepById,
   getInvalidatedAnswerStepIds,
 } from "@/lib/wizard/steps";
+import { canAccessWizardSession } from "@/lib/wizard/access";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
@@ -46,6 +48,9 @@ export async function POST(
   });
 
   if (!wizardSession) {
+    return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
+  }
+  if (!canAccessWizardSession(user, wizardSession.createdById)) {
     return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
   }
   if (wizardSession.status === "COMPLETE") {
@@ -110,18 +115,41 @@ export async function POST(
   const refreshedVisibleSteps = getVisibleSteps(answersMap).filter((s) => s.type !== "info");
 
   if (body.stepId === "consent_confirmed" && body.answerValue === "true") {
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: "CONSENT_CONFIRMED",
-        entity: "WizardSession",
-        entityId: id,
-        newValue: JSON.stringify({
+    await prisma.$transaction(async (tx) => {
+      const existingConsent = await tx.patientConsent.findFirst({
+        where: {
           patientId: wizardSession.patientId,
-          wizardSessionId: id,
-          consentConfirmed: true,
-        }),
-      },
+          purpose: "SCREENING_DATA_ENTRY",
+          status: "GIVEN",
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+        select: { id: true },
+      });
+      if (!existingConsent) {
+        await tx.patientConsent.create({
+          data: {
+            patientId: wizardSession.patientId,
+            purpose: "SCREENING_DATA_ENTRY",
+            status: "GIVEN",
+            givenByUserId: user.id,
+            notes: `Consent confirmed during wizard session ${id}.`,
+          },
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "CONSENT_CONFIRMED",
+          entity: "WizardSession",
+          entityId: id,
+          newValue: JSON.stringify({
+            patientId: wizardSession.patientId,
+            wizardSessionId: id,
+            consentConfirmed: true,
+            consentRecordCreated: !existingConsent,
+          }),
+        },
+      });
     });
   }
 

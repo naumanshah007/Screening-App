@@ -113,12 +113,7 @@ export default function WizardPage({ params }: { params: Promise<{ sessionId: st
 
   const completeAndRedirect = useCallback(async (sid: string) => {
     setCompleting(true);
-    try {
-      const res = await fetch(`/api/pathway/sessions/${sid}/complete`, { method: "POST" });
-      if (res.ok) router.push(`/pathway/${sid}/result`);
-    } catch {
-      setCompleting(false);
-    }
+    router.push(`/pathway/${sid}/result`);
   }, [router]);
 
   const loadSession = useCallback(async () => {

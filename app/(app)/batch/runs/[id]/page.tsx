@@ -9,9 +9,13 @@ import { isFeatureEnabled } from "@/lib/features";
 import {
   getBatchRunWithItems,
   reconstructBatchCaseResult,
+  getPriorSnapshots,
+  buildSnapshotFromRecord,
 } from "@/lib/batch/persistence";
+import { buildPriorComparison } from "@/lib/batch/reprocessing";
 import { formatDateTime } from "@/lib/utils";
 import { WorklistClient, type WorklistItem } from "@/components/batch/WorklistClient";
+import { RegradeRunButton } from "@/components/batch/RegradeRunButton";
 import { ClinicalRuleRegradeButton } from "@/components/clinical-rules/ClinicalRuleRegradeButton";
 import { resolveActiveClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 
@@ -49,12 +53,14 @@ export default async function BatchRunDetailPage({
     notFound();
   }
   const activeClinicalVersion = await resolveActiveClinicalRuleVersion({ environment: "DEMO" });
-  const versionTuple = (value?: string | null) =>
-    value?.match(/(\d+)\.(\d+)\.(\d+)/)?.slice(1).map(Number) ?? [0, 0, 0];
+  const versionTuple = (value?: string | null) => (value?.match(/(\d+)\.(\d+)\.(\d+)/)?.slice(1).map(Number) ?? [0, 0, 0]);
   const [activeMajor, activeMinor, activePatch] = versionTuple(activeClinicalVersion?.displayVersion);
   const [pinnedMajor, pinnedMinor, pinnedPatch] = versionTuple(run.pinnedRuleVersionDisplay);
   const activeIsNewer = activeMajor > pinnedMajor || (activeMajor === pinnedMajor && activeMinor > pinnedMinor) || (activeMajor === pinnedMajor && activeMinor === pinnedMinor && activePatch > pinnedPatch);
 
+  const priorSnapshots = await getPriorSnapshots(
+    run.items.map((i) => i.priorItemId).filter((v): v is string => Boolean(v))
+  );
 
   const items: WorklistItem[] = run.items.map((item) => ({
     id: item.id,
@@ -83,6 +89,15 @@ export default async function BatchRunDetailPage({
     reviewNote: item.reviewNote,
     overrideReason: item.overrideReason,
     result: reconstructBatchCaseResult(item),
+    triagePriority: item.triagePriority,
+    triageCategory: item.triageCategory,
+    triageRuleCode: item.triageRuleCode,
+    triageRuleVersion: item.triageRuleVersion,
+    priorDecisionCount: item.priorDecisionCount,
+    priorComparison:
+      item.priorItemId && priorSnapshots.get(item.priorItemId)
+        ? buildPriorComparison(priorSnapshots.get(item.priorItemId)!, buildSnapshotFromRecord(item))
+        : null,
   }));
 
   return (
@@ -101,8 +116,8 @@ export default async function BatchRunDetailPage({
         description={`${run.totalCases} pre-graded cases${
           run.sourceFileName ? ` from ${run.sourceFileName}` : ""
         } · saved ${formatDateTime(run.createdAt)}. Legacy engine ${run.engineVersion}; versioned shadow ${run.pinnedRuleVersionDisplay ?? "not configured"}${run.pinnedRulesetChecksum ? ` (${run.pinnedRulesetChecksum.slice(0, 12)}…)` : ""}. Review decisions are provisional decision-support only and require clinician confirmation.`}
+        trailing={canReview ? <RegradeRunButton runId={run.id} /> : undefined}
       />
-
 
       {canClinicalRegrade && activeClinicalVersion && activeClinicalVersion.id !== run.pinnedRuleVersionId && (
         <ClinicalRuleRegradeButton runId={run.id} targetVersionId={activeClinicalVersion.id} targetVersionDisplay={activeClinicalVersion.displayVersion} pinnedVersionDisplay={run.pinnedRuleVersionDisplay} newer={activeIsNewer} />
@@ -110,6 +125,7 @@ export default async function BatchRunDetailPage({
       {!activeClinicalVersion && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">No governed clinical version is active in the demo environment. This run retains its original versioned-shadow pin; clinical regrading is unavailable until a validated version is published and activated.</div>
       )}
+
       <WorklistClient
         runId={run.id}
         initialItems={items}

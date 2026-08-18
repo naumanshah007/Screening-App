@@ -1,0 +1,142 @@
+ Guideline
+ National Cervical Screening Programme
+
+               Cervical screening for immune deficient participants
+
+ Introduction
+
+ 1. The table below provides guidance on which immune deficient participants have or are
+    likely to have a substantially increased risk of cervical pre-cancer and cancer, and
+    recommended regular interval screening interval for HPV primary screening of 3-yearly
+    rather than 5-yearly.
+ 2. This should be considered on a case-by-case basis to support clinical judgement. The list
+    of conditions and therapies is not exhaustive, and providers may include conditions or
+    therapies similar to those below based on clinical judgement.
+ 3. The specialist responsible for managing the immunosuppressant medication/s or condition
+    may be of assistance in supporting decision-making regarding management.
+
+ Screening                     Conditions and Medications
+ Periodicity
+
+ 3-yearly screening            Living with human immunodeficiency virus (HIV)
+ recommended [a]
+                               Solid organ transplant with immunosuppressive therapy
+                               Active haematological malignancy (e.g. Leukaemia, lymphoma, other
+                               lymphoproliferative disorder, plasma cell dyscrasia)
+                               Haematopoietic stem cell transplant (HSCT) recipients or chimeric
+                               antigen receptor T-cell (CAR-T) therapy within 2 years of
+                               transplantation. Has chronic graft versus host disease.
+                               Primary immunodeficiency including combined immunodeficiency
+                               syndromes (e.g. systemic lupus erythematosus, complement
+                               deficiencies)
+                               Major antibody deficiency (e.g. common variable immune deficiency
+                               [CVID] or agammaglobulinemia).
+                               Defects of innate immunity, including phagocytic cells (e.g. NF-kappa-B
+                               essential modulator (NEMO) deficiency syndrome, natural killer (NK)
+                               cell deficiency)
+                               Defects of immune regulation (e.g. autoimmune enteropathy or
+                               ulcerative colitis)
+                               Phenocopies of primary immunodeficiencies
+ 3-yearly screening            Long term haemodialysis or peritoneal dialysis (>6 months)
+ should be highly
+ considered [b]                When participants are taking multiple immunosuppressant’s where the
+                               cumulative effect is considered to be severely immunosuppressive.
+
+                               Participants taking long-term treatment (>6 months) with highly
+                               immunosuppressive therapies.
+                               Including the following immunosuppressive medications:
+
+
+OWNER TITLE:          NCSP Clinical Lead Cytopathology                          DOC ID:     18378
+AUTHORISER TITLE:     Clinical Director Screening                               VERSION:    1.0.1
+PUBLISHED:       12/03/2026                     REVIEW DUE:   12/03/2027        PAGE:       1 of 3
+IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+ Guideline
+ National Cervical Screening Programme
+
+               Cervical screening for immune deficient participants
+ Screening                      Conditions and Medications
+ Periodicity
+
+                                High-dose corticosteroid treatment equivalent to >20 mg/day of
+                                prednisone for ≥14 days in a month, or pulse corticosteroid therapy.
+                                Selected conventional and targeted synthetic disease- modifying anti-
+                                rheumatic drugs (sDMARDS), taken for long- term treatment for > 6
+                                months: leflunomide
+                                Mycophenolate
+                                Methotrexate (10 mg/week)
+                                Azathioprine (>1mg/kg day)
+                                6-mercaptopurine (>0.5 mg/kg/day)
+                                Alkylating agents: cyclophosphamide, chlorambucil
+                                Systemic calcineurin inhibitors: cyclosporin, tacrolimus
+                                JAK inhibitors: tofacitinib, baricitinib, ruxolitinib, upadacitinib
+                                Multiple sclerosis medications: dimethyl fumarate, fingolimod,
+                                teriflunomide
+                                TNF inhibitors: etanercept, infliximab
+                                Anti-interleukin monoclonal antibody therapy: secukinumab, dupilumab,
+                                tocilizumab
+                                Anti-integrins: natalizumab
+                                Anti-complement antibodies: eculizumab
+                                Anti-CD52 antibodies: alemtuzumab
+                                Sphingosine 1-phosphate receptor modulators: fingolimod
+                                Potent B-cell or T-cell depleting therapy within the last 12 months:
+                                muromonab, teplizumab, rituximab, ocrelizumab
+     [a] Based on documented significantly higher risk of cervical precancer and cancer, predominantly from
+         studies looking at risk for cervical cancer in participants with conditions listed, and some evidence
+         extrapolated from COVID-19 mRNA vaccine response in those with primary immunodeficiency.
+
+     [b] Based on an increased risk expected through pathological mechanisms and trends from observational
+         studies of COVID-19 mRNA response, with limited evidence from observational studies looking at cervical
+         cancer specifically.
+
+
+
+ 4. There are some conditions and medications that are not considered immune deficient
+      or suppressive in the context of cervical screening and participants with these conditions
+      should not be screened in the immune deficient pathway. These include:
+
+
+
+OWNER TITLE:           NCSP Clinical Lead Cytopathology                                  DOC ID:      18378
+AUTHORISER TITLE:      Clinical Director Screening                                       VERSION:     1.0.1
+PUBLISHED:        12/03/2026                     REVIEW DUE:   12/03/2027                PAGE:        2 of 3
+IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+ Guideline
+ National Cervical Screening Programme
+
+               Cervical screening for immune deficient participants
+                               Conditions and Medications
+
+
+ Conditions not                Diabetes
+ considered immune
+ deficient in the context      Thyroid disease (Graves’ disease)
+ of cervical screening         Previous splenectomy
+                               Coeliac disease
+ Medications not               Hydroxychloroquine, sulfasalazine or mesalazine when used as
+ considered                    monotherapy
+ immunosuppressive in
+ context to cervical           Low-dose or brief corticosteroid therapy
+ screening                     Replacement corticosteroid treatment for adrenal insufficiency
+                               Most standard chemotherapy regimens for solid tumours are not
+                               considered to be highly immunosuppressive, as well as other
+                               antineoplastic treatments, such as hormone therapy, immunotherapy
+                               and targeted therapy
+                               People with history of cancer and those being treated with
+                               chemotherapy short-term (< 6 months) for solid tumours. However,
+                               particular cases, especially with prolonged treatments or multiple prior
+                               lines of cytotoxic therapy, may be discussed with the oncologist.
+
+
+
+ 5. The screen taker or colposcopist should indicate on the laboratory request form if a
+     participant is immune deficient.
+
+
+
+
+OWNER TITLE:          NCSP Clinical Lead Cytopathology                           DOC ID:    18378
+AUTHORISER TITLE:     Clinical Director Screening                                VERSION:   1.0.1
+PUBLISHED:       12/03/2026                     REVIEW DUE:   12/03/2027         PAGE:      3 of 3
+IF THIS DOCUMENT IS PRINTED, IT IS VALID ONLY FOR THE DAY OF PRINTING
+

@@ -1,0 +1,801 @@
+{
+  "generatedFrom": "scripts/verify-independent.ts",
+  "rows": [
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-001",
+      "title": "High suspicion cancer (case flag)",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-008",
+      "title": "HPV 16/18 primary screening with cancer suspicion cytology",
+      "batch": "shadowed",
+      "case_": "reachable",
+      "combined": "case-only (unreachable in batch pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-009",
+      "title": "HPV Other primary screening with cancer suspicion cytology",
+      "batch": "shadowed",
+      "case_": "reachable",
+      "combined": "case-only (unreachable in batch pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-010",
+      "title": "Abnormal cervical appearance with cancer suspicion",
+      "batch": "shadowed",
+      "case_": "reachable",
+      "combined": "case-only (unreachable in batch pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-011",
+      "title": "Post-treatment HPV 16/18 with cancer suspicion",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-011 requires Post-treatment assessment + HPV 16/18 + Cancer suspicion cytology.",
+        "COL-008 requires HPV 16/18 + Cancer suspicion cytology.",
+        "Every legal input satisfying COL-011 therefore also satisfies COL-008.",
+        "COL-008 precedes COL-011 in the ordered list.",
+        "No exclusion available to COL-011 can falsify COL-008.",
+        "Therefore COL-011 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-012",
+      "title": "Post-treatment HPV Other with cancer suspicion",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-012 requires Post-treatment assessment + HPV Other + Cancer suspicion cytology.",
+        "COL-009 requires HPV Other + Cancer suspicion cytology.",
+        "Every legal input satisfying COL-012 therefore also satisfies COL-009.",
+        "COL-009 precedes COL-012 in the ordered list.",
+        "No exclusion available to COL-012 can falsify COL-009.",
+        "Therefore COL-012 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-013",
+      "title": "HPV surveillance 16/18 with cancer suspicion",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-013 requires HPV surveillance + HPV 16/18 + Cancer suspicion cytology.",
+        "COL-008 requires HPV 16/18 + Cancer suspicion cytology.",
+        "Every legal input satisfying COL-013 therefore also satisfies COL-008.",
+        "COL-008 precedes COL-013 in the ordered list.",
+        "No exclusion available to COL-013 can falsify COL-008.",
+        "Therefore COL-013 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-014",
+      "title": "HPV Other surveillance with cancer suspicion",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-014 requires HPV surveillance + HPV Other + Cancer suspicion cytology.",
+        "COL-009 requires HPV Other + Cancer suspicion cytology.",
+        "Every legal input satisfying COL-014 therefore also satisfies COL-009.",
+        "COL-009 precedes COL-014 in the ordered list.",
+        "No exclusion available to COL-014 can falsify COL-009.",
+        "Therefore COL-014 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-030",
+      "title": "HPV not detected with cancer suspicion — symptomatic pathway",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-030 requires HPV Not Detected + Cancer suspicion cytology.",
+        "No single earlier rule subsumes it, but no legal fact vector satisfies COL-030 while falsifying every earlier rule.",
+        "The blocking set is: COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014…",
+        "Verified independently by exhaustive enumeration (Path A) and CNF/DPLL (Path B)."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-032",
+      "title": "Positive test of cure — HPV detected, low-grade or no cytology",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-033",
+      "title": "Positive test of cure — HPV not detected, persistent low-grade cytology",
+      "batch": "reachable",
+      "case_": "not_producible",
+      "combined": "batch-only (unreachable in case pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-002",
+      "title": "Positive test of cure re-referral",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-003",
+      "title": "High-grade cytology or histology (HSIL, ASC-H, CIN2, CIN3)",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-015",
+      "title": "HPV 16/18 primary screening — abnormal cytology (non-cancer)",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-016",
+      "title": "HPV Other primary screening — high-grade or glandular cytology",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-004",
+      "title": "HPV 16/18 positive (any cytology, no higher rule matched)",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-027",
+      "title": "HPV Other immune deficient — no cytology",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-028",
+      "title": "HPV Other immune deficient — normal or low-grade cytology",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-017",
+      "title": "HPV Other with immune deficiency",
+      "batch": "shadowed",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-017 requires HPV Other + Immune deficient.",
+        "No single earlier rule subsumes it, but no legal fact vector satisfies COL-017 while falsifying every earlier rule.",
+        "The blocking set is: COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014, COL-030…",
+        "Verified independently by exhaustive enumeration (Path A) and CNF/DPLL (Path B)."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-006",
+      "title": "Abnormal cervical appearance — borderline/normal cytology",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-018",
+      "title": "Post-treatment HPV 16/18 — abnormal cytology (non-cancer)",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-018 requires Post-treatment assessment + HPV 16/18; requires one of (ASC-US / LSIL / HSIL / ASC-H / Glandular abnormality).",
+        "COL-004 requires one of (HPV 16/18).",
+        "Every legal input satisfying COL-018 therefore also satisfies COL-004.",
+        "COL-004 precedes COL-018 in the ordered list.",
+        "No exclusion available to COL-018 can falsify COL-004.",
+        "Therefore COL-018 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-019",
+      "title": "Post-treatment HPV Other — abnormal cytology",
+      "batch": "not_producible",
+      "case_": "reachable",
+      "combined": "case-only (unreachable in batch pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-020",
+      "title": "HPV surveillance 16/18 — abnormal cytology",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-020 requires HPV surveillance + HPV 16/18; requires one of (ASC-US / LSIL / HSIL / ASC-H / Glandular abnormality).",
+        "COL-004 requires one of (HPV 16/18).",
+        "Every legal input satisfying COL-020 therefore also satisfies COL-004.",
+        "COL-004 precedes COL-020 in the ordered list.",
+        "No exclusion available to COL-020 can falsify COL-004.",
+        "Therefore COL-020 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-021",
+      "title": "HPV Other surveillance — abnormal cytology",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-021 requires HPV surveillance + HPV Other; requires one of (ASC-H / HSIL / Glandular abnormality).",
+        "COL-016 requires HPV Other; requires one of (ASC-H / HSIL / Glandular abnormality).",
+        "Every legal input satisfying COL-021 therefore also satisfies COL-016.",
+        "COL-016 precedes COL-021 in the ordered list.",
+        "No exclusion available to COL-021 can falsify COL-016.",
+        "Therefore COL-021 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-031",
+      "title": "HPV not detected with high-grade or glandular cytology — symptomatic",
+      "batch": "reachable",
+      "case_": "not_producible",
+      "combined": "batch-only (unreachable in case pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-005",
+      "title": "Second HPV Other — no cytology or normal/low-grade",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-022",
+      "title": "Endorsed referred on colposcopy",
+      "batch": "not_producible",
+      "case_": "reachable",
+      "combined": "case-only (unreachable in batch pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-023",
+      "title": "Post-treatment HPV 16/18 — normal or low-grade cytology",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-023 requires Post-treatment assessment + HPV 16/18; requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality.",
+        "COL-004 requires one of (HPV 16/18).",
+        "Every legal input satisfying COL-023 therefore also satisfies COL-004.",
+        "COL-004 precedes COL-023 in the ordered list.",
+        "No exclusion available to COL-023 can falsify COL-004.",
+        "Therefore COL-023 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-024",
+      "title": "HPV surveillance — normal or low-grade cytology",
+      "batch": "not_producible",
+      "case_": "reachable",
+      "combined": "case-only (unreachable in batch pipeline)"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-007",
+      "title": "Routine low-grade colposcopy trigger (HPV Other, LSIL)",
+      "batch": "reachable",
+      "case_": "reachable",
+      "combined": "reachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-034",
+      "title": "Third HPV Other — normal or low-grade cytology",
+      "batch": "not_producible",
+      "case_": "not_producible",
+      "combined": "operationally unreachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-040",
+      "title": "Previous LSIL histology re-referral — HPV 16/18, no cytology",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-040 requires Previous LSIL histology + HPV 16/18; requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality, ASC-US, LSIL, Normal cytology.",
+        "COL-004 requires one of (HPV 16/18).",
+        "Every legal input satisfying COL-040 therefore also satisfies COL-004.",
+        "COL-004 precedes COL-040 in the ordered list.",
+        "No exclusion available to COL-040 can falsify COL-004.",
+        "Therefore COL-040 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-025",
+      "title": "HPV Other surveillance — low-grade or normal cytology (long-cycle)",
+      "batch": "not_producible",
+      "case_": "shadowed",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-025 requires HPV surveillance + HPV Other; requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality.",
+        "COL-024 requires HPV surveillance; requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality.",
+        "Every legal input satisfying COL-025 therefore also satisfies COL-024.",
+        "COL-024 precedes COL-025 in the ordered list.",
+        "No exclusion available to COL-025 can falsify COL-024.",
+        "Therefore COL-025 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-035",
+      "title": "Previous normal colposcopy re-referral — HPV 16/18, no cytology",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-035 requires Previous normal colposcopy + HPV 16/18; requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality, ASC-US, LSIL, Normal cytology.",
+        "COL-004 requires one of (HPV 16/18).",
+        "Every legal input satisfying COL-035 therefore also satisfies COL-004.",
+        "COL-004 precedes COL-035 in the ordered list.",
+        "No exclusion available to COL-035 can falsify COL-004.",
+        "Therefore COL-035 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-036",
+      "title": "Previous normal colposcopy re-referral — HPV 16/18, normal or low-grade cytology",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-036 requires Previous normal colposcopy + HPV 16/18; requires one of (Normal cytology / ASC-US / LSIL); requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality.",
+        "COL-004 requires one of (HPV 16/18).",
+        "Every legal input satisfying COL-036 therefore also satisfies COL-004.",
+        "COL-004 precedes COL-036 in the ordered list.",
+        "No exclusion available to COL-036 can falsify COL-004.",
+        "Therefore COL-036 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-037",
+      "title": "Previous normal colposcopy re-referral — immune-deficient HPV Other",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-037 requires Previous normal colposcopy + HPV Other + Immune deficient; requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality.",
+        "COL-017 requires HPV Other + Immune deficient.",
+        "Every legal input satisfying COL-037 therefore also satisfies COL-017.",
+        "COL-017 precedes COL-037 in the ordered list.",
+        "No exclusion available to COL-037 can falsify COL-017.",
+        "Therefore COL-037 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-038",
+      "title": "Previous normal colposcopy re-referral — HPV Other, repeat normal or low-grade cytology",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-038 requires Previous normal colposcopy + HPV Other; requires one of (Normal cytology / ASC-US / LSIL / Repeat ASCUS/LSIL); requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality, Immune deficient.",
+        "COL-007 requires one of (LSIL / HPV Other).",
+        "Every legal input satisfying COL-038 therefore also satisfies COL-007.",
+        "COL-007 precedes COL-038 in the ordered list.",
+        "No exclusion available to COL-038 can falsify COL-007.",
+        "Therefore COL-038 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-039",
+      "title": "Previous normal colposcopy re-referral — HPV Other, repeat no cytology",
+      "batch": "not_producible",
+      "case_": "not_producible",
+      "combined": "operationally unreachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-041",
+      "title": "Previous LSIL histology re-referral — HPV 16/18, normal or low-grade cytology",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-041 requires Previous LSIL histology + HPV 16/18; requires one of (Normal cytology / ASC-US / LSIL); requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality.",
+        "COL-004 requires one of (HPV 16/18).",
+        "Every legal input satisfying COL-041 therefore also satisfies COL-004.",
+        "COL-004 precedes COL-041 in the ordered list.",
+        "No exclusion available to COL-041 can falsify COL-004.",
+        "Therefore COL-041 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-042",
+      "title": "Previous LSIL histology re-referral — immune-deficient HPV Other",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-042 requires Previous LSIL histology + HPV Other + Immune deficient; requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality.",
+        "COL-017 requires HPV Other + Immune deficient.",
+        "Every legal input satisfying COL-042 therefore also satisfies COL-017.",
+        "COL-017 precedes COL-042 in the ordered list.",
+        "No exclusion available to COL-042 can falsify COL-017.",
+        "Therefore COL-042 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-043",
+      "title": "Previous LSIL histology re-referral — HPV Other, repeat normal or low-grade cytology",
+      "batch": "shadowed",
+      "case_": "not_producible",
+      "combined": "shadowed in every pipeline",
+      "proof": [
+        "COL-043 requires Previous LSIL histology + HPV Other; requires one of (Normal cytology / ASC-US / LSIL / Repeat ASCUS/LSIL); requires absence of Cancer suspicion cytology, HSIL, ASC-H, Glandular abnormality, Immune deficient.",
+        "COL-007 requires one of (LSIL / HPV Other).",
+        "Every legal input satisfying COL-043 therefore also satisfies COL-007.",
+        "COL-007 precedes COL-043 in the ordered list.",
+        "No exclusion available to COL-043 can falsify COL-007.",
+        "Therefore COL-043 can never win."
+      ]
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-044",
+      "title": "Previous LSIL histology re-referral — HPV Other, repeat no cytology",
+      "batch": "not_producible",
+      "case_": "not_producible",
+      "combined": "operationally unreachable in both"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-026",
+      "title": "Other clinical assessment",
+      "batch": "not_producible",
+      "case_": "reachable",
+      "combined": "case-only (unreachable in batch pipeline)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-001",
+      "title": "High suspicion cancer",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-002",
+      "title": "Postmenopausal bleeding without ultrasound",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-003",
+      "title": "Postmenopausal bleeding with thickened endometrium",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-004",
+      "title": "Recurrent postmenopausal bleeding despite low endometrial thickness",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-005",
+      "title": "Adnexal/ovarian concern with elevated CA-125",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-026",
+      "title": "Complex adnexal mass — SMO-only pathway",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-006",
+      "title": "Pelvic pain without ultrasound",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-007",
+      "title": "Large fibroids with mass symptoms",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-008",
+      "title": "Small fibroids with mass symptoms",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-033",
+      "title": "Asymptomatic fibroids without AUB",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-013",
+      "title": "Abnormal uterine bleeding without ultrasound",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-014",
+      "title": "Abnormal uterine bleeding with markedly thickened endometrium",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-015",
+      "title": "Persistent abnormal uterine bleeding after medical management",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-022",
+      "title": "AUB with USS polyp finding",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-023",
+      "title": "Endometrioma >= 5 cm with normal tumour markers",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-024",
+      "title": "Deep infiltrating endometriosis on imaging",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-025",
+      "title": "Recurrent endometriosis with normal scan",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-016",
+      "title": "Procidentia",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-028",
+      "title": "Prolapse with urinary retention or hydronephrosis",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-027",
+      "title": "Symptomatic prolapse (non-procidentia)",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-029",
+      "title": "Stress urinary incontinence without prior physiotherapy",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-030",
+      "title": "Urge incontinence without medication trial",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-017",
+      "title": "Recurrent urogynaecology symptoms",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-018",
+      "title": "Mesh related problem",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-019",
+      "title": "Asymptomatic prolapse",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-031",
+      "title": "Paediatric gynaecology referral",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-032",
+      "title": "Obstetric pelvic tear grade 3B, 3C, or 4th degree",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-020",
+      "title": "Small asymptomatic cervical polyp with normal smear",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-021",
+      "title": "Symptomatic larger cervical polyp with normal smear",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-009",
+      "title": "PCOS virtual clinic pathway",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-010",
+      "title": "Fertility referral diversion",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-011",
+      "title": "Tubal ligation counselling",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-034",
+      "title": "Postmenopausal bleeding — single episode, endometrial thickness below 5mm",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-035",
+      "title": "TVT or sling complication",
+      "batch": "n/a",
+      "case_": "not_producible",
+      "combined": "operationally unreachable"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-036",
+      "title": "Intermenstrual bleeding with reassuring investigations",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-037",
+      "title": "AUB — normal USS, no prior medical management",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-038",
+      "title": "Re-grading required — new clinical information received",
+      "batch": "n/a",
+      "case_": "not_producible",
+      "combined": "operationally unreachable"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-012",
+      "title": "Routine gynaecology symptom bundle",
+      "batch": "n/a",
+      "case_": "reachable",
+      "combined": "reachable (case pipeline only applies)"
+    }
+  ]
+}

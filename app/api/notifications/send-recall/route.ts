@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getApiPermissionError } from "@/lib/auth/api-permissions";
 
 // POST /api/notifications/send-recall - Trigger recall letter generation
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  const permissionError = getApiPermissionError(user, "recalls:send");
+  if (permissionError) return NextResponse.json(permissionError.body, { status: permissionError.status });
 
   const body = await req.json();
   const { recallId, patientId } = body;
@@ -34,17 +37,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Recall not found" }, { status: 404 });
   }
 
-  // Mark as sent
-  await prisma.recall.update({
-    where: { id: recall.id },
-    data: { status: "SENT", sentAt: new Date() },
-  });
-
-  // Audit
+  // Generating a letter is not delivery. Keep the recall pending until a
+  // configured delivery provider reports success.
   await prisma.auditLog.create({
     data: {
-      userId: (session.user as { id?: string }).id,
-      action: "SEND_RECALL",
+      userId: user!.id,
+      action: "RECALL_LETTER_GENERATED",
       entity: "Recall",
       entityId: recall.id,
       newValue: JSON.stringify({ patientNhi: recall.patient.nhi }),
@@ -57,7 +55,8 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     success: true,
     recallId: recall.id,
-    sentAt: new Date(),
+    deliveryStatus: "GENERATED_NOT_DELIVERED",
+    generatedAt: new Date(),
     letterContent,
   });
 }

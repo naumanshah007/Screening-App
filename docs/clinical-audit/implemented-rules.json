@@ -1,0 +1,12 @@
+[
+  {"rule_id":"F1-INVITE-NOW","location":"lib/engine/decision-engine.ts:137","figure":"FIGURE_1","conditions":"NEVER_SCREENED|UNDER_SCREENED|OVERDUE","output":"invite now","review_required":false,"ui_api_batch":"partially represented"},
+  {"rule_id":"F2-*","location":"lib/engine/decision-engine.ts:188","figure":"FIGURE_2","conditions":"prior high-grade/AIS/endometrial history","output":"colposcopy, ToC, Figure 3 or clinician review","review_required":"varies","ui_api_batch":"partial"},
+  {"rule_id":"F3-*","location":"lib/engine/decision-engine.ts:339","figure":"FIGURE_3","conditions":"HPV/cytology/sample/repeat/age","output":"recall, return visit, colposcopy or stop","review_required":"varies","ui_api_batch":"partial"},
+  {"rule_id":"F4-*","location":"lib/engine/decision-engine.ts:513","figure":"FIGURE_4","conditions":"normal colposcopy follow-up","output":"repeat/recall/colposcopy","review_required":"varies","ui_api_batch":"partial"},
+  {"rule_id":"F5-*","location":"lib/engine/decision-engine.ts:629","figure":"FIGURE_5","conditions":"high-grade normal-colposcopy follow-up","output":"MDM/treatment/follow-up","review_required":true,"ui_api_batch":"partial"},
+  {"rule_id":"F6-*","location":"lib/engine/decision-engine.ts:733","figure":"FIGURE_6","conditions":"ToC HPV/cytology/stage","output":"repeat, return, or colposcopy","review_required":"missing-date warning only","ui_api_batch":"partial"},
+  {"rule_id":"F7-*","location":"lib/engine/decision-engine.ts:873","figure":"FIGURE_7","conditions":"glandular cytology/lesion/biopsy/MDM","output":"gynaecology, colposcopy, oncology or review","review_required":true,"ui_api_batch":"partial"},
+  {"rule_id":"F8/T1-*","location":"lib/engine/decision-engine.ts:1136,1633","figure":"FIGURE_8/TABLE_1","conditions":"hysterectomy/history/pathology/excision","output":"cessation, HPV, ToC or referral","review_required":"varies","ui_api_batch":"partial"},
+  {"rule_id":"F9-*","location":"lib/engine/decision-engine.ts:1306","figure":"FIGURE_9","conditions":"pregnancy/high-grade/colposcopy/MDM","output":"colposcopy or review","review_required":true,"ui_api_batch":"partial"},
+  {"rule_id":"F10-*","location":"lib/engine/decision-engine.ts:1457","figure":"FIGURE_10","conditions":"bleeding/exam/cancer suspicion","output":"urgent referral, investigation or review","review_required":"varies","ui_api_batch":"partial"}
+]

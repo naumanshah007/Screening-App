@@ -12,9 +12,13 @@ function formatMs(ms: number): string {
 
 interface BatchStatCardsProps {
   result: BatchProcessingResult;
+  activeFilter?: BatchResultFilter;
+  onFilterChange?: (filter: BatchResultFilter) => void;
 }
 
-export function BatchStatCards({ result }: BatchStatCardsProps) {
+export type BatchResultFilter = "all" | "urgent" | "referrals" | "errors";
+
+export function BatchStatCards({ result, activeFilter = "all", onFilterChange }: BatchStatCardsProps) {
   const riskCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, URGENT: 0 };
   for (const r of result.results) {
     if (r.status === "success" && r.decision.riskLevel) {
@@ -35,6 +39,8 @@ export function BatchStatCards({ result }: BatchStatCardsProps) {
         subtext={result.errorCount > 0 ? `${result.errorCount} error(s)` : "All successful"}
         variant={result.errorCount > 0 ? "warning" : "success"}
         icon={<Users className="h-5 w-5" />}
+        active={activeFilter === "all"}
+        onClick={onFilterChange ? () => onFilterChange("all") : undefined}
       />
       <StatCard
         label="Urgent / High Risk"
@@ -42,6 +48,8 @@ export function BatchStatCards({ result }: BatchStatCardsProps) {
         subtext={`${riskCounts.URGENT} urgent, ${riskCounts.HIGH} high`}
         variant={riskCounts.URGENT > 0 ? "urgent" : riskCounts.HIGH > 0 ? "warning" : "success"}
         icon={<AlertTriangle className="h-5 w-5" />}
+        active={activeFilter === "urgent"}
+        onClick={onFilterChange ? () => onFilterChange("urgent") : undefined}
       />
       <StatCard
         label="Referrals"
@@ -49,13 +57,17 @@ export function BatchStatCards({ result }: BatchStatCardsProps) {
         subtext={`of ${result.processedCount} cases`}
         variant={referralCount > 0 ? "info" : "default"}
         icon={<ShieldCheck className="h-5 w-5" />}
+        active={activeFilter === "referrals"}
+        onClick={onFilterChange ? () => onFilterChange("referrals") : undefined}
       />
       <StatCard
-        label="Processing Time"
-        value={formatMs(result.totalTimeMs)}
-        subtext={`~${formatMs(result.totalTimeMs / Math.max(result.processedCount, 1))} per case`}
-        variant="default"
+        label={result.errorCount > 0 ? "Errors" : "Processing Time"}
+        value={result.errorCount > 0 ? result.errorCount : formatMs(result.totalTimeMs)}
+        subtext={result.errorCount > 0 ? "Rows needing review" : `~${formatMs(result.totalTimeMs / Math.max(result.processedCount, 1))} per case`}
+        variant={result.errorCount > 0 ? "warning" : "default"}
         icon={<Clock className="h-5 w-5" />}
+        active={activeFilter === "errors"}
+        onClick={result.errorCount > 0 && onFilterChange ? () => onFilterChange("errors") : undefined}
       />
     </div>
   );

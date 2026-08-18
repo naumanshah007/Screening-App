@@ -1,0 +1,5 @@
+guideline_rule_id,classification,severity,actual,clinical_consequence
+F3-HPV-NOT-DETECTED-IMMUNE-COMPETENT,INCORRECT_REVIEW_REQUIREMENT,HIGH,routine recall without sample type,unsafe reassurance
+F3-HPV16_18-COLPOSCOPY,INCORRECT_CONDITION,CRITICAL,age 70-74 exit branch wins,delayed colposcopy referral
+F6-TOC-HPV-DETECTED-COLPOSCOPY,INCORRECT_REVIEW_REQUIREMENT,HIGH,treatment date is non-blocking,unsafe ToC disposition
+F10-SUSPECTED-CANCER-URGENT-REFERRAL,EXACT_MATCH,MEDIUM,urgent referral emitted,needs source verification

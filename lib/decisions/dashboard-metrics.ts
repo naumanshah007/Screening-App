@@ -6,6 +6,7 @@ import {
   type CompletedDecisionRecord,
   type DecisionUser,
 } from "@/lib/decisions/completed-decisions";
+import { getActiveCaseRuleSetRelease } from "@/lib/cases/rule-releases";
 
 type DecisionSplitInput = Array<{
   disposition: BatchReviewDisposition;
@@ -48,6 +49,10 @@ export type CommandCentreMetrics = {
   averageIntakeToDecisionMinutes: number | null;
   packagePreviewedOrExported: number;
   packagePreviewedOrExportedThisWeek: number;
+  // Pending queue grouped by the rules-driven booking priority + which rule
+  // release produced it — makes the editable-rules → product impact visible.
+  bookingPriorityMix: Array<{ priority: string; count: number }>;
+  activeRuleVersion: string | null;
   recentIntakeSessions: Array<{
     id: string;
     source: string;
@@ -149,9 +154,26 @@ function emptyMetrics(policy: CommandCentreMetricPolicy): CommandCentreMetrics {
     averageIntakeToDecisionMinutes: null,
     packagePreviewedOrExported: 0,
     packagePreviewedOrExportedThisWeek: 0,
+    bookingPriorityMix: [],
+    activeRuleVersion: null,
     recentIntakeSessions: [],
     recentCompletedDecisions: [],
   };
+}
+
+const BOOKING_PRIORITY_ORDER = ["P1_HSC", "P1", "P2_HSC", "P2", "P3", "P5", "REJECT", "DECLINE", "INFO_REQUIRED"];
+
+export function orderBookingPriorityMix(
+  grouped: Array<{ triagePriority: string | null; _count: { _all: number } }>
+): Array<{ priority: string; count: number }> {
+  return grouped
+    .filter((g): g is { triagePriority: string; _count: { _all: number } } => Boolean(g.triagePriority))
+    .map((g) => ({ priority: g.triagePriority, count: g._count._all }))
+    .sort((a, b) => {
+      const ai = BOOKING_PRIORITY_ORDER.indexOf(a.priority);
+      const bi = BOOKING_PRIORITY_ORDER.indexOf(b.priority);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
 }
 
 function startOfToday(now = new Date()) {
@@ -236,6 +258,8 @@ export async function getCommandCentreMetrics(
     recentCompletedDecisions,
     packagePreviewedOrExported,
     packagePreviewedOrExportedThisWeek,
+    bookingPriorityGrouped,
+    activeRelease,
   ] = await Promise.all([
     prisma.batchReviewItem.count({ where: pendingWhere }),
     prisma.batchReviewItem.count({ where: { disposition: "PENDING", reviewRequired: true } }),
@@ -310,6 +334,12 @@ export async function getCommandCentreMetrics(
         createdAt: { gte: week },
       },
     }),
+    prisma.batchReviewItem.groupBy({
+      by: ["triagePriority"],
+      where: { disposition: "PENDING", triagePriority: { not: null } },
+      _count: { _all: true },
+    }),
+    getActiveCaseRuleSetRelease("COLPOSCOPY").catch(() => null),
   ]);
 
   return {
@@ -325,6 +355,8 @@ export async function getCommandCentreMetrics(
     averageIntakeToDecisionMinutes: calculateAverageDecisionMinutes(averageItems),
     packagePreviewedOrExported,
     packagePreviewedOrExportedThisWeek,
+    bookingPriorityMix: orderBookingPriorityMix(bookingPriorityGrouped),
+    activeRuleVersion: activeRelease?.version ?? null,
     recentIntakeSessions,
     recentCompletedDecisions,
   };

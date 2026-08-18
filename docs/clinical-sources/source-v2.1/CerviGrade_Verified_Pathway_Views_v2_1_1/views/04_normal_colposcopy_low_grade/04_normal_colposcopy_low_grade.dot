@@ -1,0 +1,86 @@
+digraph CerviGradeVerifiedView {
+graph [rankdir=TB, compound=false, newrank=true, splines=polyline, nodesep=0.38, ranksep=0.58, pad=0.30, bgcolor="#FFFFFF", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="Normal Colposcopy after Low-Grade Cytology\nFigure 4 — 12- and 24-month surveillance with immune-status and Type 3 TZ safeguards\nVerified visual projection v2.1.1 — provisional recommendation, reviewer confirmation required"];
+node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.15,0.10", color="#164E63", fillcolor="#E6F7FA", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=9.5, color="#475569", arrowsize=0.75, penwidth=1.15];
+
+subgraph cluster_f4 { label="FIGURE 4 - Normal colposcopy after negative/ASC-US/LSIL"; color="#0891B2"; style="rounded"; penwidth=1.6;
+F4_ENTRY [label="HPV detected any type + negative/ASC-US/LSIL\nNormal colposcopy"];
+F4_COMP [label="Figure 4 mandatory facts complete?\nNormal-colposcopy date, TZ, immune status, repeat stage", shape="diamond"];
+F4_CSTOP [label="Missing Figure 4 facts -> clinician review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F4_TZ [label="Transformation-zone type known?", shape="diamond"];
+F4_TZSTOP [label="TZ type unknown -> clinician review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+F4_12 [label="Repeat HPV in 12 months in community care\nUse LBC"];
+F4_RES [label="12-month result?", shape="diamond"];
+F4_NEG [label="HPV not detected\n5 years if immune competent / 3 years if verified immune deficient"];
+F4_1618 [label="HPV16/18\nColposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+F4_OTH [label="HPV Other"];
+F4_LBC [label="LBC/cytology available?", shape="diamond"];
+F4_RET [label="Return for examination and LBC"];
+F4_CYT [label="Cytology?", shape="diamond"];
+F4_HI [label=">=ASC-H / glandular\nColposcopy or specialist route"];
+F4_MALIGN [label="Suspicious/definite invasive cytology\nURGENT specialist assessment", shape="doubleoctagon", fillcolor="#FEE2E2", color="#B91C1C"];
+F4_OV [label="At 12- and 24-month events apply Section 3 validity/adequacy\nand endometrial specialist overlays first", shape="note", fillcolor="#F8FAFC", color="#64748B"];
+F4_ENDO [label="Atypical endometrial\nSpecialist gynaecology", fillcolor="#FFF4CC", color="#B7791F"];
+F4_LOW [label="Negative / ASC-US / LSIL"];
+F4_IMM [label="Verified immune deficient?", shape="diamond"];
+F4_COL [label="Colposcopy"];
+F4_24 [label="Repeat HPV + cytology in another 12 months\nUse LBC"];
+F4_24RES [label="24-month result?", shape="diamond"];
+F4_24NEG [label="HPV not detected\n5 years if immune competent / 3 years if verified immune deficient"];
+F4_24POS [label="Any HPV detected\nColposcopy", fillcolor="#FEE2E2", color="#B91C1C"];
+F4_TZ3 [label="Type 3 TZ + HPV positive + low-grade cytology + normal colposcopy\n2026: MDM cytology review not required before observation", fillcolor="#DCFCE7", color="#15803D"];
+F4_TZ3_NOEXC [label="No high-grade evidence\nDo not routinely perform diagnostic excision", fillcolor="#DCFCE7", color="#15803D"];
+F4_TZ3_SEL [label="Selected concerns: completed child-bearing, anxiety, age >50,\nor uncertain future attendance\nDiagnostic excision may be offered by specialist/shared decision", fillcolor="#FFF4CC", color="#B7791F"];
+F4_TZ3_ECC [label="Persistent ASC-US/LSIL with Type 3 TZ\nECC may be considered; a negative ECC is not reassuring", fillcolor="#FFF4CC", color="#B7791F"];
+F4_ENTRY -> F4_COMP;
+F4_COMP -> F4_CSTOP [label="No"];
+F4_COMP -> F4_TZ [label="Yes"];
+F4_TZ -> F4_TZSTOP [label="Unknown"];
+F4_TZ -> F4_12 [label="Known"];
+F4_TZ -> F4_TZ3 [label="Type 3", style="dashed", constraint="false"];
+F4_TZ3 -> F4_TZ3_NOEXC;
+F4_TZ3 -> F4_TZ3_SEL;
+F4_TZ3 -> F4_TZ3_ECC;
+F4_12 -> F4_OV [style="dashed"];
+F4_12 -> F4_RES;
+F4_RES -> F4_NEG [label="HPV not detected"];
+F4_RES -> F4_1618 [label="HPV16/18"];
+F4_RES -> F4_OTH [label="HPV Other"];
+F4_OTH -> F4_LBC;
+F4_LBC -> F4_RET [label="No / swab"];
+F4_LBC -> F4_CYT [label="Yes"];
+F4_RET -> F4_CYT;
+F4_CYT -> F4_MALIGN [label="Suspicious/definite invasive"];
+F4_CYT -> F4_HI [label=">=ASC-H / glandular"];
+F4_CYT -> F4_ENDO [label="Atypical endometrial"];
+F4_CYT -> F4_LOW [label="Negative/ASC-US/LSIL"];
+F4_LOW -> F4_IMM;
+F4_IMM -> F4_COL [label="Yes"];
+F4_IMM -> F4_24 [label="No"];
+F4_24 -> F4_OV [style="dashed", constraint="false"];
+F4_24 -> F4_24RES;
+F4_24RES -> F4_24NEG [label="HPV not detected"];
+F4_24RES -> F4_24POS [label="Any HPV detected"];
+}
+subgraph cluster_immune { label="2026 IMMUNE-DEFICIENCY CLASSIFIER"; color="#059669"; style="rounded"; penwidth=1.6;
+IMM_ENTRY [label="Condition/therapy assessed"];
+IMM_PROV [label="Record classifier, evidence, date, rationale, specialist input
+and whether immune status was sent on laboratory request", shape="note", fillcolor="#F8FAFC", color="#64748B"];
+IMM_CLASS [label="NCSP classification?", shape="diamond"];
+IMM_REC [label="3-year interval recommended", fillcolor="#DCFCE7", color="#15803D"];
+IMM_CONS [label="3-year interval highly considered\nCase-by-case clinician review", fillcolor="#FFF4CC", color="#B7791F"];
+IMM_NO [label="Not immune deficient on this fact alone\nUse ordinary interval unless another indication"];
+IMM_UNK [label="Unlisted/uncertain condition or combination\nSpecialist/clinician review", shape="octagon", fillcolor="#DBEAFE", color="#1D4ED8"];
+IMM_ENTRY -> IMM_PROV;
+IMM_PROV -> IMM_CLASS;
+IMM_CLASS -> IMM_REC [label="Recommended"];
+IMM_CLASS -> IMM_CONS [label="Highly considered"];
+IMM_CLASS -> IMM_NO [label="Explicitly not considered"];
+IMM_CLASS -> IMM_UNK [label="Unlisted/uncertain"];
+}
+
+
+LEGEND [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E6F7FA">Process</TD><TD BGCOLOR="#F1F5F9">Decision</TD><TD BGCOLOR="#DBEAFE">Safety stop</TD><TD BGCOLOR="#FFF4CC">Clinician/MDM</TD><TD BGCOLOR="#FEE2E2">Urgent</TD><TD BGCOLOR="#EDE9FE">Endpoint/subflow</TD><TD BGCOLOR="#DCFCE7">2026 update</TD></TR></TABLE>>];
+VIEW_NOTE [label="Verified visual projection of the canonical v2.1 rule graph.\nThe 203-rule JSON rulebook remains authoritative; view-only navigation nodes do not duplicate clinical logic.", shape="note", fillcolor="#F8FAFC", color="#64748B", fontsize=10];
+
+}

@@ -1,0 +1,1600 @@
+{
+  "generatedFrom": "scripts/verify-rule-reachability.ts",
+  "orphanLabels": [
+    "Abnormal smear",
+    "DIE confirmed on imaging",
+    "Mesh-tape complication",
+    "New clinical information",
+    "Re-grading requested",
+    "Repeat ASCUS/LSIL",
+    "Repeat no cytology",
+    "Sling complication",
+    "TVT complication",
+    "Third HPV positive result",
+    "Upgraded urgency"
+  ],
+  "findings": [
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-001",
+      "title": "High suspicion cancer (case flag)",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "case flag rule; reachable whenever the high-suspicion flag is set",
+      "exampleFacts": [
+        "<highSuspicionCancer flag>"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-001",
+      "urgencyDirection": "n/a"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-008",
+      "title": "HPV 16/18 primary screening with cancer suspicion cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV 16/18",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-008",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-009",
+      "title": "HPV Other primary screening with cancer suspicion cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV Other",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-009",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-010",
+      "title": "Abnormal cervical appearance with cancer suspicion",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "Abnormal appearance",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-010",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-011",
+      "title": "Post-treatment HPV 16/18 with cancer suspicion",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-008 always matches first",
+      "exampleFacts": [
+        "Post-treatment assessment",
+        "HPV 16/18",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-008",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-012",
+      "title": "Post-treatment HPV Other with cancer suspicion",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-009 always matches first",
+      "exampleFacts": [
+        "Post-treatment assessment",
+        "HPV Other",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-009",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-013",
+      "title": "HPV surveillance 16/18 with cancer suspicion",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-008 always matches first",
+      "exampleFacts": [
+        "HPV surveillance",
+        "HPV 16/18",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-008",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-014",
+      "title": "HPV Other surveillance with cancer suspicion",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-009 always matches first",
+      "exampleFacts": [
+        "HPV surveillance",
+        "HPV Other",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-009",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-030",
+      "title": "HPV not detected with cancer suspicion — symptomatic pathway",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH",
+      "exampleFacts": [
+        "HPV Not Detected",
+        "Cancer suspicion cytology"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "10",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "10",
+      "actualWinner": "COL-030",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-032",
+      "title": "Positive test of cure — HPV detected, low-grade or no cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "Positive test of cure",
+        "HPV 16/18"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-032",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-033",
+      "title": "Positive test of cure — HPV not detected, persistent low-grade cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH",
+      "exampleFacts": [
+        "Positive test of cure",
+        "HPV Not Detected",
+        "ASC-US"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "180",
+      "actualWinner": "COL-033",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-002",
+      "title": "Positive test of cure re-referral",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "Positive test of cure"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-002",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-003",
+      "title": "High-grade cytology or histology (HSIL, ASC-H, CIN2, CIN3)",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HSIL"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-003",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-015",
+      "title": "HPV 16/18 primary screening — abnormal cytology (non-cancer)",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV 16/18",
+        "ASC-US"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-015",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-016",
+      "title": "HPV Other primary screening — high-grade or glandular cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV Other",
+        "Glandular abnormality"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-016",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-004",
+      "title": "HPV 16/18 positive (any cytology, no higher rule matched)",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV 16/18"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-004",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-027",
+      "title": "HPV Other immune deficient — no cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV Other",
+        "Immune deficient"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-027",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-028",
+      "title": "HPV Other immune deficient — normal or low-grade cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV Other",
+        "Immune deficient",
+        "Normal cytology"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "180",
+      "actualWinner": "COL-028",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-017",
+      "title": "HPV Other with immune deficiency",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-027 always matches first",
+      "exampleFacts": [
+        "HPV Other",
+        "Immune deficient"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-027",
+      "urgencyDirection": "decreases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-006",
+      "title": "Abnormal cervical appearance — borderline/normal cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "Abnormal appearance"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-006",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-018",
+      "title": "Post-treatment HPV 16/18 — abnormal cytology (non-cancer)",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-015 always matches first",
+      "exampleFacts": [
+        "Post-treatment assessment",
+        "HPV 16/18",
+        "ASC-US"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-015",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-019",
+      "title": "Post-treatment HPV Other — abnormal cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Post-treatment assessment",
+        "HPV Other",
+        "ASC-US"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-019",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-020",
+      "title": "HPV surveillance 16/18 — abnormal cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-015 always matches first",
+      "exampleFacts": [
+        "HPV surveillance",
+        "HPV 16/18",
+        "ASC-US"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-015",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-021",
+      "title": "HPV Other surveillance — abnormal cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-003 always matches first",
+      "exampleFacts": [
+        "HPV surveillance",
+        "HPV Other",
+        "ASC-H"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-003",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-031",
+      "title": "HPV not detected with high-grade or glandular cytology — symptomatic",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH",
+      "exampleFacts": [
+        "HPV Not Detected",
+        "Glandular abnormality"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-031",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-005",
+      "title": "Second HPV Other — no cytology or normal/low-grade",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "HPV Other",
+        "Second HPV positive result"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-005",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-022",
+      "title": "Endorsed referred on colposcopy",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Endorsed referral on colposcopy"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-022",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-023",
+      "title": "Post-treatment HPV 16/18 — normal or low-grade cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-004 always matches first",
+      "exampleFacts": [
+        "Post-treatment assessment",
+        "HPV 16/18"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-004",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-024",
+      "title": "HPV surveillance — normal or low-grade cytology",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "HPV surveillance"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-024",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-007",
+      "title": "Routine low-grade colposcopy trigger (HPV Other, LSIL)",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path A_BATCH + B_CASE",
+      "exampleFacts": [
+        "LSIL"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-007",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-034",
+      "title": "Third HPV Other — normal or low-grade cytology",
+      "classification": "OPERATIONALLY_UNREACHABLE",
+      "reachablePaths": [],
+      "detail": "pipeline cannot emit required label(s): Third HPV positive result",
+      "exampleFacts": [],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "n/a — never evaluated",
+      "actualTargetDays": "n/a",
+      "actualWinner": "n/a",
+      "urgencyDirection": "n/a"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-040",
+      "title": "Previous LSIL histology re-referral — HPV 16/18, no cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-004 always matches first",
+      "exampleFacts": [
+        "Previous LSIL histology",
+        "HPV 16/18"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "90",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-004",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-025",
+      "title": "HPV Other surveillance — low-grade or normal cytology (long-cycle)",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-024 always matches first",
+      "exampleFacts": [
+        "HPV surveillance",
+        "HPV Other"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-024",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-035",
+      "title": "Previous normal colposcopy re-referral — HPV 16/18, no cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-004 always matches first",
+      "exampleFacts": [
+        "Previous normal colposcopy",
+        "HPV 16/18"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-004",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-036",
+      "title": "Previous normal colposcopy re-referral — HPV 16/18, normal or low-grade cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-004 always matches first",
+      "exampleFacts": [
+        "Previous normal colposcopy",
+        "HPV 16/18",
+        "Normal cytology"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-004",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-037",
+      "title": "Previous normal colposcopy re-referral — immune-deficient HPV Other",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-027 always matches first",
+      "exampleFacts": [
+        "Previous normal colposcopy",
+        "HPV Other",
+        "Immune deficient"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-027",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-038",
+      "title": "Previous normal colposcopy re-referral — HPV Other, repeat normal or low-grade cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-007 always matches first",
+      "exampleFacts": [
+        "Previous normal colposcopy",
+        "HPV Other",
+        "Normal cytology"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-007",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-039",
+      "title": "Previous normal colposcopy re-referral — HPV Other, repeat no cytology",
+      "classification": "OPERATIONALLY_UNREACHABLE",
+      "reachablePaths": [],
+      "detail": "pipeline cannot emit any of: Repeat no cytology",
+      "exampleFacts": [],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "n/a — never evaluated",
+      "actualTargetDays": "n/a",
+      "actualWinner": "n/a",
+      "urgencyDirection": "n/a"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-041",
+      "title": "Previous LSIL histology re-referral — HPV 16/18, normal or low-grade cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-004 always matches first",
+      "exampleFacts": [
+        "Previous LSIL histology",
+        "HPV 16/18",
+        "Normal cytology"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "COL-004",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-042",
+      "title": "Previous LSIL histology re-referral — immune-deficient HPV Other",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-027 always matches first",
+      "exampleFacts": [
+        "Previous LSIL histology",
+        "HPV Other",
+        "Immune deficient"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-027",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-043",
+      "title": "Previous LSIL histology re-referral — HPV Other, repeat normal or low-grade cytology",
+      "classification": "SHADOWED",
+      "reachablePaths": [],
+      "detail": "satisfiable, but COL-007 always matches first",
+      "exampleFacts": [
+        "Previous LSIL histology",
+        "HPV Other",
+        "Normal cytology"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "90",
+      "actualWinner": "COL-007",
+      "urgencyDirection": "increases"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-044",
+      "title": "Previous LSIL histology re-referral — HPV Other, repeat no cytology",
+      "classification": "OPERATIONALLY_UNREACHABLE",
+      "reachablePaths": [],
+      "detail": "pipeline cannot emit any of: Repeat no cytology",
+      "exampleFacts": [],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "n/a — never evaluated",
+      "actualTargetDays": "n/a",
+      "actualWinner": "n/a",
+      "urgencyDirection": "n/a"
+    },
+    {
+      "serviceLine": "COLPOSCOPY",
+      "code": "COL-026",
+      "title": "Other clinical assessment",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Other clinical assessment"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "180",
+      "actualPriority": "P3",
+      "actualTargetDays": "180",
+      "actualWinner": "COL-026",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-001",
+      "title": "High suspicion cancer",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "A_BATCH",
+        "B_CASE"
+      ],
+      "detail": "case flag rule; reachable whenever the high-suspicion flag is set",
+      "exampleFacts": [
+        "<highSuspicionCancer flag>"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "14",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "14",
+      "actualWinner": "GYN-001",
+      "urgencyDirection": "n/a"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-002",
+      "title": "Postmenopausal bleeding without ultrasound",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Postmenopausal bleeding"
+      ],
+      "intendedPriority": "REJECT",
+      "intendedTargetDays": "—",
+      "actualPriority": "REJECT",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-002",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-003",
+      "title": "Postmenopausal bleeding with thickened endometrium",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Postmenopausal bleeding",
+        "Endometrial thickness"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "14",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "14",
+      "actualWinner": "GYN-003",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-004",
+      "title": "Recurrent postmenopausal bleeding despite low endometrial thickness",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Postmenopausal bleeding",
+        "Multiple PMB episodes",
+        "Endometrial thickness"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "14",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "14",
+      "actualWinner": "GYN-004",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-005",
+      "title": "Adnexal/ovarian concern with elevated CA-125",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Ovarian cyst",
+        "CA-125"
+      ],
+      "intendedPriority": "P2_HSC",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2_HSC",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-005",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-026",
+      "title": "Complex adnexal mass — SMO-only pathway",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Complex adnexal mass"
+      ],
+      "intendedPriority": "P1_HSC",
+      "intendedTargetDays": "14",
+      "actualPriority": "P1_HSC",
+      "actualTargetDays": "14",
+      "actualWinner": "GYN-026",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-006",
+      "title": "Pelvic pain without ultrasound",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Pelvic pain"
+      ],
+      "intendedPriority": "REJECT",
+      "intendedTargetDays": "—",
+      "actualPriority": "REJECT",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-006",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-007",
+      "title": "Large fibroids with mass symptoms",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Fibroids",
+        "Mass symptoms",
+        "Fibroid size"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-007",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-008",
+      "title": "Small fibroids with mass symptoms",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Fibroids",
+        "Mass symptoms",
+        "Fibroid size"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-008",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-033",
+      "title": "Asymptomatic fibroids without AUB",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Fibroids",
+        "Fibroid size"
+      ],
+      "intendedPriority": "DECLINE",
+      "intendedTargetDays": "—",
+      "actualPriority": "DECLINE",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-033",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-013",
+      "title": "Abnormal uterine bleeding without ultrasound",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Abnormal uterine bleeding"
+      ],
+      "intendedPriority": "REJECT",
+      "intendedTargetDays": "—",
+      "actualPriority": "REJECT",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-013",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-014",
+      "title": "Abnormal uterine bleeding with markedly thickened endometrium",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Abnormal uterine bleeding",
+        "Ultrasound scan",
+        "Endometrial thickness"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-014",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-015",
+      "title": "Persistent abnormal uterine bleeding after medical management",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Abnormal uterine bleeding",
+        "Persistent bleeding >3 months",
+        "Medical management trialled",
+        "Ultrasound scan",
+        "Endometrial thickness"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-015",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-022",
+      "title": "AUB with USS polyp finding",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Abnormal uterine bleeding",
+        "Ultrasound scan",
+        "Uterine polyp on USS"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-022",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-023",
+      "title": "Endometrioma >= 5 cm with normal tumour markers",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Pelvic pain",
+        "Ultrasound scan",
+        "Endometrioma",
+        "Endometrioma size"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-023",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-024",
+      "title": "Deep infiltrating endometriosis on imaging",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Deep infiltrating endometriosis"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-024",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-025",
+      "title": "Recurrent endometriosis with normal scan",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Pelvic pain",
+        "Ultrasound scan",
+        "Previous endometriosis"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-025",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-016",
+      "title": "Procidentia",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Procidentia"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-016",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-028",
+      "title": "Prolapse with urinary retention or hydronephrosis",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Urogynaecology",
+        "Urinary retention"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-028",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-027",
+      "title": "Symptomatic prolapse (non-procidentia)",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Urogynaecology",
+        "Prolapse stage 1"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-027",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-029",
+      "title": "Stress urinary incontinence without prior physiotherapy",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Stress urinary incontinence"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-029",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-030",
+      "title": "Urge incontinence without medication trial",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Urge incontinence"
+      ],
+      "intendedPriority": "REJECT",
+      "intendedTargetDays": "—",
+      "actualPriority": "REJECT",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-030",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-017",
+      "title": "Recurrent urogynaecology symptoms",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Urogynaecology",
+        "Recurrent symptoms"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-017",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-018",
+      "title": "Mesh related problem",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Mesh related problem"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-018",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-019",
+      "title": "Asymptomatic prolapse",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Asymptomatic prolapse"
+      ],
+      "intendedPriority": "REJECT",
+      "intendedTargetDays": "—",
+      "actualPriority": "REJECT",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-019",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-031",
+      "title": "Paediatric gynaecology referral",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Paediatric gynaecology"
+      ],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "P2",
+      "actualTargetDays": "30",
+      "actualWinner": "GYN-031",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-032",
+      "title": "Obstetric pelvic tear grade 3B, 3C, or 4th degree",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Perineal tear 3B"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-032",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-020",
+      "title": "Small asymptomatic cervical polyp with normal smear",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Cervical polyp",
+        "Normal smear",
+        "Cervical polyp size"
+      ],
+      "intendedPriority": "REJECT",
+      "intendedTargetDays": "—",
+      "actualPriority": "REJECT",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-020",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-021",
+      "title": "Symptomatic larger cervical polyp with normal smear",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Cervical polyp",
+        "Normal smear",
+        "Post-coital bleeding",
+        "Cervical polyp size"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "—",
+      "actualPriority": "P3",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-021",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-009",
+      "title": "PCOS virtual clinic pathway",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "PCOS"
+      ],
+      "intendedPriority": "P5",
+      "intendedTargetDays": "—",
+      "actualPriority": "P5",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-009",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-010",
+      "title": "Fertility referral diversion",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Fertility"
+      ],
+      "intendedPriority": "DECLINE",
+      "intendedTargetDays": "—",
+      "actualPriority": "DECLINE",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-010",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-011",
+      "title": "Tubal ligation counselling",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Tubal ligation"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-011",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-034",
+      "title": "Postmenopausal bleeding — single episode, endometrial thickness below 5mm",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Postmenopausal bleeding",
+        "Ultrasound scan",
+        "Endometrial thickness"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-034",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-035",
+      "title": "TVT or sling complication",
+      "classification": "OPERATIONALLY_UNREACHABLE",
+      "reachablePaths": [],
+      "detail": "pipeline cannot emit any of: TVT complication, Sling complication, Mesh-tape complication",
+      "exampleFacts": [],
+      "intendedPriority": "P2",
+      "intendedTargetDays": "30",
+      "actualPriority": "n/a — never evaluated",
+      "actualTargetDays": "n/a",
+      "actualWinner": "n/a",
+      "urgencyDirection": "n/a"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-036",
+      "title": "Intermenstrual bleeding with reassuring investigations",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Intermenstrual bleeding",
+        "Ultrasound scan"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-036",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-037",
+      "title": "AUB — normal USS, no prior medical management",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Abnormal uterine bleeding",
+        "Ultrasound scan"
+      ],
+      "intendedPriority": "REJECT",
+      "intendedTargetDays": "—",
+      "actualPriority": "REJECT",
+      "actualTargetDays": "—",
+      "actualWinner": "GYN-037",
+      "urgencyDirection": "unchanged"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-038",
+      "title": "Re-grading required — new clinical information received",
+      "classification": "OPERATIONALLY_UNREACHABLE",
+      "reachablePaths": [],
+      "detail": "pipeline cannot emit any of: New clinical information, Re-grading requested, Upgraded urgency",
+      "exampleFacts": [],
+      "intendedPriority": "INFO_REQUIRED",
+      "intendedTargetDays": "—",
+      "actualPriority": "n/a — never evaluated",
+      "actualTargetDays": "n/a",
+      "actualWinner": "n/a",
+      "urgencyDirection": "n/a"
+    },
+    {
+      "serviceLine": "GYNAECOLOGY",
+      "code": "GYN-012",
+      "title": "Routine gynaecology symptom bundle",
+      "classification": "REACHABLE",
+      "reachablePaths": [
+        "B_CASE"
+      ],
+      "detail": "confirmed by the evaluator on path B_CASE",
+      "exampleFacts": [
+        "Abnormal uterine bleeding",
+        "Ultrasound scan",
+        "Endometrial thickness"
+      ],
+      "intendedPriority": "P3",
+      "intendedTargetDays": "120",
+      "actualPriority": "P3",
+      "actualTargetDays": "120",
+      "actualWinner": "GYN-012",
+      "urgencyDirection": "unchanged"
+    }
+  ]
+}

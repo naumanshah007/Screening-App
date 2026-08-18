@@ -1,0 +1,6 @@
+defect_id,severity,figure_or_table,guideline_rule_id,test_case_id,expected,actual,code_location,clinical_risk,demo_blocker,validation_blocker,pilot_blocker,recommended_fix
+AUD-001,HIGH,F3,F3-HPV-NOT-DETECTED-IMMUNE-COMPETENT,F3-missing-sample,safety stop,routine recall,lib/engine/decision-engine.ts:339,unsafe reassurance,yes,yes,yes,make sample type nullable and enforce stop
+AUD-002,HIGH,F3,F3-HPV-NOT-DETECTED-IMMUNE-COMPETENT,F3-unknown-immune,safety stop,5-year recall,lib/batch/validation.ts:91,wrong interval,yes,yes,yes,preserve unknown and block
+AUD-003,CRITICAL,F3,F3-HPV16_18-COLPOSCOPY,F3-age70-hpv1618,colposcopy,age exit/deferred branch,lib/engine/decision-engine.ts:1637,delayed investigation,yes,yes,yes,review precedence with guideline owner
+AUD-004,HIGH,F6,F6-TOC-HPV-DETECTED-COLPOSCOPY,F6-missing-treatment-date,safety stop,terminal ToC output,lib/engine/decision-engine.ts:733,incorrect completion pathway,yes,yes,yes,require date and persistent sequence
+AUD-005,HIGH,F10,F10-SUSPECTED-CANCER-URGENT-REFERRAL,batch-bleeding,batch preserves source facts,mapper sets facts true,lib/batch/processor.ts:30,concealed missing workup,yes,yes,yes,remove fabricated facts

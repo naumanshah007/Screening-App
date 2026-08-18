@@ -326,7 +326,8 @@ function hl7StyleMessage(item: DecisionPackageInput, generatedAt: string) {
   const decision = formatDisposition(item.disposition).replaceAll("|", " ");
   const recommendation = item.recommendation.replaceAll("|", " ");
   const note = (item.overrideReason ?? item.reviewNote ?? "No reviewer note recorded.").replaceAll("|", " ");
-  const timestamp = generatedAt.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "");
+  // HL7 MSH-7 timestamp format is YYYYMMDDHHMMSS (no separators, no "T").
+  const timestamp = generatedAt.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "").replace("T", "");
   const shadow = canonicalShadow(item);
 
   return [

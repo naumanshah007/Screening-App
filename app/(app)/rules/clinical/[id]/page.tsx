@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/tabs";
 import { ClinicalRuleGraphStudio } from "@/components/clinical-rules/ClinicalRuleGraphStudio";
+import { PathwayWorkspace } from "@/components/pathway/PathwayWorkspace";
 import { ClinicalRuleVersionActions } from "@/components/clinical-rules/ClinicalRuleVersionActions";
 import { ClinicalRuleSimulationPanel } from "@/components/clinical-rules/ClinicalRuleSimulationPanel";
 import { ClinicalRuleDiffPanel } from "@/components/clinical-rules/ClinicalRuleDiffPanel";
@@ -135,7 +136,7 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
 
       <Tabs defaultTab="overview" className="rounded-2xl border border-border bg-card shadow-sm">
         <TabList className="px-2">
-          <Tab id="overview">Overview</Tab><Tab id="master">Master Tree</Tab><Tab id="views">Pathway Views</Tab><Tab id="rules">Rules</Tab><Tab id="sources">Sources</Tab><Tab id="validation">Validation</Tab><Tab id="governance">Clinical Review</Tab><Tab id="simulation">Simulation</Tab><Tab id="diff">Diff</Tab><Tab id="audit">Audit History</Tab>
+          <Tab id="overview">Overview</Tab><Tab id="master">Decision Tree</Tab><Tab id="views">Pathway Views</Tab><Tab id="rules">Rules</Tab><Tab id="sources">Sources</Tab><Tab id="validation">Validation</Tab><Tab id="governance">Clinical Review</Tab><Tab id="simulation">Simulation</Tab><Tab id="diff">Diff</Tab><Tab id="audit">Audit History</Tab>{editable && <Tab id="editor">Graph Editor</Tab>}
         </TabList>
 
         <TabPanel id="overview" className="p-6">
@@ -146,13 +147,34 @@ export default async function ClinicalRuleVersionPage({ params }: { params: Prom
           </div>
         </TabPanel>
 
+        {/* Same renderer as Guidelines and Case Review — one graph system. */}
         <TabPanel id="master" className="p-4">
-          <ClinicalRuleGraphStudio versionId={version.id} initialSnapshot={snapshot} initialRevision={version.revision} editable={editable} />
+          <PathwayWorkspace
+            snapshot={snapshot}
+            governance={{
+              rulesetId: version.displayVersion,
+              revision: version.revision,
+              checksum: version.checksum,
+              lifecycle: version.status,
+              sourcePackageVersion: snapshot.sourcePackage.version,
+            }}
+          />
         </TabPanel>
 
         <TabPanel id="views" className="p-6">
           <div className="grid gap-4 lg:grid-cols-2">{[...snapshot.views].sort((a, b) => a.displayOrder - b.displayOrder).map((view) => <Card key={view.key}><CardHeader><div><CardTitle>{view.title}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{view.description}</p></div><Badge variant={view.viewType === "MASTER" ? "info" : "default"}>{view.viewType}</Badge></CardHeader><CardContent className="text-sm text-muted-foreground">{view.includedNodeIds.length} canonical nodes · {view.includedEdgeIds.length} canonical edges · layout only is view-specific</CardContent></Card>)}</div>
         </TabPanel>
+
+        {/*
+          The node/edge editor stays available for drafts. Evaluated versions are
+          append-only locked, so this panel is normally hidden and the shared
+          read-only renderer above is the graph surface.
+        */}
+        {editable && (
+          <TabPanel id="editor" className="p-4">
+            <ClinicalRuleGraphStudio versionId={version.id} initialSnapshot={snapshot} initialRevision={version.revision} editable={editable} />
+          </TabPanel>
+        )}
 
         <TabPanel id="rules" className="p-6">
           <div className="max-h-[760px] overflow-auto rounded-xl border border-border"><table className="w-full min-w-[1100px] text-left text-xs"><thead className="sticky top-0 bg-navy-800 text-white"><tr><th className="p-3">Rule</th><th className="p-3">Section / stage</th><th className="p-3">Condition</th><th className="p-3">Provisional outcome</th><th className="p-3">Safety</th><th className="p-3">Source</th></tr></thead><tbody>{snapshot.rules.map((rule) => <tr key={rule.stableRuleId} className="border-t border-border align-top"><td className="p-3 font-mono font-bold">{rule.stableRuleId}</td><td className="p-3"><div className="font-semibold">{rule.section}</div><div className="mt-1 text-muted-foreground">{rule.pathwayStage}</div></td><td className="p-3 leading-5"><Badge variant={rule.conditionExpression.type === "SOURCE_TEXT" ? "high" : "low"}>{rule.conditionExpression.type}</Badge><div className="mt-2">{rule.sourceConditionText}</div></td><td className="p-3 leading-5">{rule.provisionalOutcome}</td><td className="p-3"><Badge variant={rule.safetyPriority === "CRITICAL" ? "urgent" : rule.safetyPriority === "HIGH" ? "high" : "default"}>{rule.safetyPriority}</Badge></td><td className="p-3 leading-5">{rule.sourceReferences.map((source) => `${source.document} · ${source.reference}`).join("; ")}</td></tr>)}</tbody></table></div>

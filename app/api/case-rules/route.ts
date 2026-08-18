@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { createCaseRuleSetDraft } from "@/lib/cases/rule-releases";
-import { canManageCaseRuleReleases } from "@/lib/cases/rule-governance";
+import { canEditCaseRuleDrafts } from "@/lib/cases/rule-governance";
 import { isFeatureEnabled } from "@/lib/features";
 
 function featureDisabledResponse() {
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (!session || !user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-  if (!canManageCaseRuleReleases(user.role)) {
+  if (!canEditCaseRuleDrafts(user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

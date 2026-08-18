@@ -30,6 +30,11 @@ type ClinicalDecision = {
   recallRequired?: boolean;
   recallIntervalMonths?: number;
   clinicalWarnings?: string[];
+  safetyOutcome?: string;
+  missingInformation?: string[];
+  externalDependencies?: string[];
+  branchPath?: string[];
+  validationStatus?: "IMPLEMENTED" | "REQUIRES_CLINICAL_CONFIRMATION" | "EXTERNAL_DEPENDENCY";
   guidelineReference?: string;
   rationale?: string;
 };
@@ -56,6 +61,7 @@ type SessionResult = {
   referral?: { id: string; priority: string; type: string } | null;
   recall?: { id: string; dueDate: string } | null;
   alreadyComplete?: boolean;
+  preview?: boolean;
 };
 
 // ─── Risk configuration ───────────────────────────────────────────────────────
@@ -136,6 +142,7 @@ export default function WizardResultPage({
   const [error, setError] = useState("");
   const [notifying, setNotifying] = useState(false);
   const [sentChannels, setSentChannels] = useState<Set<string>>(new Set());
+  const [notificationStatus, setNotificationStatus] = useState("");
   const [guidelineOpen, setGuidelineOpen] = useState(false);
 
   useEffect(() => {
@@ -164,7 +171,7 @@ export default function WizardResultPage({
         }
 
         setCompleting(true);
-        const completeRes = await fetch(`/api/pathway/sessions/${sessionId}/complete`, {
+        const completeRes = await fetch(`/api/pathway/sessions/${sessionId}/complete?preview=true`, {
           method: "POST",
         });
         const completeData = await completeRes.json();
@@ -182,6 +189,7 @@ export default function WizardResultPage({
           },
           referral: completeData.referral,
           recall: completeData.recall,
+          preview: true,
         });
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Failed to load decision");
@@ -194,8 +202,32 @@ export default function WizardResultPage({
     loadResult();
   }, [sessionId]);
 
+  const handleConfirmDecision = async () => {
+    setCompleting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/pathway/sessions/${sessionId}/complete`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to finalise decision");
+      setResult((current) => current ? {
+        ...current,
+        decision: data.decision ?? current.decision,
+        screeningSessionId: data.screeningSessionId ?? "",
+        referral: data.referral ?? null,
+        recall: data.recall ?? null,
+        preview: false,
+        alreadyComplete: true,
+      } : current);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to finalise decision");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   const handleNotify = async (channel: "patient" | "gp" | "coordinator") => {
     setNotifying(true);
+    setNotificationStatus("");
     try {
       const res = await fetch(`/api/pathway/sessions/${sessionId}/notify`, {
         method: "POST",
@@ -209,9 +241,14 @@ export default function WizardResultPage({
       const data = await res.json();
       if (res.ok && data.sent?.length > 0) {
         setSentChannels((prev) => new Set([...prev, ...data.sent]));
+        setNotificationStatus("Notification delivered successfully.");
+      } else if (res.ok && data.loggedOnly?.length > 0) {
+        setNotificationStatus("Delivery is not configured. The notification was logged but not sent.");
+      } else if (!res.ok || data.failed?.length > 0) {
+        setNotificationStatus(data.error ?? "Notification could not be delivered.");
       }
     } catch {
-      // non-fatal
+      setNotificationStatus("Notification could not be delivered. Please try again.");
     } finally {
       setNotifying(false);
     }
@@ -249,6 +286,10 @@ export default function WizardResultPage({
   const risk = (decision.riskLevel ?? "LOW") as keyof typeof riskConfig;
   const cfg = riskConfig[risk] ?? riskConfig.LOW;
   const figureLabel = getFigureLabel(decision.figure);
+  const isBlockedPreview = Boolean(
+    result.preview &&
+    (decision.safetyOutcome || decision.validationStatus !== "IMPLEMENTED")
+  );
   const assessmentRunLabel = result.session?.startedAt
     ? new Date(result.session.startedAt).toLocaleString("en-NZ", {
         day: "2-digit",
@@ -318,6 +359,32 @@ export default function WizardResultPage({
           </div>
 
           {/* Clinical warnings */}
+          {result.preview && (
+            <div className="rounded-xl border border-info/30 bg-info/5 px-5 py-4">
+              <p className="text-sm font-semibold text-foreground">Decision preview — no clinical records have been created</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Review the recommendation and supporting pathway before confirming.
+              </p>
+            </div>
+          )}
+
+          {(decision.safetyOutcome || decision.validationStatus !== "IMPLEMENTED") && (
+            <div role="alert" className="rounded-xl border border-warn/40 bg-warn/10 px-5 py-4 space-y-2">
+              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warn" />
+                Additional review required before finalisation
+              </p>
+              {decision.safetyOutcome && <p className="text-sm text-muted-foreground">Outcome: {decision.safetyOutcome.replaceAll("_", " ").toLowerCase()}</p>}
+              {decision.missingInformation && decision.missingInformation.length > 0 && (
+                <p className="text-sm text-muted-foreground">Missing information: {decision.missingInformation.join(", ")}</p>
+              )}
+              {decision.externalDependencies && decision.externalDependencies.length > 0 && (
+                <p className="text-sm text-muted-foreground">External dependencies: {decision.externalDependencies.join(", ")}</p>
+              )}
+              <p className="text-xs text-muted-foreground">This assessment cannot create a referral or recall until the outstanding review is resolved.</p>
+            </div>
+          )}
+
           {decision.clinicalWarnings && decision.clinicalWarnings.length > 0 && (
             <div className="rounded-xl border border-warn/30 bg-warn/5 px-5 py-4 space-y-2">
               <p className="text-xs font-semibold text-warn uppercase tracking-wider flex items-center gap-2">
@@ -492,7 +559,7 @@ export default function WizardResultPage({
           </div>
 
           {/* Notifications */}
-          <Card className="no-print">
+          {!result.preview && <Card className="no-print">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-brand-600" />
@@ -504,6 +571,11 @@ export default function WizardResultPage({
                 Notify relevant parties about this clinical decision.
                 {!decision.referralRequired && " Coordinator notifications require a referral."}
               </p>
+              {notificationStatus && (
+                <p role="status" className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  {notificationStatus}
+                </p>
+              )}
               <div className="flex flex-wrap gap-3">
                 <NotifyButton
                   label="Patient"
@@ -534,17 +606,29 @@ export default function WizardResultPage({
                 </p>
               )}
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3 pt-2 no-print">
-            <Button variant="primary" size="lg" onClick={() => router.push(`/patients/${patient.id}`)}>
+            {result.preview && !isBlockedPreview && (
+              <Button variant="primary" size="lg" loading={completing} onClick={handleConfirmDecision}>
+                <CheckCircle className="h-4 w-4" />
+                Confirm and create clinical records
+              </Button>
+            )}
+            {result.preview && (
+              <Button variant="outline" size="lg" onClick={() => router.push(`/pathway/${sessionId}`)}>
+                <ArrowLeft className="h-4 w-4" />
+                Return to assessment
+              </Button>
+            )}
+            {!result.preview && <Button variant="primary" size="lg" onClick={() => router.push(`/patients/${patient.id}`)}>
               <FileText className="h-4 w-4" />
               View full patient record
-            </Button>
-            <Button variant="outline" size="lg" onClick={() => router.push("/pathway")}>
+            </Button>}
+            {!result.preview && <Button variant="outline" size="lg" onClick={() => router.push("/pathway")}>
               Start another pathway
-            </Button>
+            </Button>}
           </div>
         </div>
       </div>

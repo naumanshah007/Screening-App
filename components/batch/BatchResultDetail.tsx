@@ -10,12 +10,23 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
+import type { PriorComparison } from "@/lib/batch/reprocessing";
 import { getGuidelineCitation } from "@/lib/batch/guideline-citations";
+
+export type BatchResultDetailFocus = "summary" | "figure" | "pathway";
 
 interface BatchResultDetailProps {
   result: BatchCaseResult | null;
   open: boolean;
   onClose: () => void;
+  initialFocus?: BatchResultDetailFocus;
+  priorComparison?: PriorComparison | null;
+  triage?: {
+    priority: string;
+    category: string | null;
+    ruleCode: string | null;
+    ruleVersion: string | null;
+  } | null;
   reviewItemId?: string;
   canCorrectCanonicalFacts?: boolean;
 }
@@ -62,6 +73,42 @@ function Panel({ children, className }: { children: React.ReactNode; className?:
   );
 }
 
+function GuidelineFigurePanel({
+  decision,
+  citation,
+  focused,
+}: {
+  decision: BatchCaseResult["decision"];
+  citation: { short: string; title: string; context: string } | null;
+  focused?: boolean;
+}) {
+  return (
+    <Panel
+      className={cn(
+        "bg-card/70",
+        focused && "border-brand-300 bg-brand-50/40 ring-2 ring-brand-500/20 dark:border-brand-800 dark:bg-brand-950/20"
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">NCSP guideline figure</p>
+          <p className="mt-1 text-base font-bold text-foreground">
+            {citation ? citation.title : (decision.figure?.replace(/_/g, " ") ?? "Guideline pathway")}
+          </p>
+          {citation && <p className="mt-1 text-xs text-muted-foreground">{citation.context}</p>}
+        </div>
+        <Badge variant="info" size="sm">
+          {citation?.short ?? decision.figure}
+        </Badge>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+        <Row label="Recommendation code" value={decision.recommendationCode} mono />
+        <Row label="Risk level" value={decision.riskLevel} />
+      </div>
+    </Panel>
+  );
+}
+
 function formatTraceNode(step: string) {
   const figure = step.match(/^FIGURE_(\d+)$/);
   if (figure) return `Figure ${figure[1]}`;
@@ -102,24 +149,33 @@ function formatTraceNode(step: string) {
 function DecisionNodeTree({
   decision,
   figureTitle,
+  focused,
 }: {
   decision: BatchCaseResult["decision"];
   figureTitle?: string;
+  focused?: boolean;
 }) {
   const rawSteps = decision.branchPath?.length
     ? decision.branchPath
     : [decision.figure, decision.recommendationCode].filter((step): step is string => Boolean(step));
 
   const finalStep = decision.recommendationCode;
-  const steps = rawSteps[rawSteps.length - 1] === finalStep ? rawSteps : [...rawSteps, finalStep];
+  const steps = finalStep && rawSteps[rawSteps.length - 1] !== finalStep
+    ? [...rawSteps, finalStep]
+    : rawSteps;
 
   return (
-    <Panel className="bg-card/60">
+    <Panel
+      className={cn(
+        "bg-card/60",
+        focused && "border-brand-300 bg-brand-50/40 ring-2 ring-brand-500/20 dark:border-brand-800 dark:bg-brand-950/20"
+      )}
+    >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold text-foreground">Rule node tree</p>
+          <p className="text-xs font-semibold text-foreground">Pathway tree: how this result was reached</p>
           <p className="text-xs text-muted-foreground">
-            Visual path for reviewer confirmation and audit evidence.
+            Visual path from the guideline figure through the decision branches to the provisional outcome.
           </p>
         </div>
         <Badge variant="info" size="sm">Reviewer confirmation required</Badge>
@@ -179,6 +235,9 @@ export function BatchResultDetail({
   result,
   open,
   onClose,
+  priorComparison,
+  triage,
+  initialFocus = "summary",
   reviewItemId,
   canCorrectCanonicalFacts = false,
 }: BatchResultDetailProps) {
@@ -215,6 +274,59 @@ export function BatchResultDetail({
             </Badge>
           </div>
         </div>
+
+        {result.status === "success" && initialFocus === "figure" && (
+          <Section title="Guideline Figure" icon={<GitBranch className="h-3.5 w-3.5" />} accent="brand">
+            <GuidelineFigurePanel decision={decision} citation={citation} focused />
+          </Section>
+        )}
+
+        {/* ── Booking triage grade (from active rule release) ─────────────── */}
+        {triage && (
+          <Section title="Booking Triage Grade" icon={<Cpu className="h-3.5 w-3.5" />} accent="brand">
+            <Panel className="border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-950/20">
+              <Row label="Booking priority" value={<span className="font-semibold">{triage.priority}</span>} />
+              {triage.category && <Row label="Category" value={triage.category} />}
+              <Row
+                label="Matched rule"
+                value={triage.ruleCode ? `${triage.ruleCode}${triage.ruleVersion ? ` · v${triage.ruleVersion}` : ""}` : "Default"}
+                mono
+              />
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Priority assigned by the active, admin-editable rule release.
+              </p>
+            </Panel>
+          </Section>
+        )}
+
+        {/* ── Previous decision vs now (reprocessed patient) ──────────────── */}
+        {priorComparison && (
+          <Section
+            title="Previously Processed — Compare"
+            icon={<AlertTriangle className="h-3.5 w-3.5" />}
+            accent={priorComparison.anyChanged ? "amber" : undefined}
+          >
+            <Panel className={cn(priorComparison.anyChanged && "border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20")}>
+              <div className="grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-1.5 text-xs">
+                <div className="font-semibold text-muted-foreground">Field</div>
+                <div className="font-semibold text-muted-foreground">
+                  Previous{priorComparison.previousDate ? ` · ${new Date(priorComparison.previousDate).toLocaleDateString()}` : ""}
+                </div>
+                <div className="font-semibold text-muted-foreground">Now</div>
+                {priorComparison.fields.map((f) => (
+                  <div key={f.label} className="contents">
+                    <div className="text-muted-foreground">{f.label}</div>
+                    <div className={cn("text-foreground", f.changed && "line-through text-muted-foreground/70")}>{f.previous}</div>
+                    <div className={cn("text-foreground", f.changed && "font-semibold text-amber-700 dark:text-amber-300")}>{f.current}</div>
+                  </div>
+                ))}
+              </div>
+              {!priorComparison.anyChanged && (
+                <p className="mt-2 text-[11px] text-muted-foreground">No change since the previous decision.</p>
+              )}
+            </Panel>
+          </Section>
+        )}
 
         {/* ── 1. Source Record ─────────────────────────────────────────────── */}
         <Section title="Source Record" icon={<Database className="h-3.5 w-3.5" />}>
@@ -333,12 +445,43 @@ export function BatchResultDetail({
               </Section>
             )}
 
-            {/* Decision node tree */}
-            <Section title="Decision Node Tree" icon={<GitBranch className="h-3.5 w-3.5" />}>
-              <DecisionNodeTree decision={decision} figureTitle={citation?.title} />
-            </Section>
+          </>
+        ) : (
+          <Section title="Processing Error" icon={<AlertTriangle className="h-3.5 w-3.5" />} accent="red">
+            <Panel className="border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20">
+              <p className="text-sm text-red-700 dark:text-red-400">{result.error}</p>
+            </Panel>
+          </Section>
+        )}
 
-            {/* Decision trace */}
+        <CanonicalShadowEvidence
+          result={result}
+          reviewItemId={reviewItemId}
+          canCorrectCanonicalFacts={canCorrectCanonicalFacts}
+        />
+
+        {/* ── 4. Validation Issues (if any) ────────────────────────────────── */}
+        {(c.validationErrors.length > 0 || c.validationWarnings.length > 0) && (
+          <Section title="Validation Issues" icon={<FileText className="h-3.5 w-3.5" />}>
+            <ul className="space-y-1.5">
+              {c.validationErrors.map((e, i) => (
+                <li key={`e-${i}`} className="text-xs text-red-600 dark:text-red-400 flex items-start gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
+                  <span><strong>{e.field}:</strong> {e.message}</span>
+                </li>
+              ))}
+              {c.validationWarnings.map((w, i) => (
+                <li key={`w-${i}`} className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                  <span><strong>{w.field}:</strong> {w.message}</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {result.status === "success" && (
+          <>
             {decision.branchPath && decision.branchPath.length > 0 && (
               <Section title="Decision Trace" icon={<GitBranch className="h-3.5 w-3.5" />}>
                 <Panel>
@@ -358,39 +501,15 @@ export function BatchResultDetail({
                 </Panel>
               </Section>
             )}
+
+            <Section title="Pathway Tree" icon={<GitBranch className="h-3.5 w-3.5" />} accent="brand">
+              <DecisionNodeTree
+                decision={decision}
+                figureTitle={citation?.title}
+                focused={initialFocus === "pathway"}
+              />
+            </Section>
           </>
-        ) : (
-          <Section title="Processing Error" icon={<AlertTriangle className="h-3.5 w-3.5" />} accent="red">
-            <Panel className="border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20">
-              <p className="text-sm text-red-700 dark:text-red-400">{result.error}</p>
-            </Panel>
-          </Section>
-        )}
-
-        {/* ── 4. Validation Issues (if any) ────────────────────────────────── */}
-        <CanonicalShadowEvidence
-          result={result}
-          reviewItemId={reviewItemId}
-          canCorrectCanonicalFacts={canCorrectCanonicalFacts}
-        />
-
-        {(c.validationErrors.length > 0 || c.validationWarnings.length > 0) && (
-          <Section title="Validation Issues" icon={<FileText className="h-3.5 w-3.5" />}>
-            <ul className="space-y-1.5">
-              {c.validationErrors.map((e, i) => (
-                <li key={`e-${i}`} className="text-xs text-red-600 dark:text-red-400 flex items-start gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                  <span><strong>{e.field}:</strong> {e.message}</span>
-                </li>
-              ))}
-              {c.validationWarnings.map((w, i) => (
-                <li key={`w-${i}`} className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
-                  <span><strong>{w.field}:</strong> {w.message}</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
         )}
 
       </div>

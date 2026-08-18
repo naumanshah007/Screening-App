@@ -54,7 +54,7 @@ export async function POST(
         ? 404
         : message === "Generate a clinical summary before evaluating rules" ||
             message === "Approve the clinical summary before evaluating rules" ||
-            message === "No active case rule release is published for this service"
+            message === "No active case rule release is configured for this service"
           ? 409
           : 500;
     return NextResponse.json({ error: message }, { status });

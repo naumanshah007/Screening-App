@@ -1,0 +1,11 @@
+﻿view_id,title,rule_count,internal_alignment_with_master,status,finding
+01_global_router_safety,Global Router and Safety Gates,28,True,PASS,Corrected: all cross-path destinations and global software invariants are now visible.
+02_transition_to_hpv,Transition to HPV Primary Screening,13,True,PASS,"Corrected: explicit links to Figure 2, Figure 3 and AIS post-treatment follow-up."
+03_primary_hpv_screening,Primary HPV Screening,23,True,PASS,Corrected: repeat-negative endpoints explicitly show 5-year/3-year intervals; glandular subflow link visible.
+04_normal_colposcopy_low_grade,Normal Colposcopy after Low-Grade Cytology,18,True,PASS,"Corrected: Type 3 TZ no-routine-excision, selected-excision and ECC cautions shown separately."
+05_normal_colposcopy_high_grade,Normal Colposcopy after High-Grade Cytology,18,True,PASS,Corrected: Figure 6/AIS subflow links and separate CIN2-surveillance annotation.
+06_hsil_treatment_test_of_cure,HSIL Treatment and Test of Cure,17,True,PASS,Corrected: ToC completion endpoint explicitly shows 5-year/3-year interval where cervix remains.
+07_glandular_abnormalities_ais,Glandular Abnormalities and AIS,19,True,PASS,"Verified: internal graph exactly matches master; AIS success, margins, lifelong co-testing and oncology routes present."
+08_hysterectomy_vaginal_vault,Total Hysterectomy and Vaginal Vault Follow-Up,40,True,PASS,Verified and supplemented: internal graph exactly matches master; all 21 Table 1 cells retained; Figure 10 link visible; separate readable matrix supplied.
+09_pregnancy,Pregnancy Pathway,14,True,PASS,Corrected: explicit high-risk/low-risk split; low-risk branch cannot fall into high-grade pathway; Figure 3 cross-link visible.
+10_abnormal_bleeding,Abnormal Vaginal Bleeding,15,True,PASS,"Verified: abnormal-cervix split, cancer urgency, postmenopausal, persistent PCB/IMB, pregnancy and post-hysterectomy overrides present."

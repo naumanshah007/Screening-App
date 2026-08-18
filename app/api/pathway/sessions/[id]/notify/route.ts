@@ -14,6 +14,7 @@ import {
   type NotificationResult,
 } from "@/lib/notifications";
 import { addDays, format } from "date-fns";
+import { canAccessWizardSession } from "@/lib/wizard/access";
 
 // Priority → target working days
 const PRIORITY_DAYS: Record<string, number> = {
@@ -40,7 +41,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
@@ -70,6 +72,9 @@ export async function POST(
   });
 
   if (!wizardSession) {
+    return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
+  }
+  if (!canAccessWizardSession(user, wizardSession.createdById)) {
     return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
   }
   if (wizardSession.status !== "COMPLETE") {
@@ -161,7 +166,9 @@ export async function POST(
   }
 
   return NextResponse.json({
-    sent: results.map((r) => r.channel),
+    sent: results.filter((r) => r.status === "sent").map((r) => r.channel),
+    loggedOnly: results.filter((r) => r.status === "logged").map((r) => r.channel),
+    failed: results.filter((r) => r.status === "failed").map((r) => r.channel),
     results,
   });
 }

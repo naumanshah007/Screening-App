@@ -490,20 +490,20 @@ model Patient {
   // Flags
   isPostHysterectomy Boolean   @default(false)
   hysterectomyDate   DateTime?
-  hysterectomyType   String?   // TOTAL, SUBTOTAL
+  hysterectomyType   String? // TOTAL, SUBTOTAL
 
   // NZ ethnicity (Level 2 codes: "21" Māori, "30" Pacific, "10" NZ European, etc.)
-  ethnicityPrimary   String?
-  ethnicityOther     String?   // Secondary ethnicity code
-  interpreterRequired Boolean  @default(false)
-  preferredLanguage  String?   // ISO 639-1 code, e.g. "mi" for te reo Māori
+  ethnicityPrimary    String?
+  ethnicityOther      String? // Secondary ethnicity code
+  interpreterRequired Boolean @default(false)
+  preferredLanguage   String? // ISO 639-1 code, e.g. "mi" for te reo Māori
 
   // NHI validation tracking
-  nhiValidatedAt     DateTime?
+  nhiValidatedAt DateTime?
 
   // Soft delete
-  deletedAt          DateTime?
-  deletedByUserId    String?
+  deletedAt       DateTime?
+  deletedByUserId String?
 
   screeningSessions ScreeningSession[]
   referralCases     ReferralCase[]
@@ -1123,8 +1123,8 @@ model AuditLog {
   userAgent     String?
   exportEvent   Boolean       @default(false)
   severity      AuditSeverity @default(INFO)
-  correlationId String?       // links related audit events in a single request/operation
-  sessionId     String?       // NextAuth session token (hashed) for session-level tracing
+  correlationId String? // links related audit events in a single request/operation
+  sessionId     String? // NextAuth session token (hashed) for session-level tracing
   createdAt     DateTime      @default(now())
 
   @@index([entity, action])
@@ -1138,18 +1138,18 @@ model AuditLog {
 // NZ Privacy Act 2020 — explicit consent tracking per purpose.
 
 model PatientConsent {
-  id          String        @id @default(cuid())
-  patientId   String
-  patient     Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  purpose     ConsentPurpose
-  status      ConsentStatus @default(GIVEN)
-  givenAt     DateTime      @default(now())
-  givenByUserId String?     // clinician or coordinator who recorded consent
-  withdrawnAt DateTime?
-  expiresAt   DateTime?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String         @id @default(cuid())
+  patientId     String
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  purpose       ConsentPurpose
+  status        ConsentStatus  @default(GIVEN)
+  givenAt       DateTime       @default(now())
+  givenByUserId String? // clinician or coordinator who recorded consent
+  withdrawnAt   DateTime?
+  expiresAt     DateTime?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([patientId, purpose, status])
   @@index([status, expiresAt])
@@ -1218,9 +1218,9 @@ model BatchRun {
 }
 
 model BatchReviewItem {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   batchRunId        String
-  batchRun          BatchRun @relation(fields: [batchRunId], references: [id], onDelete: Cascade)
+  batchRun          BatchRun  @relation(fields: [batchRunId], references: [id], onDelete: Cascade)
   rowNumber         Int
   label             String?
   externalPatientId String?
@@ -1243,17 +1243,33 @@ model BatchReviewItem {
   safetyOutcome      String?
   // True when the engine refused to silently auto-decide and a clinician must
   // look (safety stop / insufficient info / external dependency / error).
-  reviewRequired     Boolean  @default(false)
-  engineStatus       String   @default("success") // success | error
+  reviewRequired     Boolean @default(false)
+  engineStatus       String  @default("success") // success | error
 
   // Full payloads so the reviewer drill-in can reconstruct the BatchCaseResult
   // without re-running the engine. caseJson = CanonicalBatchCase, inputJson =
   // ClinicalInput, decisionJson = ClinicalDecision.
+  caseJson         String
+  inputJson        String
+  decisionJson     String
   ruleEvaluationId String?         @unique
   ruleEvaluation   RuleEvaluation? @relation(fields: [ruleEvaluationId], references: [id], onDelete: SetNull)
-  caseJson     String
-  inputJson    String
-  decisionJson String
+
+  // Booking triage grade from the active, admin-editable CaseRuleSetRelease.
+  // The NCSP figure/risk above is clinical context; this is the bookable
+  // priority the editable rules own, so activating a new rule version changes it.
+  triagePriority      String?
+  triageCategory      String?
+  triageOutcome       String?
+  triageTargetDays    Int?
+  triageRuleCode      String?
+  triageRuleReleaseId String?
+  triageRuleVersion   String?
+
+  // Reprocessing awareness: set when this patient (by NHI) was processed in an
+  // earlier run. priorItemId points at the most recent prior item for diffing.
+  priorDecisionCount Int     @default(0)
+  priorItemId        String?
 
   // Reviewer disposition
   disposition      BatchReviewDisposition @default(PENDING)
@@ -1269,4 +1285,5 @@ model BatchReviewItem {
   @@index([batchRunId, disposition])
   @@index([batchRunId, reviewRequired])
   @@index([reviewedByUserId, reviewedAt])
+  @@index([nhi, createdAt])
 }

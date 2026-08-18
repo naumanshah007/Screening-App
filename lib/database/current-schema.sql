@@ -722,6 +722,15 @@ CREATE TABLE "BatchReviewItem" (
     "inputJson" TEXT NOT NULL,
     "decisionJson" TEXT NOT NULL,
     "ruleEvaluationId" TEXT,
+    "triagePriority" TEXT,
+    "triageCategory" TEXT,
+    "triageOutcome" TEXT,
+    "triageTargetDays" INTEGER,
+    "triageRuleCode" TEXT,
+    "triageRuleReleaseId" TEXT,
+    "triageRuleVersion" TEXT,
+    "priorDecisionCount" INTEGER NOT NULL DEFAULT 0,
+    "priorItemId" TEXT,
     "disposition" TEXT NOT NULL DEFAULT 'PENDING',
     "reviewedByUserId" TEXT,
     "reviewedAt" DATETIME,
@@ -976,6 +985,9 @@ CREATE INDEX "BatchReviewItem_batchRunId_reviewRequired_idx" ON "BatchReviewItem
 
 -- CreateIndex
 CREATE INDEX "BatchReviewItem_reviewedByUserId_reviewedAt_idx" ON "BatchReviewItem"("reviewedByUserId", "reviewedAt");
+
+-- CreateIndex
+CREATE INDEX "BatchReviewItem_nhi_createdAt_idx" ON "BatchReviewItem"("nhi", "createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "BatchReviewItem_ruleEvaluationId_key" ON "BatchReviewItem"("ruleEvaluationId");

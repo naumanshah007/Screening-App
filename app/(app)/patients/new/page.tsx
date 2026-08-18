@@ -22,6 +22,12 @@ export default function NewPatientPage() {
     isFirstTimeHPVTransition: false,
     previousScreeningType: "",
     isPostHysterectomy: false,
+    hysterectomyType: "",
+    hysterectomyDate: "",
+    ethnicityPrimary: "",
+    ethnicityOther: "",
+    interpreterRequired: false,
+    preferredLanguage: "en",
   });
 
   function set(field: string, value: string | boolean) {
@@ -58,16 +64,16 @@ export default function NewPatientPage() {
   return (
     <div className="page-aura p-6 max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/patients" className="text-sm text-[#0D9488] hover:underline">
+        <Link href="/patients" className="text-sm text-brand-700 dark:text-brand-300 hover:underline">
           ← Patients
         </Link>
-        <span className="text-gray-300">/</span>
-        <span className="text-sm text-gray-500">Register New Patient</span>
+        <span className="text-border-strong">/</span>
+        <span className="text-sm text-muted-foreground">Register New Patient</span>
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-[#1E3A5F]">Register New Patient</h1>
-        <p className="text-sm text-gray-500 mt-1">Add patient to the cervical screening register</p>
+        <h1 className="text-2xl font-bold text-foreground">Register New Patient</h1>
+        <p className="text-sm text-muted-foreground mt-1">Add patient to the cervical screening register</p>
       </div>
 
       {error && (
@@ -109,6 +115,50 @@ export default function NewPatientPage() {
               onChange={(e) => set("dateOfBirth", e.target.value)}
               required
             />
+            <Select
+              label="Primary ethnicity"
+              value={form.ethnicityPrimary}
+              onChange={(e) => set("ethnicityPrimary", e.target.value)}
+              required
+              placeholder="Select ethnicity…"
+              options={[
+                { value: "10", label: "European" },
+                { value: "21", label: "Māori" },
+                { value: "30", label: "Pacific peoples" },
+                { value: "40", label: "Asian" },
+                { value: "51", label: "Middle Eastern / Latin American / African" },
+                { value: "61", label: "Other ethnicity" },
+              ]}
+              hint="NZ Level 1 prioritised ethnicity code used for equity reporting."
+            />
+            <Input
+              label="Other ethnicity code"
+              value={form.ethnicityOther}
+              onChange={(e) => set("ethnicityOther", e.target.value)}
+              hint="Optional secondary ethnicity code."
+            />
+            <Select
+              label="Preferred language"
+              value={form.preferredLanguage}
+              onChange={(e) => set("preferredLanguage", e.target.value)}
+              options={[
+                { value: "en", label: "English" },
+                { value: "mi", label: "Te reo Māori" },
+                { value: "sm", label: "Samoan" },
+                { value: "to", label: "Tongan" },
+                { value: "zh", label: "Chinese" },
+                { value: "other", label: "Other" },
+              ]}
+            />
+            <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={form.interpreterRequired}
+                onChange={(e) => set("interpreterRequired", e.target.checked)}
+                className="h-5 w-5 rounded border-border"
+              />
+              Interpreter required
+            </label>
             <Input
               label="Email"
               type="email"
@@ -138,13 +188,13 @@ export default function NewPatientPage() {
                 type="checkbox"
                 checked={form.isFirstTimeHPVTransition}
                 onChange={(e) => set("isFirstTimeHPVTransition", e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-blue-300 text-[#0D9488]"
+                className="mt-0.5 h-5 w-5 rounded border-border text-brand-600"
               />
               <div>
-                <label htmlFor="transition" className="text-sm font-medium text-blue-800 cursor-pointer">
+                <label htmlFor="transition" className="text-sm font-medium text-foreground cursor-pointer">
                   First-time HPV Transition Patient
                 </label>
-                <p className="text-xs text-blue-600 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Patient transitioning from cytology-based to HPV-based screening → uses the transition pathway
                 </p>
               </div>
@@ -170,17 +220,38 @@ export default function NewPatientPage() {
                 type="checkbox"
                 checked={form.isPostHysterectomy}
                 onChange={(e) => set("isPostHysterectomy", e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-purple-300 text-[#0D9488]"
+                className="mt-0.5 h-5 w-5 rounded border-border text-brand-600"
               />
               <div>
-                <label htmlFor="posthyst" className="text-sm font-medium text-purple-800 cursor-pointer">
+                <label htmlFor="posthyst" className="text-sm font-medium text-foreground cursor-pointer">
                   Post-Hysterectomy
                 </label>
-                <p className="text-xs text-purple-600 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Patient has had a hysterectomy → uses post-hysterectomy pathway checks
                 </p>
               </div>
             </div>
+            {form.isPostHysterectomy && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Select
+                  label="Hysterectomy type"
+                  required
+                  value={form.hysterectomyType}
+                  onChange={(e) => set("hysterectomyType", e.target.value)}
+                  placeholder="Select type…"
+                  options={[
+                    { value: "TOTAL", label: "Total — cervix removed" },
+                    { value: "SUBTOTAL", label: "Subtotal — cervix retained" },
+                  ]}
+                />
+                <Input
+                  label="Hysterectomy date"
+                  type="date"
+                  value={form.hysterectomyDate}
+                  onChange={(e) => set("hysterectomyDate", e.target.value)}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

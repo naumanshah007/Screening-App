@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
-import { canManageCaseRuleReleases } from "@/lib/cases/rule-governance";
+import {
+  canEditCaseRuleDrafts,
+  canViewCaseRuleReleases,
+} from "@/lib/cases/rule-governance";
 import {
   getCaseRuleSetReleaseById,
   updateCaseRuleSetReleaseDraft,
@@ -25,7 +28,7 @@ export async function GET(
   if (!session) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-  if (!canManageCaseRuleReleases(user?.role)) {
+  if (!canViewCaseRuleReleases(user?.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -51,7 +54,7 @@ export async function PATCH(
   if (!session || !user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-  if (!canManageCaseRuleReleases(user.role)) {
+  if (!canEditCaseRuleDrafts(user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -103,9 +106,12 @@ export async function PATCH(
             message === "Published case rule releases are immutable; create a draft instead"
           ? 409
           : message === "name is required" ||
+              message === "change notes are required before saving a draft" ||
               message === "definitionJson must be valid JSON" ||
               message ===
-                "definitionJson must match the enterprise case rule schema for this service"
+                "definitionJson must match the enterprise case rule schema for this service" ||
+              message.includes(" requires ") ||
+              message.includes(" is duplicated")
             ? 400
             : 500;
     return NextResponse.json({ error: message }, { status });

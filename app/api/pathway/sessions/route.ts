@@ -10,13 +10,18 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { autofillFromPatient } from "@/lib/wizard/autofill";
 import { getVisibleSteps, getNextUnansweredStep } from "@/lib/wizard/steps";
+import { canUseManualPathway } from "@/lib/wizard/access";
 
 type StartMode = "clean" | "import" | "resume";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  }
+  if (!canUseManualPathway(user)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let body: { patientId?: string; mode?: StartMode };
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.wizardSession.findFirst({
       where: {
         patientId: body.patientId,
-        createdById: session.user.id,
+        createdById: user.id,
         status: "IN_PROGRESS",
       },
       orderBy: { startedAt: "desc" },
@@ -59,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.auditLog.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         action: "ASSESSMENT_RESUMED",
         entity: "WizardSession",
         entityId: existing.id,
@@ -104,7 +109,7 @@ export async function POST(req: NextRequest) {
   const wizardSession = await prisma.wizardSession.create({
     data: {
       patientId: body.patientId,
-      createdById: session.user.id,
+      createdById: user.id,
       status: "IN_PROGRESS",
       determinedFigure:
         (autofill.detectedFigure as PathwayFigure | undefined) ?? undefined,
@@ -123,7 +128,7 @@ export async function POST(req: NextRequest) {
 
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: user.id,
       action: "NEW_ASSESSMENT_STARTED",
       entity: "WizardSession",
       entityId: wizardSession.id,
@@ -139,7 +144,7 @@ export async function POST(req: NextRequest) {
 
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: user.id,
       action: mode === "import" ? "PREVIOUS_SESSION_IMPORTED" : "PREVIOUS_SESSION_NOT_IMPORTED",
       entity: "WizardSession",
       entityId: wizardSession.id,

@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { GitBranch, ShieldCheck, Plus } from "lucide-react";
+import { GitBranch, ShieldCheck } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { PageIntro } from "@/components/layout/PageIntro";
 import { Badge, ServiceLineBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { canManageCaseRuleReleases } from "@/lib/cases/rule-governance";
+import {
+  canActivateCaseRuleReleases,
+  canEditCaseRuleDrafts,
+  canReviewCaseRuleReleases,
+  canViewCaseRuleReleases,
+} from "@/lib/cases/rule-governance";
 import {
   describeCaseRuleDefinition,
   parseCaseRuleReleaseDefinition,
@@ -26,9 +31,12 @@ export default async function RulesPage() {
 
   const session = await auth();
   const user = session?.user as { role?: string } | undefined;
-  if (!canManageCaseRuleReleases(user?.role)) {
+  if (!canViewCaseRuleReleases(user?.role)) {
     redirect("/dashboard");
   }
+  const canEditDrafts = canEditCaseRuleDrafts(user?.role);
+  const canReviewReleases = canReviewCaseRuleReleases(user?.role);
+  const canActivateReleases = canActivateCaseRuleReleases(user?.role);
 
   const releases = await listCaseRuleSetReleases();
 
@@ -41,8 +49,15 @@ export default async function RulesPage() {
           description="Enterprise release control for colposcopy and gynaecology deterministic rules."
           trailing={
             <div className="flex flex-wrap gap-3">
-              <CreateCaseRuleDraftButton serviceLine="COLPOSCOPY" label="New colposcopy draft" />
-              <CreateCaseRuleDraftButton serviceLine="GYNAECOLOGY" label="New gynaecology draft" />
+              <Link href="/rules/clinical" className="inline-flex h-9 items-center rounded-lg bg-navy-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-navy-800">
+                National Clinical Rule Studio
+              </Link>
+              {canEditDrafts && (
+                <>
+                <CreateCaseRuleDraftButton serviceLine="COLPOSCOPY" label="New colposcopy draft" />
+                <CreateCaseRuleDraftButton serviceLine="GYNAECOLOGY" label="New gynaecology draft" />
+                </>
+              )}
             </div>
           }
         />
@@ -67,13 +82,19 @@ export default async function RulesPage() {
               serviceLine: release.serviceLine,
               definition,
             });
-            const publishDisabledReason = release.isActive
+            const isEditableDraft = !release.isActive && !release.publishedAt;
+            const reviewDisabledReason = !isEditableDraft
+              ? "Only editable drafts can be reviewed"
+              : regression.failed > 0
+                ? "Regression suite must pass before review"
+                : undefined;
+            const activateDisabledReason = release.isActive
               ? "This release is already active"
               : !release.reviewedAt
-                ? "Review is required before publish"
+                ? "Clinical review is required before activation"
                 : regression.failed > 0
-                  ? "Regression suite must pass before publish"
-                : undefined;
+                  ? "Regression suite must pass before activation"
+                  : undefined;
 
             return (
               <Card key={release.id}>
@@ -92,6 +113,9 @@ export default async function RulesPage() {
                     </Badge>
                     {release.reviewedAt && (
                       <Badge variant="high">Reviewed</Badge>
+                    )}
+                    {!release.isActive && !release.reviewedAt && (
+                      <Badge variant="info">Needs review</Badge>
                     )}
                   </div>
                 </CardHeader>
@@ -112,11 +136,13 @@ export default async function RulesPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-muted-foreground">Published</div>
+                      <div className="text-muted-foreground">Activated</div>
                       <div className="font-medium text-foreground">
                         {release.publishedAt
                           ? `${release.publishedBy?.name ?? release.publishedBy?.email ?? "Unknown"} · ${formatDateTime(release.publishedAt)}`
-                          : "Not published"}
+                          : release.isActive
+                            ? "Baseline active"
+                            : "Not activated"}
                       </div>
                     </div>
                     <div>
@@ -248,21 +274,28 @@ export default async function RulesPage() {
                       href={`/rules/${release.id}`}
                       className="inline-flex h-8 items-center justify-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted/40"
                     >
-                      {release.isActive ? "Open release" : "Edit draft"}
+                      {release.isActive ? "Open release" : "Open draft"}
                     </Link>
-                    <RuleReleaseActionButton
-                      releaseId={release.id}
-                      action="review"
-                      label={release.reviewedAt ? "Re-review release" : "Mark reviewed"}
-                    />
-                    <RuleReleaseActionButton
-                      releaseId={release.id}
-                      action="publish"
-                      label={release.isActive ? "Published" : "Publish release"}
-                      variant="success"
-                      disabled={Boolean(publishDisabledReason)}
-                      disabledReason={publishDisabledReason}
-                    />
+                    {canReviewReleases && isEditableDraft && !release.reviewedAt && (
+                      <RuleReleaseActionButton
+                        releaseId={release.id}
+                        action="review"
+                        label="Mark reviewed"
+                        disabled={Boolean(reviewDisabledReason)}
+                        disabledReason={reviewDisabledReason}
+                      />
+                    )}
+                    {canActivateReleases && !release.isActive && (
+                      <RuleReleaseActionButton
+                        releaseId={release.id}
+                        action="activate"
+                        label="Activate release"
+                        variant="primary"
+                        disabled={Boolean(activateDisabledReason)}
+                        disabledReason={activateDisabledReason}
+                        confirmMessage="Activate this rule release for new deterministic grading decisions?"
+                      />
+                    )}
                     {release.isActive && (
                       <div className="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-foreground">
                         <ShieldCheck className="h-4 w-4" />

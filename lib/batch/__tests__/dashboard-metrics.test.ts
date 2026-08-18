@@ -4,10 +4,22 @@ import assert from "node:assert/strict";
 import {
   calculateAverageDecisionMinutes,
   getCommandCentreMetricPolicy,
+  orderBookingPriorityMix,
   startOfCurrentWeek,
   summariseDecisionSplit,
 } from "@/lib/decisions/dashboard-metrics";
 import { isVisibleInDemoFlow } from "@/lib/auth/permissions";
+
+test("booking priority mix orders by clinical severity and drops null priorities", () => {
+  const mix = orderBookingPriorityMix([
+    { triagePriority: "P3", _count: { _all: 5 } },
+    { triagePriority: null, _count: { _all: 9 } },
+    { triagePriority: "P1_HSC", _count: { _all: 2 } },
+    { triagePriority: "P2", _count: { _all: 4 } },
+  ]);
+  assert.deepEqual(mix.map((m) => m.priority), ["P1_HSC", "P2", "P3"]);
+  assert.equal(mix[0].count, 2);
+});
 
 test("dashboard metrics summarise completed decision split", () => {
   const split = summariseDecisionSplit([

@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getApiPermissionError } from "@/lib/auth/api-permissions";
 
 // GET /api/analytics/overdue-recalls
 // Phase 1 enhancement: Missing endpoint from report
 export async function GET() {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  const permissionError = getApiPermissionError(user, "analytics:view");
+  if (permissionError) return NextResponse.json(permissionError.body, { status: permissionError.status });
 
   const now = new Date();
 

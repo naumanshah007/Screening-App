@@ -178,6 +178,15 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
       "caseJson" TEXT NOT NULL,
       "inputJson" TEXT NOT NULL,
       "decisionJson" TEXT NOT NULL,
+      "triagePriority" TEXT,
+      "triageCategory" TEXT,
+      "triageOutcome" TEXT,
+      "triageTargetDays" INTEGER,
+      "triageRuleCode" TEXT,
+      "triageRuleReleaseId" TEXT,
+      "triageRuleVersion" TEXT,
+      "priorDecisionCount" INTEGER NOT NULL DEFAULT 0,
+      "priorItemId" TEXT,
       "disposition" TEXT NOT NULL DEFAULT 'PENDING',
       "reviewedByUserId" TEXT,
       "reviewedAt" DATETIME,
@@ -246,6 +255,69 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
     "receivedDate",
     "DATETIME"
   );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "triagePriority",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "triageCategory",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "triageOutcome",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "triageTargetDays",
+    "INTEGER"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "triageRuleCode",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "triageRuleReleaseId",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "triageRuleVersion",
+    "TEXT"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "priorDecisionCount",
+    "INTEGER NOT NULL DEFAULT 0"
+  );
+  await addColumnIfMissing(
+    client,
+    "BatchReviewItem",
+    batchReviewColumns,
+    "priorItemId",
+    "TEXT"
+  );
 
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "BatchRun_createdByUserId_createdAt_idx"
@@ -266,6 +338,10 @@ async function applyBatchSchemaPatches(client: ReturnType<typeof createClient>) 
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "BatchReviewItem_reviewedByUserId_reviewedAt_idx"
      ON "BatchReviewItem"("reviewedByUserId", "reviewedAt")`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "BatchReviewItem_nhi_createdAt_idx"
+     ON "BatchReviewItem"("nhi", "createdAt")`
   );
 }
 

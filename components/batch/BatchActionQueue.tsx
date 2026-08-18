@@ -18,10 +18,11 @@ import { Siren, Eye, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BatchCaseResult } from "@/lib/batch/types";
 import { formatFigureLabel } from "@/lib/batch/guideline-citations";
+import type { BatchResultDetailFocus } from "@/components/batch/BatchResultDetail";
 
 interface BatchActionQueueProps {
   results: BatchCaseResult[];
-  onViewDetail: (result: BatchCaseResult) => void;
+  onViewDetail: (result: BatchCaseResult, focus?: BatchResultDetailFocus) => void;
 }
 
 export function BatchActionQueue({ results, onViewDetail }: BatchActionQueueProps) {
@@ -88,9 +89,13 @@ export function BatchActionQueue({ results, onViewDetail }: BatchActionQueueProp
                     {patientId}
                   </span>
                   <RiskBadge risk={r.decision.riskLevel} size="sm" />
-                  <span className="text-xs text-muted-foreground hidden sm:inline-block w-20 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onViewDetail(r, "figure")}
+                    className="hidden w-20 flex-shrink-0 text-left text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300 sm:inline-block"
+                  >
                     {formatFigureLabel(r.decision.figure)}
-                  </span>
+                  </button>
                 </div>
                 <span className="text-xs text-foreground flex-1 truncate">
                   {r.decision.recommendation}

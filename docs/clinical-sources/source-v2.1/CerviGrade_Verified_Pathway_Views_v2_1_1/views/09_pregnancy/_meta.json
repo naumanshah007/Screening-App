@@ -1,0 +1,14 @@
+{
+  "id": "09_pregnancy",
+  "title": "Pregnancy Pathway",
+  "description": "Figure 9 \u2014 pregnancy-specific colposcopy, MDM, invasion assessment and postpartum follow-up",
+  "clusters": [
+    "cluster_f9"
+  ],
+  "nodeCount": 18,
+  "edgeCount": 15,
+  "ruleCount": 14,
+  "visualVersion": "2.1.1",
+  "sourceRuleSet": "2.1",
+  "verificationStatus": "VERIFIED_WITH_VISUAL_PATCHES"
+}

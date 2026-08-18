@@ -7,13 +7,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getVisibleSteps, getNextUnansweredStep, getWizardProgress } from "@/lib/wizard/steps";
+import { canAccessWizardSession } from "@/lib/wizard/access";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
@@ -45,6 +47,9 @@ export async function GET(
   });
 
   if (!wizardSession) {
+    return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
+  }
+  if (!canAccessWizardSession(user, wizardSession.createdById)) {
     return NextResponse.json({ error: "Wizard session not found" }, { status: 404 });
   }
 
