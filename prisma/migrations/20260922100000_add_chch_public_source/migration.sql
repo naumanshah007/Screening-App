@@ -1,6 +1,0 @@
--- Adds CHCH_PUBLIC to BatchRunSource for the vendor-supplied CHCH Public
--- evaluation dataset connector.
---
--- No-op on SQLite: Prisma enums are stored as plain TEXT with no CHECK
--- constraint here, so the new value requires no column/table change and
--- existing rows are unaffected. Recorded for schema history only.

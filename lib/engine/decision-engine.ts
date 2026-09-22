@@ -1668,6 +1668,39 @@ export function evaluateClinicalDecision(
   return applyGuidelineOverlay(evaluateBase(input), overlay);
 }
 
+/**
+ * Prior high-grade, glandular or endometrial history that Figure 2 exists to
+ * dispose of — refer, complete Test of Cure, or confirm the status is resolved.
+ */
+function hasFigure2History(input: ClinicalInput): boolean {
+  return Boolean(
+    input.priorHighGradeResult ||
+      input.previousHSILCIN23 ||
+      input.previousAIS ||
+      input.previousAtypicalGlandularCells ||
+      input.previousAtypicalEndometrialCells ||
+      input.atypicalEndometrialHistory ||
+      ["PREVIOUS_AIS", "PREVIOUS_ATYPICAL_GLANDULAR", "PREVIOUS_ATYPICAL_ENDOMETRIAL", "HIGH_GRADE_TOC_INCOMPLETE"].includes(
+        input.priorScreeningHistory ?? ""
+      )
+  );
+}
+
+/**
+ * Has this prior history already been dispositioned?
+ *
+ * A completed Test of Cure is the documented end of a high-grade episode and
+ * returns the participant to regular screening. Anything else — required,
+ * incomplete, or simply never recorded — leaves the episode open.
+ */
+function figure2HistoryIsResolved(input: ClinicalInput): boolean {
+  return (
+    input.testOfCureStatus === "COMPLETE" ||
+    input.testOfCureStatus === "SUCCESSFULLY_COMPLETED" ||
+    input.priorScreeningHistory === "HIGH_GRADE_TOC_COMPLETE"
+  );
+}
+
 function evaluateBase(input: ClinicalInput): ClinicalDecision {
   if (input.hasAbnormalVaginalBleeding || input.currentFigure === "FIGURE_10") {
     return evaluateFigure10(input);
@@ -1775,15 +1808,7 @@ function evaluateBase(input: ClinicalInput): ClinicalDecision {
   }
 
   if (input.isFirstTimeHPVTransition) {
-    const hasFigure2History =
-      input.priorHighGradeResult ||
-      input.previousHSILCIN23 ||
-      input.previousAIS ||
-      input.previousAtypicalGlandularCells ||
-      input.previousAtypicalEndometrialCells ||
-      input.atypicalEndometrialHistory ||
-      ["PREVIOUS_AIS", "PREVIOUS_ATYPICAL_GLANDULAR", "PREVIOUS_ATYPICAL_ENDOMETRIAL", "HIGH_GRADE_TOC_INCOMPLETE"].includes(input.priorScreeningHistory ?? "");
-    if (hasFigure2History) return evaluateFigure2(input);
+    if (hasFigure2History(input)) return evaluateFigure2(input);
     if (isGlandularCytology(input.cytologyResult)) return evaluateFigure7(input);
     return evaluateFigure1(input);
   }
@@ -1802,6 +1827,25 @@ function evaluateBase(input: ClinicalInput): ClinicalDecision {
 
   if (input.currentFigure === "FIGURE_4" || input.repeatContext === "POST_NORMAL_COLPOSCOPY_LOW_GRADE_CYTOLOGY") {
     return evaluateFigure4(input);
+  }
+
+  // An unresolved high-grade episode disqualifies routine screening whether or
+  // not this is the participant's first HPV-era test.
+  //
+  // This gate used to sit only inside the isFirstTimeHPVTransition branch
+  // above, so a participant already screening in the HPV era carried their
+  // prior high-grade history past it untouched. Figure 3 then read the current
+  // result in isolation: a negative HPV returned them to five-yearly recall and
+  // closed an episode whose colposcopy outcome nobody had ever recorded. The
+  // history is equally disqualifying in both eras, so the check belongs on both
+  // paths.
+  //
+  // Figure 2 decides what the history actually warrants — outstanding
+  // colposcopy, completion of Test of Cure, or a stop because the status was
+  // never documented — so a resolved episode is excluded here rather than sent
+  // there to be handed straight back.
+  if (hasFigure2History(input) && !figure2HistoryIsResolved(input)) {
+    return evaluateFigure2(input);
   }
 
   return evaluateFigure3(input);
