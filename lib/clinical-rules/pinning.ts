@@ -176,8 +176,9 @@ export async function getBatchRunAuthorityPin(batchRunId: string): Promise<Autho
 
   const operative = run.ruleEvaluations[0];
   if (!operative) {
-    // The run has a pinned version recorded for shadow comparison, but no
-    // clinically operative evaluation. Its authority is legacy.
+    // No clinically operative evaluation exists — any canonical ruleset that
+    // ran against this batch did so in SHADOW or SIMULATION mode and is
+    // recorded in the run's shadow columns, not here. Authority is legacy.
     return {
       ...LEGACY_PIN,
       engineVersion: run.engineVersion || LEGACY_ENGINE_VERSION,
@@ -221,9 +222,17 @@ export function applyPin<T extends { authorityEngine: ClinicalAuthorityEngine }>
         `(${pin.pinnedAt?.toISOString() ?? "unknown time"}); the current activation does not apply to this case.`,
     };
   }
+  // The unpinned reason has to describe what actually decided, not what would
+  // have decided if a ruleset were active. Stating that "the current activation
+  // applies" while authority is LEGACY asserts an activation that need not
+  // exist — and when none does, the sentence is simply untrue.
+  const canonicalAuthority = resolved.authorityEngine === "CANONICAL";
   return {
     authority: resolved,
     pinned: false,
-    reason: "Not yet pinned; the current activation applies and this evaluation establishes the pin.",
+    reason: canonicalAuthority
+      ? "Not yet pinned; the current activation applies and this evaluation establishes the pin."
+      : "Not yet pinned; no rule activation applies and the legacy engine decided. " +
+        "Any canonical ruleset recorded against this evaluation ran as non-authoritative shadow comparison.",
   };
 }

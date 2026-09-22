@@ -1399,10 +1399,24 @@ model BatchRun {
   sourceSystem             String?
   sourceFileName           String?
   engineVersion            String
+  /// The ruleset that CLINICALLY DECIDED this run's cases.
+  ///
+  /// Only ever populated under CANONICAL authority. Under LEGACY authority
+  /// these stay null and the canonical ruleset that merely observed is recorded
+  /// in the shadow fields below — writing a shadow version here would present a
+  /// ruleset that did not decide as though it had.
   pinnedRuleVersionId      String?
   pinnedRuleVersion        ClinicalRuleVersion? @relation("PinnedClinicalRuleVersion", fields: [pinnedRuleVersionId], references: [id], onDelete: Restrict)
   pinnedRuleVersionDisplay String?
   pinnedRulesetChecksum    String?
+
+  /// The canonical ruleset that ran alongside WITHOUT deciding — comparison
+  /// evidence only. Never authoritative, whatever its version or checksum says.
+  shadowRuleVersionId      String?
+  shadowRuleVersionDisplay String?
+  shadowRulesetChecksum    String?
+  /// SHADOW | SIMULATION — the mode the non-authoritative evaluation ran in.
+  shadowEvaluationMode     String?
   /// Transport-level receipt and reconciliation. These fields describe what
   /// happened to the delivery; they never participate in clinical identity.
   deliveryKey              String?

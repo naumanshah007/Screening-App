@@ -806,6 +806,13 @@ async function ensureCanonicalProvenanceColumns(
       "pinnedRulesetChecksum",
       "TEXT"
     );
+    // Shadow provenance is deliberately separate from the pinned columns above.
+    // A ruleset that observed without deciding must never be recorded in fields
+    // that mean "this ruleset clinically decided".
+    await addColumnIfMissing(client, "BatchRun", columns, "shadowRuleVersionId", "TEXT");
+    await addColumnIfMissing(client, "BatchRun", columns, "shadowRuleVersionDisplay", "TEXT");
+    await addColumnIfMissing(client, "BatchRun", columns, "shadowRulesetChecksum", "TEXT");
+    await addColumnIfMissing(client, "BatchRun", columns, "shadowEvaluationMode", "TEXT");
   }
 
   if (await tableExists(client, "BatchReviewItem")) {

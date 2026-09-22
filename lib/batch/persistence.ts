@@ -199,14 +199,37 @@ export async function saveBatchRun(args: {
   const runtimeEnvironment = getRuntimeClinicalEnvironment();
   const resolvedAuthority = await resolveClinicalAuthority({ environment: runtimeEnvironment });
   const shadowRuleVersion = await resolveShadowClinicalRuleVersion().catch(() => null);
-  const runRuleVersion =
-    resolvedAuthority.authorityEngine === "CANONICAL" && resolvedAuthority.ruleSetVersionId
+
+  // Under CANONICAL authority the resolved ruleset decided, and is pinned.
+  // Under LEGACY it did not decide, so nothing is pinned — the canonical
+  // ruleset that ran alongside is recorded as shadow evidence instead.
+  //
+  // These used to be one value: LEGACY fell through to the shadow version and
+  // wrote it into the pinned columns, so every legacy-decided run carried a
+  // governed version and checksum in the fields that mean "this ruleset
+  // decided". A reviewer or an exported package could not tell the difference,
+  // which is the one thing this provenance exists to record.
+  const isCanonicalAuthority =
+    resolvedAuthority.authorityEngine === "CANONICAL" && Boolean(resolvedAuthority.ruleSetVersionId);
+
+  const authoritativeRuleVersion = isCanonicalAuthority
+    ? {
+        id: resolvedAuthority.ruleSetVersionId as string,
+        displayVersion: resolvedAuthority.ruleSetVersion,
+        checksum: resolvedAuthority.ruleSetChecksum,
+      }
+    : null;
+
+  const shadowProvenance = isCanonicalAuthority
+    ? null
+    : shadowRuleVersion
       ? {
-          id: resolvedAuthority.ruleSetVersionId,
-          displayVersion: resolvedAuthority.ruleSetVersion,
-          checksum: resolvedAuthority.ruleSetChecksum,
+          id: shadowRuleVersion.id,
+          displayVersion: shadowRuleVersion.displayVersion,
+          checksum: shadowRuleVersion.checksum,
+          evaluationMode: resolvedAuthority.evaluationMode ?? "SHADOW",
         }
-      : shadowRuleVersion;
+      : null;
 
   const itemData: Prisma.BatchReviewItemCreateWithoutBatchRunInput[] =
     result.results.map((item) => {
@@ -261,9 +284,13 @@ export async function saveBatchRun(args: {
       sourceSystem: args.sourceSystem ?? null,
       sourceFileName: result.sourceFileName ?? null,
       engineVersion: result.engineVersion,
-      pinnedRuleVersionId: runRuleVersion?.id ?? null,
-      pinnedRuleVersionDisplay: runRuleVersion?.displayVersion ?? null,
-      pinnedRulesetChecksum: runRuleVersion?.checksum ?? null,
+      pinnedRuleVersionId: authoritativeRuleVersion?.id ?? null,
+      pinnedRuleVersionDisplay: authoritativeRuleVersion?.displayVersion ?? null,
+      pinnedRulesetChecksum: authoritativeRuleVersion?.checksum ?? null,
+      shadowRuleVersionId: shadowProvenance?.id ?? null,
+      shadowRuleVersionDisplay: shadowProvenance?.displayVersion ?? null,
+      shadowRulesetChecksum: shadowProvenance?.checksum ?? null,
+      shadowEvaluationMode: shadowProvenance?.evaluationMode ?? null,
       deliveryKey,
       intakeStatus: "PROCESSING",
       sourceRecordCount: parseManifest.sourceRecordCount,
@@ -616,8 +643,11 @@ export async function saveBatchRun(args: {
                   batchReviewItemId: reviewItem.id,
                   ruleEvaluationId: graded.evaluationId,
                   batchRunId: run.id,
-                  rulesetVersion: runRuleVersion?.displayVersion ?? null,
-                  rulesetChecksum: runRuleVersion?.checksum ?? null,
+                  // The governed ruleset that DECIDED, or null. A usage record
+                  // is reconciliation evidence, so a shadow version here would
+                  // read as the ruleset this unit of work was evaluated under.
+                  rulesetVersion: authoritativeRuleVersion?.displayVersion ?? null,
+                  rulesetChecksum: authoritativeRuleVersion?.checksum ?? null,
                   source: run.source,
                 })
               );
@@ -669,7 +699,8 @@ export async function saveBatchRun(args: {
             entityId: reviewItem.id,
             severity: "ERROR",
             newValue: JSON.stringify({
-              ruleVersionId: runRuleVersion?.id ?? null,
+              authoritativeRuleVersionId: authoritativeRuleVersion?.id ?? null,
+              shadowRuleVersionId: shadowProvenance?.id ?? null,
               failedClosed: true,
               message: error instanceof Error ? error.message : String(error),
             }),
