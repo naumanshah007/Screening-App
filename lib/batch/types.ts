@@ -174,6 +174,20 @@ export interface CanonicalBatchCase {
   previousAtypicalEndometrialCells?: boolean;
   historySourceAvailable?: boolean;
 
+  // ── Outstanding referral from a previous episode ────────────────────────
+  //
+  // Figure 2's first branch asks whether a colposcopy that was recommended
+  // actually happened, and refers when it did not. Without these two fields a
+  // batch case could not express "referred, outcome not documented" at all, so
+  // that branch was unreachable from batch intake and such cases fell through
+  // to the Test of Cure questions instead.
+  //
+  // Deliberately tri-state: undefined means the source did not say, which is
+  // not the same as "no colposcopy was recommended". Per the rulebook, unknown
+  // is never equivalent to false.
+  colposcopyRecommendedInLastCytology?: boolean;
+  colposcopyCompletedForLastRecommendation?: boolean;
+
   // ── Current test results ────────────────────────────────────────────────
   hpvResult?: HPVResult;
   cytologyResult?: CytologyResult;

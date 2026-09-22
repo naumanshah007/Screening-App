@@ -58,6 +58,8 @@ export function mapCanonicalToClinicalInput(
     previousAtypicalGlandularCells: batchCase.previousAtypicalGlandularCells,
     previousAtypicalEndometrialCells: batchCase.previousAtypicalEndometrialCells,
     historySourceAvailable: batchCase.historySourceAvailable,
+    colposcopyRecommendedInLastCytology: batchCase.colposcopyRecommendedInLastCytology,
+    colposcopyCompletedForLastRecommendation: batchCase.colposcopyCompletedForLastRecommendation,
 
     // Current test results
     hpvResult: batchCase.hpvResult,
@@ -71,6 +73,7 @@ export function mapCanonicalToClinicalInput(
     repeatStage: batchCase.repeatStage,
     isTestOfCure: batchCase.isTestOfCure,
     testOfCureStage: batchCase.testOfCureStage,
+    testOfCureStatus: batchCase.testOfCureStatus,
     consecutiveNegativeCoTestCount: batchCase.consecutiveNegativeCoTestCount,
     consecutiveLowGradeCount: batchCase.consecutiveLowGradeCount,
     unsatisfactoryCytologyCount: batchCase.unsatisfactoryCytologyCount,
