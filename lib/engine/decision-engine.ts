@@ -371,6 +371,33 @@ function evaluateFigure3(input: ClinicalInput): ClinicalDecision {
   }
 
   if (input.hpvResult === "NOT_DETECTED") {
+    // GS-01: a required clinical fact that is missing or unknown must return
+    // EXTERNAL_HISTORY_REQUIRED rather than a routine recall.
+    //
+    // A previous HPV 16/18 positive result mandated colposcopy referral
+    // (F3-03). Whether that referral happened, and what it found, decides
+    // whether this participant belongs on routine screening at all — an
+    // undocumented outcome may be an untreated high-grade lesion. Today's
+    // negative HPV result does not answer that question, so closing the
+    // episode on it would generate exactly the routine recall GS-01 forbids.
+    //
+    // Deliberately gated on an unresolved outcome, not on the episode itself:
+    // a previous HPV16/18 episode with a completed colposcopy is resolved
+    // history and returns to routine screening normally.
+    const previousReferralUnresolved =
+      input.previousHpv1618Episode === true &&
+      input.colposcopyCompletedForLastRecommendation !== true;
+
+    if (previousReferralUnresolved) {
+      return insufficient(
+        "FIGURE_3",
+        "F3-PREVIOUS-HPV1618-OUTCOME-REQUIRED",
+        ["colposcopyCompletedForLastRecommendation"],
+        "Confirm the outcome of the colposcopy referral triggered by the previous HPV 16/18 result",
+        ["NCSR, colposcopy service record, or specialist correspondence"]
+      );
+    }
+
     return returnToScreening(
       "FIGURE_3",
       input.immunocompromised ? "F3-HPV-NOT-DETECTED-IC-3Y" : "F3-HPV-NOT-DETECTED-5Y",

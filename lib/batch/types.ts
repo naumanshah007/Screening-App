@@ -187,6 +187,12 @@ export interface CanonicalBatchCase {
   // is never equivalent to false.
   colposcopyRecommendedInLastCytology?: boolean;
   colposcopyCompletedForLastRecommendation?: boolean;
+  /**
+   * A previous HPV 16/18 positive screening result — NOT previous high-grade
+   * disease. See ClinicalInput.previousHpv1618Episode for why the distinction
+   * is load-bearing.
+   */
+  previousHpv1618Episode?: boolean;
 
   // ── Current test results ────────────────────────────────────────────────
   hpvResult?: HPVResult;

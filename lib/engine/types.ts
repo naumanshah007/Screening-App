@@ -129,6 +129,23 @@ export interface ClinicalInput {
   specialistDischargedToPrimaryCare?: boolean;
   colposcopyRecommendedInLastCytology?: boolean;
   colposcopyCompletedForLastRecommendation?: boolean;
+  /**
+   * A previous HPV 16/18 positive screening result.
+   *
+   * Deliberately distinct from priorHighGradeResult. HPV 16/18 positivity is a
+   * screening test result that mandates colposcopy referral (F3-03); it is not
+   * previous high-grade cytology or histology, and the rulebook nowhere treats
+   * the two as equivalent. Figure 2 entry is defined by previous possible or
+   * definite HSIL and atypical glandular cells (F2-01), so recording a previous
+   * HPV16/18 episode as prior high-grade disease would route cases through a
+   * pathway whose entry criteria they do not meet.
+   *
+   * What makes it clinically live is an undocumented outcome: the referral it
+   * triggered may or may not have happened. Paired with
+   * colposcopyCompletedForLastRecommendation, it lets a case state "referred,
+   * outcome unknown" without overstating what is known.
+   */
+  previousHpv1618Episode?: boolean;
   historySourceAvailable?: boolean;
   isPostHysterectomy: boolean;
   hysterectomyType?: "TOTAL" | "SUBTOTAL"; // Subtotal (cervix-sparing) may still need cervical screening

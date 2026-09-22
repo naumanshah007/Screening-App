@@ -60,6 +60,7 @@ export function mapCanonicalToClinicalInput(
     historySourceAvailable: batchCase.historySourceAvailable,
     colposcopyRecommendedInLastCytology: batchCase.colposcopyRecommendedInLastCytology,
     colposcopyCompletedForLastRecommendation: batchCase.colposcopyCompletedForLastRecommendation,
+    previousHpv1618Episode: batchCase.previousHpv1618Episode,
 
     // Current test results
     hpvResult: batchCase.hpvResult,

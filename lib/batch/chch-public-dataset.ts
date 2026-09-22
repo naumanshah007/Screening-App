@@ -47,7 +47,17 @@ function chchCase(
       externalPatientId,
     },
 
-    // Required defaults (baseline screening event unless overridden below)
+    // Values the source does not state.
+    //
+    // These are assumptions, not facts, and the rulebook is explicit that
+    // unknown is never equivalent to false (§20) — so they are declared in
+    // lib/batch/chch-public-assumptions.ts with their basis, the rules they
+    // affect, and a clinician approval field, rather than sitting here as bare
+    // literals nobody can review. Seven of them are typed as required on both
+    // CanonicalBatchCase and ClinicalInput, so a value must be supplied; the
+    // manifest is what makes the supplied value auditable.
+    //
+    // CHCH_PUBLIC_ASSUMPTIONS is the reviewable record of the list below.
     repeatStage: "BASELINE",
     isFirstTimeHPVTransition: false,
     isPostHysterectomy: false,
@@ -137,15 +147,14 @@ export const CHCH_PUBLIC_DATASET: CanonicalBatchCase[] = [
     previousHSILCIN23: true,
     priorHighGradeResult: true,
     screeningHistoryKnown: true,
-    priorScreeningHistory: "HIGH_GRADE_TOC_INCOMPLETE",
-    // "Post-treatment surveillance" after treated CIN3 IS Test of Cure, so it
-    // belongs on Figure 6, not the Figure 3 primary-screening pathway. Without
-    // these three fields the engine cannot tell it apart from a routine screen
-    // and silently grades it as one.
+    // "Post-treatment surveillance" after treated CIN3 is Test of Cure by
+    // definition, so the episode context is stated by the source.
     isTestOfCure: true,
     repeatContext: "TEST_OF_CURE",
-    testOfCureStage: "FIRST_TEST",
-    testOfCureStatus: "INCOMPLETE",
+    // Stage and status are NOT stated. The source says "three years ago" and
+    // Test of Cure is annual, so this could be any test in the sequence;
+    // FIRST_TEST and INCOMPLETE were asserted here because they produced the
+    // expected priority, which is not a reason. Left unknown.
   }),
 
   // chch-008 · Lucy P., 37 · Demo priority: High / Workflow
@@ -161,7 +170,14 @@ export const CHCH_PUBLIC_DATASET: CanonicalBatchCase[] = [
   chchCase(9, "chch-009", "Grace N.", "Overdue follow-up — prior HPV16, no new sample", {
     patientAge: 44,
     screeningStatus: "OVERDUE",
-    priorHighGradeResult: true,
+    // "HPV 16 positive (previous)" is a previous screening result, not previous
+    // high-grade disease. It was mapped to priorHighGradeResult, which promoted
+    // a genotype to a cytology/histology finding the source never reports and
+    // routed the case into Figure 2, whose entry criteria (F2-01) it does not
+    // meet. Recorded for what it is.
+    previousHpv1618Episode: true,
+    // No new sample, so nothing establishes whether the earlier referral
+    // happened. Left unknown rather than false.
     screeningHistoryKnown: true,
     priorScreeningHistory: "UNKNOWN",
     historySourceAvailable: true,
@@ -172,7 +188,16 @@ export const CHCH_PUBLIC_DATASET: CanonicalBatchCase[] = [
   chchCase(10, "chch-010", "Isabella C.", "Current routine screen — HPV not detected, unresolved prior HPV16", {
     patientAge: 36,
     hpvResult: "NOT_DETECTED",
-    priorHighGradeResult: true,
+    // "Previous HPV16 positive; colposcopy outcome not documented."
+    //
+    // Two separate facts, both stated. The previous positive is an HPV episode,
+    // not high-grade disease — the earlier priorHighGradeResult mapping
+    // asserted a cytology/histology finding the source does not report.
+    previousHpv1618Episode: true,
+    // "outcome not documented" — explicitly unknown, deliberately not false.
+    // false would assert the colposcopy did not happen; the source says only
+    // that nobody recorded what it found.
+    colposcopyCompletedForLastRecommendation: undefined,
     screeningHistoryKnown: true,
     priorScreeningHistory: "UNKNOWN",
     historySourceAvailable: false,
@@ -253,14 +278,17 @@ export const CHCH_PUBLIC_DATASET: CanonicalBatchCase[] = [
     patientAge: 45,
     hpvResult: "HPV_16_18",
     cytologyResult: "NEGATIVE",
+    // "Previous CIN2; surveillance episode."
+    //
+    // CIN2 is high-grade, so the history itself is stated. Treatment is NOT:
+    // the source says "surveillance episode", and CIN2 is frequently managed by
+    // observation rather than excision. Test of Cure presupposes treatment, so
+    // isTestOfCure was an assumption made to obtain the expected priority, not
+    // a fact. Removed — treatment status stays unknown, which produces a stop
+    // for records rather than a terminal recommendation.
     previousHSILCIN23: true,
     priorHighGradeResult: true,
     screeningHistoryKnown: true,
-    priorScreeningHistory: "HIGH_GRADE_TOC_INCOMPLETE",
-    isTestOfCure: true,
-    repeatContext: "TEST_OF_CURE",
-    testOfCureStage: "FIRST_TEST",
-    testOfCureStatus: "INCOMPLETE",
   }),
 
   // chch-019 · Anika P., 38 · Demo priority: High / Manual Review
@@ -269,6 +297,9 @@ export const CHCH_PUBLIC_DATASET: CanonicalBatchCase[] = [
     patientAge: 38,
     hpvResult: "HPV_16_18",
     cytologyResult: "NEGATIVE",
+    // "Previous HPV18 result" — an HPV episode, recorded as one.
+    previousHpv1618Episode: true,
+    // "follow-up documentation incomplete" — the outcome is not on record.
     repeatContext: "PRIMARY_HPV",
     repeatStage: "FIRST_REPEAT",
     historySourceAvailable: false,

@@ -115,3 +115,46 @@ test("Routing precedence keeps a declared Test of Cure episode on Figure 6, not 
   assert.equal(decision.figure, "FIGURE_6");
   assert.equal(decision.referralPriority, "P1");
 });
+
+// ── Previous HPV 16/18 episode with an unresolved referral outcome ───────────
+//
+// GS-01: a required clinical fact that is missing or unknown returns a safety
+// stop, never a routine recall from a default. A previous HPV16/18 result
+// mandated colposcopy; whether that happened decides whether routine screening
+// is safe, and a negative HPV today does not answer it.
+
+test("a negative HPV result does not close an episode whose HPV16/18 referral outcome is unknown", () => {
+  const decision = evaluateClinicalDecision(baseInput({
+    hpvResult: "NOT_DETECTED",
+    previousHpv1618Episode: true,
+    // Unknown, not false: nobody recorded what the colposcopy found.
+  }));
+
+  assert.equal(decision.recommendationCode, "F3-PREVIOUS-HPV1618-OUTCOME-REQUIRED");
+  assert.equal(decision.safetyOutcome, "EXTERNAL_HISTORY_REQUIRED");
+  assert.equal(decision.recallIntervalMonths, undefined);
+});
+
+test("a previous HPV16/18 episode with a completed colposcopy returns to routine screening", () => {
+  const decision = evaluateClinicalDecision(baseInput({
+    hpvResult: "NOT_DETECTED",
+    previousHpv1618Episode: true,
+    colposcopyCompletedForLastRecommendation: true,
+  }));
+
+  assert.equal(decision.recommendationCode, "F3-HPV-NOT-DETECTED-5Y");
+  assert.equal(decision.recallIntervalMonths, 60);
+});
+
+test("a previous HPV16/18 episode is not treated as previous high-grade disease", () => {
+  // Figure 2 entry is defined by previous HSIL / atypical glandular cytology
+  // (F2-01). Genotype alone must not route there.
+  const decision = evaluateClinicalDecision(baseInput({
+    hpvResult: "HPV_OTHER",
+    cytologyResult: "NEGATIVE",
+    previousHpv1618Episode: true,
+  }));
+
+  assert.equal(decision.figure, "FIGURE_3");
+  assert.notEqual(decision.figure, "FIGURE_2");
+});
