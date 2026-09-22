@@ -263,6 +263,7 @@ enum BatchRunSource {
   FHIR
   ERMS
   HEALTH_NZ
+  CHCH_PUBLIC
 }
 
 enum BatchReviewDisposition {

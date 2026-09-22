@@ -255,80 +255,6 @@ export function BatchPageClient({
     [classifyEpisodes]
   );
 
-  // ── Load demo dataset ─────────────────────────────────────────────────────
-  const loadDemo = useCallback(async () => {
-    setState({ step: "uploading" });
-    setUploadError("");
-    try {
-      const { DEMO_DATASET } = await import("@/lib/batch/demo-dataset");
-      const { BATCH_COLUMNS } = await import("@/lib/batch/template-columns");
-      const allFields = BATCH_COLUMNS.map((c) => c.field);
-
-      const rows: ParsedSourceRow[] = DEMO_DATASET.map((demoCase, index) => {
-        const row: ParsedSourceRow = { _rowIndex: index, _sourceFields: allFields };
-        for (const col of BATCH_COLUMNS) {
-          const value = (demoCase as unknown as Record<string, unknown>)[col.field];
-          if (value !== undefined && value !== null) row[col.field] = value;
-        }
-        row.label = demoCase.label;
-        row.externalPatientId = demoCase.source.externalPatientId;
-        return row;
-      });
-
-      await validateAndLoad(rows, "demo");
-    } catch {
-      console.error("batch.demo_dataset.load_failed");
-      setUploadError("Failed to load demo dataset.");
-      setState({ step: "empty" });
-    }
-  }, [validateAndLoad]);
-
-  // ── Load messy "real-world" demo dataset ─────────────────────────────────
-  const loadMessyDemo = useCallback(async () => {
-    setState({ step: "uploading" });
-    setUploadError("");
-    try {
-      const { buildMessyDataset } = await import("@/lib/batch/demo-dataset-messy");
-      const rows = buildMessyDataset();
-      const meta = {
-        sourceType: "demo" as const,
-        sourceSystem: "Mock Lab Feed — Auckland LIS",
-        sourceFileName: "real-world-sample",
-      };
-      setBaseRows(rows);
-      setBaseSourceMeta(meta);
-      setManualRows([]);
-
-      const { validateBatchRows } = await import("@/lib/batch/validation");
-      const validation = validateBatchRows(rows, {
-        sourceType: "demo",
-        sourceSystem: "Mock Lab Feed — Auckland LIS",
-        sourceFileName: "real-world-sample",
-        mappingVersion: "demo-messy-v1",
-        engineVersion: ENGINE_VERSION,
-        externalPatientId: undefined,
-      });
-      setState({ step: "loaded", validation });
-      setParseManifest({
-        schemaVersion: 1,
-        sourceRecordCount: rows.length,
-        parsedRecordCount: rows.length,
-        skippedRecordCount: 0,
-        preparedRecordCount: rows.length,
-        warnings: [],
-        errors: [],
-        detectedColumns: rows[0]?._sourceFields ?? [],
-        unmappedColumns: [],
-      });
-      setDeliveryKey(null);
-      await classifyEpisodes(validation.cases);
-    } catch {
-      console.error("batch.messy_demo_dataset.load_failed");
-      setUploadError("Failed to load real-world sample.");
-      setState({ step: "empty" });
-    }
-  }, [classifyEpisodes]);
-
   // ── Upload a file ─────────────────────────────────────────────────────────
   const loadFile = useCallback(async (file: File) => {
     setState({ step: "uploading" });
@@ -704,12 +630,7 @@ export function BatchPageClient({
             </button>
             {showManual && (
               <div className="border-t border-border p-4">
-                <BatchUploader
-                  onDemoLoad={loadDemo}
-                  onMessyDemoLoad={loadMessyDemo}
-                  onFileLoad={loadFile}
-                  loading={isUploading}
-                />
+                <BatchUploader onFileLoad={loadFile} loading={isUploading} />
               </div>
             )}
           </Panel>

@@ -61,7 +61,8 @@ export type SourceType =
   | "hl7"
   | "fhir"
   | "erms"
-  | "health-nz";
+  | "health-nz"
+  | "chchPublic";
 
 export interface SourceMetadata {
   /** Adapter/source type that produced this row. */

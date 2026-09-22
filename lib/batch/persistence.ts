@@ -79,6 +79,7 @@ const SOURCE_TYPE_TO_ENUM: Record<SourceType, Prisma.BatchRunCreateInput["source
   fhir: "FHIR",
   erms: "ERMS",
   "health-nz": "HEALTH_NZ",
+  chchPublic: "CHCH_PUBLIC",
 };
 
 function mapSourceType(sourceType: SourceType): Prisma.BatchRunCreateInput["source"] {

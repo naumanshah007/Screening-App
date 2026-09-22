@@ -7,7 +7,7 @@ import { Database, Upload, Download, FileText, FileSpreadsheet, AlertTriangle, F
 import { cn } from "@/lib/utils";
 
 interface BatchUploaderProps {
-  onDemoLoad: () => void;
+  onDemoLoad?: () => void;
   onMessyDemoLoad?: () => void;
   onFileLoad: (file: File) => void;
   loading?: boolean;
@@ -63,7 +63,9 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
     <Card>
       <CardContent className="py-8 space-y-6">
         {/* Demo buttons — clean + messy */}
+        {(onDemoLoad || onMessyDemoLoad) && (
         <div className="grid sm:grid-cols-2 gap-3">
+          {onDemoLoad && (
           <div className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <Database className="h-4 w-4 text-brand-600" />
@@ -85,6 +87,7 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
               Load Clean Demo
             </Button>
           </div>
+          )}
 
           {onMessyDemoLoad && (
             <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20 p-4 flex flex-col gap-2">
@@ -110,12 +113,15 @@ export function BatchUploader({ onDemoLoad, onMessyDemoLoad, onFileLoad, loading
             </div>
           )}
         </div>
+        )}
 
+        {(onDemoLoad || onMessyDemoLoad) && (
         <div className="relative flex items-center gap-3">
           <div className="flex-1 h-px bg-border" />
           <span className="text-xs text-muted-foreground bg-card px-2">or upload your own file</span>
           <div className="flex-1 h-px bg-border" />
         </div>
+        )}
 
         {/* Drop zone */}
         <div
