@@ -139,3 +139,21 @@ test("applyGuidelineOverlay does not mutate the input decision", () => {
   applyGuidelineOverlay(base, { enabled: true, entries: { [base.recommendationCode]: { recallIntervalMonths: 12 } } });
   assert.equal(JSON.stringify(base), snapshot);
 });
+
+// ── Safety stops stay out of the admin-editable catalog ─────────────────────
+
+test("no safety-stop code is listed as an admin-editable branch", () => {
+  // The catalog is the admin-visible list of overridable branches. A stop that
+  // means "do not decide without this information" must not be presented as
+  // something an administrator can retune, or the overlay becomes a way to
+  // weaken it into a terminal recommendation.
+  const safetyStops = GUIDELINE_RULE_CATALOG.filter((entry) =>
+    /-(REQUIRED|UNMAPPED|UNKNOWN)$/.test(entry.code)
+  );
+
+  assert.deepEqual(
+    safetyStops.map((e) => e.code),
+    [],
+    "safety-stop codes must not appear in GUIDELINE_RULE_CATALOG"
+  );
+});

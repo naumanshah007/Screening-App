@@ -389,13 +389,37 @@ function evaluateFigure3(input: ClinicalInput): ClinicalDecision {
       input.colposcopyCompletedForLastRecommendation !== true;
 
     if (previousReferralUnresolved) {
-      return insufficient(
-        "FIGURE_3",
-        "F3-PREVIOUS-HPV1618-OUTCOME-REQUIRED",
-        ["colposcopyCompletedForLastRecommendation"],
-        "Confirm the outcome of the colposcopy referral triggered by the previous HPV 16/18 result",
-        ["NCSR, colposcopy service record, or specialist correspondence"]
-      );
+      // Built explicitly rather than through insufficient(), which would stamp
+      // "FIGURE_3 - missing required pathway facts" and read as though the
+      // extracted Figure 3 contained this branch. It does not.
+      return withDefaults({
+        figure: "FIGURE_3",
+        riskLevel: "MEDIUM",
+        recommendation:
+          "Derived software safety stop. A previous HPV 16/18 result required colposcopy referral and the outcome of that referral is not documented, so a negative HPV result today cannot establish that routine screening is appropriate.",
+        recommendationCode: "F3-PREVIOUS-HPV1618-OUTCOME-REQUIRED",
+        nextAction:
+          "Confirm the outcome of the colposcopy referral triggered by the previous HPV 16/18 result",
+        safetyOutcome: "EXTERNAL_HISTORY_REQUIRED",
+        missingInformation: ["colposcopyCompletedForLastRecommendation"],
+        externalDependencies: ["NCSR, colposcopy service record, or specialist correspondence"],
+        validationStatus: "EXTERNAL_DEPENDENCY",
+        clinicalWarnings: [
+          "Derived software safety stop — based on GS-01; requires clinician confirmation.",
+          "This branch is not an extracted NZ NCSP Figure 3 rule.",
+        ],
+        guidelineReference:
+          "Derived software safety stop — GS-01 (software safety design). NOT an extracted NZ NCSP Figure 3 rule; requires clinician confirmation.",
+        rationale:
+          "Derived from the global safety invariant GS-01, which requires INSUFFICIENT_INFORMATION or EXTERNAL_HISTORY_REQUIRED when a required clinical fact is missing and forbids generating a routine recall from a default or unknown value. The extracted rulebook v2.1 contains no Figure 3 branch for a previous HPV 16/18 episode whose referral outcome is undocumented, so this stop is software safety behaviour awaiting clinician confirmation rather than a transcribed guideline rule. What it protects: an undocumented referral outcome may be an untreated high-grade lesion, and closing the episode on today's negative HPV result would convert that silently into routine reassurance.",
+        branchPath: [
+          "FIGURE_3",
+          "HPV_NOT_DETECTED",
+          "PREVIOUS_HPV1618_EPISODE",
+          "REFERRAL_OUTCOME_UNDOCUMENTED",
+          "DERIVED_SAFETY_STOP_GS01",
+        ],
+      });
     }
 
     return returnToScreening(

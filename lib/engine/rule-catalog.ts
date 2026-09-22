@@ -36,11 +36,6 @@ export const GUIDELINE_RULE_CATALOG: GuidelineCatalogEntry[] = [
 
   // ── Figure 3: primary HPV screening ─────────────────────────────────────
   { code: "F3-HPV-NOT-DETECTED-5Y", figure: "FIGURE_3", title: "HPV not detected — recall 5 years" },
-  {
-    code: "F3-PREVIOUS-HPV1618-OUTCOME-REQUIRED",
-    figure: "FIGURE_3",
-    title: "HPV not detected, previous HPV 16/18 referral outcome undocumented — obtain records",
-  },
   { code: "F3-HPV-NOT-DETECTED-IC-3Y", figure: "FIGURE_3", title: "HPV not detected, immune deficient — recall 3 years" },
   { code: "F3-1618-COLP", figure: "FIGURE_3", title: "HPV 16/18 — colposcopy" },
   { code: "F3-1618-HIGH-GRADE-COLP", figure: "FIGURE_3", title: "HPV 16/18 + high-grade cytology — colposcopy" },
