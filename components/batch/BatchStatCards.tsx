@@ -22,16 +22,29 @@ interface BatchStatCardsProps {
  * MetricTile because a single run has no daily history to trend.
  */
 export function BatchStatCards({ result }: BatchStatCardsProps) {
-  const riskCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, URGENT: 0 };
-  for (const r of result.results) {
-    if (r.status === "success" && r.decision.riskLevel) {
-      const level = r.decision.riskLevel as keyof typeof riskCounts;
-      if (level in riskCounts) riskCounts[level]++;
-    }
-  }
-
   const referralCount = result.results.filter(
     (r) => r.status === "success" && r.decision.referralRequired
+  ).length;
+
+  // "Urgent" has to mean the same thing here as it does in the Review Queue and
+  // the Command Centre, which count urgent risk OR a P1 referral priority.
+  // Counting risk level alone made this tile disagree with the queue the
+  // operator reaches two clicks later: a Test of Cure case carrying HIGH risk
+  // with a P1 referral was urgent there and not urgent here, and neither screen
+  // said which sense of the word it meant.
+  // P1_HSC, which the queue predicate also accepts, belongs to the booking
+  // rules in lib/cases and cannot appear on a ClinicalDecision — the engine's
+  // ReferralPriority is P1..P4. Matching it here would be unreachable code.
+  const urgentClinicalCount = result.results.filter(
+    (r) =>
+      r.status === "success" &&
+      (r.decision.riskLevel === "URGENT" || r.decision.referralPriority === "P1")
+  ).length;
+  const highNotUrgentCount = result.results.filter(
+    (r) =>
+      r.status === "success" &&
+      r.decision.riskLevel === "HIGH" &&
+      r.decision.referralPriority !== "P1"
   ).length;
 
   return (
@@ -45,9 +58,9 @@ export function BatchStatCards({ result }: BatchStatCardsProps) {
       />
       <MetricTile
         label="Urgent / High risk"
-        value={riskCounts.URGENT + riskCounts.HIGH}
-        caption={`${riskCounts.URGENT} urgent, ${riskCounts.HIGH} high`}
-        tone={riskCounts.URGENT > 0 ? "danger" : riskCounts.HIGH > 0 ? "warn" : "success"}
+        value={urgentClinicalCount + highNotUrgentCount}
+        caption={`${urgentClinicalCount} urgent (risk or P1), ${highNotUrgentCount} high`}
+        tone={urgentClinicalCount > 0 ? "danger" : highNotUrgentCount > 0 ? "warn" : "success"}
         icon={<AlertTriangle className="h-4.5 w-4.5" />}
       />
       <MetricTile
