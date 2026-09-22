@@ -23,6 +23,7 @@
     "rules:simulate:v2-input-gaps": "tsx scripts/rule-studio/persist-canonical-v2-input-gap-simulations.ts",
     "typecheck": "prisma generate && tsc --noEmit",
     "demo:reset": "tsx scripts/demo-reset.ts",
+    "demo:chch:provision": "tsx scripts/demo/create-chch-admin-user.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",

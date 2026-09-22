@@ -1,6 +1,6 @@
 /**
- * Provision (or reset) the CHCH proof-of-concept account:
- * login "chchadmin", password "chchadmin".
+ * Provision the CHCH proof-of-concept environment: the default organisation,
+ * plus a full-access account — login "chchadmin", password "chchadmin".
  *
  * One full-access account drives the whole demo (pull, review, grade,
  * decisions, rules, admin) while the concept is being proven. Role separation
@@ -12,20 +12,40 @@
  * Flagged isDemoAccount so it's excluded from anything treating accounts as
  * real clinical users.
  *
- * Run: npx tsx scripts/demo/create-chch-admin-user.ts
+ * Acts on whatever DATABASE_URL points at, so check it before running against
+ * anything shared. Set CHCH_ADMIN_PASSWORD to avoid seeding the POC default.
+ *
+ *   npx tsx scripts/demo/create-chch-admin-user.ts
  */
 
 import bcrypt from "bcryptjs";
 import { buildUserAuditEntry, USER_AUDIT_ACTION } from "@/lib/admin/user-audit";
+import { getDatabaseRuntimeSummary } from "@/lib/config/database";
+import { ensureDefaultOrganisation } from "@/lib/organisation/current-organisation";
 import { prisma } from "@/lib/prisma";
 
 const EMAIL = "chchadmin@cs.nz";
 const PREVIOUS_EMAIL = "chchpublic@cs.nz";
-const PASSWORD = "chchadmin";
 const NAME = "CHCH Admin (Proof of Concept)";
 const ROLE = "ADMIN" as const;
 
+// Overridable so a deployment that should not carry the POC credential can set
+// a real one without a code change. The value is never logged.
+const PASSWORD = process.env.CHCH_ADMIN_PASSWORD?.trim() || "chchadmin";
+
 async function main() {
+  // The same command can point at a local file or a shared deployment, and the
+  // difference is one environment variable. Say which before writing anything.
+  const summary = getDatabaseRuntimeSummary();
+  const isRemote = summary.mode === "remote-libsql";
+  console.log(`Target: ${summary.displayTarget} ${isRemote ? "(REMOTE — shared deployment)" : "(local file)"}`);
+
+  // Cases cannot be graded without an organisation to attribute the run to;
+  // intake fails with "no active organisation" long before the engine is
+  // reached. Idempotent — returns the existing row when there is one.
+  const organisation = await ensureDefaultOrganisation();
+  console.log(`Organisation ready: ${organisation.name} (${organisation.key})`);
+
   const actor = await prisma.user.findFirst({
     where: { role: "ADMIN", isActive: true, email: { not: EMAIL } },
     orderBy: { createdAt: "asc" },
