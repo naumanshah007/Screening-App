@@ -5,6 +5,7 @@ import { ENGINE_VERSION } from "@/lib/batch/processor";
 import { BatchPageClient } from "./BatchPageClient";
 import { getServerSession } from "@/lib/auth/server-session";
 import { isAuthorizedForRoute } from "@/lib/auth/permissions";
+import { isEvaluationAccount } from "@/lib/auth/evaluation-mode";
 
 /**
  * /batch — Case Intake
@@ -29,7 +30,13 @@ export default async function BatchPage() {
     getCurrentGovernedRuleset().catch(() => null),
     getServerSession(),
   ]);
-  const role = (session?.user as { role?: string } | undefined)?.role;
+  const sessionUser = session?.user as { role?: string; email?: string | null } | undefined;
+  const role = sessionUser?.role;
+  // Under the evaluation boundary the intake screen offers exactly one
+  // source and no way to alter the supplied cases. The server refuses these
+  // operations regardless; withholding the controls keeps the screen honest
+  // about what is available rather than presenting actions that will fail.
+  const evaluationMode = isEvaluationAccount(sessionUser);
 
   return (
     <BatchPageClient
@@ -39,7 +46,8 @@ export default async function BatchPage() {
           : null
       }
       routingService={ENGINE_VERSION}
-      canConfigureIntegrations={isAuthorizedForRoute("/admin/integrations", role)}
+      canConfigureIntegrations={!evaluationMode && isAuthorizedForRoute("/admin/integrations", role)}
+      evaluationMode={evaluationMode}
     />
   );
 }

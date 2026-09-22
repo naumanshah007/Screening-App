@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { getApiPermissionError } from "@/lib/auth/api-permissions";
+import {
+  isEvaluationAccount,
+  isSourceTypeAllowedInEvaluationMode,
+} from "@/lib/auth/evaluation-mode";
 import { isFeatureEnabled } from "@/lib/features";
 import { processBatch } from "@/lib/batch/processor";
 import {
@@ -18,7 +22,7 @@ import { safeLogError } from "@/lib/security/safe-logging";
  */
 export async function GET() {
   const session = await auth();
-  const user = session?.user as { id?: string; role?: string } | undefined;
+  const user = session?.user as { id?: string; role?: string; email?: string | null } | undefined;
 
   const permissionError = getApiPermissionError(user, "batch:view");
   if (permissionError) {
@@ -40,7 +44,7 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
-  const user = session?.user as { id?: string; role?: string } | undefined;
+  const user = session?.user as { id?: string; role?: string; email?: string | null } | undefined;
 
   const permissionError = getApiPermissionError(user, "batch:manage");
   if (permissionError) {
@@ -62,6 +66,30 @@ export async function POST(req: NextRequest) {
     const cases: CanonicalBatchCase[] = body.cases;
     if (cases.length === 0) {
       return NextResponse.json({ error: "No cases provided." }, { status: 400 });
+    }
+
+    // The evaluation has one clinical intake source. Refused here rather than
+    // only hidden in the UI, so a crafted request cannot introduce cases the
+    // clinician did not supply — which would be indistinguishable from their
+    // own once persisted.
+    if (isEvaluationAccount(user)) {
+      const foreign = [
+        ...new Set(
+          [...cases, ...(Array.isArray(body.withheldCases) ? body.withheldCases : [])]
+            .map((c: CanonicalBatchCase) => String(c.source?.sourceType ?? ""))
+            .filter((t) => t.length > 0 && !isSourceTypeAllowedInEvaluationMode(t))
+        ),
+      ];
+      if (foreign.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              `Not available in the controlled clinical evaluation: intake is limited to the supplied ` +
+              `CHCH Public case set. Rejected source type(s): ${foreign.join(", ")}.`,
+          },
+          { status: 403 }
+        );
+      }
     }
     if (cases.length > 500) {
       return NextResponse.json(

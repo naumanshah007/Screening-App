@@ -1,19 +1,22 @@
 /**
- * Provision the CHCH proof-of-concept environment: the default organisation,
- * plus a full-access account — login "chchadmin", password "chchadmin".
+ * Provision the CHCH controlled clinical evaluation environment: the default
+ * organisation, plus the evaluator account (login "chchadmin").
  *
- * One full-access account drives the whole demo (pull, review, grade,
- * decisions, rules, admin) while the concept is being proven. Role separation
- * across coordinator/grader/reviewer accounts comes after sign-off.
+ * One account drives the whole evaluation workflow — pull the supplied cases,
+ * process, review, and record accept / reject / needs-information — at least
+ * privilege. What the role still carries beyond that is withheld by the
+ * evaluation boundary in lib/auth/evaluation-mode.ts, which denies before the
+ * role grants, so the evaluator cannot alter rules, accounts, or the supplied
+ * case set.
  *
  * Idempotent — safe to re-run; repairs the account to the expected state
  * rather than failing if it already exists. Also renames the earlier
- * "chchpublic" account onto this login so only one demo identity exists.
- * Flagged isDemoAccount so it's excluded from anything treating accounts as
+ * "chchpublic" account onto this login so only one evaluation identity exists.
+ * Flagged isDemoAccount so it is excluded from anything treating accounts as
  * real clinical users.
  *
- * Acts on whatever DATABASE_URL points at, so check it before running against
- * anything shared. Set CHCH_ADMIN_PASSWORD to avoid seeding the POC default.
+ * Acts on whatever DATABASE_URL points at, and says which before writing.
+ * CHCH_ADMIN_PASSWORD is required against a shared deployment.
  *
  *   npx tsx scripts/demo/create-chch-admin-user.ts
  */
@@ -27,11 +30,33 @@ import { prisma } from "@/lib/prisma";
 const EMAIL = "chchadmin@cs.nz";
 const PREVIOUS_EMAIL = "chchpublic@cs.nz";
 const NAME = "CHCH Admin (Proof of Concept)";
-const ROLE = "ADMIN" as const;
+// Least privilege for the evaluation workflow: view the supplied cases, pull
+// them, process, review, and record accept / reject / needs-information.
+// GYNAE_GRADER carries cases:grade, batch:view and batch:manage, which is the
+// whole workflow; the capabilities it holds beyond that — rules:approve,
+// rules:validate, documents:ingest — are withheld by the evaluation boundary
+// in lib/auth/evaluation-mode.ts, which denies before the role grants.
+//
+// ADMIN was wrong here: it carries rules:edit, rules:activate and admin:users,
+// so an evaluator could have changed the ruleset they were evaluating.
+const ROLE = "GYNAE_GRADER" as const;
 
-// Overridable so a deployment that should not carry the POC credential can set
-// a real one without a code change. The value is never logged.
-const PASSWORD = process.env.CHCH_ADMIN_PASSWORD?.trim() || "chchadmin";
+// The weak default is a local-development convenience and must never reach a
+// shared deployment, where the account is internet-reachable and the login is
+// the username. Refused against a remote target rather than warned about.
+const LOCAL_ONLY_DEFAULT_PASSWORD = "chchadmin";
+
+function resolvePassword(isRemote: boolean): string {
+  const supplied = process.env.CHCH_ADMIN_PASSWORD?.trim();
+  if (supplied) return supplied;
+  if (isRemote) {
+    throw new Error(
+      "CHCH_ADMIN_PASSWORD is required for a shared deployment. The built-in " +
+        "default is a local-development convenience and is refused against a remote database."
+    );
+  }
+  return LOCAL_ONLY_DEFAULT_PASSWORD;
+}
 
 async function main() {
   // The same command can point at a local file or a shared deployment, and the
@@ -39,6 +64,10 @@ async function main() {
   const summary = getDatabaseRuntimeSummary();
   const isRemote = summary.mode === "remote-libsql";
   console.log(`Target: ${summary.displayTarget} ${isRemote ? "(REMOTE — shared deployment)" : "(local file)"}`);
+
+  // Resolved before any database work so a missing credential fails the run
+  // outright rather than part-way through provisioning a shared deployment.
+  const password = resolvePassword(isRemote);
 
   // Cases cannot be graded without an organisation to attribute the run to;
   // intake fails with "no active organisation" long before the engine is
@@ -52,7 +81,7 @@ async function main() {
     select: { id: true, email: true },
   });
 
-  const passwordHash = await bcrypt.hash(PASSWORD, 10);
+  const passwordHash = await bcrypt.hash(password, 10);
   const existing =
     (await prisma.user.findUnique({ where: { email: EMAIL } })) ??
     (await prisma.user.findUnique({ where: { email: PREVIOUS_EMAIL } }));

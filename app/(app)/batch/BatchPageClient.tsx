@@ -55,10 +55,17 @@ export function BatchPageClient({
   currentRuleset,
   routingService,
   canConfigureIntegrations,
+  evaluationMode = false,
 }: {
   currentRuleset: { displayVersion: string; status: string } | null;
   routingService: string;
   canConfigureIntegrations: boolean;
+  /**
+   * Controlled clinical evaluation: one fixed intake source, and the supplied
+   * cases are not editable. The server enforces both independently; this only
+   * stops the screen offering actions that would be refused.
+   */
+  evaluationMode?: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState<PageState>({ step: "empty" });
@@ -618,7 +625,11 @@ export function BatchPageClient({
         <>
           <SourceConnectors onLoaded={loadFromConnector} disabled={isUploading} />
 
-          {/* Manual upload / test data — secondary, collapsed by default */}
+          {/* Manual upload / test data — secondary, collapsed by default.
+              Withheld entirely under the evaluation boundary: the evaluation
+              works from one supplied case set, and an uploaded file would sit
+              alongside the clinician's cases indistinguishably. */}
+          {!evaluationMode && (
           <Panel padded={false}>
             <button
               onClick={() => setShowManual((v) => !v)}
@@ -634,6 +645,7 @@ export function BatchPageClient({
               </div>
             )}
           </Panel>
+          )}
         </>
       )}
 
@@ -656,10 +668,10 @@ export function BatchPageClient({
             }
             onProcess={processRows}
             processing={state.step === "processing"}
-            onAddManual={handleOpenAddManual}
-            onEditCase={handleEditCase}
-            onDuplicateCase={handleDuplicateCase}
-            onDeleteCase={handleDeleteCase}
+            onAddManual={evaluationMode ? undefined : handleOpenAddManual}
+            onEditCase={evaluationMode ? undefined : handleEditCase}
+            onDuplicateCase={evaluationMode ? undefined : handleDuplicateCase}
+            onDeleteCase={evaluationMode ? undefined : handleDeleteCase}
           />
         </>
       )}
@@ -709,9 +721,10 @@ export function BatchPageClient({
       )}
 
       {/* ── Integration Readiness (visible on upload screen and after results) */}
-      {(state.step === "empty" || state.step === "uploading" || state.step === "results") && (
-        <IntegrationReadinessPanel canConfigure={canConfigureIntegrations} />
-      )}
+      {!evaluationMode &&
+        (state.step === "empty" || state.step === "uploading" || state.step === "results") && (
+          <IntegrationReadinessPanel canConfigure={canConfigureIntegrations} />
+        )}
 
       {/* ── Detail Slide-Over ─────────────────────────────────────────────── */}
       <BatchResultDetail
@@ -720,7 +733,11 @@ export function BatchPageClient({
         onClose={() => setDetailOpen(false)}
       />
 
-      {/* ── Manual Case Form ──────────────────────────────────────────────── */}
+      {/* ── Manual Case Form ──────────────────────────────────────────────
+          Never mounted under the evaluation boundary: a case authored here
+          would be persisted alongside the clinician's supplied set and be
+          indistinguishable from it afterwards. */}
+      {!evaluationMode && (
       <ManualCaseForm
         open={manualFormOpen}
         onClose={() => { setManualFormOpen(false); setEditingCase(null); }}
@@ -732,6 +749,7 @@ export function BatchPageClient({
         }
         onSave={handleSaveManualCase}
       />
+      )}
     </PageShell>
   );
 }

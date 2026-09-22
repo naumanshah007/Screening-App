@@ -140,11 +140,26 @@ test("hiding an item never grants access", () => {
     /authed\("\/admin\/integrations", "Integration Centre"\)/,
     "Integration Centre must be gated by its exact route"
   );
+  // The grant must still come from the shared route guards. A deny layer may
+  // sit in front of it — the controlled-evaluation boundary does — because
+  // withholding a link cannot grant anything; what must never appear here is a
+  // second source of entitlement.
   assert.match(
     SIDEBAR,
-    /function authed\(href: string, label: string\): NavLink\[\] \{\s*return isAuthorizedForRoute\(href, userRole\)/,
+    /function authed\(href: string, label: string\): NavLink\[\] \{[\s\S]*?return isAuthorizedForRoute\(href, userRole\)/,
     "sidebar entitlement must derive from the shared route guards"
   );
+  const authedBody = SIDEBAR.slice(
+    SIDEBAR.indexOf("function authed(href: string, label: string)"),
+    SIDEBAR.indexOf("// GP keeps a simple referrer-focused layout")
+  );
+  for (const earlyReturn of authedBody.matchAll(/return (?!isAuthorizedForRoute)(.+?);/g)) {
+    assert.equal(
+      earlyReturn[1].trim(),
+      "[]",
+      "any branch preceding the route-guard check may only withhold a link, never produce one"
+    );
+  }
   assert.match(
     SIDEBAR,
     /authed\("\/admin\/users", "Users & Access"\)/,

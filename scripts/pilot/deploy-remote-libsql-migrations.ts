@@ -8,6 +8,13 @@ import { createClient, type Client } from "@libsql/client";
 export const ACCEPTED_SPRINT_A_MIGRATION = "20260815160000_sprint_a_pilot_integrity";
 export const SPRINT_B_MIGRATION = "20260815193000_sprint_b_real_data_security_boundary";
 export const PERFORMANCE_READ_INDEX_MIGRATION = "20260816100000_performance_read_indexes";
+/**
+ * Current tail of the migration chain. Separates shadow comparison provenance
+ * from the authoritative pin on BatchRun, so a ruleset that observed without
+ * deciding is never recorded as the one that decided.
+ */
+export const SHADOW_PROVENANCE_MIGRATION =
+  "20260922140000_separate_shadow_from_authoritative_pin";
 
 type MigrationFile = {
   name: string;

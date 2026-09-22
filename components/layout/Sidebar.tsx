@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDefaultAppRouteForRole, isAuthorizedForRoute, isVisibleInDemoFlow } from "@/lib/auth/permissions";
+import { isRouteDeniedInEvaluationMode } from "@/lib/auth/evaluation-mode";
 import { ThemeToggle } from "./ThemeToggle";
 import { ActiveClinicalAuthorityIndicator } from "@/components/clinical-rules/ClinicalAuthorityBadge";
 import type { ClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
@@ -51,8 +52,9 @@ function buildSidebarSections(args: {
   showBatch: boolean;
   reviewPending: number;
   reviewUrgent: number;
+  evaluationMode?: boolean;
 }): NavSection[] {
-  const { userRole, showCases, showBatch, reviewPending, reviewUrgent } = args;
+  const { userRole, showCases, showBatch, reviewPending, reviewUrgent, evaluationMode } = args;
 
   function link(href: string, label: string): NavLink {
     const badge: NavBadge | undefined =
@@ -62,6 +64,9 @@ function buildSidebarSections(args: {
     return { href, label, icon: getIcon(href), badge };
   }
   function authed(href: string, label: string): NavLink[] {
+    // The deny layer is applied before the grant, matching the proxy. A link to
+    // a route the boundary withholds would only redirect.
+    if (evaluationMode && isRouteDeniedInEvaluationMode(href)) return [];
     return isAuthorizedForRoute(href, userRole) ? [link(href, label)] : [];
   }
 
@@ -78,7 +83,13 @@ function buildSidebarSections(args: {
 
   const isAdmin = userRole === "ADMIN";
   const isIntegrationAdmin = userRole === "INTEGRATION_ADMIN";
-  const canPullCases = showBatch && isVisibleInDemoFlow("/batch", userRole);
+  // Pulling the supplied cases is step one of the evaluation, so the intake
+  // screen is always offered to an evaluation account. The ordinary product
+  // splits this by role — coordinators pull, reviewers review — which is right
+  // for a staffed service and wrong for a single evaluator driving the whole
+  // workflow alone.
+  const canPullCases =
+    showBatch && (evaluationMode || isVisibleInDemoFlow("/batch", userRole));
   const canUseReviewQueue = showBatch && isVisibleInDemoFlow("/review", userRole);
 
   // ── Workspace: the daily clinical spine ───────────────────────────────────
@@ -245,12 +256,15 @@ export function Sidebar({
   showCases = false,
   showBatch = false,
   clinicalAuthority,
+  evaluationMode = false,
 }: {
   userRole?: string;
   userName?: string;
   userEmail?: string;
   showCases?: boolean;
   showBatch?: boolean;
+  /** Controlled clinical evaluation: governance and admin surfaces withheld. */
+  evaluationMode?: boolean;
   /** Which engine is clinically authoritative, shown persistently. */
   clinicalAuthority?: ClinicalAuthorityDisplay;
 }) {
@@ -301,6 +315,7 @@ export function Sidebar({
     showBatch,
     reviewPending: reviewBadge.pending,
     reviewUrgent: reviewBadge.urgent,
+    evaluationMode,
   })
     .map((s) => ({ ...s, links: s.links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i) }))
     .filter((s) => s.links.length > 0);

@@ -4,6 +4,7 @@ import { isFeatureEnabled } from "@/lib/features";
 import { getClinicalAuthorityDisplay } from "@/lib/clinical-rules/authority-display";
 import { redirect } from "next/navigation";
 import { evaluateRuntimeBoundary } from "@/lib/config/runtime-boundary";
+import { isEvaluationAccount } from "@/lib/auth/evaluation-mode";
 
 // The clinical authority indicator must never be served from a build-time
 // render: it reports which engine is authoritative right now, and a stale
@@ -16,6 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = session.user as { name?: string; role?: string; email?: string };
   const showCases = isFeatureEnabled("casesV2");
   const showBatch = isFeatureEnabled("batchDemo");
+  // Resolved here because the allowlist is server configuration; the sidebar
+  // is a client component and must be told, not left to work it out.
+  const evaluationMode = isEvaluationAccount(user);
 
   // Which engine is clinically authoritative right now. Read-only, never throws.
   const clinicalAuthority = await getClinicalAuthorityDisplay();
@@ -29,6 +33,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ? "Demonstration mode · synthetic data only · not for clinical action"
           : "Development mode · synthetic data only";
 
+  // The evaluator is told what they are looking at, on every page. A
+  // controlled evaluation of synthetic cases should never be mistaken for a
+  // system operating on real patients.
+  const bannerMessage = evaluationMode
+    ? "Controlled clinical evaluation · synthetic cases supplied for review · not for clinical action"
+    : runtimeMessage;
+
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
       <Sidebar
@@ -38,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         showCases={showCases}
         showBatch={showBatch}
         clinicalAuthority={clinicalAuthority}
+        evaluationMode={evaluationMode}
       />
       <main
         id="main-content"
@@ -45,7 +57,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         tabIndex={-1}
       >
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-950">
-          {runtimeMessage}
+          {bannerMessage}
         </div>
         {children}
       </main>

@@ -4,6 +4,10 @@ import {
   getDefaultAppRouteForRole,
   isAuthorizedForRoute,
 } from "@/lib/auth/permissions";
+import {
+  isEvaluationAccount,
+  isRouteDeniedInEvaluationMode,
+} from "@/lib/auth/evaluation-mode";
 
 // Routes that are always public (no session required)
 const PUBLIC_PATHS = new Set([
@@ -148,6 +152,18 @@ export default auth((req) => {
   }
 
   const role = securityUser?.role;
+
+  // The evaluation boundary is checked before the role grant, so a broad role
+  // cannot reach a page the boundary withholds. Enforced here rather than only
+  // in navigation: a hidden link is not a boundary, a redirect is.
+  if (
+    isEvaluationAccount(securityUser as { email?: string | null } | undefined) &&
+    isRouteDeniedInEvaluationMode(pathname)
+  ) {
+    const fallbackUrl = new URL("/review", req.url);
+    fallbackUrl.searchParams.set("error", "not-available-in-evaluation");
+    return NextResponse.redirect(fallbackUrl);
+  }
 
   // RBAC: check route-level role requirements
   if (!isAuthorizedForRoute(pathname, role)) {
