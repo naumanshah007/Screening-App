@@ -1,0 +1,484 @@
+/**
+ * CHCH Public — the 30 source rows, exactly as the workbook states them.
+ *
+ * Source: CerviGrade_SurveyGrid_30_Synthetic_Patients.xlsx, Sheet1!A4:I33
+ * (header on row 3), SHA-256
+ * f6f8b61c39c9c49be87bc262a0edb5e226b92df5f0ad49f3e8c6d2f663edd802.
+ *
+ * WHAT THIS FILE IS
+ * -----------------
+ * The oracle. Every string below is a verbatim source cell. The clinical facts
+ * the engine evaluates are derived FROM this file, in
+ * `chch-public-dataset.ts` — never the other way round.
+ *
+ * The workbook's "Demo priority" and "Expected SurveyGrid behaviour" columns are
+ * the partner's expectations, not guideline authority, and are deliberately not
+ * represented here: a field that exists can be used to tune inputs until the
+ * expected answer appears, which is the exact failure this file prevents.
+ *
+ * DEMO DATA — NOT REAL PATIENT DATA. `chch-NNN` is a synthetic case identifier.
+ * It is not an NHI and must never be stored or displayed as one.
+ */
+
+import type { CaseSourceEvidence } from "./source-evidence";
+
+export const CHCH_SOURCE_FILE_NAME =
+  "CerviGrade_SurveyGrid_30_Synthetic_Patients.xlsx";
+export const CHCH_SOURCE_SHEET = "Sheet1";
+export const CHCH_SOURCE_SHA256 =
+  "f6f8b61c39c9c49be87bc262a0edb5e226b92df5f0ad49f3e8c6d2f663edd802";
+export const CHCH_MAPPING_VERSION = "chch-public-v2";
+
+/** Case ordinal 1–30 → worksheet row. The header is row 3, so data starts at 4. */
+export function chchWorksheetRow(ordinal: number): number {
+  return ordinal + 3;
+}
+
+type Row = Omit<CaseSourceEvidence, "identifierKind" | "locator"> & {
+  ordinal: number;
+};
+
+const ROWS: Row[] = [
+  {
+    ordinal: 1,
+    caseId: "chch-001",
+    patientName: "Aroha T.",
+    age: 34,
+    screenCircumstanceText: "First HPV screen",
+    hpvResultText: "HPV 16 positive",
+    cytologyFollowUpText: "Cytology pending",
+    relevantHistoryText: "No previous CIN",
+    hpvGenotype: "HPV_16",
+    hpvIsCurrentResult: true,
+    cytologyState: "PENDING",
+  },
+  {
+    ordinal: 2,
+    caseId: "chch-002",
+    patientName: "Emma R.",
+    age: 42,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV 18 positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "No relevant history",
+    hpvGenotype: "HPV_18",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 3,
+    caseId: "chch-003",
+    patientName: "Mereana K.",
+    age: 39,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV 16 positive",
+    cytologyFollowUpText: "HSIL",
+    relevantHistoryText: "Previous screening normal",
+    hpvGenotype: "HPV_16",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "HSIL",
+  },
+  {
+    ordinal: 4,
+    caseId: "chch-004",
+    patientName: "Sophie L.",
+    age: 31,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "Other high-risk HPV positive",
+    cytologyFollowUpText: "ASC-US",
+    relevantHistoryText: "No previous abnormal history",
+    hpvGenotype: "HPV_OTHER",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "ASC_US",
+  },
+  {
+    ordinal: 5,
+    caseId: "chch-005",
+    patientName: "Priya S.",
+    age: 46,
+    screenCircumstanceText: "12-month follow-up",
+    hpvResultText: "HPV 18 positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "HPV positive 12 months earlier",
+    hpvGenotype: "HPV_18",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 6,
+    caseId: "chch-006",
+    patientName: "Hana W.",
+    age: 29,
+    screenCircumstanceText: "First screen",
+    hpvResultText: "Other high-risk HPV positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "No previous abnormality",
+    hpvGenotype: "HPV_OTHER",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 7,
+    caseId: "chch-007",
+    patientName: "Olivia M.",
+    age: 51,
+    screenCircumstanceText: "Post-treatment surveillance",
+    hpvResultText: "HPV 16 positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "Treated CIN3 three years ago",
+    hpvGenotype: "HPV_16",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 8,
+    caseId: "chch-008",
+    patientName: "Lucy P.",
+    age: 37,
+    screenCircumstanceText: "HPV-positive screen",
+    hpvResultText: "HPV 18 positive",
+    cytologyFollowUpText: "Cytology missing",
+    relevantHistoryText: "Sample collected 18 days ago",
+    hpvGenotype: "HPV_18",
+    hpvIsCurrentResult: true,
+    cytologyState: "MISSING",
+  },
+  {
+    ordinal: 9,
+    caseId: "chch-009",
+    patientName: "Grace N.",
+    age: 44,
+    screenCircumstanceText: "Overdue follow-up",
+    hpvResultText: "HPV 16 positive (previous)",
+    cytologyFollowUpText: "No new sample",
+    relevantHistoryText: "Follow-up overdue by 5 months",
+    // The reported genotype is explicitly a PREVIOUS result. There is no
+    // current HPV result on this row, so none is carried forward.
+    hpvGenotype: undefined,
+    hpvIsCurrentResult: false,
+    cytologyState: "NO_CURRENT_SAMPLE",
+  },
+  {
+    ordinal: 10,
+    caseId: "chch-010",
+    patientName: "Isabella C.",
+    age: 36,
+    screenCircumstanceText: "Current routine screen",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "Current screen negative",
+    relevantHistoryText:
+      "Previous HPV16 positive; colposcopy outcome not documented",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    // "Current screen negative" restates the screen result. It does not state
+    // that a cytology sample was taken, nor what it showed.
+    cytologyState: "UNSPECIFIED",
+  },
+  {
+    ordinal: 11,
+    caseId: "chch-011",
+    patientName: "Charlotte B.",
+    age: 33,
+    screenCircumstanceText: "First HPV screen",
+    hpvResultText: "HPV 16 positive",
+    cytologyFollowUpText: "LSIL",
+    relevantHistoryText: "No previous abnormality",
+    hpvGenotype: "HPV_16",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "LSIL",
+  },
+  {
+    ordinal: 12,
+    caseId: "chch-012",
+    patientName: "Mia H.",
+    age: 48,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV 18 positive",
+    cytologyFollowUpText: "ASC-US",
+    relevantHistoryText: "Previous screen negative",
+    hpvGenotype: "HPV_18",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "ASC_US",
+  },
+  {
+    ordinal: 13,
+    caseId: "chch-013",
+    patientName: "Ruby D.",
+    age: 41,
+    screenCircumstanceText: "12-month surveillance",
+    hpvResultText: "HPV 16 positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "HPV16 also detected 12 months ago",
+    hpvGenotype: "HPV_16",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 14,
+    caseId: "chch-014",
+    patientName: "Amelia J.",
+    age: 35,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV 18 positive",
+    cytologyFollowUpText: "HSIL",
+    relevantHistoryText: "No prior CIN recorded",
+    hpvGenotype: "HPV_18",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "HSIL",
+  },
+  {
+    ordinal: 15,
+    caseId: "chch-015",
+    patientName: "Zoe F.",
+    age: 28,
+    screenCircumstanceText: "First HPV screen",
+    hpvResultText: "HPV 16 positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "No relevant history",
+    hpvGenotype: "HPV_16",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 16,
+    caseId: "chch-016",
+    patientName: "Ella C.",
+    age: 54,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV 18 positive",
+    cytologyFollowUpText: "Cytology unsatisfactory",
+    relevantHistoryText: "No relevant history",
+    hpvGenotype: "HPV_18",
+    hpvIsCurrentResult: true,
+    cytologyState: "UNSATISFACTORY",
+    cytologyResult: "UNSATISFACTORY",
+  },
+  {
+    ordinal: 17,
+    caseId: "chch-017",
+    patientName: "Maia R.",
+    age: 32,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "Other high-risk HPV positive",
+    cytologyFollowUpText: "LSIL",
+    relevantHistoryText: "Previous screen negative",
+    hpvGenotype: "HPV_OTHER",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "LSIL",
+  },
+  {
+    ordinal: 18,
+    caseId: "chch-018",
+    patientName: "Sarah K.",
+    age: 45,
+    screenCircumstanceText: "Post-colposcopy surveillance",
+    hpvResultText: "HPV 16 positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "Previous CIN2; surveillance episode",
+    hpvGenotype: "HPV_16",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 19,
+    caseId: "chch-019",
+    patientName: "Anika P.",
+    age: 38,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV 18 positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText:
+      "Previous HPV18 result; follow-up documentation incomplete",
+    hpvGenotype: "HPV_18",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 20,
+    caseId: "chch-020",
+    patientName: "Jessica W.",
+    age: 50,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "Prior screening up to date; no high-grade history",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 21,
+    caseId: "chch-021",
+    patientName: "Mia H.",
+    age: 33,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "No cytology required",
+    relevantHistoryText: "No previous abnormal screening",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    cytologyState: "NOT_REQUIRED",
+  },
+  {
+    ordinal: 22,
+    caseId: "chch-022",
+    patientName: "Charlotte B.",
+    age: 41,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "No cytology required",
+    relevantHistoryText: "Previous screening normal",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    cytologyState: "NOT_REQUIRED",
+  },
+  {
+    ordinal: 23,
+    caseId: "chch-023",
+    patientName: "Leilani F.",
+    age: 28,
+    screenCircumstanceText: "First HPV screen",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "No cytology required",
+    relevantHistoryText: "No relevant history",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    cytologyState: "NOT_REQUIRED",
+  },
+  {
+    ordinal: 24,
+    caseId: "chch-024",
+    patientName: "Amelia J.",
+    age: 48,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "No cytology required",
+    relevantHistoryText: "Previous HPV-negative screen",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    cytologyState: "NOT_REQUIRED",
+  },
+  {
+    ordinal: 25,
+    caseId: "chch-025",
+    patientName: "Ruby D.",
+    age: 36,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "Other high-risk HPV positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "First hrHPV-positive episode; no previous CIN",
+    hpvGenotype: "HPV_OTHER",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 26,
+    caseId: "chch-026",
+    patientName: "Nina V.",
+    age: 32,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "Other high-risk HPV positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "No previous abnormal history",
+    hpvGenotype: "HPV_OTHER",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 27,
+    caseId: "chch-027",
+    patientName: "Ella C.",
+    age: 45,
+    screenCircumstanceText: "Follow-up screen",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "Negative cytology previously",
+    relevantHistoryText:
+      "Previous non-16/18 hrHPV positive; follow-up now HPV negative",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    // "previously" — a prior result, explicitly not a current one. It must never
+    // satisfy a rule that asks for the current cytology.
+    cytologyState: "PRIOR_ONLY",
+    priorCytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 28,
+    caseId: "chch-028",
+    patientName: "Anika P.",
+    age: 38,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "No cytology required",
+    relevantHistoryText:
+      "Previous ASC-US several years earlier with subsequent normal follow-up",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    cytologyState: "NOT_REQUIRED",
+  },
+  {
+    ordinal: 29,
+    caseId: "chch-029",
+    patientName: "Zoe R.",
+    age: 52,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "Other high-risk HPV positive",
+    cytologyFollowUpText: "Negative cytology",
+    relevantHistoryText: "No previous CIN; first positive result",
+    hpvGenotype: "HPV_OTHER",
+    hpvIsCurrentResult: true,
+    cytologyState: "AVAILABLE",
+    cytologyResult: "NEGATIVE",
+  },
+  {
+    ordinal: 30,
+    caseId: "chch-030",
+    patientName: "Sienna G.",
+    age: 30,
+    screenCircumstanceText: "Routine screening",
+    hpvResultText: "HPV not detected",
+    cytologyFollowUpText: "No cytology required",
+    relevantHistoryText: "No relevant history",
+    hpvGenotype: "NOT_DETECTED",
+    hpvIsCurrentResult: true,
+    cytologyState: "NOT_REQUIRED",
+  },
+];
+
+/** The 30 source rows, in worksheet order, with their locator attached. */
+export const CHCH_SOURCE_EVIDENCE: CaseSourceEvidence[] = ROWS.map(
+  ({ ordinal, ...row }) => ({
+    ...row,
+    // chch-NNN is a synthetic case identifier. Never an NHI.
+    identifierKind: "SYNTHETIC_CASE" as const,
+    locator: {
+      fileName: CHCH_SOURCE_FILE_NAME,
+      sheet: CHCH_SOURCE_SHEET,
+      row: chchWorksheetRow(ordinal),
+      documentSha256: CHCH_SOURCE_SHA256,
+      mappingVersion: CHCH_MAPPING_VERSION,
+    },
+  })
+);
+
+export function chchSourceEvidence(caseId: string): CaseSourceEvidence {
+  const found = CHCH_SOURCE_EVIDENCE.find((row) => row.caseId === caseId);
+  if (!found) throw new Error(`No CHCH source row for ${caseId}`);
+  return found;
+}

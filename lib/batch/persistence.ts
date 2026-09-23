@@ -26,6 +26,12 @@ import type {
 } from "@/lib/batch/types";
 import { getRuntimeClinicalEnvironment, resolveClinicalAuthority } from "@/lib/clinical-rules/authority";
 import { evaluateGradedDecision } from "@/lib/clinical-rules/graded-decision";
+import {
+  EVALUATION_UNAVAILABLE_CODE,
+  EVALUATION_UNAVAILABLE_TEXT,
+  evaluationUnavailableDecision,
+} from "@/lib/clinical-rules/evaluation-unavailable";
+import type { ClinicalDecision } from "@/lib/engine/types";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
 import { clinicalPayloadDigest, rawPayloadDigest } from "@/lib/batch/source-identity";
@@ -147,9 +153,8 @@ export class DuplicateIngestionReceiptError extends Error {
  * a safety state, not clinical guidance, and deliberately carry no timing,
  * priority or referral action.
  */
-const NO_GOVERNED_RESULT_CODE = "NO-GOVERNED-RECOMMENDATION";
-const NO_GOVERNED_RESULT_TEXT =
-  "No governed recommendation available — clinician review required.";
+const NO_GOVERNED_RESULT_CODE = EVALUATION_UNAVAILABLE_CODE;
+const NO_GOVERNED_RESULT_TEXT = EVALUATION_UNAVAILABLE_TEXT;
 
 /**
  * caseJson retains the deterministic clinical snapshot but omits identity and
@@ -171,6 +176,15 @@ export function minimizePersistedBatchCase(c: CanonicalBatchCase) {
   delete minimized.source.sourceFacility;
   delete minimized.source.testType;
   delete minimized.source.collectedOn;
+  // Source evidence is retained — it is the record of what the source said, and
+  // dropping it would make the stored case unexplainable. Its identity fields
+  // are not: name and age live in dedicated columns and are restored on
+  // reconstruction, so duplicating them inside JSON only widens the footprint.
+  if (minimized.sourceEvidence) {
+    minimized.sourceEvidence = { ...minimized.sourceEvidence };
+    delete minimized.sourceEvidence.patientName;
+    delete minimized.sourceEvidence.age;
+  }
   return minimized;
 }
 
@@ -242,7 +256,14 @@ export async function saveBatchRun(args: {
         patientAge: c.patientAge ?? null,
         ethnicityPrimary: c.ethnicityPrimary ?? null,
         patientName: c.patientName ?? null,
-        nhi: c.nhi ?? c.source.externalPatientId ?? null,
+        // The NHI column holds an NHI, or nothing.
+        //
+        // It used to fall back to `source.externalPatientId`, which promoted a
+        // synthetic evaluation case ID ("chch-001") into the field every other
+        // surface reads as a National Health Index. The external identifier has
+        // its own column and is stored there; a case that declares a non-NHI
+        // identifier kind never reaches this one.
+        nhi: c.nhi ?? (c.identifierKind === "NHI" ? c.source.externalPatientId ?? null : null),
         gpPractice: c.gpPractice ?? null,
         receivedDate: c.receivedDate ? new Date(c.receivedDate) : null,
         // Episode identity, stored in clear alongside the digests so any later
@@ -676,14 +697,29 @@ export async function saveBatchRun(args: {
         // The clinical columns are non-null, so the row is overwritten with an
         // explicit safety state rather than left blank. This states that no
         // governed recommendation exists; it does not invent a clinical action.
+        //
+        // decisionJson is replaced TOO, not just the summary columns. The
+        // drawer reconstructs its decision from decisionJson, so overwriting
+        // only the columns left the worklist row saying "no governed
+        // recommendation" while the drawer it opened still rendered the legacy
+        // recommendation, priority and recall interval written before the
+        // evaluation was attempted. One failure, one persisted result.
+        const unavailable = evaluationUnavailableDecision({
+          figure: (sourceResult?.decision.figure ?? "FIGURE_3") as ClinicalDecision["figure"],
+          reason:
+            "The current governed ruleset could not evaluate this case.",
+        });
         await prisma.batchReviewItem.update({
           where: { id: reviewItem.id },
           data: {
+            decisionJson: JSON.stringify(unavailable),
+            figure: unavailable.figure,
+            riskLevel: unavailable.riskLevel,
             recommendationCode: NO_GOVERNED_RESULT_CODE,
             recommendation: NO_GOVERNED_RESULT_TEXT,
             referralPriority: null,
             referralType: null,
-            safetyOutcome: "NO_GOVERNED_RECOMMENDATION",
+            safetyOutcome: unavailable.safetyOutcome ?? "CLINICIAN_REVIEW_REQUIRED",
             reviewRequired: true,
             engineStatus: "error",
             authorityReason:
@@ -811,6 +847,15 @@ export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCa
     ...minimizedCase,
     patientName: item.patientName ?? undefined,
     nhi: item.nhi ?? undefined,
+    ...(minimizedCase.sourceEvidence
+      ? {
+          sourceEvidence: {
+            ...minimizedCase.sourceEvidence,
+            patientName: item.patientName ?? undefined,
+            age: item.patientAge ?? undefined,
+          },
+        }
+      : {}),
     gpPractice: item.gpPractice ?? undefined,
     receivedDate: item.receivedDate?.toISOString(),
     source: {

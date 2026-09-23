@@ -27,7 +27,8 @@ import { cn } from "@/lib/utils";
 export type CompletedDecisionRow = {
   id: string;
   patientName: string;
-  nhi: string;
+  /** Display identifier: an NHI only when the source actually supplied one. */
+  caseIdentifier: string;
   patientAge: number | null;
   gpPractice: string;
   sourceSystem: string;
@@ -241,7 +242,7 @@ export function CompletedDecisionsClient({
                           )}
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          <span className="font-mono">{row.nhi}</span>
+                          <span className="font-mono">{row.caseIdentifier}</span>
                           {row.patientAge != null && <> · {row.patientAge} yrs</>}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground truncate max-w-[260px]">

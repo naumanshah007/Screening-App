@@ -4,6 +4,7 @@ import { Users, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
 
 import { MetricTile, MetricGrid } from "@/components/system";
 import type { BatchProcessingResult } from "@/lib/batch/types";
+import { isRoutingPreview } from "@/lib/batch/preview-state";
 
 function formatMs(ms: number): string {
   if (ms < 1)    return `${(ms * 1000).toFixed(0)} µs`;
@@ -22,6 +23,12 @@ interface BatchStatCardsProps {
  * MetricTile because a single run has no daily history to trend.
  */
 export function BatchStatCards({ result }: BatchStatCardsProps) {
+  // On a ROUTING PREVIEW no case has been graded, and the response deliberately
+  // carries no risk, priority or referral at all. Counting them would produce a
+  // confident "0 urgent, 0 referrals", which reads as a clinical finding about
+  // 30 participants rather than as the absence of an evaluation.
+  const isPreview = result.results.some((r) => isRoutingPreview(r.decision));
+
   const referralCount = result.results.filter(
     (r) => r.status === "success" && r.decision.referralRequired
   ).length;
@@ -58,16 +65,30 @@ export function BatchStatCards({ result }: BatchStatCardsProps) {
       />
       <MetricTile
         label="Urgent / High risk"
-        value={urgentClinicalCount + highNotUrgentCount}
-        caption={`${urgentClinicalCount} urgent (risk or P1), ${highNotUrgentCount} high`}
-        tone={urgentClinicalCount > 0 ? "danger" : highNotUrgentCount > 0 ? "warn" : "success"}
+        value={isPreview ? "—" : urgentClinicalCount + highNotUrgentCount}
+        caption={
+          isPreview
+            ? "Determined at governed evaluation"
+            : `${urgentClinicalCount} urgent (risk or P1), ${highNotUrgentCount} high`
+        }
+        tone={
+          isPreview
+            ? "neutral"
+            : urgentClinicalCount > 0
+              ? "danger"
+              : highNotUrgentCount > 0
+                ? "warn"
+                : "success"
+        }
         icon={<AlertTriangle className="h-4.5 w-4.5" />}
       />
       <MetricTile
         label="Referrals"
-        value={referralCount}
-        caption={`of ${result.processedCount} cases`}
-        tone={referralCount > 0 ? "brand" : "neutral"}
+        value={isPreview ? "—" : referralCount}
+        caption={
+          isPreview ? "Determined at governed evaluation" : `of ${result.processedCount} cases`
+        }
+        tone={isPreview ? "neutral" : referralCount > 0 ? "brand" : "neutral"}
         icon={<ShieldCheck className="h-4.5 w-4.5" />}
       />
       <MetricTile

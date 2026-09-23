@@ -34,6 +34,7 @@ import { normalizeClinicalFactMap } from "./facts";
 import { resolveShadowClinicalRuleVersion } from "./lifecycle";
 import { applyPin, getBatchRunAuthorityPin, getCaseAuthorityPin } from "./pinning";
 import { recordAuthorityComparison } from "./monitoring";
+import { evaluationUnavailableDecision } from "./evaluation-unavailable";
 
 /**
  * Facts the legacy batch/wizard mappers assume rather than observe. Canonical
@@ -71,6 +72,44 @@ export type GradedDecision = {
   /** Populated when the adapter had to flag a normalisation problem. */
   adapterNotices: string[];
 };
+
+
+/**
+ * What to return when the governed evaluation did not produce a result.
+ *
+ * Under LEGACY authority the legacy decision IS the configured authority, and
+ * the canonical run alongside it was only a shadow comparison — so a shadow
+ * failure changes nothing and the legacy decision legitimately stands.
+ *
+ * Under CANONICAL authority it is the opposite: the authority did not decide,
+ * and returning the legacy recommendation would present a non-authoritative
+ * engine's clinical text as the governed result. That becomes one explicit
+ * unavailable state instead.
+ */
+function unresolvedGovernedDecision(args: {
+  authority: ClinicalAuthority;
+  legacyDecision: ClinicalDecision;
+  reason: string;
+}): { decision: ClinicalDecision; authority: ClinicalAuthority; reason: string } {
+  if (args.authority.authorityEngine !== "CANONICAL") {
+    return {
+      decision: args.legacyDecision,
+      authority: args.authority,
+      reason: `${args.reason} Legacy is the configured authority; its decision stands.`,
+    };
+  }
+  return {
+    decision: evaluationUnavailableDecision({
+      figure: args.legacyDecision.figure,
+      reason: args.reason,
+    }),
+    // The authority is unchanged: canonical is still the authority, it simply
+    // produced no result. Relabelling the row LEGACY would claim a legacy
+    // evaluation took place as the authority, which is what this prevents.
+    authority: args.authority,
+    reason: args.reason,
+  };
+}
 
 export async function evaluateGradedDecision(args: {
   input: ClinicalInput;
@@ -145,12 +184,17 @@ export async function evaluateGradedDecision(args: {
       : await resolveShadowClinicalRuleVersion();
 
   if (!version) {
-    return {
-      decision: legacyDecision,
-      legacyDecision,
+    const unresolved = unresolvedGovernedDecision({
       authority,
+      legacyDecision,
+      reason: "No governed rule version is available to evaluate this case.",
+    });
+    return {
+      decision: unresolved.decision,
+      legacyDecision,
+      authority: unresolved.authority,
       pinned,
-      authorityReason: `${authorityReason} No canonical rule version available; legacy decision stands.`,
+      authorityReason: `${authorityReason} ${unresolved.reason}`,
       evaluationId: null,
       adapterNotices: [],
     };
@@ -203,14 +247,18 @@ export async function evaluateGradedDecision(args: {
     return null;
   });
 
-  // A canonical failure never escalates an engine: legacy stands.
   if (!evaluated) {
-    return {
-      decision: legacyDecision,
+    const unresolved = unresolvedGovernedDecision({
+      authority,
       legacyDecision,
-      authority: { ...authority, authorityEngine: "LEGACY" },
+      reason: "The governed evaluation failed to run for this case.",
+    });
+    return {
+      decision: unresolved.decision,
+      legacyDecision,
+      authority: unresolved.authority,
       pinned,
-      authorityReason: `${authorityReason} Canonical evaluation failed; legacy decision stands.`,
+      authorityReason: `${authorityReason} ${unresolved.reason}`,
       evaluationId: null,
       adapterNotices: [],
     };
@@ -243,12 +291,17 @@ export async function evaluateGradedDecision(args: {
   }
 
   if (!adapted) {
-    return {
-      decision: legacyDecision,
+    const unresolved = unresolvedGovernedDecision({
+      authority,
       legacyDecision,
-      authority: { ...authority, authorityEngine: "LEGACY" },
+      reason: "The governed result could not be normalised into a decision.",
+    });
+    return {
+      decision: unresolved.decision,
+      legacyDecision,
+      authority: unresolved.authority,
       pinned,
-      authorityReason: `${authorityReason} Canonical adapter failed; legacy decision stands.`,
+      authorityReason: `${authorityReason} ${unresolved.reason}`,
       evaluationId: evaluated.evaluationId,
       adapterNotices: [],
     };
@@ -275,7 +328,15 @@ export async function evaluateGradedDecision(args: {
   }
 
   // ── 5. Final guardrail: the adapter may never relax a safety control ──────
-  const deEscalations = findDeEscalations(adapted.decision, legacyDecision);
+  //
+  // Scoped to evaluations that REACHED an outcome. A governed safety stop looks
+  // like a de-escalation against a legacy referral — no referral, no priority —
+  // but it is the more conservative result, not the weaker one, and reverting it
+  // to the legacy recommendation is exactly the silent legacy fallback this
+  // phase exists to remove. A stop is recorded and kept.
+  const deEscalations = adapted.canonicalStopped
+    ? []
+    : findDeEscalations(adapted.decision, legacyDecision);
   if (deEscalations.length > 0) {
     await prisma.auditLog
       .create({

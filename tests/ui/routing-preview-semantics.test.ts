@@ -71,34 +71,49 @@ test("provenance does not claim a legacy evaluation for a preview", () => {
 test("no clinical action is shown before governed evaluation", () => {
   assert.match(
     DETAIL,
-    /isPreview\s*\?\s*PREVIEW_PENDING_ACTION/,
-    "next action must be withheld until a governed rule has run"
+    /state === "NOT_YET_EVALUATED"\s*\?\s*PREVIEW_PENDING_ACTION/,
+    "the Why panel must be withheld until a governed rule has run"
   );
   assert.match(
     DETAIL,
-    /isPreview \? \(\s*PREVIEW_PENDING_FIELD/,
-    "referral must be withheld until a governed rule has run"
+    /state === "NOT_YET_EVALUATED"\s*\?\s*PREVIEW_PENDING_FIELD/,
+    "the Decision panel must be withheld until a governed rule has run"
   );
 });
 
-test("the pathway diagram does not claim an outcome was reached", () => {
-  assert.match(
-    DETAIL,
-    /No governed outcome has been determined yet/,
-    "preview diagram wording must not assert a reached outcome"
-  );
-});
+test("the preview response is an allowlist, not a redacted object spread", () => {
+  // A spread leaks by default: every new field on ClinicalDecision would reach
+  // the browser until someone remembered to blank it. recallIntervalMonths,
+  // recallRequired, referralRequired, nextScreeningIntervalMonths and riskLevel
+  // all survived the old blanking list and were rendered by the drawer.
+  const preview = ROUTE.slice(ROUTE.indexOf("const preview = {"), ROUTE.indexOf("return NextResponse.json(preview)"));
+  assert.doesNotMatch(preview, /\.\.\.item\b/, "the preview must not spread the processed item");
+  assert.doesNotMatch(preview, /\.\.\.item\.decision/, "the preview must not spread the decision");
+  assert.doesNotMatch(preview, /\.\.\.result\b/, "the preview must not spread the batch result");
 
-test("the API redacts every clinical field it previously leaked", () => {
   for (const field of [
     "recommendation: PREVIEW_PENDING_TEXT",
     "recommendationCode: PREVIEW_PENDING_CODE",
     "nextAction: PREVIEW_PENDING_ACTION",
-    "referralPriority: null",
-    "referralType: null",
-    "repeatInterval: null",
   ]) {
-    assert.match(ROUTE, new RegExp(field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `missing: ${field}`);
+    assert.ok(preview.includes(field), `missing preview marker: ${field}`);
+  }
+
+  // The leak list, named explicitly so a reviewer can see what must stay out.
+  for (const leaked of [
+    "riskLevel",
+    "referralRequired",
+    "referralPriority",
+    "referralType",
+    "recallRequired",
+    "recallIntervalMonths",
+    "nextScreeningIntervalMonths",
+    "requiresMDMReview",
+  ]) {
+    assert.ok(
+      !preview.includes(leaked),
+      `an unevaluated routing preview must not carry ${leaked}`
+    );
   }
 });
 
@@ -110,42 +125,35 @@ test("the preview banner does not announce a recommendation", () => {
   );
 });
 
-test("the workflow step does not claim provisional output", () => {
+test("an unevaluated preview is the only thing called not yet evaluated", () => {
+  // The workflow timeline that carried "Governed evaluation pending" is gone
+  // from the clinician view. The state itself survives, and it is reached ONLY
+  // through the preview marker — never for a case that has been evaluated.
   assert.match(
     DETAIL,
-    /isPreview[\s\S]{0,60}"Governed evaluation pending"/,
-    "the workflow caption must state that governed evaluation is pending"
+    /if \(isRoutingPreview\(decision\)\) return "NOT_YET_EVALUATED"/,
+    "not-yet-evaluated must be keyed on the preview marker alone"
   );
-  assert.match(
+  assert.doesNotMatch(
     DETAIL,
-    /isPreview \? "Routing complete" : "Decision support run"/,
-    "the workflow step must be labelled routing, not decision support"
+    /Governed evaluation pending/,
+    "an evaluated case must never be described as pending evaluation"
   );
 });
 
 test("a preview shows no governed outcome and no clinical terminal", () => {
-  // Superseded the single mixed trace: routing and governed evaluation are now
-  // separate sections. The guarantee is unchanged — a preview must not present
-  // a clinical terminal, because none has been determined.
   assert.match(
     DETAIL,
-    /preview\s*\?\s*\[decision\.figure \?\? "Pathway", PREVIEW_PENDING_FIELD\]/,
-    "a preview trace must stop at the routed figure plus a pending marker"
+    /NOT_YET_EVALUATED: "Not yet evaluated"/,
+    "a preview has its own honest state label"
   );
+  // The static diagram is gone entirely, and the decision path is derived only
+  // from a persisted evaluation — which a preview does not have.
+  assert.doesNotMatch(DETAIL, /FlowDiagram/, "no diagram may appear for a preview");
   assert.match(
     DETAIL,
-    /preview\s*\?\s*"Governed evaluation"\s*:\s*"Provisional outcome"/,
-    "the final trace step must not be called an outcome in a preview"
-  );
-  assert.match(
-    DETAIL,
-    /isPreview && \(\s*<DrawerSection title="Governed evaluation">/,
-    "a preview must show governed evaluation as pending, not as a result"
-  );
-  assert.match(
-    DETAIL,
-    /Pending — generated when this case is added to the Review Queue\./,
-    "the preview must say when the governed evaluation happens"
+    /traceSteps\.length > 0 && !isPreview/,
+    "a preview must never render a decision path"
   );
 });
 

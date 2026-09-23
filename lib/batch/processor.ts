@@ -18,6 +18,85 @@ import type {
 } from "./types";
 import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
 import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
+import { canonicalHpvFactValue } from "./source-evidence";
+
+/**
+ * Facts every CHCH-style case must supply because the legacy contract requires
+ * a value, but which no source row states. They are recorded as
+ * `SYNTHETIC_DEMO` rather than inheriting the case's source provenance, so a
+ * reviewer can never read an assumed default as something the source reported.
+ */
+const ASSUMED_FACT_NAMES = [
+  "sampleType",
+  "isFirstCytologyToHpvTransition",
+  "cervixPresent",
+  "consecutiveQualifyingNegativeCoTests",
+  "consecutiveLowGradeCytologyResults",
+  "consecutiveUnsatisfactoryCount",
+] as const;
+
+/**
+ * Canonical facts for one case.
+ *
+ * Two things happen here that do not happen for a plain legacy input:
+ *
+ *  1. the PRECISE HPV genotype replaces the legacy grouped value. CG-NCSP-3.1.0
+ *     predicates accept HPV_16 and HPV_18 directly, so collapsing them before
+ *     governed evaluation discards information the governed rules can use.
+ *  2. facts the dataset assumed rather than observed are marked as such.
+ */
+export function canonicalFactsForCase(args: {
+  batchCase: CanonicalBatchCase;
+  input: ClinicalInput;
+  currentPathway?: string;
+}) {
+  const { batchCase, input } = args;
+  const shadowInput = { ...input } as Record<string, unknown>;
+  // Legacy batch processing historically assumes bleeding work-up and treatment
+  // completion flags. The canonical facts must not inherit those fabricated
+  // actions or examinations.
+  for (const key of [
+    "menstrualHistoryCaptured",
+    "contraceptiveHistoryCaptured",
+    "sexualHistoryCaptured",
+    "speculumExamCompleted",
+    "pelvicExamCompleted",
+    "coTestCompleted",
+    "oralContraceptiveAdjusted",
+    "stiTreated",
+  ]) {
+    delete shadowInput[key];
+  }
+
+  const facts = normalizeClinicalFactMap({
+    ...shadowInput,
+    // Produced by the legacy router, not by the source system. Its provenance
+    // is forced to DERIVED_ROUTER by ROUTER_DERIVED_FACTS.
+    currentPathway: args.currentPathway,
+  });
+
+  // The genotype the source actually reported, not its legacy projection.
+  const preciseHpv = canonicalHpvFactValue(batchCase.sourceEvidence?.hpvGenotype);
+  if (preciseHpv !== undefined) facts.hpvResult = preciseHpv;
+
+  const factSources = Object.fromEntries(
+    ASSUMED_FACT_NAMES.filter((name) => facts[name] !== undefined).map((name) => [
+      name,
+      "SYNTHETIC_DEMO" as const,
+    ])
+  );
+
+  return canonicalClinicalFactsV2FromFlatFacts({
+    subjectReference:
+      batchCase.nhi ?? batchCase.source.externalPatientId ?? batchCase.caseId,
+    facts,
+    source: "PRIOR_RECORD",
+    factSources,
+    enteredBy: `batch-${batchCase.source.mappingVersion}`,
+    recordedAt: batchCase.source.importedAt,
+    routerEngine: ENGINE_VERSION,
+  });
+}
 
 // ─── Engine version (from the decision engine rule version) ──────────────────
 
@@ -156,35 +235,10 @@ export function processBatch(
     try {
       const input = mapCanonicalToClinicalInput(batchCase);
       const decision = evaluateClinicalDecision(input);
-      const shadowInput = { ...input } as Record<string, unknown>;
-      // Legacy batch processing historically assumes bleeding work-up and
-      // treatment completion flags. The canonical shadow must not inherit
-      // those fabricated actions or examinations.
-      for (const key of [
-        "menstrualHistoryCaptured",
-        "contraceptiveHistoryCaptured",
-        "sexualHistoryCaptured",
-        "speculumExamCompleted",
-        "pelvicExamCompleted",
-        "coTestCompleted",
-        "oralContraceptiveAdjusted",
-        "stiTreated",
-      ]) {
-        delete shadowInput[key];
-      }
-      const canonicalFactsV2 = canonicalClinicalFactsV2FromFlatFacts({
-        subjectReference:
-          batchCase.nhi ?? batchCase.source.externalPatientId ?? batchCase.caseId,
-        facts: normalizeClinicalFactMap({
-          ...shadowInput,
-          // Produced by the legacy router, not by the source system. Its
-          // provenance is forced to DERIVED_ROUTER by ROUTER_DERIVED_FACTS.
-          currentPathway: decision.figure,
-        }),
-        source: "PRIOR_RECORD",
-        enteredBy: `batch-${batchCase.source.mappingVersion}`,
-        recordedAt: batchCase.source.importedAt,
-        routerEngine: ENGINE_VERSION,
+      const canonicalFactsV2 = canonicalFactsForCase({
+        batchCase,
+        input,
+        currentPathway: decision.figure,
       });
       results.push({
         case: batchCase,

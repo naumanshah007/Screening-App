@@ -69,7 +69,10 @@ function mapRow(item: Awaited<ReturnType<typeof listCompletedDecisions>>[number]
   return {
     id: item.id,
     patientName: item.patientName ?? item.nhi ?? item.externalPatientId ?? `Case ${item.rowNumber}`,
-    nhi: item.nhi ?? item.externalPatientId ?? "Source ID unavailable",
+    // The identifier to show — NOT necessarily an NHI. An external source ID
+    // and a synthetic case ID are different things and neither is a National
+    // Health Index, so the property carries the neutral name.
+    caseIdentifier: item.nhi ?? item.externalPatientId ?? "Source ID unavailable",
     patientAge: item.patientAge,
     gpPractice: item.gpPractice ?? "GP/referrer not recorded",
     sourceSystem,

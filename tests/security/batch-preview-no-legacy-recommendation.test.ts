@@ -58,9 +58,29 @@ test("the preview redacts the legacy recommendation server-side", () => {
 test("the preview implies no clinical action", () => {
   // A preview with a priority or a repeat interval reads as a decision even
   // without a recommendation string.
-  assert.match(ROUTE, /referralPriority: null/, "no referral priority in a preview");
-  assert.match(ROUTE, /referralType: null/, "no referral type in a preview");
-  assert.match(ROUTE, /repeatInterval: null/, "no timing interval in a preview");
+  //
+  // These fields are now ABSENT rather than explicitly nulled: the response is
+  // built from an allowlist instead of a spread-then-blank, so a field nobody
+  // remembered to null cannot leak, and a new field on ClinicalDecision stays
+  // out by default. Absence is the stronger guarantee, so the assertion moved
+  // from "must be null" to "must not appear".
+  const preview = ROUTE.slice(
+    ROUTE.indexOf("const preview = {"),
+    ROUTE.indexOf("return NextResponse.json(preview)")
+  );
+  assert.doesNotMatch(preview, /\.\.\.item/, "the preview must not spread the processed item");
+  for (const field of [
+    "referralPriority",
+    "referralType",
+    "repeatInterval",
+    "recallRequired",
+    "recallIntervalMonths",
+    "nextScreeningIntervalMonths",
+    "referralRequired",
+    "riskLevel",
+  ]) {
+    assert.ok(!preview.includes(field), `${field} must not appear in a routing preview`);
+  }
 });
 
 test("the preview route persists nothing and evaluates nothing governed", () => {

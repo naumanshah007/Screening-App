@@ -16,6 +16,7 @@ import {
   TIMING_VOCABULARY,
   UnmappedGovernedLiteralError,
   classifyBranchUrgency,
+  conditionalUrgency,
   classifyDestination,
   classifyTiming,
   intervalToDays,
@@ -136,28 +137,47 @@ test("conditional timings never yield an automatic date", async () => {
   }
 });
 
-test("a conditional timing's urgency comes from its reviewed limb, never from prose", async () => {
+test("a conditional timing states no urgency on the timing alone", async () => {
+  // The timing string states a CONDITION. Reading an urgency out of it without
+  // evaluating that condition asserted a patient-specific urgency on every case
+  // the rule matched, which is what `conditionalUrgency` now decides per case.
   const { timing } = await snapshotLiterals();
   for (const literal of timing) {
     const classification = classifyTiming(literal);
     if (classification.kind !== "CONDITIONAL") continue;
     assert.equal(
       urgencyFromTiming(classification),
-      classification.escalatesWhen ?? "NOT_STATED",
-      `${JSON.stringify(literal)} urgency must equal its recorded escalatesWhen`
+      "NOT_STATED",
+      `${JSON.stringify(literal)} must not yield an urgency from the timing alone`
     );
   }
 });
 
-test("a conditional timing that states an urgent limb fails safe to URGENT", () => {
-  // F9-14: pregnancy with invasion confirmed or strongly suspected. Under-stating
-  // this would be unsafe; the reviewer confirms which limb applies.
+test("a conditional urgent limb applies only when the facts satisfy its condition", () => {
+  const literal = "20 or 30 working days according to risk/history; urgent if invasive cytology";
+  assert.equal(classifyTiming(literal).kind, "CONDITIONAL");
+
+  // Negative cytology does not meet "urgent if invasive cytology".
+  assert.equal(conditionalUrgency(literal, { cytologyResult: "NEGATIVE" }), "NOT_STATED");
+  // Neither does a pending one: absent is not invasive.
+  assert.equal(conditionalUrgency(literal, {}), "NOT_STATED");
+  // An invasive cytology result does.
+  assert.equal(
+    conditionalUrgency(literal, { cytologyResult: "DEFINITE_INVASIVE_CANCER" }),
+    "URGENT"
+  );
+});
+
+test("an urgent limb still sets no automatic date", () => {
   const f914 = classifyTiming(
     "Urgent / within 2 weeks when invasion confirmed or strongly suspected"
   );
   assert.equal(f914.kind, "CONDITIONAL");
-  assert.equal(urgencyFromTiming(f914), "URGENT");
-  assert.equal(isAutomaticallySchedulable(f914), false, "an urgent limb still sets no automatic date");
+  assert.equal(isAutomaticallySchedulable(f914), false);
+  assert.equal(conditionalUrgency(
+    "Urgent / within 2 weeks when invasion confirmed or strongly suspected",
+    { suspicionOfCancer: true }
+  ), "URGENT");
 });
 
 test("a conditional timing that states no urgency stays NOT_STATED", () => {

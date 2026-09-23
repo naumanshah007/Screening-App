@@ -2,8 +2,10 @@
  * Decision adapter safety properties.
  *
  * The adapter is the only place a canonical result becomes the ClinicalDecision
- * the application acts on. These tests assert it cannot de-escalate, cannot
- * re-route, and cannot silently produce a null recall date.
+ * the application acts on. These tests assert it cannot re-route, cannot
+ * silently produce a null recall date, cannot turn the implementation's safety
+ * severity into a participant's clinical risk, and cannot let a legacy referral,
+ * priority or risk floor survive underneath a governed result.
  */
 
 import test from "node:test";
@@ -36,6 +38,7 @@ function canonical(overrides: Partial<ClinicalEvaluationResult> = {}): ClinicalE
     matchedRuleIds: ["F3-01"],
     branchPath: ["node:root", "node:rule:F3-01"],
     provisionalRecommendation: "Canonical recommendation",
+    safetyPriority: "LOW",
     riskLevel: "LOW",
     urgency: undefined,
     referralDestination: "Primary/community care or programme follow-up",
@@ -77,7 +80,7 @@ test("the adapted branch path records the router prefix before the canonical pat
 
 // ── Never de-escalate ───────────────────────────────────────────────────────
 
-test("risk is never lowered below the legacy decision", () => {
+test("risk stays the router's own value and canonical never moves it", () => {
   const legacyUrgent = legacy({ riskLevel: "URGENT" });
   const { decision } = canonicalToClinicalDecision({
     canonical: canonical({ riskLevel: "LOW" }),
@@ -87,60 +90,108 @@ test("risk is never lowered below the legacy decision", () => {
   assert.deepEqual(findDeEscalations(decision, legacyUrgent), []);
 });
 
-test("a referral required by legacy is never removed", () => {
+test("a canonical non-referral destination does not inherit the legacy referral", () => {
+  // Canonical is the authority for the decision. A legacy referral surviving
+  // underneath it produced a governed-looking result whose referral, type and
+  // priority all came from an engine that did not decide.
   const legacyReferral = legacy({
     referralRequired: true,
     referralType: "COLPOSCOPY",
     referralPriority: "P1",
   });
   const { decision } = canonicalToClinicalDecision({
-    // A canonical destination that is not a referral care setting.
     canonical: canonical({ referralDestination: "Primary/community care" }),
     legacyDecision: legacyReferral,
   });
-  assert.equal(decision.referralRequired, true);
-  assert.deepEqual(findDeEscalations(decision, legacyReferral), []);
+  assert.equal(decision.referralRequired, false);
+  assert.equal(decision.referralType, undefined);
+  assert.equal(decision.referralPriority, undefined);
 });
 
-test("referral priority is never lowered below the legacy priority", () => {
+test("a governed safety stop carries no referral, priority or recall from legacy", () => {
+  const legacyReferral = legacy({
+    riskLevel: "HIGH",
+    referralRequired: true,
+    referralType: "COLPOSCOPY",
+    referralPriority: "P2",
+    recallIntervalMonths: 12,
+  });
+  const { decision, canonicalStopped } = canonicalToClinicalDecision({
+    canonical: canonical({ matchedRuleIds: [], referralDestination: "Colposcopy service" }),
+    legacyDecision: legacyReferral,
+  });
+  assert.equal(canonicalStopped, true);
+  assert.equal(decision.referralRequired, false, "a stop reached no referral");
+  assert.equal(decision.referralPriority, undefined, "a legacy P2 must not survive a stop");
+  assert.equal(decision.recallRequired, false);
+  assert.equal(decision.recallIntervalMonths, undefined);
+  assert.equal(decision.safetyOutcome, "CLINICIAN_REVIEW_REQUIRED");
+});
+
+test("referral priority comes from the governed urgency, not from a legacy floor", () => {
   const legacyP1 = legacy({ referralRequired: true, referralType: "COLPOSCOPY", referralPriority: "P1" });
   const { decision } = canonicalToClinicalDecision({
-    // "5 years" is ROUTINE, which would map to P3.
+    // "5 years" is ROUTINE, which maps to P3.
     canonical: canonical({ referralDestination: "Colposcopy service", repeatInterval: "5 years" }),
     legacyDecision: legacyP1,
   });
-  assert.equal(decision.referralPriority, "P1");
-  assert.deepEqual(findDeEscalations(decision, legacyP1), []);
+  assert.equal(decision.referralPriority, "P3");
 });
 
-test("canonical may escalate above legacy", () => {
-  const { decision } = canonicalToClinicalDecision({
-    canonical: canonical({ riskLevel: "CRITICAL", referralDestination: "Colposcopy service", repeatInterval: "Immediate" }),
+test("the implementation safety severity never becomes the participant's risk", () => {
+  // CRITICAL means "a software mistake in this rule would be dangerous" — most
+  // often that no governed rule covers the case at all. Mapping it to URGENT
+  // turned a coverage gap into an urgent patient.
+  const { decision, safetyPriority } = canonicalToClinicalDecision({
+    canonical: canonical({
+      safetyPriority: "CRITICAL",
+      riskLevel: "CRITICAL",
+      referralDestination: "Colposcopy service",
+      repeatInterval: "12 months",
+    }),
     legacyDecision: legacy({ riskLevel: "LOW" }),
   });
-  assert.equal(decision.riskLevel, "URGENT");
-  assert.equal(decision.referralPriority, "P1");
+  assert.equal(decision.riskLevel, "LOW", "risk stays the router's; canonical states no patient risk");
+  assert.notEqual(decision.riskLevel, "URGENT");
+  assert.equal(safetyPriority, "CRITICAL", "the severity is still recorded, as technical evidence");
 });
 
-test("findDeEscalations detects each relaxation it guards", () => {
-  assert.deepEqual(
-    findDeEscalations(legacy({ riskLevel: "LOW" }), legacy({ riskLevel: "HIGH" })),
-    ["risk lowered HIGH → LOW"]
+test("an unresolved conditional urgent limb is explained, not applied", () => {
+  const { decision, adapterNotices } = canonicalToClinicalDecision({
+    canonical: canonical({
+      referralDestination: "Colposcopy service",
+      repeatInterval:
+        "20 or 30 working days according to risk/history; urgent if invasive cytology",
+      unresolvedUrgentLimb: true,
+    }),
+    legacyDecision: legacy({ referralRequired: true, referralPriority: "P2" }),
+  });
+  assert.equal(decision.referralPriority, undefined, "no urgency was established, so no priority");
+  assert.ok(
+    adapterNotices.some((notice) => notice.includes("urgent limb")),
+    "the evidence must say why no urgency was applied"
   );
-  assert.deepEqual(
-    findDeEscalations(legacy({ referralRequired: false }), legacy({ referralRequired: true })),
-    ["referral removed"]
-  );
-  assert.deepEqual(
-    findDeEscalations(
-      legacy({ referralPriority: "P3" }),
-      legacy({ referralPriority: "P1" })
-    ),
-    ["priority lowered P1 → P3"]
-  );
+});
+
+test("findDeEscalations guards routing, which is the only thing legacy supplies", () => {
   assert.deepEqual(
     findDeEscalations(legacy({ figure: "FIGURE_1" }), legacy({ figure: "FIGURE_3" })),
     ["pathway changed FIGURE_3 → FIGURE_1"]
+  );
+  // Risk, priority and referral are deliberately no longer compared: all three
+  // are governed outputs now, and comparing them reinstated the legacy floor
+  // through the back door.
+  assert.deepEqual(
+    findDeEscalations(legacy({ riskLevel: "LOW" }), legacy({ riskLevel: "HIGH" })),
+    []
+  );
+  assert.deepEqual(
+    findDeEscalations(legacy({ referralPriority: "P3" }), legacy({ referralPriority: "P1" })),
+    []
+  );
+  assert.deepEqual(
+    findDeEscalations(legacy({ referralRequired: false }), legacy({ referralRequired: true })),
+    []
   );
 });
 
@@ -260,7 +311,7 @@ test("no rule in the governed snapshot can produce a recall date it did not stat
   }
 });
 
-test("no rule in the governed snapshot de-escalates a high-risk legacy decision", async () => {
+test("no rule in the governed snapshot re-routes a case off its legacy pathway", async () => {
   const snapshot = loadGovernedSnapshot("cg-ncsp-3.1.0");
   const legacyHigh = legacy({
     riskLevel: "URGENT",
@@ -281,7 +332,7 @@ test("no rule in the governed snapshot de-escalates a high-risk legacy decision"
     assert.deepEqual(
       findDeEscalations(decision, legacyHigh),
       [],
-      `${rule.stableRuleId} de-escalated a high-risk legacy decision`
+      `${rule.stableRuleId} moved the case off its legacy pathway`
     );
   }
 });
