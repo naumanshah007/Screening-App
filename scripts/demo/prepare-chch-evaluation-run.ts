@@ -30,6 +30,9 @@ import { saveBatchRun, reconstructBatchCaseResult } from "@/lib/batch/persistenc
 import { getRuntimeClinicalEnvironment, resolveClinicalAuthority } from "@/lib/clinical-rules/authority";
 import { getDatabaseRuntimeSummary } from "@/lib/config/database";
 import { prisma } from "@/lib/prisma";
+import { presentableReferralPriority } from "@/lib/clinical-rules/priority-provenance";
+import { evaluationStatusFor } from "@/lib/clinical-rules/decision-envelope";
+import { CHCH_SOURCE_EVIDENCE } from "@/lib/batch/chch-source-records";
 
 /** The cases walked through on stage. Every one must read honestly. */
 const REHEARSAL = [
@@ -38,10 +41,14 @@ const REHEARSAL = [
   "chch-003",
   "chch-007",
   "chch-008",
+  "chch-009",
   "chch-010",
   "chch-016",
   "chch-018",
+  "chch-020",
   "chch-025",
+  "chch-027",
+  "chch-030",
 ];
 
 async function main() {
@@ -115,6 +122,32 @@ async function main() {
     );
   }
 
+  // ── 30-case automated reconciliation ─────────────────────────────────────
+  const expectedIds = CHCH_SOURCE_EVIDENCE.map((row) => row.caseId);
+  const actualIds = [...byExternalId.keys()].filter(Boolean).sort() as string[];
+  const reconciliation: string[] = [];
+  if (actualIds.length !== 30) reconciliation.push(`expected 30 cases, found ${actualIds.length}`);
+  if (new Set(actualIds).size !== actualIds.length) reconciliation.push("duplicate case IDs present");
+  for (const id of expectedIds) {
+    if (!byExternalId.has(id)) reconciliation.push(`${id} missing from the run`);
+  }
+  for (const id of actualIds) {
+    if (!expectedIds.includes(id)) reconciliation.push(`${id} is not a CHCH case`);
+  }
+  for (const [id, item] of byExternalId) {
+    const r = reconstructBatchCaseResult(item as Parameters<typeof reconstructBatchCaseResult>[0]);
+    if (!r.case.sourceEvidence) reconciliation.push(`${id}: no source evidence`);
+    if (item.nhi) reconciliation.push(`${id}: synthetic ID in the NHI column`);
+    if (presentableReferralPriority(item)) reconciliation.push(`${id}: unsupported priority presentable`);
+    if (item.recommendationCode !== r.decision.recommendationCode) {
+      reconciliation.push(`${id}: summary/decisionJson disagree`);
+    }
+  }
+  console.log(
+    `\n30-CASE RECONCILIATION: ${reconciliation.length === 0 ? "PASS (30/30)" : "FAIL"}`
+  );
+  reconciliation.slice(0, 12).forEach((problem) => console.log("  ", problem));
+
   // ── Rehearsal checks ──────────────────────────────────────────────────────
   console.log("\nRehearsal cases\n===============");
   for (const id of REHEARSAL) {
@@ -142,6 +175,15 @@ async function main() {
     }
     if (!evidence) problems.push("no source evidence survived persistence");
     if (item.nhi) problems.push("a synthetic case ID reached the NHI column");
+    if (reconstructed.case.identifierKind !== "SYNTHETIC_CASE") {
+      problems.push("the case identifier is not declared synthetic");
+    }
+    if (presentableReferralPriority(item)) {
+      problems.push(`unsupported priority ${item.referralPriority} is presentable`);
+    }
+    if (decision.riskLevel !== "NOT_ASSESSED" && item.authorityEngine === "CANONICAL") {
+      problems.push(`canonical result carries patient risk ${decision.riskLevel}`);
+    }
 
     console.log(`\n${id} — ${item.patientName ?? "?"} · ${item.patientAge ?? "?"}`);
     if (evidence) {
@@ -150,6 +192,7 @@ async function main() {
       console.log(`  Cytology : ${evidence.cytologyFollowUpText} [${evidence.cytologyState}]`);
       console.log(`  History  : ${evidence.relevantHistoryText}`);
     }
+    console.log(`  Status   : ${evaluationStatusFor({ decision, engineStatus: reconstructed.status })}`);
     console.log(`  Decision : ${decision.recommendation}`);
     console.log(`  Priority : ${decision.referralPriority ?? "none stated"}`);
     console.log(`  Missing  : ${(decision.missingInformation ?? []).join(", ") || "none"}`);

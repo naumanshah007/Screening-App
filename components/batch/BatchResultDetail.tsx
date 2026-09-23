@@ -156,8 +156,8 @@ const MISSING_INFORMATION_QUESTION: Record<string, string> = {
   cytologyResult: "Current cytology result",
   hpvResult: "Current HPV result",
   sampleType: "Sample collection method required",
-  immuneClassification: "Immune status",
-  treatmentDate: "Date of the previous treatment",
+  immuneClassification: "Immune status (required before a routine recall interval can be set)",
+  treatmentDate: "Date of the previous treatment — the source states timing only in relative terms",
   tocStatus: "Where this participant is in Test of Cure",
   tocEventOrdinal: "Which Test of Cure test this is",
   isActiveHsilTestOfCure: "Whether an active Test of Cure applies",
@@ -170,7 +170,7 @@ const MISSING_INFORMATION_QUESTION: Record<string, string> = {
   cervixPresent: "Whether the cervix is present",
   eventStage: "Which screening event this is (first screen, repeat or surveillance)",
   cytologyAdequacy: "Whether the cytology sample was adequate",
-  treatmentConfirmed: "Confirmation that treatment took place",
+  treatmentConfirmed: "Treatment record confirming the previous treatment",
   monthsBetweenQualifyingCoTests: "Interval between the qualifying co-tests",
 };
 
