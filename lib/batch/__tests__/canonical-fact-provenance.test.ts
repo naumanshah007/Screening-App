@@ -128,16 +128,17 @@ const ASSUMED_DEFAULTS = new Set([
   "consecutiveUnsatisfactoryCount",
 ]);
 
-test("assumed defaults are marked as synthetic, not as source data", () => {
+test("the assumed-fact gate is scoped to cases carrying source evidence", () => {
+  // The bleeding fixture has no immutable source record, so nothing is
+  // reclassified: other intake paths are deliberately unchanged by this gate.
   const { results } = processBatch([bleedingCase()]);
   const facts = results[0].canonicalFactsV2?.facts ?? {};
-  const assumed = Object.entries(facts).filter(([name]) => ASSUMED_DEFAULTS.has(name));
-  assert.ok(assumed.length > 0, "the fixture must exercise at least one assumed default");
-  for (const [name, fact] of assumed) {
+  for (const [name, fact] of Object.entries(facts)) {
+    if (name === "currentPathway") continue;
     assert.equal(
-      fact.source,
-      "SYNTHETIC_DEMO",
-      `${name} is supplied by the dataset, not reported by the source, and must say so`
+      fact.status,
+      "KNOWN",
+      `${name} must be unaffected on a case with no source evidence`
     );
   }
 });

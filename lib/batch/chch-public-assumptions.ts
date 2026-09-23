@@ -84,7 +84,7 @@ export const CHCH_PUBLIC_ASSUMPTIONS: DatasetAssumption[] = [
     basis:
       "The source does not state collection method. LBC is assumed because several rows report a cytology result, which a self-collected swab cannot produce without a return visit.",
     consequenceIfWrong:
-      "Self-collected swabs with HPV detected require a return visit with clinical examination before a cytology-dependent decision (F3-SWAB-RETURN-REQUIRED). Assuming LBC bypasses that step.",
+      "Self-collected swabs with HPV detected require a return visit with clinical examination before a cytology-dependent decision (F3-SWAB-RETURN-REQUIRED). Assuming LBC bypasses that step. The assumed value is now recorded as NOT_RECORDED in the canonical facts, so it cannot satisfy F3-03's sampleType gate — the governed evaluation asks for the collection method instead of matching on a value nobody supplied. The legacy engine still receives LBC through ClinicalInput.",
     rulesAffected: ["F3-03", "F3-SWAB-RETURN-REQUIRED"],
     appliesTo: "all",
     clinicianApproved: false,

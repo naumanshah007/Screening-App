@@ -49,9 +49,9 @@ export function evaluationUnavailableDecision(args: {
 }): ClinicalDecision {
   return {
     figure: args.figure,
-    // The lowest rung of the technical risk domain. This states nothing about
-    // the participant: no evaluation ran, so no clinical risk was determined.
-    riskLevel: "LOW",
+    // No evaluation ran, so no clinical risk was determined. LOW would have
+    // been a claim — and the most dangerous one available here.
+    riskLevel: "NOT_ASSESSED",
     recommendation: EVALUATION_UNAVAILABLE_TEXT,
     recommendationCode: EVALUATION_UNAVAILABLE_CODE,
     nextAction: EVALUATION_UNAVAILABLE_ACTION,

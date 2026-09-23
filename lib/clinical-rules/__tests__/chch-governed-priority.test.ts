@@ -27,6 +27,7 @@ import { canonicalFactsForCase, mapCanonicalToClinicalInput } from "@/lib/batch/
 import { evaluateClinicalDecision } from "@/lib/engine/decision-engine";
 import { canonicalClinicalFactsV2ToFactMap } from "../canonical-facts-v2";
 import { canonicalToClinicalDecision } from "../decision-adapter";
+import { conditionalUrgency } from "../governed-vocabulary";
 import { evaluateCanonicalClinicalFactsV2 } from "../evaluator";
 import { loadGovernedSnapshot } from "../governed-snapshot-store";
 
@@ -80,24 +81,38 @@ test("no CHCH case is given P1 by a conditional urgent limb it does not meet", (
   }
 });
 
-test("the twelve F3-03 cases no longer become urgent on the rule's wording alone", () => {
-  const f303 = ALL_IDS.filter((id) => evaluate(id).canonical.matchedRuleIds[0] === "F3-03");
-  assert.ok(f303.length > 0, "the CHCH set must still exercise F3-03");
-  for (const id of f303) {
-    const { canonical, adapted } = evaluate(id);
+test("the conditional urgent limb never applies without invasive cytology", () => {
+  // Exercised directly, because no CHCH case reaches F3-03 any more: its
+  // predicate requires a sampleType no source row states, and the assumed LBC
+  // that used to satisfy it is now gated out. The limb logic must still hold.
+  const literal =
+    "20 or 30 working days according to risk/history; urgent if invasive cytology";
+  for (const cytology of [
+    "NEGATIVE",
+    "ASC_US",
+    "LSIL",
+    "HSIL",
+    "UNSATISFACTORY",
+    undefined, // pending
+  ]) {
     assert.equal(
-      canonical.repeatInterval,
-      "20 or 30 working days according to risk/history; urgent if invasive cytology"
+      conditionalUrgency(literal, cytology ? { cytologyResult: cytology } : {}),
+      "NOT_STATED",
+      `${cytology ?? "pending"} is not invasive cytology and must not be urgent`
     );
-    assert.equal(canonical.unresolvedUrgentLimb, true, `${id} must record the unresolved limb`);
-    assert.notEqual(
-      adapted.decision.referralPriority,
-      "P1",
-      `${id}: no invasive cytology, so the urgent limb does not apply`
-    );
-    assert.ok(
-      adapted.adapterNotices.some((notice) => notice.includes("urgent limb")),
-      `${id}: the evidence must explain why no urgency was applied`
+  }
+  assert.equal(
+    conditionalUrgency(literal, { cytologyResult: "DEFINITE_INVASIVE_CANCER" }),
+    "URGENT"
+  );
+});
+
+test("no CHCH case carries a referral priority at all", () => {
+  for (const id of ALL_IDS) {
+    assert.equal(
+      evaluate(id).adapted.decision.referralPriority,
+      undefined,
+      `${id}: no governed urgency was established, so no priority may be asserted`
     );
   }
 });
@@ -112,24 +127,67 @@ test("HSIL is not invasive cytology and does not satisfy the urgent limb", () =>
   }
 });
 
-test("a software safety severity never becomes a participant's clinical risk", () => {
+test("no CHCH case inherits a patient risk from either engine", () => {
   for (const id of ALL_IDS) {
     const { canonical, adapted, legacyDecision } = evaluate(id);
-    // The severity is still recorded as technical evidence...
+    // The implementation severity is still recorded as technical evidence...
     assert.ok(canonical.safetyPriority, `${id} must record an implementation severity`);
     assert.equal(adapted.safetyPriority, canonical.safetyPriority);
-    // ...and never reaches the participant's risk level.
+    // ...and the participant's risk is stated as not determined, taking its
+    // value from neither the rule's severity nor the legacy router.
     assert.equal(
       adapted.decision.riskLevel,
-      legacyDecision.riskLevel,
-      `${id}: canonical states no participant risk, so risk must be the router's`
+      "NOT_ASSESSED",
+      `${id}: canonical determines no participant risk`
     );
-    if (canonical.safetyPriority === "CRITICAL") {
+    if (legacyDecision.riskLevel === "URGENT") {
       assert.notEqual(
         adapted.decision.riskLevel,
         "URGENT",
-        `${id}: a coverage gap is not an urgent patient`
+        `${id}: a legacy routing URGENT is not a governed patient risk`
       );
+    }
+  }
+});
+
+test("an assumed sample type cannot satisfy a governed rule predicate", () => {
+  // Every HPV16/18 case used to reach F3-03 on an assumed LBC that no source
+  // row states. The assumption is now recorded as NOT_RECORDED, so it never
+  // enters the evaluated fact map, and the case asks for the fact instead.
+  for (const id of ["chch-001", "chch-002", "chch-003", "chch-016"]) {
+    const { canonical, factMap } = evaluate(id);
+    assert.equal(factMap.sampleType, undefined, `${id}: no assumed sample type may be evaluated`);
+    assert.ok(
+      canonical.missingInformation.includes("sampleType"),
+      `${id}: the blocking fact must be reported, not silently dropped`
+    );
+  }
+});
+
+test("a blocked pathway reports the fact that blocked it, not an empty list", () => {
+  const { canonical } = evaluate("chch-001");
+  assert.deepEqual(
+    canonical.missingInformation,
+    ["sampleType"],
+    "chch-001 is blocked only by the unstated collection method"
+  );
+});
+
+test("assumed counters, cervix state and immune status are never evaluated", () => {
+  for (const id of ALL_IDS) {
+    const { factMap } = evaluate(id);
+    for (const fact of [
+      "sampleType",
+      "cervixPresent",
+      "isPostHysterectomy",
+      "immunocompromised",
+      "immuneClassification",
+      "isFirstCytologyToHpvTransition",
+      "consecutiveQualifyingNegativeCoTests",
+      "consecutiveLowGradeCytologyResults",
+      "consecutiveUnsatisfactoryCount",
+    ]) {
+      assert.equal(factMap[fact], undefined, `${id}: ${fact} is assumed and must not be evaluated`);
     }
   }
 });

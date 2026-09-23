@@ -265,6 +265,21 @@ export function canonicalClinicalFactsV2FromFlatFacts(args: {
   recordedAt?: string;
   /** Per-fact provenance overrides, applied on top of `source`. */
   factSources?: Record<string, CanonicalFactSource>;
+  /**
+   * Facts the caller is SUPPLYING A VALUE FOR without having observed one.
+   *
+   * They are recorded as `NOT_RECORDED` and carry NO value, which keeps them
+   * out of the evaluated fact map entirely: an assumption cannot satisfy a
+   * governed rule predicate, and a rule that needs one reports it as missing
+   * instead of matching on it. The value the legacy contract was given is still
+   * recorded on the case's ClinicalInput, which is where it belongs.
+   *
+   * Provenance alone was not enough. Labelling a fact SYNTHETIC_DEMO changed
+   * only its description: `canonicalClinicalFactsV2ToFactMap` copies every
+   * KNOWN fact into the map whatever its source, so an assumed sample type was
+   * still the load-bearing fact behind a referral.
+   */
+  assumedFacts?: ReadonlySet<string>;
   /** Identifies the router that produced `ROUTER_DERIVED_FACTS`, e.g. "business-figures-table1-v1". */
   routerEngine?: string;
 }): CanonicalClinicalFactsV2 {
@@ -280,9 +295,16 @@ export function canonicalClinicalFactsV2FromFlatFacts(args: {
       continue;
     }
     const routerDerived = ROUTER_DERIVED_FACTS.has(key);
+    const assumed = args.assumedFacts?.has(key) ?? false;
     facts[key] = {
-      value: value as string | number | boolean | Array<string | number | boolean>,
-      status: "KNOWN",
+      // An assumed value is not knowledge, and the schema already refuses to let
+      // a non-KNOWN fact carry a value that could be evaluated as one. The fact
+      // is recorded as present-but-unresolved so the rules that need it report
+      // it as missing.
+      ...(assumed
+        ? {}
+        : { value: value as string | number | boolean | Array<string | number | boolean> }),
+      status: assumed ? ("NOT_RECORDED" as const) : ("KNOWN" as const),
       source: routerDerived
         ? "DERIVED_ROUTER"
         : args.factSources?.[key] ?? args.source ?? "SYNTHETIC_DEMO",

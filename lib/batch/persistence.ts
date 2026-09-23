@@ -30,6 +30,7 @@ import {
   EVALUATION_UNAVAILABLE_CODE,
   EVALUATION_UNAVAILABLE_TEXT,
   evaluationUnavailableDecision,
+  isEvaluationUnavailable,
 } from "@/lib/clinical-rules/evaluation-unavailable";
 import type { ClinicalDecision } from "@/lib/engine/types";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
@@ -187,6 +188,7 @@ export function minimizePersistedBatchCase(c: CanonicalBatchCase) {
   }
   return minimized;
 }
+
 
 export async function saveBatchRun(args: {
   result: BatchProcessingResult;
@@ -554,7 +556,27 @@ export async function saveBatchRun(args: {
     );
     for (const reviewItem of run.items) {
       const sourceResult = resultByRow.get(reviewItem.rowNumber);
-      if (!sourceResult) continue;
+      if (!sourceResult) {
+        // FAIL CLOSED — the row exists but nothing produced a result for it.
+        //
+        // `continue` left the LEGACY decision written by the insert above as the
+        // item's operative recommendation, under whatever authority the run
+        // claims, with no audit trail saying the governed evaluation never ran.
+        // That is the silent legacy fallback in its quietest form.
+        governedEvaluationFailed += 1;
+        await persistEvaluationUnavailable({
+          reviewItemId: reviewItem.id,
+          figure: reviewItem.figure as ClinicalDecision["figure"],
+          reason:
+            "No processed result was available for this row, so no governed evaluation ran.",
+          actorUserId,
+          auditDetail: {
+            rowNumber: reviewItem.rowNumber,
+            authoritativeRuleVersionId: authoritativeRuleVersion?.id ?? null,
+          },
+        });
+        continue;
+      }
       try {
         // An amended result becomes a LINKED SUCCESSOR of the evaluation it
         // supersedes — never a replacement. The prior evaluation stays readable
@@ -628,21 +650,33 @@ export async function saveBatchRun(args: {
             reviewRequired: isReviewRequired(operativeResult),
           },
         });
-        governedEvaluationCompleted += 1;
+        // A run that resolved to "no recommendation available" did not complete
+        // a governed evaluation, and the outcome manifest must not count it as
+        // one.
+        if (isEvaluationUnavailable(graded.decision)) {
+          governedEvaluationFailed += 1;
+        } else {
+          governedEvaluationCompleted += 1;
+        }
 
         // Meter the governed evaluation that just happened.
         //
-        // Recorded here, after the evaluation succeeded, so the ledger counts
-        // work that actually took place rather than work that was attempted. A
-        // failed evaluation produces no usage event at all — the fail-closed
-        // branch below writes a safety state, and charging for a case that
-        // reached no governed recommendation would be indefensible.
+        // Recorded here, after the evaluation produced a governed
+        // recommendation, so the ledger counts work that actually took place
+        // rather than work that was attempted.
+        //
+        // A case that reached NO recommendation produces no usage event. That
+        // covers the fail-closed branch below, and — because
+        // evaluateGradedDecision now RETURNS an explicit unavailable state
+        // rather than throwing — it also covers a governed evaluation that ran
+        // and resolved to EVALUATION_UNAVAILABLE. Charging for a case whose
+        // answer is "no recommendation is available" would be indefensible.
         //
         // Written outside the run's transaction and best-effort: usage
         // accounting must never be able to fail a clinical decision that has
         // already been computed and persisted.
         const episodeId = episodeIdByRow.get(reviewItem.rowNumber);
-        if (episodeId) {
+        if (episodeId && !isEvaluationUnavailable(graded.decision)) {
           try {
             const alreadyTriaged = await prisma.usageEvent.findFirst({
               where: { episodeId, eventType: "FIRST_TRIAGE" },
@@ -686,60 +720,15 @@ export async function saveBatchRun(args: {
           (candidate) => candidate.case.source.rowNumber === reviewItem.rowNumber
         );
         if (failedSource) failedCaseIds.add(failedSource.case.caseId);
-        // FAIL CLOSED.
-        //
-        // This block previously only wrote an audit row, which left the legacy
-        // recommendation persisted above as the item's recommendation — a
-        // silent legacy fallback for a NEW case. A failed authoritative
-        // evaluation must never present a legacy clinical recommendation as
-        // though it were the governed result.
-        //
-        // The clinical columns are non-null, so the row is overwritten with an
-        // explicit safety state rather than left blank. This states that no
-        // governed recommendation exists; it does not invent a clinical action.
-        //
-        // decisionJson is replaced TOO, not just the summary columns. The
-        // drawer reconstructs its decision from decisionJson, so overwriting
-        // only the columns left the worklist row saying "no governed
-        // recommendation" while the drawer it opened still rendered the legacy
-        // recommendation, priority and recall interval written before the
-        // evaluation was attempted. One failure, one persisted result.
-        const unavailable = evaluationUnavailableDecision({
+        await persistEvaluationUnavailable({
+          reviewItemId: reviewItem.id,
           figure: (sourceResult?.decision.figure ?? "FIGURE_3") as ClinicalDecision["figure"],
-          reason:
-            "The current governed ruleset could not evaluate this case.",
-        });
-        await prisma.batchReviewItem.update({
-          where: { id: reviewItem.id },
-          data: {
-            decisionJson: JSON.stringify(unavailable),
-            figure: unavailable.figure,
-            riskLevel: unavailable.riskLevel,
-            recommendationCode: NO_GOVERNED_RESULT_CODE,
-            recommendation: NO_GOVERNED_RESULT_TEXT,
-            referralPriority: null,
-            referralType: null,
-            safetyOutcome: unavailable.safetyOutcome ?? "CLINICIAN_REVIEW_REQUIRED",
-            reviewRequired: true,
-            engineStatus: "error",
-            authorityReason:
-              "The current governed ruleset could not evaluate this case; no " +
-              "recommendation is offered and clinician review is required.",
-          },
-        });
-        await prisma.auditLog.create({
-          data: {
-            userId: actorUserId,
-            action: "CLINICAL_RULE_AUTHORITY_EVALUATION_FAILED",
-            entity: "BatchReviewItem",
-            entityId: reviewItem.id,
-            severity: "ERROR",
-            newValue: JSON.stringify({
-              authoritativeRuleVersionId: authoritativeRuleVersion?.id ?? null,
-              shadowRuleVersionId: shadowProvenance?.id ?? null,
-              failedClosed: true,
-              message: error instanceof Error ? error.message : String(error),
-            }),
+          reason: "The current governed ruleset could not evaluate this case.",
+          actorUserId,
+          auditDetail: {
+            authoritativeRuleVersionId: authoritativeRuleVersion?.id ?? null,
+            shadowRuleVersionId: shadowProvenance?.id ?? null,
+            message: error instanceof Error ? error.message : String(error),
           },
         });
       }
@@ -811,6 +800,60 @@ export async function saveBatchRun(args: {
   }))!;
 }
 
+/**
+ * Persist the ONE explicit state for "this row has no governed recommendation".
+ *
+ * Every column AND `decisionJson` are written together. The worklist reads the
+ * columns and the drawer reconstructs from the JSON, so writing only one left
+ * the two surfaces disagreeing about the same case — the row saying no governed
+ * recommendation exists while the drawer it opened still rendered the legacy
+ * recommendation, priority and recall interval from before the evaluation was
+ * attempted.
+ *
+ * Shared by both routes to this state: an evaluation that threw, and a row that
+ * never had a processed result to evaluate.
+ */
+async function persistEvaluationUnavailable(args: {
+  reviewItemId: string;
+  figure: ClinicalDecision["figure"];
+  reason: string;
+  actorUserId: string;
+  auditDetail: Record<string, unknown>;
+}) {
+  const unavailable = evaluationUnavailableDecision({
+    figure: args.figure,
+    reason: args.reason,
+  });
+  await prisma.batchReviewItem.update({
+    where: { id: args.reviewItemId },
+    data: {
+      decisionJson: JSON.stringify(unavailable),
+      figure: unavailable.figure,
+      riskLevel: unavailable.riskLevel,
+      recommendationCode: NO_GOVERNED_RESULT_CODE,
+      recommendation: NO_GOVERNED_RESULT_TEXT,
+      referralPriority: null,
+      referralType: null,
+      safetyOutcome: unavailable.safetyOutcome ?? "CLINICIAN_REVIEW_REQUIRED",
+      reviewRequired: true,
+      engineStatus: "error",
+      authorityReason:
+        "The current governed ruleset could not evaluate this case; no " +
+        "recommendation is offered and clinician review is required.",
+    },
+  });
+  await prisma.auditLog.create({
+    data: {
+      userId: args.actorUserId,
+      action: "CLINICAL_RULE_AUTHORITY_EVALUATION_FAILED",
+      entity: "BatchReviewItem",
+      entityId: args.reviewItemId,
+      severity: "ERROR",
+      newValue: JSON.stringify({ failedClosed: true, reason: args.reason, ...args.auditDetail }),
+    },
+  });
+}
+
 // ─── Read ───────────────────────────────────────────────────────────────────
 
 export async function listBatchRuns(limit = 50): Promise<BatchRunListRecord[]> {
@@ -843,10 +886,32 @@ export function reconstructBatchCaseResult(item: BatchReviewItemRecord): BatchCa
       }
     : undefined;
   const minimizedCase = JSON.parse(item.caseJson) as CanonicalBatchCase;
+  // Identity kind, for rows written before it was recorded.
+  //
+  // Historical CHCH rows were persisted when `nhi` fell back to the external
+  // patient ID, so they still hold "chch-001" in the NHI column. The stored
+  // source metadata is unambiguous about what that identifier is, so it is
+  // recognised here rather than trusting the polluted column. This is a READ-
+  // SIDE correction: no stored clinical decision, authority pin or outcome is
+  // touched.
+  const identifierKind: CanonicalBatchCase["identifierKind"] =
+    minimizedCase.identifierKind ??
+    (minimizedCase.source?.sourceType === "chchPublic" ||
+    /^chch-\d{3}$/.test(item.externalPatientId ?? "")
+      ? "SYNTHETIC_CASE"
+      : undefined);
+
+  // A synthetic case identifier is not an NHI, whatever column it landed in.
+  const storedNhi =
+    identifierKind === "SYNTHETIC_CASE" || item.nhi === item.externalPatientId
+      ? undefined
+      : item.nhi ?? undefined;
+
   const reconstructedCase: CanonicalBatchCase = {
     ...minimizedCase,
     patientName: item.patientName ?? undefined,
-    nhi: item.nhi ?? undefined,
+    identifierKind,
+    nhi: storedNhi,
     ...(minimizedCase.sourceEvidence
       ? {
           sourceEvidence: {

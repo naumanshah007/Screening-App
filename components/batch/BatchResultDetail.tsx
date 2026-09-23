@@ -163,10 +163,9 @@ const DECISION_STATE_TONE: Record<DecisionState, BadgeTone> = {
 const MISSING_INFORMATION_QUESTION: Record<string, string> = {
   cytologyResult: "Current cytology result",
   hpvResult: "Current HPV result",
-  sampleType: "How the sample was collected",
+  sampleType: "Sample collection method required",
   immuneClassification: "Immune status",
   treatmentDate: "Date of the previous treatment",
-  treatmentConfirmed: "Confirmation that treatment took place",
   tocStatus: "Where this participant is in Test of Cure",
   tocEventOrdinal: "Which Test of Cure test this is",
   isActiveHsilTestOfCure: "Whether an active Test of Cure applies",
@@ -177,6 +176,10 @@ const MISSING_INFORMATION_QUESTION: Record<string, string> = {
   hasCervicalCancerSignsOrSymptoms: "Whether there are symptoms of concern",
   histologyResult: "Histology result",
   cervixPresent: "Whether the cervix is present",
+  eventStage: "Which screening event this is (first screen, repeat or surveillance)",
+  cytologyAdequacy: "Whether the cytology sample was adequate",
+  treatmentConfirmed: "Confirmation that treatment took place",
+  monthsBetweenQualifyingCoTests: "Interval between the qualifying co-tests",
 };
 
 /**
@@ -256,13 +259,15 @@ export function BatchResultDetail({
           : `${CYTOLOGY_STATE_LABEL[evidence.cytologyState]} — “${evidence.cytologyFollowUpText}”`,
     });
     sourceInputs.push({ label: "History", value: evidence.relevantHistoryText });
-  } else {
-    // No source record was captured for this case — say so rather than
-    // presenting normalised engine values as though they were the source.
-    if (inp?.hpvResult) sourceInputs.push({ label: "HPV", value: inp.hpvResult.replace(/_/g, " ") });
-    if (inp?.cytologyResult)
-      sourceInputs.push({ label: "Cytology", value: inp.cytologyResult.replace(/_/g, " ") });
   }
+  // There is deliberately NO fallback.
+  //
+  // A case with no immutable source record has nothing to show here. The
+  // previous fallback listed ClinicalInput values under this heading, so a row
+  // whose source said "HPV 16 positive" displayed "HPV 16 18" — a normalised
+  // engine value, printed under the caption "Exactly as the source states
+  // them". Showing nothing is correct; the engine values are below, under
+  // technical details, labelled as what they are.
 
   // ── 4. Why ────────────────────────────────────────────────────────────────
   //

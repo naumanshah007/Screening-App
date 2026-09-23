@@ -24,6 +24,7 @@ import {
   formatDisposition,
   isUrgentClinicalPriority,
 } from "@/lib/decisions/package-generator";
+import { presentableReferralPriority } from "@/lib/clinical-rules/priority-provenance";
 
 export const dynamic = "force-dynamic";
 
@@ -86,8 +87,13 @@ function mapRow(item: Awaited<ReturnType<typeof listCompletedDecisions>>[number]
     reviewedAt: formatDateTime(item.reviewedAt),
     reason: item.overrideReason ?? item.reviewNote ?? "No reason or note recorded.",
     packageStatus: "Simulated package ready",
-    referralPriority: item.referralPriority,
-    riskLevel: item.riskLevel,
+    // Only a priority with governed provenance is passed to the view. A legacy
+    // P1/P2 has none, and a null here renders as an absence rather than as a
+    // low priority.
+    referralPriority: presentableReferralPriority(item),
+    // Likewise the risk: under governed authority the decision determines no
+    // patient risk, and the legacy router's value is a routing artefact.
+    riskLevel: item.authorityEngine === "CANONICAL" ? item.riskLevel : null,
     mandatoryReview: item.reviewRequired,
     urgentClinicalPriority: isUrgentClinicalPriority(item),
   };

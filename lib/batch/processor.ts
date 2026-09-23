@@ -21,19 +21,66 @@ import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
 import { canonicalHpvFactValue } from "./source-evidence";
 
 /**
- * Facts every CHCH-style case must supply because the legacy contract requires
- * a value, but which no source row states. They are recorded as
- * `SYNTHETIC_DEMO` rather than inheriting the case's source provenance, so a
- * reviewer can never read an assumed default as something the source reported.
+ * Facts a source-evidence-bearing case supplies because the legacy contract
+ * requires a value, but which no source row states.
+ *
+ * These are recorded as NOT_RECORDED, so they never enter the evaluated fact
+ * map and can never satisfy a governed rule predicate. The supplied value is
+ * still written down as provenance, and the legacy engine still receives it
+ * through ClinicalInput — only the governed evaluation is protected.
+ *
+ * Provenance alone was not enough: marking a fact SYNTHETIC_DEMO described it
+ * without gating it, and an assumed LBC sample type was still the load-bearing
+ * fact behind every HPV16/18 referral.
  */
-const ASSUMED_FACT_NAMES = [
+const ALWAYS_ASSUMED_FACTS = [
+  // No CHCH row states a collection method.
   "sampleType",
+  // No row states the programme-transition status.
   "isFirstCytologyToHpvTransition",
+  // Derived from an assumed isPostHysterectomy=false, so equally assumed.
   "cervixPresent",
+  "isPostHysterectomy",
+  "hysterectomyType",
+  // An absent immune status is not verified immune competence.
+  "immunocompromised",
+  "atypicalEndometrialHistory",
+  // No row reports a prior consecutive sequence; zero is "not recorded",
+  // which must not satisfy a threshold.
   "consecutiveQualifyingNegativeCoTests",
   "consecutiveLowGradeCytologyResults",
   "consecutiveUnsatisfactoryCount",
 ] as const;
+
+/**
+ * The assumed facts for one case.
+ *
+ * Scoped to cases carrying immutable source evidence — today the CHCH
+ * evaluation set. Other intake paths are unchanged.
+ */
+export function assumedCanonicalFactNames(
+  batchCase: CanonicalBatchCase
+): ReadonlySet<string> {
+  if (!batchCase.sourceEvidence) return new Set();
+  const assumed = new Set<string>(ALWAYS_ASSUMED_FACTS);
+
+  // The screening event is a source fact only where the row states one — a
+  // first screen, or a stated repeat interval. "Routine screening" says nothing
+  // about whether this is a baseline or a repeat, so the BASELINE the contract
+  // requires is an assumption there and the eventStage derived from it inherits
+  // that.
+  if (batchCase.sourceEvidence.screeningEvent === "NOT_STATED") {
+    assumed.add("eventStage");
+  }
+
+  // isActiveHsilTestOfCure is built by boolean evaluation of absent Test of
+  // Cure fields, so it reports false for every case that never mentioned one.
+  if (batchCase.isTestOfCure !== true) {
+    assumed.add("isActiveHsilTestOfCure");
+  }
+
+  return assumed;
+}
 
 /**
  * Canonical facts for one case.
@@ -79,11 +126,11 @@ export function canonicalFactsForCase(args: {
   const preciseHpv = canonicalHpvFactValue(batchCase.sourceEvidence?.hpvGenotype);
   if (preciseHpv !== undefined) facts.hpvResult = preciseHpv;
 
+  const assumedFacts = assumedCanonicalFactNames(batchCase);
   const factSources = Object.fromEntries(
-    ASSUMED_FACT_NAMES.filter((name) => facts[name] !== undefined).map((name) => [
-      name,
-      "SYNTHETIC_DEMO" as const,
-    ])
+    [...assumedFacts]
+      .filter((name) => facts[name] !== undefined)
+      .map((name) => [name, "SYNTHETIC_DEMO" as const])
   );
 
   return canonicalClinicalFactsV2FromFlatFacts({
@@ -92,6 +139,7 @@ export function canonicalFactsForCase(args: {
     facts,
     source: "PRIOR_RECORD",
     factSources,
+    assumedFacts,
     enteredBy: `batch-${batchCase.source.mappingVersion}`,
     recordedAt: batchCase.source.importedAt,
     routerEngine: ENGINE_VERSION,

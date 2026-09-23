@@ -43,7 +43,8 @@ export type CompletedDecisionRow = {
   reason: string;
   packageStatus: string;
   referralPriority: string | null;
-  riskLevel: string;
+  /** Null when no patient risk was determined by the deciding authority. */
+  riskLevel: string | null;
   mandatoryReview: boolean;
   urgentClinicalPriority: boolean;
 };
@@ -261,10 +262,18 @@ export function CompletedDecisionsClient({
                       <td className="px-3 py-3 align-top">
                         <p className="line-clamp-2 text-foreground">{row.originalRecommendation}</p>
                         <p className="mt-0.5 text-xs font-mono text-muted-foreground">{row.recommendationCode}</p>
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          <RiskBadge risk={row.riskLevel} />
-                          {row.referralPriority && <PriorityBadge priority={row.referralPriority} />}
-                        </div>
+                        {/*
+                          Risk and priority appear only where the deciding
+                          authority actually determined them. An unsupported
+                          legacy P1/P2 is absent, not rendered as a badge a
+                          booking clerk would act on.
+                        */}
+                        {(row.riskLevel || row.referralPriority) && (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {row.riskLevel && <RiskBadge risk={row.riskLevel} />}
+                            {row.referralPriority && <PriorityBadge priority={row.referralPriority} />}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-3 align-top">
                         <Badge variant={disposition.variant}>{disposition.label}</Badge>

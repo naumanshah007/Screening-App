@@ -80,14 +80,28 @@ test("the adapted branch path records the router prefix before the canonical pat
 
 // ── Never de-escalate ───────────────────────────────────────────────────────
 
-test("risk stays the router's own value and canonical never moves it", () => {
-  const legacyUrgent = legacy({ riskLevel: "URGENT" });
+test("a canonical decision states NO patient risk, whatever legacy said", () => {
+  // CG-NCSP-3.1.0 determines no participant risk. Carrying the legacy router's
+  // value through put a legacy URGENT on a governed result that had reached no
+  // outcome at all; carrying `safetyPriority` through turned a coverage gap
+  // into an urgent patient. Both were wrong, so neither is used.
+  for (const legacyRisk of ["LOW", "MEDIUM", "HIGH", "URGENT"] as const) {
+    const legacyDecision = legacy({ riskLevel: legacyRisk });
+    const { decision } = canonicalToClinicalDecision({
+      canonical: canonical(),
+      legacyDecision,
+    });
+    assert.equal(decision.riskLevel, "NOT_ASSESSED", `legacy ${legacyRisk} must not carry through`);
+    assert.deepEqual(findDeEscalations(decision, legacyDecision), []);
+  }
+});
+
+test("NOT_ASSESSED is an absence, never the bottom of the risk ladder", () => {
   const { decision } = canonicalToClinicalDecision({
-    canonical: canonical({ riskLevel: "LOW" }),
-    legacyDecision: legacyUrgent,
+    canonical: canonical(),
+    legacyDecision: legacy({ riskLevel: "URGENT" }),
   });
-  assert.equal(decision.riskLevel, "URGENT");
-  assert.deepEqual(findDeEscalations(decision, legacyUrgent), []);
+  assert.notEqual(decision.riskLevel, "LOW", "an absent judgement must not read as low risk");
 });
 
 test("a canonical non-referral destination does not inherit the legacy referral", () => {
@@ -151,9 +165,23 @@ test("the implementation safety severity never becomes the participant's risk", 
     }),
     legacyDecision: legacy({ riskLevel: "LOW" }),
   });
-  assert.equal(decision.riskLevel, "LOW", "risk stays the router's; canonical states no patient risk");
+  assert.equal(decision.riskLevel, "NOT_ASSESSED", "canonical states no patient risk at all");
   assert.notEqual(decision.riskLevel, "URGENT");
   assert.equal(safetyPriority, "CRITICAL", "the severity is still recorded, as technical evidence");
+});
+
+test("no legacy clinical warning is carried into a canonical decision", () => {
+  const { decision } = canonicalToClinicalDecision({
+    canonical: canonical({ safetyNotices: ["Governed notice."] }),
+    legacyDecision: legacy({
+      clinicalWarnings: ["LEGACY: refer urgently to colposcopy"],
+    }),
+  });
+  assert.ok(
+    !decision.clinicalWarnings?.some((w) => w.startsWith("LEGACY:")),
+    "legacy clinical prose must not appear inside the governed result"
+  );
+  assert.ok(decision.clinicalWarnings?.includes("Governed notice."));
 });
 
 test("an unresolved conditional urgent limb is explained, not applied", () => {

@@ -221,11 +221,19 @@ export function canonicalToClinicalDecision(args: {
 
   // ── Risk ─────────────────────────────────────────────────────────────────
   //
-  // Deliberately the ROUTER's risk level, unchanged. Canonical states no
-  // participant risk: `canonical.safetyPriority` is the implementation severity
-  // of the controlling rule, and mapping CRITICAL ("no governed rule covers
-  // this case") to URGENT turned a coverage gap into an urgent patient.
-  const riskLevel: RiskLevel = legacyDecision.riskLevel;
+  // NOT_ASSESSED, always, under canonical authority.
+  //
+  // CG-NCSP-3.1.0 states no participant risk. Two candidate values were tried
+  // and both were wrong: `canonical.safetyPriority` is the implementation
+  // severity of the controlling rule, so mapping CRITICAL ("no governed rule
+  // covers this case") to URGENT turned a coverage gap into an urgent patient;
+  // and the legacy router's risk is a routing artefact that, carried through
+  // here, put a legacy URGENT on a governed result that had reached no outcome
+  // at all.
+  //
+  // The honest answer is that this decision determined no patient risk. The
+  // legacy value is preserved on `legacyDecision` for technical comparison.
+  const riskLevel: RiskLevel = "NOT_ASSESSED";
 
   const decision: ClinicalDecision = {
     // 1. Routing is legacy's, always.
@@ -265,11 +273,12 @@ export function canonicalToClinicalDecision(args: {
     requiresMDMReview: destination === "MDM",
     requiresSwabRepeat: legacyDecision.requiresSwabRepeat,
 
-    clinicalWarnings: [
-      ...(legacyDecision.clinicalWarnings ?? []),
-      ...canonical.safetyNotices,
-      ...adapterNotices,
-    ],
+    // Legacy clinical warnings are NOT carried into an authoritative canonical
+    // decision. They are the other engine's clinical prose, and reproducing
+    // them here presented legacy text as part of the governed result — on a
+    // safety stop, as the only clinical sentences on the page. They remain on
+    // `legacyDecision` and are shown under the technical comparison.
+    clinicalWarnings: [...canonical.safetyNotices, ...adapterNotices],
     safetyOutcome,
     missingInformation:
       canonical.missingInformation.length > 0 ? canonical.missingInformation : undefined,

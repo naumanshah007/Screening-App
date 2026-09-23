@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import type { ClinicalEvaluationResult } from "./evaluator";
 
 const LEGACY_RISK_RANK: Record<ClinicalDecision["riskLevel"], number> = {
+  // Rank 0: the absence of a risk judgement is never an escalation of one, and
+  // never a de-escalation below one either — it is a different kind of answer.
+  NOT_ASSESSED: 0,
   LOW: 1,
   MEDIUM: 2,
   HIGH: 3,

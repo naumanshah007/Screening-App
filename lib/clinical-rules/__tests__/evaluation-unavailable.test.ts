@@ -87,12 +87,12 @@ test("a governed safety stop is kept, not reverted to the legacy decision", () =
 });
 
 test("a failed evaluation persists ONE result: columns and decisionJson agree", () => {
-  const failClosed = PERSISTENCE.slice(
-    PERSISTENCE.indexOf("// FAIL CLOSED."),
-    PERSISTENCE.indexOf("CLINICAL_RULE_AUTHORITY_EVALUATION_FAILED")
+  const helper = PERSISTENCE.slice(
+    PERSISTENCE.indexOf("async function persistEvaluationUnavailable"),
+    PERSISTENCE.indexOf("// ─── Read ───")
   );
   assert.ok(
-    failClosed.includes("decisionJson: JSON.stringify(unavailable)"),
+    helper.includes("decisionJson: JSON.stringify(unavailable)"),
     "the stored decision snapshot must be replaced, not just the summary columns"
   );
   for (const column of [
@@ -100,14 +100,55 @@ test("a failed evaluation persists ONE result: columns and decisionJson agree", 
     "recommendation: NO_GOVERNED_RESULT_TEXT",
     "referralPriority: null",
     "referralType: null",
+    "riskLevel: unavailable.riskLevel",
   ]) {
-    assert.ok(failClosed.includes(column), `the summary column ${column} must also be written`);
+    assert.ok(helper.includes(column), `the summary column ${column} must also be written`);
   }
+  assert.ok(
+    helper.includes("CLINICAL_RULE_AUTHORITY_EVALUATION_FAILED"),
+    "an audit record must accompany every fail-closed write"
+  );
   // The columns and the JSON must name the same state.
   assert.match(
     PERSISTENCE,
     /const NO_GOVERNED_RESULT_CODE = EVALUATION_UNAVAILABLE_CODE/,
     "the column marker and the decision code must be the same constant"
+  );
+});
+
+test("a row with no processed result fails closed instead of keeping legacy", () => {
+  // `continue` left the legacy decision written by the insert as the item's
+  // operative recommendation, with no audit trail saying no evaluation ran.
+  assert.doesNotMatch(
+    PERSISTENCE,
+    /if \(!sourceResult\) continue;/,
+    "the bare skip must not come back"
+  );
+  const skip = PERSISTENCE.slice(
+    PERSISTENCE.indexOf("if (!sourceResult) {"),
+    PERSISTENCE.indexOf("const supersedes = await findPriorEvaluationForEpisode")
+  );
+  assert.ok(skip.includes("persistEvaluationUnavailable"), "the row must be failed closed");
+  assert.ok(skip.includes("governedEvaluationFailed += 1"), "and counted as a failure");
+});
+
+test("no usage is metered for a case that reached no recommendation", () => {
+  assert.match(
+    PERSISTENCE,
+    /if \(episodeId && !isEvaluationUnavailable\(graded\.decision\)\)/,
+    "an unavailable evaluation must not produce a FIRST_TRIAGE usage event"
+  );
+  // evaluateGradedDecision now RETURNS the unavailable state rather than
+  // throwing, so the success branch has to exclude it explicitly.
+  assert.match(
+    PERSISTENCE,
+    /if \(isEvaluationUnavailable\(graded\.decision\)\) \{\s*governedEvaluationFailed \+= 1;/,
+    "and must not be counted as a completed governed evaluation"
+  );
+  assert.doesNotMatch(
+    PERSISTENCE,
+    /A failed evaluation produces no usage event at all/,
+    "the stale comment claiming failures always throw must be corrected"
   );
 });
 

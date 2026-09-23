@@ -376,6 +376,63 @@ export function evaluateClinicalSnapshot(
   };
 }
 
+
+/**
+ * The unresolved facts that are the ONLY reason a rule evaluated FALSE.
+ *
+ * An `EXISTS` predicate on an absent fact evaluates FALSE, not UNKNOWN, so a
+ * rule gated on one drops out silently: the case reaches NO-MATCH and the
+ * missing-information list says nothing, because nothing was ever "unknown".
+ * That is how an unanswerable "no governed rule matched" replaced the
+ * answerable "sample collection method required".
+ *
+ * Returns null when the rule is FALSE for any reason other than unresolved
+ * information — a genuine clinical mismatch is not missing information, and
+ * reporting it as such would ask a clinician for facts that would not change
+ * the outcome.
+ *
+ * This is diagnostics only. It never changes which rule matches.
+ */
+export function blockingUnresolvedFacts(
+  expression: ConditionExpression,
+  facts: ClinicalFactMap,
+  unresolved: ReadonlySet<string>
+): Set<string> | null {
+  const evaluated = evaluateConditionExpression(expression, facts);
+  if (evaluated.result !== "FALSE") return null;
+
+  switch (expression.type) {
+    case "FACT":
+      return unresolved.has(expression.fact) ? new Set([expression.fact]) : null;
+    case "ALL": {
+      // FALSE because at least one child is FALSE. Every such child must itself
+      // be blocked only by unresolved information.
+      const blocked = new Set<string>();
+      for (const child of expression.expressions) {
+        if (evaluateConditionExpression(child, facts).result !== "FALSE") continue;
+        const childBlocked = blockingUnresolvedFacts(child, facts, unresolved);
+        if (!childBlocked) return null;
+        childBlocked.forEach((fact) => blocked.add(fact));
+      }
+      return blocked.size > 0 ? blocked : null;
+    }
+    case "ANY": {
+      // FALSE only when every child is FALSE, so every one must be blocked.
+      const blocked = new Set<string>();
+      for (const child of expression.expressions) {
+        const childBlocked = blockingUnresolvedFacts(child, facts, unresolved);
+        if (!childBlocked) return null;
+        childBlocked.forEach((fact) => blocked.add(fact));
+      }
+      return blocked.size > 0 ? blocked : null;
+    }
+    case "NOT":
+    case "ALWAYS":
+    case "SOURCE_TEXT":
+      return null;
+  }
+}
+
 export function evaluateCanonicalClinicalFactsV2(
   snapshot: ClinicalRuleSnapshot,
   input: CanonicalClinicalFactsV2
@@ -436,6 +493,26 @@ export function evaluateCanonicalClinicalFactsV2(
   }
 
   const controlling = evaluated.matchedRules[0];
+
+  // Rules that dropped out ONLY because a required fact is unresolved. Without
+  // these the case reaches a silent no-match and the clinician is told nothing.
+  const blockedByUnresolved = controlling
+    ? []
+    : snapshot.rules
+        .map((rule) => ({
+          rule,
+          blocked: blockingUnresolvedFacts(
+            rule.conditionExpression,
+            converted.factMap,
+            explicitlyUnresolved
+          ),
+        }))
+        .filter(
+          (entry): entry is { rule: RuleDefinition; blocked: Set<string> } =>
+            entry.blocked !== null &&
+            ["HIGH", "CRITICAL"].includes(entry.rule.safetyPriority)
+        );
+
   const unresolvedHigherRisk = relevantUnknownTrace
     .map((entry) => snapshot.rules.find((rule) => rule.stableRuleId === entry.ruleId))
     .filter((rule): rule is RuleDefinition => Boolean(rule))
@@ -446,7 +523,24 @@ export function evaluateCanonicalClinicalFactsV2(
           governedRulePrecedence(rule) >= governedRulePrecedence(controlling))
     );
 
-  if (unresolvedHigherRisk.length > 0) {
+  if (unresolvedHigherRisk.length > 0 || blockedByUnresolved.length > 0) {
+    // RULE-RELEVANT missing information, not every unresolved fact in the
+    // snapshot's vocabulary.
+    //
+    // Reporting `diagnostics.factsMissing` listed facts belonging to unrelated
+    // pathways alongside the one the clinician actually has to supply. What is
+    // useful is the intersection: the facts THESE applicable rules require and
+    // this case could not resolve. A clinician asked for "sampleType" can act;
+    // a clinician handed the snapshot's whole unresolved vocabulary cannot.
+    const ruleRelevantMissing = [
+      ...new Set([
+        ...unresolvedHigherRisk.flatMap((rule) =>
+          rule.requiredFacts.filter((fact) => converted.factMap[fact] == null)
+        ),
+        ...blockedByUnresolved.flatMap((entry) => [...entry.blocked]),
+      ]),
+    ].sort();
+
     return {
       ...evaluated,
       result: {
@@ -455,7 +549,7 @@ export function evaluateCanonicalClinicalFactsV2(
         branchPath: ["node:root", "node:clinician-review:missing-canonical-facts"],
         provisionalRecommendation:
           "Required canonical clinical facts are unknown or not recorded. Stop automated routing and obtain the identified information.",
-        safetyPriority: unresolvedHigherRisk.some(
+        safetyPriority: [...unresolvedHigherRisk, ...blockedByUnresolved.map((e) => e.rule)].some(
           (rule) => rule.safetyPriority === "CRITICAL"
         )
           ? "CRITICAL"
@@ -469,13 +563,15 @@ export function evaluateCanonicalClinicalFactsV2(
         unresolvedUrgentLimb: false,
         referralDestination: undefined,
         repeatInterval: undefined,
-        missingInformation: diagnostics.factsMissing,
+        missingInformation:
+          ruleRelevantMissing.length > 0 ? ruleRelevantMissing : diagnostics.factsMissing,
         mandatoryReviewerConfirmation: true,
         reviewerRequirement: "SPECIALIST_REVIEW",
         clinicianOnly: true,
-        sourceReferences: unresolvedHigherRisk.flatMap(
-          (rule) => rule.sourceReferences
-        ),
+        sourceReferences: [
+          ...unresolvedHigherRisk.flatMap((rule) => rule.sourceReferences),
+          ...blockedByUnresolved.flatMap((entry) => entry.rule.sourceReferences),
+        ],
         factDiagnostics: diagnostics,
       },
     };

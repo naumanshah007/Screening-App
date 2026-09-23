@@ -55,6 +55,17 @@ export type SourceCytologyState =
   /** The source's follow-up text does not state a cytology state either way. */
   | "UNSPECIFIED";
 
+/**
+ * What the source says about WHICH screening event this is.
+ *
+ * The engine contract requires a repeat stage, so every case is given one. That
+ * default is only a source fact where the row actually states the event: a
+ * first screen, or a stated repeat interval. "Routine screening" says nothing
+ * about whether this is a baseline or a repeat, and a BASELINE derived from it
+ * is an assumption that must not satisfy a governed stage predicate.
+ */
+export type SourceScreeningEvent = "FIRST" | "REPEAT" | "NOT_STATED";
+
 /** Whether a case identifier is a real NHI or something else entirely. */
 export type CaseIdentifierKind = "SYNTHETIC_CASE" | "SOURCE_PATIENT_ID" | "NHI";
 
@@ -97,6 +108,9 @@ export interface CaseSourceEvidence {
   hpvGenotype?: SourceHpvGenotype;
   /** False when the reported HPV result is explicitly a previous one. */
   hpvIsCurrentResult: boolean;
+
+  /** Whether the row states which screening event this is. */
+  screeningEvent: SourceScreeningEvent;
 
   cytologyState: SourceCytologyState;
   /** Only ever set when `cytologyState` is AVAILABLE or UNSATISFACTORY. */
