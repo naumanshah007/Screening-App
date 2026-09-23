@@ -19,6 +19,16 @@
  *  4. **No invented clinical information.** Where canonical states nothing
  *     (interval not schedulable, destination not a care setting), the adapter
  *     emits a safety stop and *no* recall date — never a fabricated one.
+ *  5. **Canonical is the clinical authority when it is the authority.** Where
+ *     canonical decides, canonical alone supplies the recommendation, referral,
+ *     priority and timing. The legacy decision no longer sets a floor under
+ *     them: a preserved legacy P1 on a case whose governed evaluation reached a
+ *     safety stop is a legacy recommendation wearing the governed result's
+ *     badge, which is the specific defect rule 5 exists to prevent.
+ *  6. **Software safety severity is not patient risk.** `safetyPriority`
+ *     describes how dangerous a software mistake in a rule would be. It is
+ *     recorded as technical evidence and is never mapped into the participant's
+ *     clinical risk or urgency.
  */
 
 import type {
@@ -43,25 +53,6 @@ import {
   type TimingClassification,
 } from "./governed-vocabulary";
 
-const RISK_RANK: Record<RiskLevel, number> = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
-const PRIORITY_RANK: Record<ReferralPriority, number> = { P4: 1, P3: 2, P2: 3, P1: 4 };
-
-/** Canonical `safetyPriority` (CRITICAL/HIGH/MEDIUM/LOW) → the application's RiskLevel domain. */
-function toRiskLevel(canonicalRiskLevel: string): RiskLevel {
-  switch (canonicalRiskLevel) {
-    case "CRITICAL":
-      return "URGENT";
-    case "HIGH":
-      return "HIGH";
-    case "MEDIUM":
-      return "MEDIUM";
-    case "LOW":
-      return "LOW";
-    default:
-      // Unknown risk vocabulary fails upward, never downward.
-      return "HIGH";
-  }
-}
 
 function toReferralType(destination: GovernedDestination): ReferralType | undefined {
   switch (destination) {
@@ -99,6 +90,17 @@ function toReferralPriority(urgency: GovernedUrgency): ReferralPriority | undefi
 
 export type AdaptedDecision = {
   decision: ClinicalDecision;
+  /**
+   * True when the governed evaluation completed but reached NO terminal
+   * recommendation: no rule matched, or required information is missing.
+   *
+   * This is a COMPLETED evaluation, not a failure. It deliberately excludes a
+   * rule that reached an outcome whose follow-up date a clinician must set —
+   * that case has a recommendation, it simply has no automatic interval.
+   */
+  canonicalStopped: boolean;
+  /** The controlling rule's implementation safety severity. Technical only. */
+  safetyPriority: string;
   /** Non-fatal normalisation problems that forced a safety stop. */
   adapterNotices: string[];
   /** True when the canonical timing could not be scheduled automatically. */
@@ -182,34 +184,56 @@ export function canonicalToClinicalDecision(args: {
   const canonicalStopped =
     canonical.matchedRuleIds.length === 0 || canonical.missingInformation.length > 0;
 
+  const stoppedForAnyReason =
+    canonicalStopped || canonical.clinicianOnly || timingRequiresClinicianDetermination;
+
   const safetyOutcome: SafetyOutcome | undefined =
     canonical.missingInformation.length > 0
       ? "INSUFFICIENT_INFORMATION"
-      : canonicalStopped || canonical.clinicianOnly || timingRequiresClinicianDetermination
+      : stoppedForAnyReason
         ? "CLINICIAN_REVIEW_REQUIRED"
         : legacyDecision.safetyOutcome;
 
+  // A conditional urgent limb the facts did not establish is explained, not
+  // applied. Without this the evidence would show an absent priority with no
+  // stated reason, which invites someone to "restore" the unconditional one.
+  if (canonical.unresolvedUrgentLimb) {
+    adapterNotices.push(
+      `The governed timing "${canonical.repeatInterval ?? ""}" states an urgent limb that applies ` +
+        "only under a condition this evaluation did not establish. No patient-specific urgency is asserted."
+    );
+  }
+
   // ── Referral ─────────────────────────────────────────────────────────────
+  //
+  // No legacy floor. Where canonical decided, canonical's destination is the
+  // referral; where canonical stopped, there is no referral at all, because a
+  // stop is the absence of a recommendation and not a quieter version of one.
   const canonicalReferralType = toReferralType(destination);
-  const referralRequired = canonicalReferralType !== undefined || legacyDecision.referralRequired === true;
-  const referralType = canonicalReferralType ?? legacyDecision.referralType;
+  const referralRequired = !canonicalStopped && canonicalReferralType !== undefined;
+  const referralType = referralRequired ? canonicalReferralType : undefined;
 
-  const canonicalPriority = toReferralPriority(governedUrgency);
-  // Never de-escalate priority below the legacy decision's.
-  const referralPriority = !referralRequired
-    ? undefined
-    : canonicalPriority && legacyDecision.referralPriority
-      ? PRIORITY_RANK[canonicalPriority] >= PRIORITY_RANK[legacyDecision.referralPriority]
-        ? canonicalPriority
-        : legacyDecision.referralPriority
-      : (canonicalPriority ?? legacyDecision.referralPriority);
+  // Priority comes from the governed urgency or not at all. A legacy P2 must
+  // not survive as the governed result's priority.
+  const referralPriority = referralRequired
+    ? toReferralPriority(governedUrgency)
+    : undefined;
 
-  // ── Risk: never below the legacy floor ───────────────────────────────────
-  const canonicalRisk = toRiskLevel(canonical.riskLevel);
-  const riskLevel =
-    RISK_RANK[canonicalRisk] >= RISK_RANK[legacyDecision.riskLevel]
-      ? canonicalRisk
-      : legacyDecision.riskLevel;
+  // ── Risk ─────────────────────────────────────────────────────────────────
+  //
+  // NOT_ASSESSED, always, under canonical authority.
+  //
+  // CG-NCSP-3.1.0 states no participant risk. Two candidate values were tried
+  // and both were wrong: `canonical.safetyPriority` is the implementation
+  // severity of the controlling rule, so mapping CRITICAL ("no governed rule
+  // covers this case") to URGENT turned a coverage gap into an urgent patient;
+  // and the legacy router's risk is a routing artefact that, carried through
+  // here, put a legacy URGENT on a governed result that had reached no outcome
+  // at all.
+  //
+  // The honest answer is that this decision determined no patient risk. The
+  // legacy value is preserved on `legacyDecision` for technical comparison.
+  const riskLevel: RiskLevel = "NOT_ASSESSED";
 
   const decision: ClinicalDecision = {
     // 1. Routing is legacy's, always.
@@ -220,7 +244,7 @@ export function canonicalToClinicalDecision(args: {
     // The controlling rule identifies the decision. matchedRuleIds is ordered by
     // governed precedence, so [0] is the controlling rule.
     recommendationCode: canonical.matchedRuleIds[0] ?? "CANONICAL-SAFETY-STOP",
-    nextAction: canonicalStopped
+    nextAction: stoppedForAnyReason
       ? "Clinician review required before this recommendation may be acted on."
       : canonical.provisionalRecommendation,
 
@@ -229,9 +253,13 @@ export function canonicalToClinicalDecision(args: {
     referralPriority,
     referralReason: referralRequired ? canonical.provisionalRecommendation : undefined,
 
-    recallRequired: recallIntervalMonths !== null,
-    recallIntervalMonths: recallIntervalMonths ?? undefined,
-    nextScreeningIntervalMonths: recallIntervalMonths ?? undefined,
+    // A stopped evaluation schedules nothing: it reached no outcome to recall
+    // against.
+    recallRequired: !canonicalStopped && recallIntervalMonths !== null,
+    recallIntervalMonths: canonicalStopped ? undefined : recallIntervalMonths ?? undefined,
+    nextScreeningIntervalMonths: canonicalStopped
+      ? undefined
+      : recallIntervalMonths ?? undefined,
 
     // Counter updates remain the legacy engine's: CG-NCSP-3.1.0 expresses no
     // counter semantics, and inventing them would be fabrication.
@@ -242,14 +270,15 @@ export function canonicalToClinicalDecision(args: {
     resetConsecutiveLowGrade: legacyDecision.resetConsecutiveLowGrade,
     resetUnsatisfactory: legacyDecision.resetUnsatisfactory,
 
-    requiresMDMReview: destination === "MDM" || legacyDecision.requiresMDMReview,
+    requiresMDMReview: destination === "MDM",
     requiresSwabRepeat: legacyDecision.requiresSwabRepeat,
 
-    clinicalWarnings: [
-      ...(legacyDecision.clinicalWarnings ?? []),
-      ...canonical.safetyNotices,
-      ...adapterNotices,
-    ],
+    // Legacy clinical warnings are NOT carried into an authoritative canonical
+    // decision. They are the other engine's clinical prose, and reproducing
+    // them here presented legacy text as part of the governed result — on a
+    // safety stop, as the only clinical sentences on the page. They remain on
+    // `legacyDecision` and are shown under the technical comparison.
+    clinicalWarnings: [...canonical.safetyNotices, ...adapterNotices],
     safetyOutcome,
     missingInformation:
       canonical.missingInformation.length > 0 ? canonical.missingInformation : undefined,
@@ -285,6 +314,11 @@ export function canonicalToClinicalDecision(args: {
 
   return {
     decision,
+    // The NARROW sense: the evaluation reached no outcome at all. A rule that
+    // matched and referred, but whose timing a clinician must set, has reached
+    // an outcome and is not a stop.
+    canonicalStopped,
+    safetyPriority: canonical.safetyPriority,
     adapterNotices,
     timingRequiresClinicianDetermination,
     timingClassificationKind: timing.kind,
@@ -300,19 +334,20 @@ export function findDeEscalations(
   legacy: ClinicalDecision
 ): string[] {
   const problems: string[] = [];
-  if (RISK_RANK[adapted.riskLevel] < RISK_RANK[legacy.riskLevel]) {
-    problems.push(`risk lowered ${legacy.riskLevel} → ${adapted.riskLevel}`);
-  }
-  if (legacy.referralRequired === true && adapted.referralRequired !== true) {
-    problems.push("referral removed");
-  }
-  if (
-    legacy.referralPriority &&
-    adapted.referralPriority &&
-    PRIORITY_RANK[adapted.referralPriority] < PRIORITY_RANK[legacy.referralPriority]
-  ) {
-    problems.push(`priority lowered ${legacy.referralPriority} → ${adapted.referralPriority}`);
-  }
+  // Only routing is guarded here, because only routing is legacy's to supply.
+  //
+  // Risk, referral priority and referral-required used to be compared too, and
+  // each comparison was a legacy floor in disguise: a governed result that
+  // stated no urgency, or sent a participant to programme follow-up rather than
+  // colposcopy, tripped the guard and the case silently reverted to the legacy
+  // recommendation. That is a governed DISAGREEMENT, not a normalisation bug,
+  // and it is recorded by `recordAuthorityComparison` for review instead of
+  // being overridden here.
+  //
+  // The failure mode this still catches is the one the adapter could actually
+  // cause: moving a participant onto a different pathway. Adapter bugs in the
+  // other fields surface as unmapped governed literals, which already fail
+  // closed to a safety stop.
   if (legacy.figure !== adapted.figure) {
     problems.push(`pathway changed ${legacy.figure} → ${adapted.figure}`);
   }

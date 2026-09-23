@@ -45,6 +45,13 @@ const DISPLAY_AND_PROVENANCE_ONLY = new Set([
   "validationStatus",
   "validationErrors",
   "validationWarnings",
+  // Identity semantics, not a clinical fact: it says whether the external
+  // identifier is an NHI so storage and display cannot assume it is one.
+  "identifierKind",
+  // The verbatim source row. The engine-facing facts are DERIVED from it, so
+  // forwarding it to ClinicalInput would be forwarding the same information
+  // twice in two shapes. It is preserved for display, persistence and audit.
+  "sourceEvidence",
 ]);
 
 test("every field on both models is forwarded to the engine", () => {

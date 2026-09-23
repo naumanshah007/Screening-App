@@ -8,11 +8,14 @@
  *    evaluations. Once the governed ruleset decides the case both statements are
  *    false. Shadow wording is retained for genuine SHADOW / SIMULATION records.
  *
- * 2. Inherited router escalation. decision-adapter.ts must never de-escalate
- *    below the legacy router, so a governance safety stop still carries the
- *    router's referral priority. That guardrail is correct and stays — but the
- *    canonical panel must not present the inherited escalation as though the
- *    governed rules determined a referral.
+ * 2. Inherited router escalation. A governance safety stop used to carry the
+ *    router's referral priority through the adapter's legacy floor. The floor is
+ *    gone — a stop now carries no referral or priority at all — and the panel
+ *    must still never present a routing artefact as a governed determination.
+ *
+ * The rest of the file locks the clinician-facing case view: six sections in a
+ * fixed order, source evidence only under Source inputs, no static diagram, and
+ * every technical detail in one closed disclosure.
  */
 
 import assert from "node:assert/strict";
@@ -101,104 +104,170 @@ test("the safety stop explains that any referral came from routing", () => {
 });
 
 // ─── Case Review structure ──────────────────────────────────────────────────
+//
+// The clinician view is six sections in a fixed order: case identity, source
+// inputs, decision, why, missing information (only when relevant) and an
+// optional decision path. Everything technical lives in ONE closed disclosure
+// below them. These tests lock that shape.
 
 const DETAIL = readFileSync(
   join(ROOT, "components", "batch", "BatchResultDetail.tsx"),
   "utf8"
 );
 
-test("routing and governed evaluation are separate sections", () => {
-  assert.match(DETAIL, /DrawerSection title="Routing"/, "routing must be its own section");
-  assert.match(
-    DETAIL,
-    /Pathway selection only/,
-    "the routing section must state it is selection only"
+test("the primary view is source inputs, decision, why — in that order", () => {
+  const order = ['title="Source inputs"', 'title="Decision"', 'title="Why"'];
+  let previous = -1;
+  for (const marker of order) {
+    const index = DETAIL.indexOf(marker);
+    assert.ok(index > -1, `missing section: ${marker}`);
+    assert.ok(index > previous, `${marker} is out of order in the clinician view`);
+    previous = index;
+  }
+});
+
+test("Source inputs renders source evidence, never normalised engine values", () => {
+  const section = DETAIL.slice(
+    DETAIL.indexOf("const sourceInputs"),
+    DETAIL.indexOf("// ── 4. Why")
   );
-  assert.match(
-    DETAIL,
-    /DrawerSection title="Why this recommendation\?"/,
-    "the governed evaluation must be its own section"
-  );
-  assert.match(
-    DETAIL,
-    /The router selects which pathway applies\. It does not produce the/,
-    "the router must be explicitly excluded from producing the recommendation"
+  for (const field of [
+    "evidence.screenCircumstanceText",
+    "evidence.hpvResultText",
+    "evidence.cytologyFollowUpText",
+    "evidence.relevantHistoryText",
+  ]) {
+    assert.ok(section.includes(field), `Source inputs must show ${field}`);
+  }
+  // The assumed sample type and the derived repeat stage are normalisation, not
+  // source facts, and belong under technical details.
+  assert.doesNotMatch(
+    section,
+    /inp\?\.sampleType|inp\?\.repeatStage|inp\?\.isTestOfCure/,
+    "assumed or derived engine values must not appear under Source inputs"
   );
 });
 
-test("diagnostics are three distinct states, not one 'not available' list", () => {
+test("the case identifier is never labelled NHI unless it is one", () => {
+  assert.match(
+    DETAIL,
+    /const identifierIsNhi = c\.identifierKind === "NHI" \|\| Boolean\(c\.nhi\)/,
+    "the NHI label must be conditional on the identifier actually being an NHI"
+  );
+  assert.match(
+    DETAIL,
+    /identifierIsNhi \? "NHI" : "Case"/,
+    'a synthetic case identifier must be labelled "Case"'
+  );
   assert.doesNotMatch(
     DETAIL,
-    /DrawerSection title="Information not available"/,
-    "the merged 'information not available' section must be gone"
+    /`NHI \$\{patientId\}`|NHI \$\{patientId\}/,
+    "the unconditional NHI subtitle must not come back"
   );
-  for (const title of [
-    "Missing information",
-    "Conflicting information",
-    "Other available facts",
+});
+
+test("no unsupported risk or priority badge appears in the clinician view", () => {
+  const primary = DETAIL.slice(
+    DETAIL.indexOf("<DetailDrawer"),
+    DETAIL.indexOf('title="Technical and audit details"')
+  );
+  assert.doesNotMatch(primary, /riskTone|RiskBadge|Risk: \{/, "no risk badge in the primary view");
+  assert.doesNotMatch(
+    primary,
+    /Urgent clinical priority|Priority \{decision\.referralPriority\}/,
+    "no unsupported urgency or P1/P2 badge in the primary view"
+  );
+});
+
+test("the four clinician-facing decision states are explicit", () => {
+  for (const state of [
+    "DECISION",
+    "NEEDS_INFORMATION",
+    "CLINICIAN_REVIEW",
+    "EVALUATION_UNAVAILABLE",
   ]) {
-    assert.ok(DETAIL.includes(`title="${title}"`), `missing section: ${title}`);
+    assert.ok(DETAIL.includes(state), `missing decision state: ${state}`);
   }
-  // An available-but-unused fact must never be described as missing.
-  assert.match(
+  // A completed evaluation that stopped is NEEDS INFORMATION or CLINICIAN
+  // REVIEW. "Pending" belongs only to a row that has not been evaluated.
+  assert.doesNotMatch(
     DETAIL,
-    /They are available, not missing\./,
-    "unused facts must be distinguished from missing ones"
-  );
-  assert.match(
-    DETAIL,
-    /None identified\./,
-    "an empty missing/conflicting list must say so rather than disappear"
+    /Governed evaluation pending/,
+    "an evaluated case must never be described as pending evaluation"
   );
 });
 
-test("a safety stop does not highlight a terminal in the diagram", () => {
-  assert.match(
+test("the static pathway diagram is gone from the case view", () => {
+  assert.doesNotMatch(
     DETAIL,
-    /activeCode=\{\s*governedSafetyStop \|\| isPreview\s*\?\s*undefined/,
-    "no governed rule matched means no highlighted terminal"
+    /FlowDiagram|getFigureById/,
+    "the hand-maintained figure graph must not be rendered for a specific case"
   );
-  assert.match(
+  assert.doesNotMatch(
     DETAIL,
-    /No governed terminal outcome was reached/,
-    "the safety-stop diagram must state no terminal was reached"
-  );
-  assert.match(
-    DETAIL,
-    /"Pathway context"\s*:\s*"Pathway to recommendation"/,
-    "the diagram title must reflect whether an outcome was reached"
+    /activeCode=/,
+    "no path may be inferred from a recommendation code"
   );
 });
 
-test("guideline basis is filtered but the full set stays reachable", () => {
-  assert.match(DETAIL, /DrawerSection title="Guideline basis"/);
-  assert.match(DETAIL, /rows=\{primaryReferences\}/, "the basis shows the relevant subset");
+test("the decision path comes from the persisted trace, or is hidden", () => {
   assert.match(
     DETAIL,
-    /title="Full ruleset references"/,
-    "the complete bibliography must remain available"
+    /tracePathSteps\(shadow\?\.branchPath\)/,
+    "the path must be derived from the persisted evaluation's own branch path"
   );
   assert.match(
     DETAIL,
-    /rows=\{allReferences\}/,
-    "the full disclosure must render every recorded reference"
+    /const hasTrustworthyTrace = Boolean\(shadow\) && traceSteps\.length > 0/,
+    "no trace means no path is shown at all"
+  );
+  assert.match(
+    DETAIL,
+    /\{hasTrustworthyTrace && \(/,
+    "the path section must be gated on a trustworthy trace"
   );
 });
 
-test("technical evidence is collapsed, reviewer controls are not", () => {
+test("missing information is only shown when there is something to ask", () => {
   assert.match(
     DETAIL,
-    /title="Technical governed evaluation"/,
-    "raw governed evidence must be collapsed"
-  );
-  assert.match(
-    DETAIL,
-    /title="Audit and provenance"/,
-    "provenance must be collapsed"
+    /\{missingFactNames\.length > 0 && \(\s*<DrawerSection title="Missing information">/,
+    "the section must be absent, not empty, when nothing is missing"
   );
   assert.ok(
-    DETAIL.indexOf('title="Reviewer record"') <
-      DETAIL.indexOf('title="Technical governed evaluation"'),
+    DETAIL.includes("MISSING_INFORMATION_QUESTION"),
+    "missing facts must be shown as plain-language questions, not raw fact names"
+  );
+});
+
+test("all technical material sits in ONE closed disclosure, below the decision", () => {
+  const technical = DETAIL.indexOf('title="Technical and audit details"');
+  assert.ok(technical > -1, "there must be a single technical disclosure");
+  for (const marker of [
+    "<AuthorityComparison",
+    "<CanonicalShadowEvidence",
+    '"Routing service"',
+    '"Recommendation code"',
+    "<Timeline events={provenance}",
+  ]) {
+    assert.ok(
+      DETAIL.indexOf(marker) > technical,
+      `${marker} must live inside the technical disclosure, not the clinician view`
+    );
+  }
+  assert.ok(
+    DETAIL.indexOf('title="Reviewer record"') < technical,
     "reviewer controls must appear before the technical evidence"
+  );
+  // The checksum, evaluation mode and ruleset version are only ever RENDERED
+  // inside that disclosure, via the provenance timeline it contains.
+  const primary = DETAIL.slice(
+    DETAIL.indexOf("<DetailDrawer"),
+    technical
+  );
+  assert.doesNotMatch(
+    primary,
+    /rulesetChecksum|evaluationMode|ruleVersionDisplay|source\.engineVersion/,
+    "ruleset identity must not be rendered in the clinician view"
   );
 });

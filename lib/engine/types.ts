@@ -34,7 +34,18 @@ export type HistologyResult =
 
 export type TZType = "TYPE1" | "TYPE2" | "TYPE3";
 export type SampleType = "LBC" | "SWAB";
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+/**
+ * Patient-facing clinical risk.
+ *
+ * `NOT_ASSESSED` is not a low risk. It means no supported patient-specific risk
+ * was determined for this decision — which is the honest answer under governed
+ * authority, because CG-NCSP-3.1.0 states no participant risk at all. Its rule
+ * `safetyPriority` describes how dangerous a software mistake would be, and the
+ * legacy router's risk belongs to the router. Neither is this.
+ *
+ * Consumers must render it as "not assessed", never as a rung on the ladder.
+ */
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "URGENT" | "NOT_ASSESSED";
 export type ReferralPriority = "P1" | "P2" | "P3" | "P4";
 export type PathwayFigure =
   | "FIGURE_1"

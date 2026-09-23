@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 
-type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "URGENT" | "NOT_ASSESSED";
 type Priority =
   | "P1" | "P1_HSC" | "P2" | "P2_HSC" | "P3" | "P4" | "P5"
   | "REJECT" | "DECLINE" | "INFO_REQUIRED";
@@ -58,6 +58,9 @@ export function Badge({ children, variant = "default", size = "sm", className }:
 }
 
 const riskMeta: Record<RiskLevel, { variant: BadgeProps["variant"]; label: string }> = {
+  // The absence of a risk judgement, not a rung on the ladder. Rendered neutral
+  // so it can never read as "low risk".
+  NOT_ASSESSED: { variant: "default", label: "Not assessed" },
   LOW:    { variant: "low",    label: "Low risk" },
   MEDIUM: { variant: "medium", label: "Moderate" },
   HIGH:   { variant: "high",   label: "High risk" },

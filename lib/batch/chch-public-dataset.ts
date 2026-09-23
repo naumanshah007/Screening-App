@@ -6,401 +6,282 @@
  *
  * Source: CerviGrade_SurveyGrid_30_Synthetic_Patients.xlsx
  *
- * DEMO DATA — NOT REAL PATIENT DATA. These cases are fictional and were
- * authored by the vendor to exercise specific decision-engine branches
- * (HPV16/18 direct pathway, non-16/18 triage, persistence, history
- * overrides, workflow/data-quality flags, and reassuring low-risk cases).
+ * DEMO DATA — NOT REAL PATIENT DATA.
  *
- * Each case below carries the vendor's own "Demo priority" and "Expected
- * behaviour" note as a comment, so a reviewer can pull this source and
- * compare the engine's actual output against what the vendor expects.
+ * HOW TO READ THIS FILE
+ * ---------------------
+ * The source rows live in `chch-source-records.ts` and are the oracle. This file
+ * derives engine-facing facts FROM them. Each case therefore carries:
+ *
+ *   - `sourceEvidence`  — the verbatim row, the precise HPV genotype and the
+ *     cytology state. Never reconstructed from anything downstream.
+ *   - `hpvResult`       — the legacy engine's four-value projection of the
+ *     genotype. HPV_16 and HPV_18 both project to HPV_16_18 at this boundary
+ *     only; the precise value survives on `sourceEvidence` and in the canonical
+ *     facts.
+ *   - `cytologyResult`  — set ONLY from a genuine current result. Pending,
+ *     missing, not required, no current sample, prior-only and unspecified all
+ *     leave it absent, and remain distinguishable via the cytology state.
+ *   - the `history` overrides below — only facts the source text actually
+ *     states. A scoped negative ("No previous CIN") is not a previous normal
+ *     screening result and is not recorded as one.
+ *
+ * The vendor's "Demo priority" and "Expected behaviour" columns are partner
+ * expectations, not guideline authority. They are deliberately not encoded: a
+ * field that exists can be used to tune inputs until the expected answer
+ * appears.
  */
 
 import type { CanonicalBatchCase } from "./types";
 import { ENGINE_VERSION } from "./processor";
+import {
+  CHCH_MAPPING_VERSION,
+  CHCH_SOURCE_EVIDENCE,
+  CHCH_SOURCE_FILE_NAME,
+} from "./chch-source-records";
+import { currentCytologyResult, legacyHpvResult } from "./source-evidence";
 
 const CHCH_PUBLIC_SOURCE_IMPORTED_AT = "2026-09-22T09:00:00.000Z";
 
 const CHCH_PUBLIC_SOURCE_BASE = {
   sourceType: "chchPublic" as const,
   sourceSystem: "CHCH Public",
-  sourceFileName: "CerviGrade_SurveyGrid_30_Synthetic_Patients.xlsx",
-  mappingVersion: "chch-public-v1",
+  sourceFileName: CHCH_SOURCE_FILE_NAME,
+  mappingVersion: CHCH_MAPPING_VERSION,
   engineVersion: ENGINE_VERSION,
 };
 
-function chchCase(
-  rowNumber: number,
-  externalPatientId: string,
-  patientName: string,
-  label: string,
-  fields: Partial<CanonicalBatchCase>
-): CanonicalBatchCase {
-  return {
-    caseId: crypto.randomUUID(),
-    label,
-    patientName,
-    source: {
-      ...CHCH_PUBLIC_SOURCE_BASE,
-      rowNumber,
-      importedAt: CHCH_PUBLIC_SOURCE_IMPORTED_AT,
-      externalPatientId,
-    },
+/**
+ * Facts the source states in prose, mapped to the engine contract, per case.
+ *
+ * Only cases that need one appear. A case with no entry states no history fact
+ * the engine can consume — which is a result, not an omission.
+ */
+const DERIVED_FACTS: Record<string, Partial<CanonicalBatchCase>> = {
+  // "No previous CIN" is a scoped negative about CIN. It is not a previous
+  // normal screening result, and screening history is not established by it.
+  "chch-001": {},
 
-    // Values the source does not state.
-    //
-    // These are assumptions, not facts, and the rulebook is explicit that
-    // unknown is never equivalent to false (§20) — so they are declared in
-    // lib/batch/chch-public-assumptions.ts with their basis, the rules they
-    // affect, and a clinician approval field, rather than sitting here as bare
-    // literals nobody can review. Seven of them are typed as required on both
-    // CanonicalBatchCase and ClinicalInput, so a value must be supplied; the
-    // manifest is what makes the supplied value auditable.
-    //
-    // CHCH_PUBLIC_ASSUMPTIONS is the reviewable record of the list below.
-    repeatStage: "BASELINE",
-    isFirstTimeHPVTransition: false,
-    isPostHysterectomy: false,
-    immunocompromised: false,
-    atypicalEndometrialHistory: false,
-    consecutiveNegativeCoTestCount: 0,
-    consecutiveLowGradeCount: 0,
-    unsatisfactoryCytologyCount: 0,
-    sampleType: "LBC",
+  // "No relevant history" states nothing about prior results.
+  "chch-002": {},
 
-    // Validation
-    validationStatus: "valid",
-    validationErrors: [],
-    validationWarnings: [],
-
-    ...fields,
-  };
-}
-
-export const CHCH_PUBLIC_DATASET: CanonicalBatchCase[] = [
-  // chch-001 · Aroha T., 34 · Demo priority: High
-  // Expected: Direct colposcopy pathway; do not wait for cytology before prioritising.
-  chchCase(1, "chch-001", "Aroha T.", "First HPV screen — HPV16, cytology pending", {
-    patientAge: 34,
-    hpvResult: "HPV_16_18",
+  // "Previous screening normal" — a previous result the source does report.
+  "chch-003": {
     screeningHistoryKnown: true,
     priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  },
 
-  // chch-002 · Emma R., 42 · Demo priority: High
-  // Expected: Keep high priority despite negative cytology; route to colposcopy pathway.
-  chchCase(2, "chch-002", "Emma R.", "Routine screening — HPV18, negative cytology", {
-    patientAge: 42,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "NEGATIVE",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  // "No previous abnormal history" — absence of an abnormality is not a
+  // recorded normal result.
+  "chch-004": {},
 
-  // chch-003 · Mereana K., 39 · Demo priority: Very High
-  // Expected: Urgent clinical action; genotype plus high-grade cytology should surface prominently.
-  chchCase(3, "chch-003", "Mereana K.", "Routine screening — HPV16, HSIL", {
-    patientAge: 39,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "HSIL",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
-
-  // chch-004 · Sophie L., 31 · Demo priority: Intermediate
-  // Expected: Apply cytology-based triage for non-16/18 hrHPV and route for appropriate review/follow-up.
-  chchCase(4, "chch-004", "Sophie L.", "Routine screening — HPV Other, ASC-US", {
-    patientAge: 31,
-    hpvResult: "HPV_OTHER",
-    cytologyResult: "ASC_US",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
-
-  // chch-005 · Priya S., 46 · Demo priority: High
-  // Expected: Recognise persistent high-risk HPV and escalate based on longitudinal history.
-  chchCase(5, "chch-005", "Priya S.", "12-month follow-up — HPV18 persistent, negative cytology", {
-    patientAge: 46,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "NEGATIVE",
+  // "12-month follow-up" with "HPV positive 12 months earlier".
+  //
+  // The repeat context is the stated circumstance. What is NOT stated is the
+  // earlier genotype: "HPV positive" does not establish that the same HPV18 is
+  // persisting, so no persistence claim is made here or in the label.
+  "chch-005": {
     repeatContext: "PRIMARY_HPV",
     repeatStage: "FIRST_REPEAT",
-    screeningHistoryKnown: true,
-  }),
+    previousHpv1618Episode: undefined,
+  },
 
-  // chch-006 · Hana W., 29 · Demo priority: Surveillance
-  // Expected: Create follow-up/safety-net interval rather than immediate high-priority escalation.
-  chchCase(6, "chch-006", "Hana W.", "First screen — HPV Other, negative cytology", {
-    patientAge: 29,
-    hpvResult: "HPV_OTHER",
-    cytologyResult: "NEGATIVE",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  "chch-006": {},
 
-  // chch-007 · Olivia M., 51 · Demo priority: Very High
-  // Expected: History override; prior high-grade disease plus HPV16 should trigger high-priority review.
-  chchCase(7, "chch-007", "Olivia M.", "Post-treatment surveillance — HPV16, treated CIN3", {
-    patientAge: 51,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "NEGATIVE",
+  // "Treated CIN3 three years ago" + "Post-treatment surveillance".
+  //
+  // CIN3 and the treatment are both stated, so the high-grade history is real.
+  // The exact treatment date is not stated and is not invented; Test of Cure
+  // stage and status stay unknown.
+  "chch-007": {
     previousHSILCIN23: true,
     priorHighGradeResult: true,
-    screeningHistoryKnown: true,
-    // "Post-treatment surveillance" after treated CIN3 is Test of Cure by
-    // definition, so the episode context is stated by the source.
     isTestOfCure: true,
     repeatContext: "TEST_OF_CURE",
-    // Stage and status are NOT stated. The source says "three years ago" and
-    // Test of Cure is annual, so this could be any test in the sequence;
-    // FIRST_TEST and INCOMPLETE were asserted here because they produced the
-    // expected priority, which is not a reason. Left unknown.
-  }),
+  },
 
-  // chch-008 · Lucy P., 37 · Demo priority: High / Workflow
-  // Expected: Flag incomplete triage pathway and place in action/reviewer queue.
-  chchCase(8, "chch-008", "Lucy P.", "HPV-positive screen — HPV18, cytology missing", {
-    patientAge: 37,
-    hpvResult: "HPV_16_18",
-    historySourceAvailable: true,
-  }),
+  // "Sample collected 18 days ago" is the age of a specimen. It says nothing
+  // about whether a history source is available, and is no longer read as
+  // though it did.
+  "chch-008": {},
 
-  // chch-009 · Grace N., 44 · Demo priority: High / Safety net
-  // Expected: Flag overdue follow-up and surface for active recall.
-  chchCase(9, "chch-009", "Grace N.", "Overdue follow-up — prior HPV16, no new sample", {
-    patientAge: 44,
+  // "Overdue follow-up", overdue by 5 months, previous HPV16 result, no new
+  // sample. The previous positive is an HPV episode, not high-grade disease.
+  // Whether the earlier referral happened is unknown, not false.
+  "chch-009": {
     screeningStatus: "OVERDUE",
-    // "HPV 16 positive (previous)" is a previous screening result, not previous
-    // high-grade disease. It was mapped to priorHighGradeResult, which promoted
-    // a genotype to a cytology/histology finding the source never reports and
-    // routed the case into Figure 2, whose entry criteria (F2-01) it does not
-    // meet. Recorded for what it is.
     previousHpv1618Episode: true,
-    // No new sample, so nothing establishes whether the earlier referral
-    // happened. Left unknown rather than false.
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "UNKNOWN",
-    historySourceAvailable: true,
-  }),
+  },
 
-  // chch-010 · Isabella C., 36 · Demo priority: Manual Review
-  // Expected: Do not auto-close; flag unresolved previous high-risk episode and missing outcome.
-  chchCase(10, "chch-010", "Isabella C.", "Current routine screen — HPV not detected, unresolved prior HPV16", {
-    patientAge: 36,
-    hpvResult: "NOT_DETECTED",
-    // "Previous HPV16 positive; colposcopy outcome not documented."
-    //
-    // Two separate facts, both stated. The previous positive is an HPV episode,
-    // not high-grade disease — the earlier priorHighGradeResult mapping
-    // asserted a cytology/histology finding the source does not report.
+  // "Previous HPV16 positive; colposcopy outcome not documented" — two stated
+  // facts. The outcome is explicitly undocumented, which is unknown, not false:
+  // false would assert the colposcopy did not happen.
+  "chch-010": {
     previousHpv1618Episode: true,
-    // "outcome not documented" — explicitly unknown, deliberately not false.
-    // false would assert the colposcopy did not happen; the source says only
-    // that nobody recorded what it found.
     colposcopyCompletedForLastRecommendation: undefined,
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "UNKNOWN",
-    historySourceAvailable: false,
-  }),
+  },
 
-  // chch-011 · Charlotte B., 33 · Demo priority: High
-  // Expected: Prioritise HPV16 pathway and show LSIL as an additional clinical signal.
-  chchCase(11, "chch-011", "Charlotte B.", "First HPV screen — HPV16, LSIL", {
-    patientAge: 33,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "LSIL",
+  "chch-011": {},
+
+  "chch-012": {
     screeningHistoryKnown: true,
     priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  },
 
-  // chch-012 · Mia H., 48 · Demo priority: High
-  // Expected: Route based on HPV18 status; cytology should remain visible but not downgrade the pathway.
-  chchCase(12, "chch-012", "Mia H.", "Routine screening — HPV18, ASC-US", {
-    patientAge: 48,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "ASC_US",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
-
-  // chch-013 · Ruby D., 41 · Demo priority: Very High
-  // Expected: Detect persistent HPV16 and elevate for prompt clinical review.
-  chchCase(13, "chch-013", "Ruby D.", "12-month surveillance — HPV16 persistent, negative cytology", {
-    patientAge: 41,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "NEGATIVE",
+  // "HPV16 also detected 12 months ago" — the SAME genotype, explicitly. Unlike
+  // chch-005, persistence is what the source says.
+  "chch-013": {
     repeatContext: "PRIMARY_HPV",
     repeatStage: "FIRST_REPEAT",
-    screeningHistoryKnown: true,
-  }),
+    previousHpv1618Episode: true,
+  },
 
-  // chch-014 · Amelia J., 35 · Demo priority: Very High
-  // Expected: Surface immediately; high-risk genotype plus HSIL demonstrates combined-rule escalation.
-  chchCase(14, "chch-014", "Amelia J.", "Routine screening — HPV18, HSIL", {
-    patientAge: 35,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "HSIL",
-    historySourceAvailable: false,
-  }),
+  // "No prior CIN recorded" is absence of documentation about CIN. It is not a
+  // statement that history sources are unavailable.
+  "chch-014": {},
 
-  // chch-015 · Zoe F., 28 · Demo priority: High
-  // Expected: Demonstrate that negative cytology does not neutralise an HPV16-driven referral pathway.
-  chchCase(15, "chch-015", "Zoe F.", "First HPV screen — HPV16, negative cytology", {
-    patientAge: 28,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "NEGATIVE",
+  "chch-015": {},
+
+  // One unsatisfactory result is reported. A count of consecutive
+  // unsatisfactory results is not, so none is asserted.
+  "chch-016": {},
+
+  "chch-017": {
     screeningHistoryKnown: true,
     priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  },
 
-  // chch-016 · Ella C., 54 · Demo priority: High / Workflow
-  // Expected: Flag HPV18 and inadequate cytology; route for clinical action and required specimen/cytology resolution.
-  chchCase(16, "chch-016", "Ella C.", "Routine screening — HPV18, cytology unsatisfactory", {
-    patientAge: 54,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "UNSATISFACTORY",
-    unsatisfactoryCytologyCount: 1,
-  }),
-
-  // chch-017 · Maia R., 32 · Demo priority: Intermediate
-  // Expected: Apply non-16/18 triage logic and schedule the appropriate clinical pathway.
-  chchCase(17, "chch-017", "Maia R.", "Routine screening — HPV Other, LSIL", {
-    patientAge: 32,
-    hpvResult: "HPV_OTHER",
-    cytologyResult: "LSIL",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
-
-  // chch-018 · Sarah K., 45 · Demo priority: Very High
-  // Expected: Use previous CIN2 plus current HPV16 as a history-based escalation trigger.
-  chchCase(18, "chch-018", "Sarah K.", "Post-colposcopy surveillance — HPV16, prior CIN2", {
-    patientAge: 45,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "NEGATIVE",
-    // "Previous CIN2; surveillance episode."
-    //
-    // CIN2 is high-grade, so the history itself is stated. Treatment is NOT:
-    // the source says "surveillance episode", and CIN2 is frequently managed by
-    // observation rather than excision. Test of Cure presupposes treatment, so
-    // isTestOfCure was an assumption made to obtain the expected priority, not
-    // a fact. Removed — treatment status stays unknown, which produces a stop
-    // for records rather than a terminal recommendation.
+  // "Previous CIN2; surveillance episode". CIN2 is high-grade, so the history
+  // is stated. Treatment is NOT: CIN2 is frequently observed rather than
+  // excised, and Test of Cure presupposes treatment.
+  "chch-018": {
     previousHSILCIN23: true,
     priorHighGradeResult: true,
-    screeningHistoryKnown: true,
-  }),
+  },
 
-  // chch-019 · Anika P., 38 · Demo priority: High / Manual Review
-  // Expected: Recognise possible persistence and missing follow-up documentation; place in reviewer queue.
-  chchCase(19, "chch-019", "Anika P.", "Routine screening — HPV18 persistent, follow-up docs incomplete", {
-    patientAge: 38,
-    hpvResult: "HPV_16_18",
-    cytologyResult: "NEGATIVE",
-    // "Previous HPV18 result" — an HPV episode, recorded as one.
+  // "Previous HPV18 result; follow-up documentation incomplete" on a ROUTINE
+  // screen. No interval and no ordinal are stated, so no repeat stage is
+  // invented, and incomplete documentation is not widened into "history source
+  // unavailable".
+  "chch-019": {
     previousHpv1618Episode: true,
-    // "follow-up documentation incomplete" — the outcome is not on record.
-    repeatContext: "PRIMARY_HPV",
-    repeatStage: "FIRST_REPEAT",
-    historySourceAvailable: false,
-  }),
+  },
 
-  // chch-020 · Jessica W., 50 · Demo priority: Routine / Low
-  // Expected: Demonstrate a straightforward low-risk case that can move through the routine pathway.
-  chchCase(20, "chch-020", "Jessica W.", "Routine screening — HPV not detected, negative cytology", {
-    patientAge: 50,
-    hpvResult: "NOT_DETECTED",
-    cytologyResult: "NEGATIVE",
+  // "Prior screening up to date; no high-grade history". Up to date is the
+  // screening status. "No high-grade history" is an explicitly reported absence
+  // of high-grade disease — which is not the same as a recorded normal result,
+  // so no prior-history category is asserted.
+  "chch-020": {
     screeningStatus: "REGULAR_SCREENING",
+    priorHighGradeResult: false,
+  },
+
+  "chch-021": {},
+
+  "chch-022": {
     screeningHistoryKnown: true,
     priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  },
 
-  // chch-021 · Mia H., 33 · Demo priority: Low
-  // Expected: Routine screening pathway; no immediate clinical action. Return to standard recall interval.
-  chchCase(21, "chch-021", "Mia H.", "Routine screening — HPV not detected", {
-    patientAge: 33,
-    hpvResult: "NOT_DETECTED",
+  "chch-023": {},
+
+  // "Previous HPV-negative screen" — a previous result the source reports.
+  "chch-024": {
     screeningHistoryKnown: true,
     priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  },
 
-  // chch-022 · Charlotte B., 41 · Demo priority: Low
-  // Expected: No escalation. Maintain routine screening recall and close current screening episode if complete.
-  chchCase(22, "chch-022", "Charlotte B.", "Routine screening — HPV not detected", {
-    patientAge: 41,
-    hpvResult: "NOT_DETECTED",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
+  // "First hrHPV-positive episode" supports the baseline stage; "no previous
+  // CIN" stays a scoped negative.
+  "chch-025": {},
 
-  // chch-023 · Leilani F., 28 · Demo priority: Low
-  // Expected: Routine low-priority case. Record result and set standard recall without entering review queue.
-  chchCase(23, "chch-023", "Leilani F.", "First HPV screen — HPV not detected", {
-    patientAge: 28,
-    hpvResult: "NOT_DETECTED",
-  }),
+  "chch-026": {},
 
-  // chch-024 · Amelia J., 48 · Demo priority: Low
-  // Expected: No abnormal trigger. Standard recall only.
-  chchCase(24, "chch-024", "Amelia J.", "Routine screening — HPV not detected", {
-    patientAge: 48,
-    hpvResult: "NOT_DETECTED",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
-
-  // chch-025 · Ruby D., 36 · Demo priority: Low / Surveillance
-  // Expected: Place in surveillance pathway rather than urgent review; create follow-up/safety-net tracking.
-  chchCase(25, "chch-025", "Ruby D.", "Routine screening — HPV Other, first positive episode", {
-    patientAge: 36,
-    hpvResult: "HPV_OTHER",
-    cytologyResult: "NEGATIVE",
-    repeatStage: "BASELINE",
-  }),
-
-  // chch-026 · Nina V., 32 · Demo priority: Low / Surveillance
-  // Expected: Non-16/18 hrHPV with reassuring triage result. Route to surveillance, track follow-up interval.
-  chchCase(26, "chch-026", "Nina V.", "Routine screening — HPV Other, negative cytology", {
-    patientAge: 32,
-    hpvResult: "HPV_OTHER",
-    cytologyResult: "NEGATIVE",
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "NEGATIVE_OR_NORMAL",
-  }),
-
-  // chch-027 · Ella C., 45 · Demo priority: Low
-  // Expected: Reassuring follow-up result. Do not retain prior abnormality as active once pathway is satisfied.
-  chchCase(27, "chch-027", "Ella C.", "Follow-up screen — prior HPV Other now HPV not detected", {
-    patientAge: 45,
-    hpvResult: "NOT_DETECTED",
+  // "Previous non-16/18 hrHPV positive; follow-up now HPV negative" on a
+  // "Follow-up screen". The repeat context is stated; the ordinal is not, so no
+  // first/second repeat is asserted. The previous negative cytology is a PRIOR
+  // result and is held on the source evidence — never as a current one.
+  "chch-027": {
     repeatContext: "PRIMARY_HPV",
-    repeatStage: "FIRST_REPEAT",
-  }),
+  },
 
-  // chch-028 · Anika P., 38 · Demo priority: Low
-  // Expected: Historical minor abnormality should not create unnecessary escalation when current pathway is reassuring.
-  chchCase(28, "chch-028", "Anika P.", "Routine screening — HPV not detected, resolved historical ASC-US", {
-    patientAge: 38,
-    hpvResult: "NOT_DETECTED",
+  // "Previous ASC-US several years earlier with subsequent normal follow-up".
+  // The prior low-grade result is stated. A formal return to regular screening
+  // is not: "subsequent normal follow-up" is not a recorded discharge decision.
+  "chch-028": {
     priorLowGradeResult: true,
-    screeningHistoryKnown: true,
-    priorScreeningHistory: "LOW_GRADE_RETURNED_TO_REGULAR",
-  }),
+  },
 
-  // chch-029 · Zoe R., 52 · Demo priority: Low / Surveillance
-  // Expected: Track as surveillance rather than urgent referral. Separates non-16/18 hrHPV from HPV16/18 pathways.
-  chchCase(29, "chch-029", "Zoe R.", "Routine screening — HPV Other, first positive result", {
-    patientAge: 52,
-    hpvResult: "HPV_OTHER",
-    cytologyResult: "NEGATIVE",
-    repeatStage: "BASELINE",
-  }),
+  // "No previous CIN; first positive result" — the first positive supports the
+  // baseline stage; no previous CIN stays a scoped negative.
+  "chch-029": {},
 
-  // chch-030 · Sienna G., 30 · Demo priority: Low
-  // Expected: Routine screening result. No clinical-review alert; standard recall and audit record only.
-  chchCase(30, "chch-030", "Sienna G.", "Routine screening — HPV not detected", {
-    patientAge: 30,
-    hpvResult: "NOT_DETECTED",
-  }),
-];
+  "chch-030": {},
+};
+
+/**
+ * Short display label.
+ *
+ * Built from the source cells, so it cannot drift from them and cannot assert
+ * something the source does not say (the old labels claimed "HPV18 persistent"
+ * for a row that only said "HPV positive 12 months earlier").
+ */
+function labelFor(circumstance: string, hpv: string, cytology: string) {
+  return `${circumstance} — ${hpv}, ${cytology.toLowerCase()}`;
+}
+
+export const CHCH_PUBLIC_DATASET: CanonicalBatchCase[] =
+  CHCH_SOURCE_EVIDENCE.map((evidence, index) => {
+    const derived = DERIVED_FACTS[evidence.caseId] ?? {};
+    return {
+      caseId: crypto.randomUUID(),
+      label: labelFor(
+        evidence.screenCircumstanceText,
+        evidence.hpvResultText,
+        evidence.cytologyFollowUpText
+      ),
+      patientName: evidence.patientName,
+      // chch-NNN is a synthetic case identifier, not an NHI. Stated explicitly
+      // so storage and display cannot quietly treat it as one.
+      identifierKind: evidence.identifierKind,
+      sourceEvidence: evidence,
+      source: {
+        ...CHCH_PUBLIC_SOURCE_BASE,
+        rowNumber: index + 1,
+        importedAt: CHCH_PUBLIC_SOURCE_IMPORTED_AT,
+        externalPatientId: evidence.caseId,
+      },
+
+      patientAge: evidence.age,
+
+      // Derived from the source evidence, at the legacy boundary only.
+      hpvResult: legacyHpvResult(evidence.hpvGenotype),
+      cytologyResult: currentCytologyResult(evidence),
+
+      // Values the source does not state.
+      //
+      // These are assumptions, not facts, and the rulebook is explicit that
+      // unknown is never equivalent to false (§20) — so they are declared in
+      // lib/batch/chch-public-assumptions.ts with their basis, the rules they
+      // affect, and a clinician approval field, rather than sitting here as
+      // bare literals nobody can review.
+      repeatStage: "BASELINE",
+      isFirstTimeHPVTransition: false,
+      isPostHysterectomy: false,
+      immunocompromised: false,
+      atypicalEndometrialHistory: false,
+      consecutiveNegativeCoTestCount: 0,
+      consecutiveLowGradeCount: 0,
+      unsatisfactoryCytologyCount: 0,
+      // Sample type is NOT stated by any row. It is supplied because the type
+      // requires it; it is declared as an assumption and must never be shown as
+      // a source fact.
+      sampleType: "LBC",
+
+      validationStatus: "valid",
+      validationErrors: [],
+      validationWarnings: [],
+
+      ...derived,
+    } satisfies CanonicalBatchCase;
+  });

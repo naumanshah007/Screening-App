@@ -24,6 +24,7 @@
     "typecheck": "prisma generate && tsc --noEmit",
     "demo:reset": "tsx scripts/demo-reset.ts",
     "demo:chch:provision": "tsx scripts/demo/create-chch-admin-user.ts",
+    "demo:chch:prepare-run": "tsx scripts/demo/prepare-chch-evaluation-run.ts",
     "chch:assumptions": "tsx scripts/demo/print-chch-assumptions.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",

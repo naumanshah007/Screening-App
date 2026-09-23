@@ -32,6 +32,7 @@ import type {
   ColposcopicImpression,
 } from "@/lib/engine/types";
 import type { CanonicalClinicalFactsV2 } from "@/lib/clinical-rules/canonical-facts-v2";
+import type { CaseIdentifierKind, CaseSourceEvidence } from "./source-evidence";
 
 // ─── Layer 1: Raw Source Row ─────────────────────────────────────────────────
 
@@ -144,6 +145,23 @@ export interface CanonicalBatchCase {
   patientName?: string;
   /** NHI (National Health Index) number. Display only. */
   nhi?: string;
+  /**
+   * What kind of identifier `source.externalPatientId` is.
+   *
+   * A synthetic evaluation case ID is not an NHI, and labelling it as one in the
+   * UI or promoting it into the stored `nhi` column are both wrong. Absent means
+   * "not stated"; callers must not assume NHI.
+   */
+  identifierKind?: CaseIdentifierKind;
+  /**
+   * What the source document actually said, verbatim, plus the result states the
+   * engine enums cannot express.
+   *
+   * Everything else on this object is DERIVED from this. Never the reverse: a
+   * source fact reconstructed from an authored label or an engine value is not
+   * source evidence.
+   */
+  sourceEvidence?: CaseSourceEvidence;
   /** Referring GP practice name. Display only. */
   gpPractice?: string;
   /** ISO-8601 date the referral/result was received by the source system. */

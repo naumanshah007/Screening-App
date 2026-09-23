@@ -134,7 +134,10 @@ export async function POST(req: NextRequest) {
     data: {
       activeModule: decision.figure,
       activeModuleVersion: decision.ruleVersion,
-      currentRiskLevel: decision.riskLevel,
+      // The stored column is a closed database enum. NOT_ASSESSED is the
+      // engine's way of saying no patient risk was determined, and the honest
+      // storage for that is null rather than a manufactured rung.
+      currentRiskLevel: decision.riskLevel === "NOT_ASSESSED" ? null : decision.riskLevel,
       recommendation: decision.recommendation,
       recommendationCode: decision.recommendationCode,
       nextScreeningDue: decision.recallIntervalMonths
@@ -155,7 +158,7 @@ export async function POST(req: NextRequest) {
       triggeredByResultId: testResult?.id,
       createdByUserId: userId,
       pathwayFigure: decision.figure,
-      riskLevel: decision.riskLevel,
+      riskLevel: decision.riskLevel === "NOT_ASSESSED" ? null : decision.riskLevel,
     },
   });
 

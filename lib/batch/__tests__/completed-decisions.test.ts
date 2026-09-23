@@ -103,18 +103,20 @@ test("completed decision where clause supports safe filters", () => {
 });
 
 test("urgency filters distinguish mandatory, urgent, and routine", () => {
+  // Urgent means a P1 WITH GOVERNED PROVENANCE.
+  //
+  // riskLevel is deliberately absent from the predicate: under governed
+  // authority the decision determines no patient risk (NOT_ASSESSED), and the
+  // legacy router's URGENT is a routing artefact. Filtering on it returned
+  // cases nobody could act on as urgent.
+  const governedUrgent = {
+    authorityEngine: "CANONICAL",
+    referralPriority: { in: ["P1", "P1_HSC"] },
+  };
   assert.deepEqual(buildUrgencyWhere("mandatory"), { reviewRequired: true });
-  assert.deepEqual(buildUrgencyWhere("urgent"), {
-    OR: [
-      { riskLevel: "URGENT" },
-      { referralPriority: { in: ["P1", "P1_HSC"] } },
-    ],
-  });
+  assert.deepEqual(buildUrgencyWhere("urgent"), governedUrgent);
   assert.deepEqual(buildUrgencyWhere("routine"), {
     reviewRequired: false,
-    NOT: [
-      { riskLevel: "URGENT" },
-      { referralPriority: { in: ["P1", "P1_HSC"] } },
-    ],
+    NOT: [governedUrgent],
   });
 });

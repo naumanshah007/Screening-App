@@ -468,9 +468,16 @@ function evaluateFigure3(input: ClinicalInput): ClinicalDecision {
     return withDefaults({
       figure: "FIGURE_3",
       riskLevel: highGrade ? "URGENT" : "HIGH",
-      recommendation: input.cytologyResult
-        ? "HPV 16/18 detected. Cytology is available; refer to colposcopy."
-        : "HPV 16/18 detected. Cytology should be reported if LBC, but colposcopy referral is required.",
+      // The high-grade case must say so in the sentence a clinician reads, not
+      // only in the recommendation code and the priority field. Both variants
+      // previously rendered the identical "Cytology is available" text, so a
+      // reviewer comparing an urgent P1 case against a routine P2 case saw the
+      // same words and no stated reason for the difference.
+      recommendation: highGrade
+        ? `HPV 16/18 detected with high-grade cytology (${input.cytologyResult}). Refer to colposcopy as an urgent referral.`
+        : input.cytologyResult
+          ? `HPV 16/18 detected with ${input.cytologyResult} cytology. Refer to colposcopy.`
+          : "HPV 16/18 detected. Cytology should be reported if LBC, but colposcopy referral is required.",
       recommendationCode: highGrade ? "F3-1618-HIGH-GRADE-COLP" : "F3-1618-COLP",
       nextAction: "Refer to colposcopy.",
       referralRequired: true,

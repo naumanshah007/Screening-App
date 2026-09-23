@@ -107,13 +107,35 @@ export async function POST(req: NextRequest) {
       safeLogError("batch.preview.episode_classification_unavailable", error);
     }
 
+    // ── Allowlist, not object spread ──────────────────────────────────────
+    //
+    // The response used to spread the legacy decision and then blank a handful
+    // of fields. Everything not named survived: recallIntervalMonths,
+    // recallRequired, referralRequired, nextScreeningIntervalMonths and
+    // riskLevel all reached the browser, and the drawer rendered the recall
+    // interval on a row that simultaneously said no recommendation existed.
+    //
+    // A preview may state ONLY the source facts and the routing outcome. If a
+    // field is not on this list it is not in the response, so a new field on
+    // ClinicalDecision cannot leak by default.
     const preview = {
-      ...result,
+      totalTimeMs: result.totalTimeMs,
+      processedCount: result.processedCount,
+      errorCount: result.errorCount,
+      errors: result.errors,
+      sourceType: result.sourceType,
+      sourceFileName: result.sourceFileName,
+      processedAt: result.processedAt,
+      engineVersion: result.engineVersion,
       previewOnly: true as const,
       previewGeneratedAt: new Date().toISOString(),
       episodeSummary: summariseClassifications(episodes),
       results: result.results.map((item, index) => ({
-        ...item,
+        case: item.case,
+        input: item.input,
+        processingTimeMs: item.processingTimeMs,
+        status: item.status,
+        error: item.error,
         episode: episodes[index]
           ? {
               classification: episodes[index].classification,
@@ -122,21 +144,19 @@ export async function POST(req: NextRequest) {
               matchedEpisodeId: episodes[index].matchedEpisodeId,
             }
           : null,
-        ...item,
         decision: {
-          ...item.decision,
-          // Routing output is retained: figure, risk and safety stops are what
-          // the reviewer needs in order to choose rows.
+          // Routing state only. The pathway is what the reviewer needs in
+          // order to choose rows, and it is the one thing that has actually
+          // been determined at this point.
+          figure: item.decision.figure,
           recommendation: PREVIEW_PENDING_TEXT,
           recommendationCode: PREVIEW_PENDING_CODE,
-          // No clinical action may be implied before governed evaluation.
-          referralPriority: null,
-          referralType: null,
-          repeatInterval: null,
-          // nextAction was still leaking a clinical instruction ("Refer to
-          // colposcopy") into the preview even after the recommendation itself
-          // was redacted.
           nextAction: PREVIEW_PENDING_ACTION,
+          // Safety stops are routing outcomes and are retained: they tell the
+          // reviewer this row cannot be graded, which is not a clinical action.
+          safetyOutcome: item.decision.safetyOutcome ?? null,
+          // Everything clinical is absent, not blanked: no risk level, no
+          // referral, no recall, no timing, no intervals.
         },
       })),
     };

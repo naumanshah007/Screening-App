@@ -29,7 +29,10 @@ export type GuidelineOverlay = {
   entries: Record<string, GuidelineOverlayEntry>;
 };
 
-const RISK_RANK: Record<RiskLevel, number> = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
+// NOT_ASSESSED is deliberately rank 0: it is the absence of a risk judgement,
+// so an overlay may never "raise" a case to it, and it never counts as a
+// de-escalation of one.
+const RISK_RANK: Record<RiskLevel, number> = { NOT_ASSESSED: 0, LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
 
 /**
  * Fields an overlay entry is permitted to touch. Anything outside this list

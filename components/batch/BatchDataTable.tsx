@@ -71,10 +71,18 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
                       )}
                     </td>
                     <td className="px-3 py-2.5">
+                      {/*
+                        A routing preview has no risk level, because nothing has
+                        been graded. The preview response no longer carries one
+                        at all, so this states the absence rather than rendering
+                        a badge from an undefined value.
+                      */}
                       {isError ? (
                         <Badge variant="urgent" size="sm">Error</Badge>
-                      ) : (
+                      ) : r.decision.riskLevel ? (
                         <RiskBadge risk={r.decision.riskLevel} size="sm" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not yet graded</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 max-w-[220px]">
@@ -138,9 +146,13 @@ export function BatchDataTable({ results, onViewDetail }: BatchDataTableProps) {
                       {r.case.label || r.case.source.externalPatientId || `Row ${r.case.source.rowNumber}`}
                     </p>
                   </div>
-                  {isError
-                    ? <Badge variant="urgent" size="sm">Error</Badge>
-                    : <RiskBadge risk={r.decision.riskLevel} size="sm" />}
+                  {isError ? (
+                    <Badge variant="urgent" size="sm">Error</Badge>
+                  ) : r.decision.riskLevel ? (
+                    <RiskBadge risk={r.decision.riskLevel} size="sm" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Not yet graded</span>
+                  )}
                 </div>
 
                 {isError ? (

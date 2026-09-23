@@ -1,4 +1,9 @@
 import type { BatchReviewDisposition } from "@prisma/client";
+import {
+  NO_SUPPORTED_PRIORITY_LABEL,
+  isSupportedUrgentPriority,
+  presentableReferralPriority,
+} from "@/lib/clinical-rules/priority-provenance";
 
 export type SimulatedPackageStatus = "SIMULATED_PACKAGE_READY";
 export type DecisionPackageFormat = "csv" | "fhir" | "hl7" | "json";
@@ -121,15 +126,20 @@ export type SimulatedDecisionPackage = {
 
 export const PACKAGE_STATUS_LABEL = "SIMULATED_PACKAGE_READY";
 
+/**
+ * Urgent for export/booking purposes.
+ *
+ * Only a priority with governed provenance counts. `riskLevel === "URGENT"` was
+ * removed: that value comes from the legacy router, and under governed
+ * authority the risk is NOT_ASSESSED, so counting it marked cases urgent on an
+ * artefact rather than on a clinical determination.
+ */
 export function isUrgentClinicalPriority(item: {
   riskLevel: string;
   referralPriority: string | null;
+  authorityEngine?: string | null;
 }) {
-  return (
-    item.riskLevel === "URGENT" ||
-    item.referralPriority === "P1" ||
-    item.referralPriority === "P1_HSC"
-  );
+  return isSupportedUrgentPriority(item);
 }
 
 export function formatDisposition(disposition: BatchReviewDisposition) {
@@ -397,7 +407,9 @@ export function buildSimulatedDecisionPackage(
     pasUpdate: {
       title: "Demo PAS update",
       bookingStatus: bookingStatusFor(disposition),
-      priority: item.referralPriority ?? item.riskLevel,
+      // A booking priority requires governed provenance. Falling back to
+      // riskLevel published the legacy router's risk as a booking instruction.
+      priority: presentableReferralPriority(item) ?? NO_SUPPORTED_PRIORITY_LABEL,
       notes: [
         "Simulated export package preview only.",
         `Final reviewer decision: ${decision}.`,

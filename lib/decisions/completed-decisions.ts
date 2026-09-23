@@ -122,6 +122,9 @@ const completedDecisionListSelect = {
   reviewNote: true,
   referralPriority: true,
   riskLevel: true,
+  // Needed to decide whether the priority above has governed provenance and may
+  // therefore be presented. See lib/clinical-rules/priority-provenance.ts.
+  authorityEngine: true,
   reviewRequired: true,
   reviewedBy: { select: { name: true, email: true } },
   batchRun: { select: { source: true, sourceSystem: true } },
@@ -172,22 +175,19 @@ function dateEnd(value: string | undefined) {
 
 export function buildUrgencyWhere(urgency?: string): Prisma.BatchReviewItemWhereInput | null {
   if (urgency === "mandatory") return { reviewRequired: true };
-  if (urgency === "urgent") {
-    return {
-      OR: [
-        { riskLevel: "URGENT" },
-        { referralPriority: { in: ["P1", "P1_HSC"] } },
-      ],
-    };
-  }
+  // Urgent means a P1 with governed provenance.
+  //
+  // riskLevel is no longer part of the predicate: under governed authority the
+  // decision determines no patient risk, and the legacy router's URGENT is a
+  // routing artefact. Filtering on it returned cases that are not urgent in any
+  // sense a clinician or booking clerk could act on.
+  const governedUrgent: Prisma.BatchReviewItemWhereInput = {
+    authorityEngine: "CANONICAL",
+    referralPriority: { in: ["P1", "P1_HSC"] },
+  };
+  if (urgency === "urgent") return governedUrgent;
   if (urgency === "routine") {
-    return {
-      reviewRequired: false,
-      NOT: [
-        { riskLevel: "URGENT" },
-        { referralPriority: { in: ["P1", "P1_HSC"] } },
-      ],
-    };
+    return { reviewRequired: false, NOT: [governedUrgent] };
   }
   return null;
 }

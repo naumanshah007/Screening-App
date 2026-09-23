@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge, RiskBadge, PriorityBadge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
@@ -78,12 +78,14 @@ const DISPOSITION_BADGE: Record<Disposition, { variant: "low" | "urgent" | "info
   NEEDS_INFO: { variant: "info", label: "Needs information" },
 };
 
-function patientNhi(item: WorklistItem) {
+/**
+ * The identifier to show for a row.
+ *
+ * NOT "the NHI". A synthetic evaluation case ID and a source patient ID are not
+ * National Health Index numbers, and this column never labels them as one.
+ */
+function caseIdentifier(item: WorklistItem) {
   return item.nhi ?? item.externalPatientId ?? `ROW-${String(item.rowNumber).padStart(3, "0")}`;
-}
-
-function isUrgentClinicalPriority(item: WorklistItem) {
-  return item.riskLevel === "URGENT" || item.referralPriority === "P1" || item.referralPriority === "P1_HSC";
 }
 
 export function WorklistClient({
@@ -454,8 +456,19 @@ export function WorklistClient({
                   <th className="min-w-[220px] px-3 py-2.5">Patient</th>
                   {showSource && <th className="min-w-[170px] px-3 py-2.5">Source</th>}
                   <th className="min-w-[170px] px-3 py-2.5">Referral</th>
-                  <th className="px-3 py-2.5">Risk</th>
-                  <th className="px-3 py-2.5">Priority</th>
+                  {/*
+                    Risk and Priority columns removed.
+                    ------------------------------------
+                    Both were engine artefacts rather than established clinical
+                    facts about the participant: the risk level came from the
+                    controlling rule's implementation safety severity, and the
+                    P1/P2 values came from a genotype-only rule and from a
+                    conditional urgent limb applied without its condition. No
+                    local booking policy was ever cited for either.
+
+                    The values remain persisted and are shown, with their
+                    provenance, in the case drawer's technical details.
+                  */}
                   <th className="min-w-[280px] px-3 py-2.5">Recommendation</th>
                   <th className="min-w-[150px] px-3 py-2.5">Status</th>
                   <th className="px-3 py-2.5 text-right">Actions</th>
@@ -465,7 +478,6 @@ export function WorklistClient({
 	                {visible.map((item) => {
 	                  const isSel = selected.has(item.id);
 	                  const dispMeta = DISPOSITION_BADGE[item.disposition];
-	                  const urgentClinical = isUrgentClinicalPriority(item);
 	                  return (
                     <tr
                       key={item.id}
@@ -481,7 +493,7 @@ export function WorklistClient({
                             checked={isSel}
                             disabled={item.disposition !== "PENDING"}
                             onChange={() => toggle(item.id)}
-                            aria-label={`Select ${item.patientName ?? patientNhi(item)}`}
+                            aria-label={`Select ${item.patientName ?? caseIdentifier(item)}`}
                             className="h-4 w-4 rounded border-border"
                           />
                         </td>
@@ -489,11 +501,8 @@ export function WorklistClient({
                       <td className="px-3 py-2.5">
 	                        <div className="flex flex-wrap items-center gap-1.5">
 	                          <span className="font-medium text-foreground">
-	                            {item.patientName ?? patientNhi(item)}
+	                            {item.patientName ?? caseIdentifier(item)}
 	                          </span>
-	                          {urgentClinical && (
-	                            <Badge variant="urgent" size="sm">Urgent clinical priority</Badge>
-	                          )}
 	                          {item.reviewRequired && (
 	                            <Badge variant="high" size="sm">Mandatory clinician review</Badge>
 	                          )}
@@ -513,7 +522,7 @@ export function WorklistClient({
 	                          )}
 	                        </div>
                         <p className="text-xs text-muted-foreground">
-                          <span className="font-mono">{patientNhi(item)}</span>
+                          <span className="font-mono">{caseIdentifier(item)}</span>
                           {item.patientAge != null && <> · {item.patientAge} yrs</>}
                           {item.ethnicityPrimary && <> · {item.ethnicityPrimary.toLowerCase()}</>}
                         </p>
@@ -536,10 +545,6 @@ export function WorklistClient({
                         {item.receivedDate && (
                           <p className="text-xs text-muted-foreground">Received {item.receivedDate}</p>
                         )}
-                      </td>
-                      <td className="px-3 py-2.5"><RiskBadge risk={item.riskLevel} /></td>
-                      <td className="px-3 py-2.5">
-                        {item.referralPriority ? <PriorityBadge priority={item.referralPriority} /> : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-3 py-2.5">
                         <p className="text-foreground line-clamp-2">{item.recommendation}</p>

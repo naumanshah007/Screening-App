@@ -44,9 +44,12 @@ test("the authoritative evaluation is not gated on a resolvable rule version", (
 });
 
 test("a failed authoritative evaluation fails closed instead of keeping the legacy recommendation", () => {
-  // The catch must overwrite the clinical fields, not merely audit the failure.
+  // Both routes to "no governed recommendation" — an evaluation that threw, and
+  // a row with no processed result — now write through one helper, so the two
+  // cannot drift. It must overwrite the clinical fields, not merely audit.
   const catchBlock = PERSISTENCE.slice(
-    PERSISTENCE.indexOf("} catch (error) {")
+    PERSISTENCE.indexOf("async function persistEvaluationUnavailable"),
+    PERSISTENCE.indexOf("// ─── Read ───")
   );
   assert.match(
     catchBlock,
@@ -72,7 +75,8 @@ test("a failed authoritative evaluation fails closed instead of keeping the lega
 
 test("the fail-closed state carries no clinical action", () => {
   const catchBlock = PERSISTENCE.slice(
-    PERSISTENCE.indexOf("} catch (error) {")
+    PERSISTENCE.indexOf("async function persistEvaluationUnavailable"),
+    PERSISTENCE.indexOf("// ─── Read ───")
   );
   // Absence of a recommendation must not be dressed up as one: no priority, no
   // referral type, no invented timing.

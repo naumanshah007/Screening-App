@@ -51,7 +51,7 @@ export const CHCH_PUBLIC_ASSUMPTIONS: DatasetAssumption[] = [
     basis:
       "The source states no immune-deficiency status for any case. A screening extract that records immune deficiency would normally carry it; its absence across all 30 rows is read as 'not indicated on the request'.",
     consequenceIfWrong:
-      "Recall interval is wrong for HPV-negative cases: 5 years instead of the 3 years an immune-deficient participant requires. Affects 11 cases.",
+      "Recall interval is wrong for HPV-negative cases: 5 years instead of the 3 years an immune-deficient participant requires. Eight cases currently reach a 60-month recall this way (chch-020 to chch-024, chch-027, chch-028, chch-030). The legacy false flag is deliberately NOT promoted to a verified immune-competent canonical classification, so the governed evaluation stops for the missing fact instead.",
     rulesAffected: ["F3-HPV-NOT-DETECTED-5Y", "F3-HPV-NOT-DETECTED-IC-3Y", "IMM-01"],
     appliesTo: "all",
     clinicianApproved: false,
@@ -84,7 +84,7 @@ export const CHCH_PUBLIC_ASSUMPTIONS: DatasetAssumption[] = [
     basis:
       "The source does not state collection method. LBC is assumed because several rows report a cytology result, which a self-collected swab cannot produce without a return visit.",
     consequenceIfWrong:
-      "Self-collected swabs with HPV detected require a return visit with clinical examination before a cytology-dependent decision (F3-SWAB-RETURN-REQUIRED). Assuming LBC bypasses that step.",
+      "Self-collected swabs with HPV detected require a return visit with clinical examination before a cytology-dependent decision (F3-SWAB-RETURN-REQUIRED). Assuming LBC bypasses that step. The assumed value is now recorded as NOT_RECORDED in the canonical facts, so it cannot satisfy F3-03's sampleType gate — the governed evaluation asks for the collection method instead of matching on a value nobody supplied. The legacy engine still receives LBC through ClinicalInput.",
     rulesAffected: ["F3-03", "F3-SWAB-RETURN-REQUIRED"],
     appliesTo: "all",
     clinicianApproved: false,
@@ -93,7 +93,7 @@ export const CHCH_PUBLIC_ASSUMPTIONS: DatasetAssumption[] = [
     field: "repeatStage",
     assumed: "BASELINE unless the row states a repeat interval",
     basis:
-      "Rows stating '12-month follow-up' or '12-month surveillance' are marked FIRST_REPEAT. Rows described as 'routine screening' or 'first screen' are treated as baseline events.",
+      "Only chch-005 ('12-month follow-up') and chch-013 ('12-month surveillance') state an interval, and only those two are marked FIRST_REPEAT. Every other row falls back to BASELINE because the contract requires a value — including chch-019 and chch-027, whose sources state no ordinal at all. BASELINE on those rows is this assumption, not a source fact.",
     consequenceIfWrong:
       "Repeat-stage routing changes which Figure 3 branch applies to a non-16/18 HPV result, and whether a second consecutive positive escalates.",
     rulesAffected: ["F3-09", "F3-HPV-OTHER-NEG-ASCUS-LSIL-12M"],
@@ -152,6 +152,39 @@ export const CHCH_PUBLIC_ASSUMPTIONS: DatasetAssumption[] = [
       "If the earlier referral was in fact completed and benign, these cases would return to routine screening rather than stopping for records.",
     rulesAffected: ["F3-03", "F3-PREVIOUS-HPV1618-OUTCOME-REQUIRED", "GS-01"],
     appliesTo: ["chch-009", "chch-010", "chch-019"],
+    clinicianApproved: false,
+  },
+  {
+    field: "isFirstTimeHPVTransition",
+    assumed: "false",
+    basis:
+      "No row states whether this is the participant's first screen after the cytology-to-HPV programme transition. The contract requires a boolean, so false is supplied. It was previously grouped with the other defaults and had no entry of its own.",
+    consequenceIfWrong:
+      "A first-time transition screen changes the Figure 3 entry and the interval offered to an HPV-negative participant.",
+    rulesAffected: ["F3-*"],
+    appliesTo: "all",
+    clinicianApproved: false,
+  },
+  {
+    field: "hpvResult (legacy projection)",
+    assumed: "NOT an assumption — a recorded projection",
+    basis:
+      "The legacy engine's HPVResult domain has no HPV_16 or HPV_18 member, so the precise genotype is projected to HPV_16_18 at that boundary only. The source genotype is preserved on the case's sourceEvidence and is what the governed canonical predicates evaluate, which accept HPV_16 and HPV_18 directly.",
+    consequenceIfWrong:
+      "None clinically today: no rule in the current ruleset manages HPV16 differently from HPV18. If one ever does, the legacy path would be the surface that cannot express it.",
+    rulesAffected: ["F3-03", "F3-09", "F6-04"],
+    appliesTo: "all",
+    clinicianApproved: false,
+  },
+  {
+    field: "cytologyResult (absent)",
+    assumed: "NOT an assumption — seven distinct source states",
+    basis:
+      "Pending (chch-001), missing (chch-008), no current sample (chch-009), not stated (chch-010), unsatisfactory (chch-016), not required (chch-021 to chch-024, chch-028, chch-030) and prior-result-only (chch-027) are recorded as distinct cytology states on the source evidence. Only a genuine current result, or an unsatisfactory current sample, populates the engine's cytologyResult.",
+    consequenceIfWrong:
+      "A prior-only result satisfying a current-result predicate would close an episode the source has not closed.",
+    rulesAffected: ["F3-03", "F3-07", "F3-UNSATISFACTORY-*"],
+    appliesTo: "all",
     clinicianApproved: false,
   },
 ];

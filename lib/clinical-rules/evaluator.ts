@@ -12,7 +12,12 @@ import {
   type CanonicalFactsDiagnostics,
 } from "./canonical-facts-v2";
 import { governedRulePrecedence } from "./compiled-v2-1";
-import { classifyTiming, urgencyFromTiming } from "./governed-vocabulary";
+import {
+  classifyTiming,
+  conditionalUrgency,
+  hasUnresolvedUrgentLimb,
+  urgencyFromTiming,
+} from "./governed-vocabulary";
 import { CANONICAL_ENGINE_VERSION } from "./constants";
 import { getClinicalRuleVersion, resolveActiveClinicalRuleVersion } from "./lifecycle";
 import { normalizeClinicalFactMap } from "./facts";
@@ -38,8 +43,28 @@ export type ClinicalEvaluationResult = {
   matchedRuleIds: string[];
   branchPath: string[];
   provisionalRecommendation: string;
+  /**
+   * The controlling rule's IMPLEMENTATION safety severity (CRITICAL/HIGH/
+   * MEDIUM/LOW). It describes how dangerous it would be for the software to get
+   * this rule wrong — coverage, fail-closed behaviour, review requirements.
+   *
+   * It is NOT the participant's clinical risk and must never be displayed or
+   * adapted as one. "No governed rule covers this case" is CRITICAL as a
+   * software property and says nothing at all about the patient.
+   */
+  safetyPriority: string;
+  /**
+   * @deprecated Retained for the persisted RuleEvaluation column only. Equal to
+   * `safetyPriority`; read that instead. Nothing clinical may consume it.
+   */
   riskLevel: string;
   urgency?: string;
+  /**
+   * True when the controlling rule's timing states an urgent limb whose
+   * condition these facts did not establish. Recorded so the evidence can
+   * explain why no urgency was applied, rather than applying one.
+   */
+  unresolvedUrgentLimb?: boolean;
   referralDestination?: string;
   repeatInterval?: string;
   missingInformation: string[];
@@ -181,16 +206,28 @@ const SAFETY_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 } as const;
  * prose is not an input, and an unmapped literal yields no urgency rather than a
  * guess. See `governed-vocabulary.test.ts`.
  */
-function governedUrgency(timingDestination: string): string | undefined {
+function governedUrgency(
+  timingDestination: string,
+  facts: ClinicalFactMap
+): { urgency?: string; unresolvedUrgentLimb: boolean } {
   let classification;
   try {
     classification = classifyTiming(timingDestination);
   } catch {
     // Unmapped literal: state no urgency. The adapter raises a safety stop.
-    return undefined;
+    return { unresolvedUrgentLimb: false };
   }
   const urgency = urgencyFromTiming(classification);
-  return urgency === "NOT_STATED" ? undefined : urgency;
+  if (urgency !== "NOT_STATED") return { urgency, unresolvedUrgentLimb: false };
+
+  // A conditional timing's urgent limb applies only where THESE facts satisfy
+  // the condition the source states. This is the one place that is decided,
+  // because this is the only place the evaluated facts are in hand.
+  const conditional = conditionalUrgency(timingDestination.trim(), facts);
+  if (conditional !== "NOT_STATED") {
+    return { urgency: conditional, unresolvedUrgentLimb: false };
+  }
+  return { unresolvedUrgentLimb: hasUnresolvedUrgentLimb(classification) };
 }
 
 function inferRepeatInterval(rule: RuleDefinition | undefined) {
@@ -283,6 +320,7 @@ export function evaluateClinicalSnapshot(
         branchPath: ["node:root", "node:clinician-review:unresolved-source-condition"],
         provisionalRecommendation:
           "Insufficient governed executable rule coverage. Stop automated routing and obtain clinician review.",
+        safetyPriority: riskLevel,
         riskLevel,
         missingInformation: [...missingInformation],
         mandatoryReviewerConfirmation: true,
@@ -299,6 +337,7 @@ export function evaluateClinicalSnapshot(
   const timing = outcomeBranch?.timingDestination ?? controllingRule.timingDestination;
   const careSetting = outcomeBranch?.careSetting ?? controllingRule.careSetting;
 
+  const timingUrgency = governedUrgency(timing, facts);
   const clinicianOnly =
     outcomeBranch?.clinicianOnly ??
     controllingRule.clinicianOnly ??
@@ -319,8 +358,10 @@ export function evaluateClinicalSnapshot(
         `node:outcome:${controllingRule.stableRuleId}`,
       ],
       provisionalRecommendation: outcome,
+      safetyPriority: controllingRule.safetyPriority,
       riskLevel: controllingRule.safetyPriority,
-      urgency: outcomeBranch?.urgency ?? governedUrgency(timing),
+      urgency: outcomeBranch?.urgency ?? timingUrgency.urgency,
+      unresolvedUrgentLimb: outcomeBranch?.urgency ? false : timingUrgency.unresolvedUrgentLimb,
       referralDestination: careSetting || undefined,
       repeatInterval: timing || inferRepeatInterval(controllingRule),
       missingInformation: [...missingInformation],
@@ -333,6 +374,63 @@ export function evaluateClinicalSnapshot(
       safetyNotices: snapshot.safetyNotices,
     },
   };
+}
+
+
+/**
+ * The unresolved facts that are the ONLY reason a rule evaluated FALSE.
+ *
+ * An `EXISTS` predicate on an absent fact evaluates FALSE, not UNKNOWN, so a
+ * rule gated on one drops out silently: the case reaches NO-MATCH and the
+ * missing-information list says nothing, because nothing was ever "unknown".
+ * That is how an unanswerable "no governed rule matched" replaced the
+ * answerable "sample collection method required".
+ *
+ * Returns null when the rule is FALSE for any reason other than unresolved
+ * information — a genuine clinical mismatch is not missing information, and
+ * reporting it as such would ask a clinician for facts that would not change
+ * the outcome.
+ *
+ * This is diagnostics only. It never changes which rule matches.
+ */
+export function blockingUnresolvedFacts(
+  expression: ConditionExpression,
+  facts: ClinicalFactMap,
+  unresolved: ReadonlySet<string>
+): Set<string> | null {
+  const evaluated = evaluateConditionExpression(expression, facts);
+  if (evaluated.result !== "FALSE") return null;
+
+  switch (expression.type) {
+    case "FACT":
+      return unresolved.has(expression.fact) ? new Set([expression.fact]) : null;
+    case "ALL": {
+      // FALSE because at least one child is FALSE. Every such child must itself
+      // be blocked only by unresolved information.
+      const blocked = new Set<string>();
+      for (const child of expression.expressions) {
+        if (evaluateConditionExpression(child, facts).result !== "FALSE") continue;
+        const childBlocked = blockingUnresolvedFacts(child, facts, unresolved);
+        if (!childBlocked) return null;
+        childBlocked.forEach((fact) => blocked.add(fact));
+      }
+      return blocked.size > 0 ? blocked : null;
+    }
+    case "ANY": {
+      // FALSE only when every child is FALSE, so every one must be blocked.
+      const blocked = new Set<string>();
+      for (const child of expression.expressions) {
+        const childBlocked = blockingUnresolvedFacts(child, facts, unresolved);
+        if (!childBlocked) return null;
+        childBlocked.forEach((fact) => blocked.add(fact));
+      }
+      return blocked.size > 0 ? blocked : null;
+    }
+    case "NOT":
+    case "ALWAYS":
+    case "SOURCE_TEXT":
+      return null;
+  }
 }
 
 export function evaluateCanonicalClinicalFactsV2(
@@ -378,8 +476,10 @@ export function evaluateCanonicalClinicalFactsV2(
         branchPath: ["node:root", "node:clinician-review:conflicting-canonical-facts"],
         provisionalRecommendation:
           "Conflicting canonical clinical facts require governed clinician review before a pathway can be selected.",
+        safetyPriority: "HIGH",
         riskLevel: "HIGH",
         urgency: undefined,
+        unresolvedUrgentLimb: false,
         referralDestination: undefined,
         repeatInterval: undefined,
         missingInformation: diagnostics.factsMissing,
@@ -393,6 +493,26 @@ export function evaluateCanonicalClinicalFactsV2(
   }
 
   const controlling = evaluated.matchedRules[0];
+
+  // Rules that dropped out ONLY because a required fact is unresolved. Without
+  // these the case reaches a silent no-match and the clinician is told nothing.
+  const blockedByUnresolved = controlling
+    ? []
+    : snapshot.rules
+        .map((rule) => ({
+          rule,
+          blocked: blockingUnresolvedFacts(
+            rule.conditionExpression,
+            converted.factMap,
+            explicitlyUnresolved
+          ),
+        }))
+        .filter(
+          (entry): entry is { rule: RuleDefinition; blocked: Set<string> } =>
+            entry.blocked !== null &&
+            ["HIGH", "CRITICAL"].includes(entry.rule.safetyPriority)
+        );
+
   const unresolvedHigherRisk = relevantUnknownTrace
     .map((entry) => snapshot.rules.find((rule) => rule.stableRuleId === entry.ruleId))
     .filter((rule): rule is RuleDefinition => Boolean(rule))
@@ -403,7 +523,24 @@ export function evaluateCanonicalClinicalFactsV2(
           governedRulePrecedence(rule) >= governedRulePrecedence(controlling))
     );
 
-  if (unresolvedHigherRisk.length > 0) {
+  if (unresolvedHigherRisk.length > 0 || blockedByUnresolved.length > 0) {
+    // RULE-RELEVANT missing information, not every unresolved fact in the
+    // snapshot's vocabulary.
+    //
+    // Reporting `diagnostics.factsMissing` listed facts belonging to unrelated
+    // pathways alongside the one the clinician actually has to supply. What is
+    // useful is the intersection: the facts THESE applicable rules require and
+    // this case could not resolve. A clinician asked for "sampleType" can act;
+    // a clinician handed the snapshot's whole unresolved vocabulary cannot.
+    const ruleRelevantMissing = [
+      ...new Set([
+        ...unresolvedHigherRisk.flatMap((rule) =>
+          rule.requiredFacts.filter((fact) => converted.factMap[fact] == null)
+        ),
+        ...blockedByUnresolved.flatMap((entry) => [...entry.blocked]),
+      ]),
+    ].sort();
+
     return {
       ...evaluated,
       result: {
@@ -412,21 +549,29 @@ export function evaluateCanonicalClinicalFactsV2(
         branchPath: ["node:root", "node:clinician-review:missing-canonical-facts"],
         provisionalRecommendation:
           "Required canonical clinical facts are unknown or not recorded. Stop automated routing and obtain the identified information.",
+        safetyPriority: [...unresolvedHigherRisk, ...blockedByUnresolved.map((e) => e.rule)].some(
+          (rule) => rule.safetyPriority === "CRITICAL"
+        )
+          ? "CRITICAL"
+          : "HIGH",
         riskLevel: unresolvedHigherRisk.some(
           (rule) => rule.safetyPriority === "CRITICAL"
         )
           ? "CRITICAL"
           : "HIGH",
         urgency: undefined,
+        unresolvedUrgentLimb: false,
         referralDestination: undefined,
         repeatInterval: undefined,
-        missingInformation: diagnostics.factsMissing,
+        missingInformation:
+          ruleRelevantMissing.length > 0 ? ruleRelevantMissing : diagnostics.factsMissing,
         mandatoryReviewerConfirmation: true,
         reviewerRequirement: "SPECIALIST_REVIEW",
         clinicianOnly: true,
-        sourceReferences: unresolvedHigherRisk.flatMap(
-          (rule) => rule.sourceReferences
-        ),
+        sourceReferences: [
+          ...unresolvedHigherRisk.flatMap((rule) => rule.sourceReferences),
+          ...blockedByUnresolved.flatMap((entry) => entry.rule.sourceReferences),
+        ],
         factDiagnostics: diagnostics,
       },
     };

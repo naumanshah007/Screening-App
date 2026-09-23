@@ -114,12 +114,43 @@ test("the router-derived fact names its router rather than a person", () => {
   assert.equal(pathway?.enteredBy, ENGINE_VERSION);
 });
 
-test("every other fact keeps the source system's provenance", () => {
+/**
+ * Facts the dataset supplies because the legacy contract demands a value, not
+ * because a source reported one. They carry SYNTHETIC_DEMO provenance so a
+ * reviewer can never read an assumed default as something the source stated.
+ */
+const ASSUMED_DEFAULTS = new Set([
+  "sampleType",
+  "isFirstCytologyToHpvTransition",
+  "cervixPresent",
+  "consecutiveQualifyingNegativeCoTests",
+  "consecutiveLowGradeCytologyResults",
+  "consecutiveUnsatisfactoryCount",
+]);
+
+test("the assumed-fact gate is scoped to cases carrying source evidence", () => {
+  // The bleeding fixture has no immutable source record, so nothing is
+  // reclassified: other intake paths are deliberately unchanged by this gate.
   const { results } = processBatch([bleedingCase()]);
   const facts = results[0].canonicalFactsV2?.facts ?? {};
-  const nonRouter = Object.entries(facts).filter(([name]) => name !== "currentPathway");
-  assert.ok(nonRouter.length > 0);
-  for (const [name, fact] of nonRouter) {
+  for (const [name, fact] of Object.entries(facts)) {
+    if (name === "currentPathway") continue;
+    assert.equal(
+      fact.status,
+      "KNOWN",
+      `${name} must be unaffected on a case with no source evidence`
+    );
+  }
+});
+
+test("every observed fact keeps the source system's provenance", () => {
+  const { results } = processBatch([bleedingCase()]);
+  const facts = results[0].canonicalFactsV2?.facts ?? {};
+  const observed = Object.entries(facts).filter(
+    ([name]) => name !== "currentPathway" && !ASSUMED_DEFAULTS.has(name)
+  );
+  assert.ok(observed.length > 0);
+  for (const [name, fact] of observed) {
     assert.equal(fact.source, "PRIOR_RECORD", `${name} should retain the batch source provenance`);
   }
 });

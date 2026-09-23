@@ -68,10 +68,13 @@ export type TimingClassification =
    *
    * `escalatesWhen` records the urgency the source states for its *urgent limb*,
    * where it states one. It is recorded here once, by review, rather than
-   * inferred at runtime. The adapter fails safe to it: escalating a case that
-   * turns out not to meet the condition is safe, while silently dropping the
-   * urgency of a case that does meet it is not. The reviewer confirms which limb
-   * applies, because every canonical result requires reviewer confirmation.
+   * inferred at runtime.
+   *
+   * It is NOT applied by `urgencyFromTiming`. The urgent limb has a condition,
+   * and asserting a patient-specific urgency on every case that matches the rule
+   * — regardless of whether that case meets the condition — is a fabricated
+   * clinical claim, not a safe default. `conditionalUrgency()` applies it, and
+   * only where the evaluated facts establish the condition.
    */
   | { kind: "CONDITIONAL"; reason: string; escalatesWhen?: GovernedUrgency }
   /** The field carries a destination or programme state, not a timing. */
@@ -370,14 +373,100 @@ export function urgencyFromTiming(classification: TimingClassification): Governe
     case "MULTI_EVENT":
       return "ROUTINE";
     case "CONDITIONAL":
-      // Fail safe to the urgent limb the source states, where it states one.
-      return classification.escalatesWhen ?? "NOT_STATED";
+      // A condition this layer cannot evaluate yields NO urgency.
+      //
+      // This previously returned `escalatesWhen` unconditionally, so a rule
+      // whose source reads "20 or 30 working days according to risk/history;
+      // urgent if invasive cytology" made EVERY case matching it urgent —
+      // including cases with negative, pending or low-grade cytology, which do
+      // not meet the condition at all. Escalating a case that does not meet the
+      // stated condition is not "failing safe": it is asserting a patient-
+      // specific clinical urgency the source does not support, on every case.
+      //
+      // The urgent limb is applied by `conditionalUrgency()` below, and only
+      // where the evaluated facts actually satisfy it.
+      return "NOT_STATED";
     case "EVENT_RELATIVE":
     case "NOT_A_TIMING":
     case "DEFERRED_TO_OUTCOME":
     case "NONE":
       return "NOT_STATED";
   }
+}
+
+/**
+ * Facts that establish "invasive cytology / invasive disease" for a conditional
+ * urgent limb. A closed list of canonical values, not a text match.
+ */
+const INVASIVE_CYTOLOGY_VALUES = new Set([
+  "SCC",
+  "SUSPICIOUS_INVASIVE_CANCER",
+  "DEFINITE_INVASIVE_CANCER",
+]);
+
+/**
+ * Whether a conditional timing's urgent limb is ACTUALLY established for this
+ * participant, from the evaluated canonical facts.
+ *
+ * Each entry names the one condition the source states, and reads only facts
+ * that establish it. A condition this table cannot evaluate returns false, and
+ * false means "no patient-specific urgency", never "assume urgent".
+ */
+const CONDITIONAL_URGENCY_CONDITIONS: Readonly<
+  Record<string, (facts: Record<string, unknown>) => boolean>
+> = Object.freeze({
+  "20 or 30 working days according to risk/history; urgent if invasive cytology":
+    invasiveCytologyEstablished,
+  "Urgent if invasive": invasiveEstablished,
+  "Urgent when malignant": invasiveEstablished,
+  "Urgent if malignant": invasiveEstablished,
+  "Urgent within 2 weeks if invasive cancer suspected/definite": invasiveEstablished,
+  "Immediate/urgent where cancer suspected": invasiveEstablished,
+  "Urgent / within 2 weeks when invasion confirmed or strongly suspected":
+    invasiveEstablished,
+});
+
+function invasiveCytologyEstablished(facts: Record<string, unknown>): boolean {
+  return INVASIVE_CYTOLOGY_VALUES.has(String(facts.cytologyResult ?? ""));
+}
+
+function invasiveEstablished(facts: Record<string, unknown>): boolean {
+  return (
+    invasiveCytologyEstablished(facts) ||
+    INVASIVE_CYTOLOGY_VALUES.has(String(facts.histologyResult ?? "")) ||
+    facts.suspicionOfCancer === true ||
+    facts.invasionStatus === "INVASIVE" ||
+    facts.invasionStatus === "SUSPECTED"
+  );
+}
+
+/**
+ * The urgency a conditional timing yields for THIS participant.
+ *
+ * Returns the source's urgent limb only where the facts satisfy the stated
+ * condition; otherwise `NOT_STATED`. Never guesses, and never applies an urgent
+ * limb merely because the rule's wording contains one.
+ */
+export function conditionalUrgency(
+  timingDestination: string,
+  facts: Record<string, unknown>
+): GovernedUrgency {
+  const classification = TIMING_VOCABULARY[timingDestination];
+  if (!classification || classification.kind !== "CONDITIONAL") return "NOT_STATED";
+  if (!classification.escalatesWhen) return "NOT_STATED";
+  const condition = CONDITIONAL_URGENCY_CONDITIONS[timingDestination];
+  if (!condition) return "NOT_STATED";
+  return condition(facts) ? classification.escalatesWhen : "NOT_STATED";
+}
+
+/**
+ * True when a timing states an urgent limb whose condition this evaluation did
+ * not establish. Used to explain, in the evidence, why no urgency was applied.
+ */
+export function hasUnresolvedUrgentLimb(
+  classification: TimingClassification
+): boolean {
+  return classification.kind === "CONDITIONAL" && Boolean(classification.escalatesWhen);
 }
 
 // ── Care setting → referral destination ─────────────────────────────────────
