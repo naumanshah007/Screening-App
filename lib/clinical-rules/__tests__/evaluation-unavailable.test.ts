@@ -133,16 +133,16 @@ test("a row with no processed result fails closed instead of keeping legacy", ()
 });
 
 test("no usage is metered for a case that reached no recommendation", () => {
+  // Both gates read the SAME predicate on the authoritative envelope, so the
+  // ledger and the outcome manifest cannot disagree about what happened.
   assert.match(
     PERSISTENCE,
-    /if \(episodeId && !isEvaluationUnavailable\(graded\.decision\)\)/,
+    /if \(episodeId && producedRecommendation\(graded\.envelope\)\)/,
     "an unavailable evaluation must not produce a FIRST_TRIAGE usage event"
   );
-  // evaluateGradedDecision now RETURNS the unavailable state rather than
-  // throwing, so the success branch has to exclude it explicitly.
   assert.match(
     PERSISTENCE,
-    /if \(isEvaluationUnavailable\(graded\.decision\)\) \{\s*governedEvaluationFailed \+= 1;/,
+    /if \(producedRecommendation\(graded\.envelope\)\) \{\s*governedEvaluationCompleted \+= 1;/,
     "and must not be counted as a completed governed evaluation"
   );
   assert.doesNotMatch(

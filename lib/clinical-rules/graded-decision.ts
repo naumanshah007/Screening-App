@@ -35,6 +35,12 @@ import { resolveShadowClinicalRuleVersion } from "./lifecycle";
 import { applyPin, getBatchRunAuthorityPin, getCaseAuthorityPin } from "./pinning";
 import { recordAuthorityComparison } from "./monitoring";
 import { evaluationUnavailableDecision } from "./evaluation-unavailable";
+import {
+  evaluationStatusFor,
+  type DecisionEnvelope,
+} from "./decision-envelope";
+import { referralPriorityProvenance } from "./priority-provenance";
+import type { ClinicalEvaluationResult } from "./evaluator";
 
 /**
  * Facts the legacy batch/wizard mappers assume rather than observe. Canonical
@@ -71,7 +77,85 @@ export type GradedDecision = {
   evaluationId: string | null;
   /** Populated when the adapter had to flag a normalisation problem. */
   adapterNotices: string[];
+  /**
+   * The one authoritative envelope for this evaluation.
+   *
+   * Every consumer — batch persistence, the case drawer, a prepared run, a
+   * regrade, a future interactive preview — reads this rather than assembling
+   * its own view from the decision plus whatever else it happened to have.
+   */
+  envelope: DecisionEnvelope;
 };
+
+/** Attach the envelope to a graded result, so no return path can omit it. */
+function withEnvelope(
+  graded: Omit<GradedDecision, "envelope"> & {
+    canonical?: ClinicalEvaluationResult | null;
+    canonicalStopped?: boolean;
+  }
+): GradedDecision {
+  const { canonical, canonicalStopped, ...rest } = graded;
+  return { ...rest, envelope: buildEnvelope({ ...rest, canonical, canonicalStopped }) };
+}
+
+/** Assemble the authoritative envelope from one completed evaluation. */
+function buildEnvelope(args: {
+  decision: ClinicalDecision;
+  legacyDecision: ClinicalDecision;
+  authority: ClinicalAuthority;
+  pinned: boolean;
+  authorityReason: string;
+  evaluationId: string | null;
+  adapterNotices: string[];
+  canonical?: ClinicalEvaluationResult | null;
+  canonicalStopped?: boolean;
+}): DecisionEnvelope {
+  const { canonical } = args;
+  const status = evaluationStatusFor({
+    decision: args.decision,
+    canonicalStopped: args.canonicalStopped,
+  });
+  const matchedRuleIds = canonical?.matchedRuleIds ?? [];
+  return {
+    status,
+    decision: args.decision,
+    // The operative evaluation's own words, never the legacy engine's.
+    reason:
+      status === "EVALUATION_UNAVAILABLE"
+        ? "No governed evaluation produced a result for this case."
+        : canonical?.provisionalRecommendation ?? args.decision.recommendation,
+    missingInformation: args.decision.missingInformation ?? canonical?.missingInformation ?? [],
+    authority: args.authority.authorityEngine,
+    authorityReason: args.authorityReason,
+    pinned: args.pinned,
+    pin: {
+      ruleVersionId: canonical?.ruleVersionId ?? null,
+      ruleVersionDisplay: canonical?.ruleVersionDisplay ?? null,
+      rulesetChecksum: canonical?.ruleSetChecksum ?? null,
+      engineVersion: canonical?.engineVersion ?? null,
+      routerEngine: args.authority.routerEngine ?? null,
+    },
+    evaluationId: args.evaluationId,
+    matchedRuleIds,
+    controllingRuleId: matchedRuleIds[0] ?? null,
+    trace: canonical?.branchPath ?? [],
+    sourceReferences: canonical?.sourceReferences ?? [],
+    // Set only where a priority survived the provenance gate.
+    priorityProvenance: referralPriorityProvenance({
+      authorityEngine: args.authority.authorityEngine,
+      referralPriority: args.decision.referralPriority ?? null,
+    }),
+    legacyComparison: {
+      recommendation: args.legacyDecision.recommendation,
+      recommendationCode: args.legacyDecision.recommendationCode,
+      figure: args.legacyDecision.figure,
+      riskLevel: args.legacyDecision.riskLevel,
+      referralPriority: args.legacyDecision.referralPriority ?? null,
+      clinicalWarnings: args.legacyDecision.clinicalWarnings ?? [],
+    },
+    adapterNotices: args.adapterNotices,
+  };
+}
 
 
 /**
@@ -189,7 +273,7 @@ export async function evaluateGradedDecision(args: {
       legacyDecision,
       reason: "No governed rule version is available to evaluate this case.",
     });
-    return {
+    return withEnvelope({
       decision: unresolved.decision,
       legacyDecision,
       authority: unresolved.authority,
@@ -197,7 +281,7 @@ export async function evaluateGradedDecision(args: {
       authorityReason: `${authorityReason} ${unresolved.reason}`,
       evaluationId: null,
       adapterNotices: [],
-    };
+    });
   }
 
   const canonicalFactsV2 = args.canonicalFactsV2 ?? canonicalClinicalFactsV2FromFlatFacts({
@@ -253,7 +337,7 @@ export async function evaluateGradedDecision(args: {
       legacyDecision,
       reason: "The governed evaluation failed to run for this case.",
     });
-    return {
+    return withEnvelope({
       decision: unresolved.decision,
       legacyDecision,
       authority: unresolved.authority,
@@ -261,7 +345,7 @@ export async function evaluateGradedDecision(args: {
       authorityReason: `${authorityReason} ${unresolved.reason}`,
       evaluationId: null,
       adapterNotices: [],
-    };
+    });
   }
 
   // ── 4. Adapter — always computed for monitoring, but only authoritative
@@ -296,7 +380,7 @@ export async function evaluateGradedDecision(args: {
       legacyDecision,
       reason: "The governed result could not be normalised into a decision.",
     });
-    return {
+    return withEnvelope({
       decision: unresolved.decision,
       legacyDecision,
       authority: unresolved.authority,
@@ -304,7 +388,7 @@ export async function evaluateGradedDecision(args: {
       authorityReason: `${authorityReason} ${unresolved.reason}`,
       evaluationId: evaluated.evaluationId,
       adapterNotices: [],
-    };
+    });
   }
 
   await recordAuthorityComparison({
@@ -316,7 +400,10 @@ export async function evaluateGradedDecision(args: {
   });
 
   if (authority.authorityEngine !== "CANONICAL") {
-    return {
+    // Legacy is the configured authority, so the legacy decision IS the result.
+    // The canonical run alongside it is shadow comparison, and is recorded as
+    // such rather than being presented as the governed answer.
+    return withEnvelope({
       decision: legacyDecision,
       legacyDecision,
       authority,
@@ -324,7 +411,7 @@ export async function evaluateGradedDecision(args: {
       authorityReason,
       evaluationId: evaluated.evaluationId,
       adapterNotices: adapted.adapterNotices,
-    };
+    });
   }
 
   // ── 5. Final guardrail: the adapter may never relax a safety control ──────
@@ -349,7 +436,7 @@ export async function evaluateGradedDecision(args: {
         },
       })
       .catch(() => undefined);
-    return {
+    return withEnvelope({
       decision: legacyDecision,
       legacyDecision,
       authority: { ...authority, authorityEngine: "LEGACY" },
@@ -359,10 +446,10 @@ export async function evaluateGradedDecision(args: {
       )}); legacy decision stands.`,
       evaluationId: evaluated.evaluationId,
       adapterNotices: adapted.adapterNotices,
-    };
+    });
   }
 
-  return {
+  return withEnvelope({
     decision: adapted.decision,
     legacyDecision,
     authority,
@@ -370,5 +457,7 @@ export async function evaluateGradedDecision(args: {
     authorityReason,
     evaluationId: evaluated.evaluationId,
     adapterNotices: adapted.adapterNotices,
-  };
+    canonical: evaluated.result,
+    canonicalStopped: adapted.canonicalStopped,
+  });
 }

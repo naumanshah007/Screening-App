@@ -131,8 +131,15 @@ test("an unevaluated preview is the only thing called not yet evaluated", () => 
   // through the preview marker — never for a case that has been evaluated.
   assert.match(
     DETAIL,
-    /if \(isRoutingPreview\(decision\)\) return "NOT_YET_EVALUATED"/,
+    /if \(isRoutingPreview\(result\.decision\)\) return "NOT_YET_EVALUATED"/,
     "not-yet-evaluated must be keyed on the preview marker alone"
+  );
+  // Every other state comes from the shared classifier, so the drawer cannot
+  // hold an opinion that differs from persistence.
+  assert.match(
+    DETAIL,
+    /return evaluationStatusFor\(\{/,
+    "the drawer must not keep its own copy of the state machine"
   );
   assert.doesNotMatch(
     DETAIL,

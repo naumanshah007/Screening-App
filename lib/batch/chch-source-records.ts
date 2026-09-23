@@ -28,6 +28,8 @@ export const CHCH_SOURCE_SHEET = "Sheet1";
 export const CHCH_SOURCE_SHA256 =
   "f6f8b61c39c9c49be87bc262a0edb5e226b92df5f0ad49f3e8c6d2f663edd802";
 export const CHCH_MAPPING_VERSION = "chch-public-v2";
+/** When this frozen fixture was transcribed from the workbook. */
+export const CHCH_INGESTED_AT = "2026-09-22T09:00:00.000Z";
 
 /** Case ordinal 1–30 → worksheet row. The header is row 3, so data starts at 4. */
 export function chchWorksheetRow(ordinal: number): number {
@@ -51,6 +53,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_16",
     hpvIsCurrentResult: true,
     screeningEvent: "FIRST",
+    history: { noPreviousCinStated: true },
     cytologyState: "PENDING",
   },
   {
@@ -65,6 +68,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_18",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {},
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -80,6 +84,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_16",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { previousNormalScreeningResult: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "HSIL",
   },
@@ -95,6 +100,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_OTHER",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { noPreviousAbnormalityStated: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "ASC_US",
   },
@@ -110,6 +116,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_18",
     hpvIsCurrentResult: true,
     screeningEvent: "REPEAT",
+    history: { previousHpvPositiveUnspecifiedGenotype: true, previousHpvIntervalMonths: 12 },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -125,6 +132,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_OTHER",
     hpvIsCurrentResult: true,
     screeningEvent: "FIRST",
+    history: { noPreviousAbnormalityStated: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -140,6 +148,13 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_16",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {
+      priorCin3: true,
+      treatmentOccurred: true,
+      treatmentDatePrecision: "RELATIVE",
+      treatmentRelativeYears: 3,
+      postTreatmentSurveillance: true,
+    },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -155,6 +170,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_18",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { sampleAgeDays: 18 },
     cytologyState: "MISSING",
   },
   {
@@ -171,6 +187,11 @@ const ROWS: Row[] = [
     hpvGenotype: undefined,
     hpvIsCurrentResult: false,
     screeningEvent: "NOT_STATED",
+    history: {
+      previousHpvGenotype: "HPV_16",
+      unresolvedReferralOutcome: true,
+      overdueByMonths: 5,
+    },
     cytologyState: "NO_CURRENT_SAMPLE",
   },
   {
@@ -186,6 +207,10 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {
+      previousHpvGenotype: "HPV_16",
+      unresolvedReferralOutcome: true,
+    },
     // "Current screen negative" restates the screen result. It does not state
     // that a cytology sample was taken, nor what it showed.
     cytologyState: "UNSPECIFIED",
@@ -202,6 +227,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_16",
     hpvIsCurrentResult: true,
     screeningEvent: "FIRST",
+    history: { noPreviousAbnormalityStated: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "LSIL",
   },
@@ -217,6 +243,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_18",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { previousNormalScreeningResult: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "ASC_US",
   },
@@ -232,6 +259,11 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_16",
     hpvIsCurrentResult: true,
     screeningEvent: "REPEAT",
+    history: {
+      previousHpvGenotype: "HPV_16",
+      previousHpvIntervalMonths: 12,
+      sameGenotypePersistence: true,
+    },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -247,6 +279,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_18",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { noPriorCinRecordedStated: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "HSIL",
   },
@@ -262,6 +295,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_16",
     hpvIsCurrentResult: true,
     screeningEvent: "FIRST",
+    history: {},
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -277,6 +311,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_18",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {},
     cytologyState: "UNSATISFACTORY",
     cytologyResult: "UNSATISFACTORY",
   },
@@ -292,6 +327,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_OTHER",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { previousNormalScreeningResult: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "LSIL",
   },
@@ -307,6 +343,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_16",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { priorCin2: true, postColposcopySurveillance: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -323,6 +360,10 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_18",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {
+      previousHpvGenotype: "HPV_18",
+      followUpDocumentationIncomplete: true,
+    },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -338,6 +379,7 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { priorScreeningUpToDate: true, noHighGradeHistoryStated: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -353,6 +395,7 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { noPreviousAbnormalityStated: true },
     cytologyState: "NOT_REQUIRED",
   },
   {
@@ -367,6 +410,7 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { previousNormalScreeningResult: true },
     cytologyState: "NOT_REQUIRED",
   },
   {
@@ -381,6 +425,7 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "FIRST",
+    history: {},
     cytologyState: "NOT_REQUIRED",
   },
   {
@@ -395,6 +440,7 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { previousNormalScreeningResult: true },
     cytologyState: "NOT_REQUIRED",
   },
   {
@@ -409,6 +455,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_OTHER",
     hpvIsCurrentResult: true,
     screeningEvent: "FIRST",
+    history: { firstPositiveEpisode: true, noPreviousCinStated: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -424,6 +471,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_OTHER",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: { noPreviousAbnormalityStated: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -440,6 +488,9 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {
+      previousHpvGenotype: "HPV_OTHER",
+    },
     // "previously" — a prior result, explicitly not a current one. It must never
     // satisfy a rule that asks for the current cytology.
     cytologyState: "PRIOR_ONLY",
@@ -458,6 +509,11 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {
+      priorLowGradeResult: "ASC_US",
+      priorLowGradeTiming: "SEVERAL_YEARS",
+      subsequentNormalFollowUp: true,
+    },
     cytologyState: "NOT_REQUIRED",
   },
   {
@@ -472,6 +528,7 @@ const ROWS: Row[] = [
     hpvGenotype: "HPV_OTHER",
     hpvIsCurrentResult: true,
     screeningEvent: "FIRST",
+    history: { noPreviousCinStated: true, firstPositiveEpisode: true },
     cytologyState: "AVAILABLE",
     cytologyResult: "NEGATIVE",
   },
@@ -487,6 +544,7 @@ const ROWS: Row[] = [
     hpvGenotype: "NOT_DETECTED",
     hpvIsCurrentResult: true,
     screeningEvent: "NOT_STATED",
+    history: {},
     cytologyState: "NOT_REQUIRED",
   },
 ];
@@ -500,9 +558,12 @@ export const CHCH_SOURCE_EVIDENCE: CaseSourceEvidence[] = ROWS.map(
     locator: {
       fileName: CHCH_SOURCE_FILE_NAME,
       sheet: CHCH_SOURCE_SHEET,
+      // The WORKSHEET row, not the case ordinal. The header is row 3.
       row: chchWorksheetRow(ordinal),
+      range: `${CHCH_SOURCE_SHEET}!A${chchWorksheetRow(ordinal)}:I${chchWorksheetRow(ordinal)}`,
       documentSha256: CHCH_SOURCE_SHA256,
       mappingVersion: CHCH_MAPPING_VERSION,
+      ingestedAt: CHCH_INGESTED_AT,
     },
   })
 );

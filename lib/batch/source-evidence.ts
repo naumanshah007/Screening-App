@@ -66,8 +66,97 @@ export type SourceCytologyState =
  */
 export type SourceScreeningEvent = "FIRST" | "REPEAT" | "NOT_STATED";
 
+/**
+ * The smallest rule-relevant facts the history/context text actually states.
+ *
+ * Everything here must be READABLE OFF THE SOURCE STRING. Nothing is inferred
+ * from what would make a rule fire, and absence of a field means the source did
+ * not say — never that the answer is no.
+ *
+ * The exact history string is retained alongside this and remains what the
+ * clinician is shown; this is only what the rules may consume.
+ */
+export interface SourceHistoryEvidence {
+  /** A previous HPV result the source reports, with its genotype if stated. */
+  previousHpvGenotype?: SourceHpvGenotype;
+  /** The source states a previous HPV-positive episode, genotype unstated. */
+  previousHpvPositiveUnspecifiedGenotype?: boolean;
+  /** Months since the previous HPV result, where the source states an interval. */
+  previousHpvIntervalMonths?: number;
+  /** The source explicitly states the same genotype persisted. */
+  sameGenotypePersistence?: boolean;
+
+  /** Previous high-grade lesion, by grade, where the source names one. */
+  priorCin2?: boolean;
+  priorCin3?: boolean;
+  /** The source states treatment occurred. Absent means it did not say. */
+  treatmentOccurred?: boolean;
+  /**
+   * How precisely the source dates that treatment. RELATIVE means a phrase like
+   * "three years ago" — real evidence of timing, but not a date.
+   */
+  treatmentDatePrecision?: "EXACT" | "RELATIVE" | "NOT_STATED";
+  /** Years since treatment, where the source states a relative interval. */
+  treatmentRelativeYears?: number;
+
+  /** The circumstance is explicitly post-treatment surveillance. */
+  postTreatmentSurveillance?: boolean;
+  /** The circumstance is explicitly post-colposcopy surveillance. */
+  postColposcopySurveillance?: boolean;
+
+  /** A referral or colposcopy whose outcome the source says is not documented. */
+  unresolvedReferralOutcome?: boolean;
+  /** The source says follow-up documentation is incomplete. */
+  followUpDocumentationIncomplete?: boolean;
+  /** Months overdue, where the source states a duration. */
+  overdueByMonths?: number;
+
+  /** A previous low-grade cytology result the source names. */
+  priorLowGradeResult?: "ASC_US" | "LSIL";
+  /** How long ago, where the source is only qualitative. */
+  priorLowGradeTiming?: "SEVERAL_YEARS";
+  /** The source reports later normal follow-up — NOT a formal discharge. */
+  subsequentNormalFollowUp?: boolean;
+  /** A previous normal or negative screening RESULT the source reports. */
+  previousNormalScreeningResult?: boolean;
+  /** A scoped negative: no previous CIN. Not a normal screening history. */
+  noPreviousCinStated?: boolean;
+  /** A scoped negative: no previous abnormality/abnormal screening. */
+  noPreviousAbnormalityStated?: boolean;
+  /** The source says no prior CIN is RECORDED — absence of documentation. */
+  noPriorCinRecordedStated?: boolean;
+  /** The source says prior screening is up to date. */
+  priorScreeningUpToDate?: boolean;
+  /** The source says there is no high-grade history. */
+  noHighGradeHistoryStated?: boolean;
+  /** The source states this is the first hrHPV-positive episode. */
+  firstPositiveEpisode?: boolean;
+  /** Age of the current specimen in days, where the source states one. */
+  sampleAgeDays?: number;
+}
+
 /** Whether a case identifier is a real NHI or something else entirely. */
 export type CaseIdentifierKind = "SYNTHETIC_CASE" | "SOURCE_PATIENT_ID" | "NHI";
+
+/**
+ * Which worksheet column holds which field.
+ *
+ * Recorded so a reviewer can open the workbook at the exact cell rather than
+ * trusting a transcription. `Sheet1!A4:I33` with the header on row 3.
+ */
+export const CHCH_SOURCE_COLUMNS = {
+  caseId: "A",
+  patientName: "B",
+  age: "C",
+  screenCircumstance: "D",
+  hpvResult: "E",
+  cytologyFollowUp: "F",
+  relevantHistory: "G",
+  // H and I are the partner's Demo priority and Expected behaviour columns.
+  // Deliberately not ingested: they are expectations, not guideline authority.
+} as const;
+
+export type SourceField = keyof typeof CHCH_SOURCE_COLUMNS;
 
 /** Where in the originating document this row came from. Internal/audit only. */
 export interface SourceLocator {
@@ -78,6 +167,15 @@ export interface SourceLocator {
   /** SHA-256 of the source document, when one was taken. */
   documentSha256?: string;
   mappingVersion: string;
+  /** ISO-8601 timestamp of the ingestion that produced this record. */
+  ingestedAt?: string;
+  /** The full range the record was read from, e.g. "Sheet1!A4:I4". */
+  range?: string;
+}
+
+/** The exact cell a field came from, e.g. "Sheet1!E4". */
+export function sourceCellRef(locator: SourceLocator, field: SourceField): string {
+  return `${locator.sheet}!${CHCH_SOURCE_COLUMNS[field]}${locator.row}`;
 }
 
 /**
@@ -111,6 +209,9 @@ export interface CaseSourceEvidence {
 
   /** Whether the row states which screening event this is. */
   screeningEvent: SourceScreeningEvent;
+
+  /** The rule-relevant facts the history text states, and only those. */
+  history: SourceHistoryEvidence;
 
   cytologyState: SourceCytologyState;
   /** Only ever set when `cytologyState` is AVAILABLE or UNSATISFACTORY. */

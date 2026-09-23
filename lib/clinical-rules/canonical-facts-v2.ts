@@ -49,6 +49,36 @@ const FactValueSchema = z.union([
   z.array(z.union([z.string(), z.number().finite(), z.boolean()])).max(100),
 ]);
 
+/**
+ * How a fact came to hold the value it holds.
+ *
+ * SEPARATE FROM `source` AND FROM `verificationStatus`, DELIBERATELY
+ * ------------------------------------------------------------------
+ *   - `source` says WHO/WHAT supplied it (a lab, a prior record, the router).
+ *   - `verificationStatus` says whether anyone has CHECKED it.
+ *   - `evidenceClass` says what KIND of claim it is.
+ *
+ * All three were previously answered by `source` alone, which is why an assumed
+ * default carrying `PRIOR_RECORD` was indistinguishable from a reported result.
+ *
+ * The load-bearing rule: an ASSUMED fact is never evaluated. It is recorded with
+ * status NOT_RECORDED and no value, so it cannot satisfy a governed predicate,
+ * and the rules that need it report it as missing instead of matching on it.
+ */
+export const CanonicalFactEvidenceClassSchema = z.enum([
+  /** Explicitly supplied by the source, including an explicitly reported negative. */
+  "SOURCE",
+  /** A meaning-preserving transformation of source evidence. */
+  "DERIVED",
+  /** A scenario or configuration choice the source never stated. */
+  "ASSUMED",
+  /** Unknown or not supplied. */
+  "MISSING",
+]);
+export type CanonicalFactEvidenceClass = z.infer<
+  typeof CanonicalFactEvidenceClassSchema
+>;
+
 export const CanonicalFactCorrectionSchema = z.object({
   correctedAt: z.string().datetime(),
   correctedBy: z.string().trim().min(1),
@@ -62,6 +92,16 @@ export const CanonicalFactV2Schema = z
     value: FactValueSchema.optional(),
     status: CanonicalFactStatusSchema,
     source: CanonicalFactSourceSchema,
+    /**
+     * What kind of claim this is. Optional for backward compatibility: facts
+     * persisted before this field existed parse unchanged and are read as
+     * unclassified rather than silently relabelled as SOURCE.
+     */
+    evidenceClass: CanonicalFactEvidenceClassSchema.optional(),
+    /** Where in the source document this fact came from, e.g. "Sheet1!C4". */
+    sourceCell: z.string().trim().min(1).optional(),
+    /** The versioned mapping that produced a DERIVED fact. */
+    derivation: z.string().trim().min(1).optional(),
     observedAt: z.string().datetime().optional(),
     recordedAt: z.string().datetime(),
     enteredBy: z.string().trim().min(1),
@@ -84,6 +124,21 @@ export const CanonicalFactV2Schema = z
         code: "custom",
         path: ["value"],
         message: `${fact.status} must not carry a value that could be evaluated as known.`,
+      });
+    }
+    if (fact.evidenceClass === "ASSUMED" && fact.status === "KNOWN") {
+      context.addIssue({
+        code: "custom",
+        path: ["evidenceClass"],
+        message:
+          "An ASSUMED fact may never be KNOWN: it would satisfy governed predicates it has no evidence for.",
+      });
+    }
+    if (fact.evidenceClass === "MISSING" && fact.status === "KNOWN") {
+      context.addIssue({
+        code: "custom",
+        path: ["evidenceClass"],
+        message: "A MISSING fact may never be KNOWN.",
       });
     }
     if (
@@ -280,6 +335,10 @@ export function canonicalClinicalFactsV2FromFlatFacts(args: {
    * still the load-bearing fact behind a referral.
    */
   assumedFacts?: ReadonlySet<string>;
+  /** Facts supplied verbatim by the source, with the cell they came from. */
+  sourceFacts?: Readonly<Record<string, string | true>>;
+  /** Facts that are meaning-preserving transformations, with the mapping name. */
+  derivedFacts?: Readonly<Record<string, string>>;
   /** Identifies the router that produced `ROUTER_DERIVED_FACTS`, e.g. "business-figures-table1-v1". */
   routerEngine?: string;
 }): CanonicalClinicalFactsV2 {
@@ -296,7 +355,29 @@ export function canonicalClinicalFactsV2FromFlatFacts(args: {
     }
     const routerDerived = ROUTER_DERIVED_FACTS.has(key);
     const assumed = args.assumedFacts?.has(key) ?? false;
+    const sourceCell = args.sourceFacts?.[key];
+    const derivation = routerDerived
+      ? `router:${args.routerEngine ?? "legacy-router"}`
+      : args.derivedFacts?.[key];
+    // Unclassified unless the caller actually classified it. Defaulting to
+    // SOURCE would have relabelled every legacy-normalised fact as reported
+    // evidence, which is the over-claim this field exists to prevent.
+    // Classified only where the caller actually classified it. A fact with no
+    // stated class stays unclassified: defaulting to SOURCE would relabel every
+    // legacy-normalised passthrough as reported evidence, and defaulting to
+    // MISSING would contradict its own KNOWN status. Both are worse than
+    // saying nothing.
+    const evidenceClass: CanonicalFactEvidenceClass | undefined = assumed
+      ? "ASSUMED"
+      : sourceCell !== undefined
+        ? "SOURCE"
+        : derivation !== undefined
+          ? "DERIVED"
+          : undefined;
     facts[key] = {
+      ...(evidenceClass ? { evidenceClass } : {}),
+      ...(typeof sourceCell === "string" ? { sourceCell } : {}),
+      ...(derivation && !assumed ? { derivation } : {}),
       // An assumed value is not knowledge, and the schema already refuses to let
       // a non-KNOWN fact carry a value that could be evaluated as one. The fact
       // is recorded as present-but-unresolved so the rules that need it report

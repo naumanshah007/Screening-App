@@ -34,7 +34,11 @@ import {
   PREVIEW_PENDING_ACTION,
   PREVIEW_PENDING_FIELD,
 } from "@/lib/batch/preview-state";
-import { isEvaluationUnavailable } from "@/lib/clinical-rules/evaluation-unavailable";
+import {
+  EVALUATION_STATUS_LABEL,
+  evaluationStatusFor,
+  type EvaluationStatus,
+} from "@/lib/clinical-rules/decision-envelope";
 import { CYTOLOGY_STATE_LABEL } from "@/lib/batch/source-evidence";
 
 /**
@@ -107,46 +111,34 @@ const DISPOSITION_LABEL: Record<CaseReviewContext["disposition"], string> = {
 };
 
 /**
- * The four states a clinician is ever shown.
+ * The clinician-facing state, from the SHARED classifier.
  *
- * A safety stop is a COMPLETED evaluation that deliberately stopped, so it is
- * NEEDS INFORMATION or CLINICIAN REVIEW — never "governed evaluation pending".
- * Pending belongs only to a row that genuinely has not been evaluated yet.
+ * This used to be a second copy of the state machine inside the component. Two
+ * copies of "is this case decided?" is exactly how a worklist row and the
+ * drawer it opens come to disagree, so the drawer now asks the same function
+ * the evaluation envelope and persistence use.
+ *
+ * NOT_YET_EVALUATED is the drawer's own addition: a routing preview has not
+ * been evaluated by anything, which is a presentation state rather than an
+ * evaluation outcome.
  */
-type DecisionState =
-  | "DECISION"
-  | "NEEDS_INFORMATION"
-  | "CLINICIAN_REVIEW"
-  | "EVALUATION_UNAVAILABLE"
-  | "NOT_YET_EVALUATED";
+type DecisionState = EvaluationStatus | "NOT_YET_EVALUATED";
 
 const DECISION_STATE_LABEL: Record<DecisionState, string> = {
-  DECISION: "Decision",
-  NEEDS_INFORMATION: "Needs information",
-  CLINICIAN_REVIEW: "Clinician review",
-  EVALUATION_UNAVAILABLE: "Evaluation unavailable",
+  ...EVALUATION_STATUS_LABEL,
   NOT_YET_EVALUATED: "Not yet evaluated",
 };
 
 function decisionStateFor(result: BatchCaseResult): DecisionState {
-  const { decision } = result;
-  if (isRoutingPreview(decision)) return "NOT_YET_EVALUATED";
-  if (isEvaluationUnavailable(decision) || result.status === "error") {
-    return "EVALUATION_UNAVAILABLE";
-  }
-  if (
-    decision.safetyOutcome === "INSUFFICIENT_INFORMATION" ||
-    decision.safetyOutcome === "EXTERNAL_HISTORY_REQUIRED" ||
-    (decision.missingInformation?.length ?? 0) > 0
-  ) {
-    return "NEEDS_INFORMATION";
-  }
-  if (decision.safetyOutcome === "CLINICIAN_REVIEW_REQUIRED") return "CLINICIAN_REVIEW";
-  return "DECISION";
+  if (isRoutingPreview(result.decision)) return "NOT_YET_EVALUATED";
+  return evaluationStatusFor({
+    decision: result.decision,
+    engineStatus: result.status,
+  });
 }
 
 const DECISION_STATE_TONE: Record<DecisionState, BadgeTone> = {
-  DECISION: "success",
+  DECIDED: "success",
   NEEDS_INFORMATION: "warn",
   CLINICIAN_REVIEW: "info",
   EVALUATION_UNAVAILABLE: "warn",
@@ -525,6 +517,14 @@ export function BatchResultDetail({
                 </li>
               ))}
             </ol>
+            {/*
+              The path is tied to the pinned evaluation STRUCTURALLY — it is
+              read from that evaluation's own recorded branch path, and the
+              ruleset version and checksum it ran under are stated in the
+              technical disclosure below. They are not printed here: a checksum
+              is not something a clinician can act on, and section N keeps
+              identifiers out of the clinician-facing view.
+            */}
             <p className="mt-2 text-xs text-muted-foreground">
               Taken from this case&apos;s own recorded evaluation. It is not a
               catalogue diagram, and no step is inferred from the recommendation.

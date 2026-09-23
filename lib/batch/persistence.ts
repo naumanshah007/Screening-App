@@ -30,8 +30,8 @@ import {
   EVALUATION_UNAVAILABLE_CODE,
   EVALUATION_UNAVAILABLE_TEXT,
   evaluationUnavailableDecision,
-  isEvaluationUnavailable,
 } from "@/lib/clinical-rules/evaluation-unavailable";
+import { producedRecommendation } from "@/lib/clinical-rules/decision-envelope";
 import type { ClinicalDecision } from "@/lib/engine/types";
 import { resolveShadowClinicalRuleVersion } from "@/lib/clinical-rules/lifecycle";
 import { requireCurrentOrganisationId } from "@/lib/organisation/current-organisation";
@@ -653,10 +653,10 @@ export async function saveBatchRun(args: {
         // A run that resolved to "no recommendation available" did not complete
         // a governed evaluation, and the outcome manifest must not count it as
         // one.
-        if (isEvaluationUnavailable(graded.decision)) {
-          governedEvaluationFailed += 1;
-        } else {
+        if (producedRecommendation(graded.envelope)) {
           governedEvaluationCompleted += 1;
+        } else {
+          governedEvaluationFailed += 1;
         }
 
         // Meter the governed evaluation that just happened.
@@ -676,7 +676,7 @@ export async function saveBatchRun(args: {
         // accounting must never be able to fail a clinical decision that has
         // already been computed and persisted.
         const episodeId = episodeIdByRow.get(reviewItem.rowNumber);
-        if (episodeId && !isEvaluationUnavailable(graded.decision)) {
+        if (episodeId && producedRecommendation(graded.envelope)) {
           try {
             const alreadyTriaged = await prisma.usageEvent.findFirst({
               where: { episodeId, eventType: "FIRST_TRIAGE" },

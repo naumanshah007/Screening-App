@@ -18,7 +18,7 @@ import type {
 } from "./types";
 import { canonicalClinicalFactsV2FromFlatFacts } from "@/lib/clinical-rules/canonical-facts-v2";
 import { normalizeClinicalFactMap } from "@/lib/clinical-rules/facts";
-import { canonicalHpvFactValue } from "./source-evidence";
+import { canonicalHpvFactValue, sourceCellRef } from "./source-evidence";
 
 /**
  * Facts a source-evidence-bearing case supplies because the legacy contract
@@ -127,6 +127,43 @@ export function canonicalFactsForCase(args: {
   if (preciseHpv !== undefined) facts.hpvResult = preciseHpv;
 
   const assumedFacts = assumedCanonicalFactNames(batchCase);
+
+  // Which canonical facts came VERBATIM from a source cell, and which are
+  // meaning-preserving transformations of one. Everything else on a
+  // source-evidence case is neither, and is reported as such rather than
+  // inheriting a borrowed provenance.
+  const evidence = batchCase.sourceEvidence;
+  const locator = evidence?.locator;
+  const sourceFacts: Record<string, string | true> = {};
+  const derivedFacts: Record<string, string> = {};
+  if (evidence && locator) {
+    if (facts.hpvResult !== undefined) {
+      sourceFacts.hpvResult = sourceCellRef(locator, "hpvResult");
+    }
+    if (facts.cytologyResult !== undefined) {
+      sourceFacts.cytologyResult = sourceCellRef(locator, "cytologyFollowUp");
+    }
+    if (facts.ageYears !== undefined) {
+      sourceFacts.ageYears = sourceCellRef(locator, "age");
+    }
+    const mapping = locator.mappingVersion;
+    for (const name of [
+      "hpvValidity",
+      "cytologyAdequacy",
+      "eventStage",
+      "priorScreeningHistoryGroup",
+      "priorHighGradeHistory",
+      "priorLowGradeResolved",
+      "isTestOfCureEvent",
+      "screeningStatus",
+      "isExitTest",
+      "hasCurrentGlandularAbnormality",
+    ]) {
+      if (facts[name] !== undefined && !assumedFacts.has(name)) {
+        derivedFacts[name] = mapping;
+      }
+    }
+  }
   const factSources = Object.fromEntries(
     [...assumedFacts]
       .filter((name) => facts[name] !== undefined)
@@ -140,6 +177,8 @@ export function canonicalFactsForCase(args: {
     source: "PRIOR_RECORD",
     factSources,
     assumedFacts,
+    ...(Object.keys(sourceFacts).length > 0 ? { sourceFacts } : {}),
+    ...(Object.keys(derivedFacts).length > 0 ? { derivedFacts } : {}),
     enteredBy: `batch-${batchCase.source.mappingVersion}`,
     recordedAt: batchCase.source.importedAt,
     routerEngine: ENGINE_VERSION,
